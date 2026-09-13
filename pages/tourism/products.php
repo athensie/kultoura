@@ -1,0 +1,409 @@
+<?php
+session_start();
+require_once '../../config/dbmain.php';
+require_once '../../config/analytics.php';
+analytics_track($conn, 'products');
+
+// Logged for foryou.php's "Because You Explored" recommendations.
+$_SESSION['history'][] = 'product';
+$_SESSION['history'] = array_slice($_SESSION['history'], -30);
+
+$isLoggedIn = isset($_SESSION['user_id']);
+$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userId     = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
+
+/*
+ |--------------------------------------------------------------------
+ | PRODUCTS — populated from listings the admin added/approved in
+ | adminfoodanddining.php (only 'active' ones are shown here).
+ |--------------------------------------------------------------------
+ */
+$categoryChoices = ['Local Food', 'Local Products', 'Crafts'];
+$q        = trim($_GET['q'] ?? '');
+$category = trim($_GET['category'] ?? '');
+
+$sql    = "SELECT product_id, product_name, category, description, price, location, latitude, longitude, image
+           FROM products WHERE 1=1";
+$params = [];
+$types  = '';
+
+if ($q !== '') {
+    $sql     .= " AND (product_name LIKE ? OR description LIKE ?)";
+    $like     = '%' . $q . '%';
+    $params[] = $like;
+    $params[] = $like;
+    $types   .= 'ss';
+}
+if ($category !== '' && $category !== 'All Categories' && in_array($category, $categoryChoices, true)) {
+    $sql     .= " AND category = ?";
+    $params[] = $category;
+    $types   .= 's';
+}
+$sql .= " ORDER BY product_name ASC";
+
+$rows = [];
+$stmt = $conn->prepare($sql);
+if ($types !== '') {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Which of these the logged-in user has already favorited.
+$favoritedIds = [];
+if ($isLoggedIn && !empty($rows)) {
+    $ids          = array_column($rows, 'product_id');
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt  = $conn->prepare("SELECT item_id FROM favorites WHERE user_id = ? AND item_type = 'product' AND item_id IN ($placeholders)");
+    $bind  = array_merge([$userId], $ids);
+    $stmt->bind_param(str_repeat('i', count($bind)), ...$bind);
+    $stmt->execute();
+    $favRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    $favoritedIds = array_column($favRows, 'item_id');
+}
+
+$products = [];
+foreach ($rows as $r) {
+    $products[] = [
+        'id'        => (int) $r['product_id'],
+        'name'      => $r['product_name'],
+        'category'  => $r['category'],
+        'tag'       => $r['category'],
+        'desc'      => $r['description'],
+        'price'     => $r['price'],
+        'address'   => $r['location'],
+        'lat'       => $r['latitude'],
+        'lng'       => $r['longitude'],
+        'image'     => $r['image'],
+        'favorited' => in_array((int) $r['product_id'], $favoritedIds, true),
+    ];
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products – KULTOURA</title>
+    <link rel="stylesheet" href="../../assets/css/index.css">
+    <link rel="stylesheet" href="../../assets/css/tourism.css">
+    <link rel="stylesheet" href="../../assets/css/product.css">
+    <!-- View Details / Navigate modal styles are shared: .p-modal-*, .p-nav-* in tourism.css -->
+</head>
+<body>
+
+<!-- ── Navbar (shared) ── -->
+<header class="navbar navbar-solid">
+
+    <?php if ($isLoggedIn): ?>
+        <div class="user-greeting-left"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>Hi, <?php echo $userName; ?></div>
+    <?php else: ?>
+        <div class="user-greeting-left" style="letter-spacing:2px;font-size:15px;font-weight:900;">
+            <span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>
+            <a href="index.php" style="text-decoration:none;color:#C8A96E;">KUL<span style="color:#9fb88a">TOURA</span></a>
+        </div>
+    <?php endif; ?>
+
+    <nav class="nav-links">
+        <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
+        <div class="dropdown">
+            <a href="../tourism.php" class="nav-item nav-active"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg></span><span>TOURISM ▾</span></a>
+            <div class="mega-menu">
+                <div class="mega-column">
+                    <h4>Food</h4>
+                    <a href="products.php">Products</a>
+                    <a href="restaurants.php">Restaurants</a>
+                </div>
+                <div class="mega-column">
+                    <h4>Local Destinations</h4>
+                    <a href="nature.php">Nature</a>
+                    <a href="industry.php">Industry Zone</a>
+                    <a href="resort.php">Resort</a>
+                </div>
+                <div class="mega-column">
+                    <h4>Others</h4>
+                    <a href="fiestas.php">Fiestas</a>
+                    <a href="people.php">People of Malvar</a>
+                </div>
+            </div>
+        </div>
+        <a href="../foryou.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg></span><span>FOR YOU</span></a>
+        <a href="../traveldiary.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M16 4v3h3"/><path d="M8 10h8M8 14h8M8 18h5"/></svg></span><span>TRAVEL DIARY</span></a>
+        <a href="../favorites.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C.5 7 2 3.5 5.5 3.5c2 0 3.5 1 4.5 2.5 1-1.5 2.5-2.5 4.5-2.5C18 3.5 19.5 7 19.5 11 17 15.5 12 20 12 20z"/></svg></span><span>FAVORITES</span></a>
+        <a href="../mostpopular.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 6-3 6-6.5 0-2.5-1.5-4-2.5-5.5.5 2-1 3-2 2 0-2.5-1.5-4-3-6-.5 3-3 4.5-3 8 0 1-1 1.5-2 1-.5 3 2 7 6.5 7z"/></svg></span><span>MOST POPULAR</span></a>
+        <a href="../about.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11.5v5"/><circle cx="12" cy="7.8" r="0.9" fill="currentColor" stroke="none"/></svg></span><span>ABOUT</span></a>
+
+    </nav>
+
+    <?php if ($isLoggedIn): ?>
+        <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        <a href="../../auth/logout.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>SIGN OUT</span></a>
+    <?php else: ?>
+        <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        <a href="../../login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
+    <?php endif; ?>
+
+</header>
+
+<!-- ── Page Hero ── -->
+<section class="t-hero">
+    <div class="t-hero-orb t-orb-1"></div>
+    <div class="t-hero-orb t-orb-2"></div>
+    <div class="t-hero-inner">
+        <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
+        <h1 class="t-page-title">Products</h1>
+        <p class="t-page-sub">
+            Locally made goods, native delicacies, and fresh produce from Malvar's markets.
+        </p>
+    </div>
+</section>
+
+<!-- ── Products Grid ── -->
+<main class="t-main">
+
+    <section class="p-search-row">
+        <form class="p-search-bar" action="products.php" method="get">
+            <input type="text" name="q" placeholder="Search food, places, events…" value="<?= htmlspecialchars($q) ?>">
+            <select name="category" class="p-category-select">
+                <option<?= $category === '' ? ' selected' : '' ?>>All Categories</option>
+                <?php foreach ($categoryChoices as $cat): ?>
+                    <option<?= $category === $cat ? ' selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+    </section>
+
+    <section class="t-category" id="local-food">
+        <div class="t-category-header">
+            <div>
+                <p class="t-cat-label">Local Food</p>
+                <h2 class="t-cat-title">Local Food</h2>
+                <p class="t-cat-desc">Traditional dishes and delicacies rooted in Malvar's culinary heritage.</p>
+            </div>
+        </div>
+
+        <?php if (empty($products)): ?>
+        <div class="p-empty-state">
+            <h3>No local food entries yet</h3>
+            <p>Once the admin adds items, they'll show up here as cards.</p>
+        </div>
+        <?php else: ?>
+        <div class="p-card-grid">
+            <?php foreach ($products as $item): ?>
+            <article class="p-card">
+                <div class="p-card-media">
+                    <?php if (!empty($item['image'])): ?>
+                        <img src="../../uploads/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="p-card-img">
+                    <?php endif; ?>
+                    <button class="p-fav-btn <?= !empty($item['favorited']) ? 'is-favorited' : '' ?>" type="button"
+                            data-item-id="<?= (int) $item['id'] ?>" data-item-type="product"
+                            onclick="toggleFavorite(this)" aria-label="Save to favorites">&#9825;</button>
+                    <span class="p-tag-pill"><?= htmlspecialchars($item['tag']) ?></span>
+                </div>
+                <div class="p-card-body">
+                    <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
+                    <h3 class="p-card-title"><?= htmlspecialchars($item['name']) ?></h3>
+                    <p class="p-card-desc"><?= htmlspecialchars($item['desc']) ?></p>
+                    <?php if ($item['price'] !== null && $item['price'] !== ''): ?>
+                        <p class="p-card-price">₱<?= htmlspecialchars(number_format((float) $item['price'], 2)) ?></p>
+                    <?php endif; ?>
+                    <div class="p-card-actions">
+                        <button type="button" class="p-btn p-btn-primary" onclick="openViewDetails(<?= (int) $item['id'] ?>)">View Details</button>
+                        <button type="button" class="p-btn p-btn-outline" onclick="openNavigate(<?= (int) $item['id'] ?>)">Navigate</button>
+                    </div>
+                </div>
+            </article>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </section>
+
+</main>
+
+<!-- ── View Details Modal ── -->
+<div class="p-modal-overlay" id="viewDetailsModal" onclick="closeModalOutsideX(event, 'viewDetailsModal')">
+    <div class="p-modal-card">
+        <button class="p-modal-close" onclick="closeModalX('viewDetailsModal')">&times;</button>
+        <div class="p-modal-media">
+            <img id="vdImage" src="" alt="" style="display:none;">
+            <button class="p-modal-fav-icon" id="vdFavBtn" type="button" data-item-type="product" onclick="toggleFavorite(this)" aria-label="Add to favorites">&#9825;</button>
+        </div>
+        <span class="p-modal-eyebrow" id="vdTag">—</span>
+        <h3 class="p-modal-title" id="vdTitle">—</h3>
+        <p class="p-modal-desc" id="vdDesc">—</p>
+        <div class="p-modal-facts" id="vdFacts"></div>
+        <div class="p-modal-actions">
+            <button type="button" class="p-btn p-btn-primary" id="vdFavToggleBtn" onclick="toggleFavorite(document.getElementById('vdFavBtn'))">
+                <span id="vdFavLabel">♡ Add to Favorites</span>
+            </button>
+            <button type="button" class="p-btn p-btn-outline" id="vdNavigateBtn">Navigate</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Navigate Modal ── -->
+<div class="p-modal-overlay" id="navigateModal" onclick="closeModalOutsideX(event, 'navigateModal')">
+    <div class="p-modal-card p-modal-card-wide">
+        <button class="p-modal-close" onclick="closeModalX('navigateModal')">&times;</button>
+        <p class="p-modal-eyebrow">Navigate to</p>
+        <h3 class="p-modal-title" id="navTitle">—</h3>
+        <p class="p-nav-distance" id="navDistance">Locating you…</p>
+        <iframe class="p-map-frame" id="navFrame" src="" loading="lazy" allowfullscreen></iframe>
+        <div class="p-modal-actions">
+            <a href="#" target="_blank" rel="noopener" id="navDirectLink" class="p-btn p-btn-primary" style="display:none;">Open Directions in Google Maps</a>
+        </div>
+    </div>
+</div>
+
+<!-- ── Footer ── -->
+<footer class="t-footer">
+    <p>© KULTOURA · Malvar, Batangas · </p>
+</footer>
+
+<script src="index.js"></script>
+<script>
+const productsData = <?php echo json_encode($products); ?>;
+
+function findProduct(id) { return productsData.find(p => p.id === id); }
+
+function openModalX(id) { document.getElementById(id).classList.add('open'); }
+function closeModalX(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOutsideX(e, id) { if (e.target.id === id) closeModalX(id); }
+
+/* ---------------- Per-item view tracking (fire-and-forget) ---------------- */
+function ktTrackItemView(type, id) {
+    if (!id) return;
+    const body = new URLSearchParams({ item_type: type, item_id: id }).toString();
+    const blob = new Blob([body], { type: 'application/x-www-form-urlencoded' });
+    if (navigator.sendBeacon) {
+        navigator.sendBeacon('../track_item_view.php', blob);
+    } else {
+        fetch('../track_item_view.php', { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, keepalive: true }).catch(() => {});
+    }
+}
+
+/* ---------------- View Details ---------------- */
+function openViewDetails(id) {
+    const item = findProduct(id);
+    if (!item) return;
+
+    ktTrackItemView('product', id);
+
+    document.getElementById('vdTag').textContent = item.category || '—';
+    document.getElementById('vdTitle').textContent = item.name;
+    document.getElementById('vdDesc').textContent = item.desc || '';
+
+    const img = document.getElementById('vdImage');
+    if (item.image) { img.src = '../../uploads/' + item.image; img.style.display = ''; }
+    else { img.style.display = 'none'; }
+
+    const favBtn = document.getElementById('vdFavBtn');
+    favBtn.dataset.itemId = item.id;
+    favBtn.classList.toggle('is-favorited', !!item.favorited);
+    document.getElementById('vdFavLabel').textContent = item.favorited ? '♥ Saved to Favorites' : '♡ Add to Favorites';
+
+    let facts = '';
+    if (item.price !== null && item.price !== '') {
+        facts += `<div><p class="p-fact-label">Price</p><p class="p-fact-value">₱${Number(item.price).toFixed(2)}</p></div>`;
+    }
+    facts += `<div><p class="p-fact-label">Location</p><p class="p-fact-value">${item.address || '—'}</p></div>`;
+    document.getElementById('vdFacts').innerHTML = facts;
+
+    document.getElementById('vdNavigateBtn').onclick = function () {
+        closeModalX('viewDetailsModal');
+        openNavigate(item.id);
+    };
+
+    openModalX('viewDetailsModal');
+}
+
+/* ---------------- Favorites (used by card hearts + modal heart) ---------------- */
+function toggleFavorite(btn) {
+    const itemId   = btn.dataset.itemId;
+    const itemType = btn.dataset.itemType;
+
+    fetch('../favorites.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ action: 'toggle', item_type: itemType, item_id: itemId })
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.needsLogin) {
+                window.location.href = '../../login.php';
+                return;
+            }
+            if (data.success) {
+                document.querySelectorAll(`[data-item-id="${itemId}"][data-item-type="${itemType}"]`).forEach(el => {
+                    el.classList.toggle('is-favorited', data.favorited);
+                });
+                const item = findProduct(parseInt(itemId, 10));
+                if (item) item.favorited = data.favorited;
+                const label = document.getElementById('vdFavLabel');
+                if (label) label.textContent = data.favorited ? '♥ Saved to Favorites' : '♡ Add to Favorites';
+            }
+        })
+        .catch(() => { /* network hiccup — leave the button state as-is */ });
+}
+
+/* ---------------- Navigate (Google Maps embed) ---------------- */
+function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function openNavigate(id) {
+    const item = findProduct(id);
+    if (!item) return;
+
+    document.getElementById('navTitle').textContent = item.name;
+    const distEl = document.getElementById('navDistance');
+    const frame = document.getElementById('navFrame');
+    const directLink = document.getElementById('navDirectLink');
+
+    const hasCoords = !!(item.lat && item.lng);
+
+    openModalX('navigateModal');
+
+    if (!hasCoords) {
+        distEl.textContent = "This location hasn't been mapped yet — the admin needs to set it when adding/editing the listing.";
+        frame.src = '';
+        directLink.style.display = 'none';
+        return;
+    }
+
+    const destLat = parseFloat(item.lat);
+    const destLng = parseFloat(item.lng);
+
+    frame.src = 'https://www.google.com/maps?q=' + destLat + ',' + destLng + '&z=15&output=embed';
+    directLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng;
+    directLink.style.display = 'inline-block';
+    distEl.textContent = 'Locating you…';
+
+    if (!navigator.geolocation) {
+        distEl.textContent = "Your browser doesn't support location — showing the destination only.";
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(function (pos) {
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+        const km = haversineKm(userLat, userLng, destLat, destLng);
+        distEl.textContent = (km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km') + ' away from your current location';
+        frame.src = 'https://www.google.com/maps?saddr=' + userLat + ',' + userLng + '&daddr=' + destLat + ',' + destLng + '&output=embed';
+        directLink.href = 'https://www.google.com/maps/dir/?api=1&origin=' + userLat + ',' + userLng + '&destination=' + destLat + ',' + destLng;
+    }, function () {
+        distEl.textContent = 'Enable location access in your browser to see your distance and directions.';
+    }, { enableHighAccuracy: true, timeout: 10000 });
+}
+</script>
+
+</body>
+</html>

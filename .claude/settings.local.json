@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"favorites.php -> %{http_code}\\\\n\" \"http://localhost/kultoura/pages/favorites.php\")",
+      "Bash(node --check \"/c/xampp/htdocs/kultoura/assets/js/foryou.js\")",
+      "Bash(/c/xampp/php/php.exe -l \"/c/xampp/htdocs/kultoura/pages/foryou.php\")"
+    ]
+  }
+}

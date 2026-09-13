@@ -1,0 +1,200 @@
+/* KulToura — Favorites page (f- prefix, following the tourism.php t- pattern) */
+
+.f-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+}
+
+.f-toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+}
+
+.f-search {
+    flex: 1;
+    min-width: 220px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.04);
+    color: #221a10;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+.f-search::placeholder { color: rgba(34, 26, 16, 0.35); }
+.f-search:focus { border-color: rgba(200, 169, 110, 0.6); }
+
+.f-filter {
+    padding: 11px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(34, 26, 16, 0.7);
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+}
+.f-filter option { background: #fff; color: #221a10; }
+
+.f-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.f-card {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.25s, border-color 0.25s, background 0.25s;
+}
+.f-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(200, 169, 110, 0.4);
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.f-card-media {
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.06);
+}
+.f-card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.f-card-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.f-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.f-badge {
+    font-size: 0.62rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #C8A96E;
+    background: rgba(200, 169, 110, 0.12);
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.f-remove-form { margin: 0; }
+
+.f-heart-btn {
+    background: none;
+    border: none;
+    color: #C8A96E;
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.2s, color 0.2s;
+}
+.f-heart-btn:hover {
+    color: #e05252;
+    transform: scale(1.15);
+}
+
+.f-card-title {
+    font-size: 1.1rem;
+    color: #221a10;
+    margin: 0;
+}
+
+.f-card-desc {
+    font-size: 0.85rem;
+    color: rgba(34, 26, 16, 0.55);
+    line-height: 1.5;
+    margin: 0;
+    flex: 1;
+}
+
+.f-card-link {
+    align-self: flex-start;
+    font-size: 0.82rem;
+    color: #9fb88a;
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+.f-card-link:hover { opacity: 0.75; }
+
+/* EMPTY STATE */
+.f-empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: rgba(34, 26, 16, 0.5);
+}
+.f-empty-heart {
+    font-size: 3rem;
+    color: rgba(200, 169, 110, 0.35);
+    margin-bottom: 16px;
+}
+.f-empty h3 {
+    color: #221a10;
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+}
+.f-empty p {
+    max-width: 380px;
+    margin: 0 auto 24px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+.f-empty-cta {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #C8A96E, #9fb88a);
+    color: #14110c;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+.f-empty-cta:hover { opacity: 0.85; }
+
+/* TOAST */
+.f-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: rgba(20, 17, 12, 0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f5f0e6;
+    padding: 11px 24px;
+    border-radius: 999px;
+    font-size: 0.86rem;
+    z-index: 99999;
+    transition: transform 0.4s;
+    white-space: nowrap;
+}
+.f-toast.show { transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 640px) {
+    .f-main { padding: 32px 16px 64px; }
+    .f-grid { grid-template-columns: 1fr; }
+}

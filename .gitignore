@@ -1,0 +1,40 @@
+﻿# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# PHP / Composer
+vendor/
+composer.lock
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Runtime / cache
+cache/
+tmp/
+*.cache
+
+# Uploads (user content)
+uploads/
+
+# XAMPP
+xamppfiles/
+
+# Misc
+.DS_Store

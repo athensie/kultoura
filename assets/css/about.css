@@ -1,0 +1,383 @@
+/* KulToura — About page (a- prefix, following the tourism.php t- pattern) */
+
+/* ── Hero (photo + overlapping facts card) ── */
+.a-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    padding: 90px 48px;
+    background: linear-gradient(135deg, #2f3f24, #1c2718);
+}
+
+.a-hero-no-photo {
+    background: linear-gradient(135deg, #2f3f24, #1c2718);
+}
+
+.a-hero-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+.a-hero-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(20, 22, 12, 0.82) 0%, rgba(20, 22, 12, 0.55) 45%, rgba(20, 22, 12, 0.15) 75%);
+    z-index: 1;
+}
+
+.a-hero-leaf {
+    position: absolute;
+    top: 30px;
+    right: 60px;
+    width: 90px;
+    height: 90px;
+    color: rgba(240, 235, 216, 0.35);
+    transform: rotate(20deg);
+    z-index: 1;
+}
+.a-hero-leaf svg { width: 100%; height: 100%; display: block; }
+
+.a-hero-inner {
+    position: relative;
+    z-index: 2;
+    max-width: 640px;
+}
+
+.a-eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #9fb88a;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.a-page-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 900;
+    font-size: clamp(48px, 6vw, 76px);
+    color: #f5efe3;
+    line-height: 1;
+    margin: 0;
+}
+
+.a-title-arrow {
+    display: block;
+    width: 60px;
+    height: 2px;
+    background: #C8A96E;
+    margin: 18px 0 20px;
+    position: relative;
+}
+.a-title-arrow::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-top: 2px solid #C8A96E;
+    border-right: 2px solid #C8A96E;
+    transform: rotate(45deg);
+}
+
+.a-page-sub {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(245, 239, 227, 0.85);
+    max-width: 420px;
+    margin: 0;
+}
+
+/* Quick Facts card — sits in normal document flow (so it always takes up
+   exactly the space it needs) and is pulled up over the hero's bottom
+   edge with a negative margin, instead of being absolutely positioned
+   with hand-guessed padding on the hero/main to "reserve" room for it. */
+.a-facts-wrap {
+    position: relative;
+    z-index: 3;
+    padding: 0 32px;
+    margin-top: -70px;
+}
+
+.a-facts {
+    max-width: 1180px;
+    margin: 0 auto;
+    background: #faf7f0;
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(20, 17, 12, 0.18);
+    padding: 30px 24px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.a-fact {
+    text-align: center;
+    padding: 0 8px;
+    border-right: 1px solid rgba(44, 26, 14, 0.08);
+}
+.a-fact:last-child { border-right: none; }
+
+.a-fact-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(159, 184, 138, 0.16);
+    color: #5f7d4c;
+    padding: 11px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+.a-fact-icon svg { width: 100%; height: 100%; display: block; }
+
+.a-fact-num {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #221a10;
+    line-height: 1.1;
+}
+
+.a-fact-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #2c1a0e;
+    margin-top: 4px;
+}
+
+.a-fact-desc {
+    font-size: 0.7rem;
+    color: rgba(34, 26, 16, 0.5);
+    line-height: 1.4;
+    margin-top: 4px;
+}
+
+/* ── Content ── */
+.a-main {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+}
+
+.a-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 40px 0;
+    border-bottom: 1px solid rgba(44, 26, 14, 0.08);
+    scroll-margin-top: 100px;
+}
+.a-section:last-of-type { border-bottom: none; }
+
+.a-section-photo {
+    flex: 0 0 auto;
+    width: 260px;
+    height: 190px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+.a-section-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.a-section-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.a-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.a-section-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(159, 184, 138, 0.18);
+    color: #5f7d4c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px;
+    box-sizing: border-box;
+}
+.a-section-icon svg { width: 100%; height: 100%; display: block; }
+
+.a-section-header h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.6rem;
+    color: #221a10;
+    margin: 0;
+}
+
+.a-section-body p {
+    font-size: 0.95rem;
+    line-height: 1.85;
+    color: rgba(34, 26, 16, 0.72);
+    margin-bottom: 14px;
+}
+.a-section-body p:last-child { margin-bottom: 0; }
+
+/* ── CTA banner ── */
+.a-cta {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 40px;
+    padding: 44px 40px;
+    border-radius: 20px;
+    background: #ece5d3;
+}
+
+.a-cta-text { max-width: 420px; position: relative; z-index: 1; }
+
+.a-cta h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 1.6rem;
+    color: #2f3f24;
+    margin: 0 0 6px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 10px;
+}
+.a-cta h3::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 40px;
+    height: 2px;
+    background: #C8A96E;
+}
+
+.a-cta p {
+    font-size: 0.88rem;
+    color: rgba(34, 26, 16, 0.6);
+    line-height: 1.6;
+    margin: 10px 0 0;
+}
+
+.a-cta-btn {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 30px;
+    border-radius: 999px;
+    background: #4c6a3d;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+.a-cta-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.a-cta-btn:hover { background: #3d5731; transform: translateY(-2px); }
+
+.a-cta-leaf {
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    color: #9fb88a;
+    opacity: 0.35;
+}
+.a-cta-leaf svg { width: 100%; height: 100%; display: block; }
+.a-cta-leaf-1 { bottom: -20px; left: -20px; transform: rotate(-30deg); }
+.a-cta-leaf-2 { top: -20px; right: -10px; transform: rotate(150deg); }
+
+/* Scroll-reveal state (toggled by about.js) */
+.a-section {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.a-section.a-visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* ── Footer ── */
+.a-footer {
+    background: #14200f;
+    color: rgba(240, 235, 216, 0.7);
+    text-align: center;
+    padding: 28px 32px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.a-footer p { margin: 0; }
+
+.a-footer-social {
+    display: flex;
+    gap: 10px;
+}
+.a-footer-social a {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(240, 235, 216, 0.08);
+    color: rgba(240, 235, 216, 0.8);
+    transition: background 0.2s, transform 0.2s;
+}
+.a-footer-social a svg { width: 14px; height: 14px; }
+.a-footer-social a:hover { background: #9fb88a; color: #14200f; transform: translateY(-2px); }
+
+.a-footer-tag {
+    color: rgba(240, 235, 216, 0.45);
+}
+
+@media (max-width: 1100px) {
+    .a-facts { grid-template-columns: repeat(3, 1fr); }
+    .a-fact:nth-child(3n) { border-right: none; }
+}
+
+@media (max-width: 900px) {
+    .a-facts-wrap { margin-top: -50px; padding: 0 20px; }
+    .a-facts { grid-template-columns: repeat(2, 1fr); gap: 20px 8px; }
+    .a-fact:nth-child(2n) { border-right: none; }
+    .a-fact:nth-child(-n+4) { border-bottom: 1px solid rgba(44, 26, 14, 0.08); padding-bottom: 14px; }
+    .a-section { flex-direction: column; }
+    .a-section-photo { width: 100%; height: 220px; }
+}
+
+@media (max-width: 640px) {
+    .a-hero { padding: 56px 20px; }
+    .a-facts-wrap { margin-top: -30px; }
+    .a-facts { grid-template-columns: repeat(2, 1fr); padding: 22px 16px; }
+    .a-fact { border-right: none !important; border-bottom: 1px solid rgba(44, 26, 14, 0.08); padding-bottom: 14px; }
+    .a-fact:nth-last-child(-n+2) { border-bottom: none; }
+    .a-main { padding: 56px 20px 64px; }
+    .a-section-header h2 { font-size: 1.35rem; }
+    .a-cta { flex-direction: column; align-items: flex-start; text-align: left; }
+}

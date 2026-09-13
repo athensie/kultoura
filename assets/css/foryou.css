@@ -1,0 +1,650 @@
+/* ============================================================
+   FOR YOU PAGE — Warm Cream Theme
+   Matches tourism.css's palette: cream background, dark brown
+   text, rust/terracotta accent. Navbar styling still comes from
+   index.css (unchanged, white navbar).
+============================================================ */
+
+.fy-page {
+    background: #f0ebe3;
+    min-height: 100vh;
+    padding-bottom: 80px;
+}
+
+/* ── Hero banner ── */
+.fy-hero {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 64px 80px 56px;
+}
+
+.fy-hero-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.fy-hero-media {
+    flex: 1;
+    max-width: 520px;
+    border-radius: 16px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.fy-hero-media img {
+    width: 100%;
+    height: 340px;
+    object-fit: cover;
+    display: block;
+}
+
+.fy-hero .section-label {
+    color: #8b2e1a;
+}
+
+.fy-hero-cta {
+    display: inline-block;
+    margin-top: 26px;
+    padding: 13px 28px;
+    border-radius: 999px;
+    background: #2c1a0e;
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.fy-hero-cta:hover {
+    background: #46301e;
+}
+
+.fy-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(30px, 4.5vw, 46px);
+    color: #2c1a0e;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+.brand-accent-text {
+    color: #8b2e1a;
+    font-style: italic;
+}
+
+.fy-sub {
+    color: rgba(44, 26, 14, 0.6);
+    font-size: 15px;
+    line-height: 1.7;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ── "You've been exploring" chips ── */
+.fy-history-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.fy-history-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: rgba(44, 26, 14, 0.45);
+    text-transform: uppercase;
+    margin-right: 2px;
+}
+
+.fy-chip {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #2c1a0e;
+    background: rgba(44, 26, 14, 0.06);
+    border: 1px solid rgba(44, 26, 14, 0.1);
+    padding: 5px 12px;
+    border-radius: 999px;
+}
+
+/* ── Page layout: category sidebar (left) + content (right) ── */
+/* .fy-layout-wrap carries the same left/right space as tourism pages' .t-main */
+.fy-layout-wrap {
+    width: 100%;
+    margin: 0;
+    padding: 50px 80px 100px;
+}
+
+.fy-page-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 44px;
+}
+
+.fy-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+}
+
+.fy-sidebar-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(44, 26, 14, 0.45);
+    margin: 0 0 14px;
+}
+
+.fy-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.fy-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 10px;
+    border-left: 2px solid transparent;
+    text-decoration: none;
+    color: #2c1a0e;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.fy-cat-item:hover {
+    background: rgba(44, 26, 14, 0.05);
+    border-left-color: #C8A96E;
+}
+
+.fy-cat-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: #8b2e1a;
+}
+
+.fy-cat-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.fy-cat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.fy-cat-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #2c1a0e;
+}
+
+.fy-cat-count {
+    font-size: 11.5px;
+    color: rgba(44, 26, 14, 0.5);
+}
+
+/* ── Near You sidebar widget ── */
+.fy-near-widget {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(44, 26, 14, 0.1);
+}
+
+.fy-near-widget-sub {
+    font-size: 12px;
+    color: rgba(44, 26, 14, 0.5);
+    margin: 0 0 12px;
+}
+
+.fy-near-widget-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fy-near-widget-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #2c1a0e;
+}
+
+.fy-near-widget-thumb {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #e5dccb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: rgba(44, 26, 14, 0.4);
+}
+
+.fy-near-widget-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.fy-near-widget-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fy-near-widget-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fy-near-widget-dist {
+    font-size: 11px;
+    color: rgba(44, 26, 14, 0.5);
+}
+
+.fy-near-widget-status {
+    font-size: 12px;
+    color: rgba(44, 26, 14, 0.45);
+    margin: 4px 0 10px;
+}
+
+.fy-near-widget-link {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #8b2e1a;
+    text-decoration: none;
+}
+
+.fy-near-widget-link:hover {
+    text-decoration: underline;
+}
+
+.fy-content-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.fy-section {
+    margin: 0;
+    padding: 0;
+}
+
+.fy-content-col .fy-section + .fy-section {
+    margin-top: 48px;
+}
+
+.fy-section-head-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.fy-section-head {
+    margin-bottom: 32px;
+}
+
+.fy-section-head-row .fy-section-head {
+    margin-bottom: 0;
+}
+
+.fy-section-head h2 {
+    font-family: Georgia, serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: clamp(22px, 3vw, 30px);
+    color: #2c1a0e;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+}
+
+.fy-section-head p {
+    color: rgba(44, 26, 14, 0.58);
+    font-size: 13.5px;
+}
+
+/* ── Filter pills + sort ── */
+.fy-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.fy-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.fy-filter-pill {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(44, 26, 14, 0.12);
+    background: #fff;
+    color: rgba(44, 26, 14, 0.6);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.fy-filter-pill:hover {
+    border-color: rgba(200, 169, 110, 0.5);
+    color: #2c1a0e;
+}
+
+.fy-filter-pill.is-active {
+    background: #2c1a0e;
+    border-color: #2c1a0e;
+    color: #fff;
+}
+
+.fy-sort-select {
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(44, 26, 14, 0.12);
+    background: #fff;
+    color: rgba(44, 26, 14, 0.7);
+    font-size: 12.5px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* ── Card grid ── */
+.fy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.fy-card {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid rgba(44, 26, 14, 0.09);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(44, 26, 14, 0.05);
+    transition: border-color 0.15s, transform 0.15s;
+    overflow: hidden;
+}
+
+.fy-card:hover {
+    transform: translateY(-2px);
+}
+
+.fy-card-link {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    position: relative;
+    text-decoration: none;
+    color: #2c1a0e;
+}
+
+/* ── Double-tap-to-like burst (Instagram-style) ── */
+.fy-heart-burst {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 56px;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: 5;
+    animation: fyHeartBurst 0.7s ease-out forwards;
+}
+
+@keyframes fyHeartBurst {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    18%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+    32%  { transform: translate(-50%, -50%) scale(0.95); }
+    46%  { transform: translate(-50%, -50%) scale(1.05); }
+    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+.fy-gcard-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #e5dccb;
+    overflow: hidden;
+}
+
+.fy-gcard-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.fy-gcard-initial {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, serif;
+    font-size: 34px;
+    font-weight: 700;
+    color: rgba(44, 26, 14, 0.35);
+}
+
+.fy-gcard-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: #fff;
+    z-index: 2;
+}
+
+.fy-badge-product    { background: #a9843f; }
+.fy-badge-restaurant { background: #8b2e1a; }
+.fy-badge-nature     { background: #5f7d4c; }
+.fy-badge-resort     { background: #3f7d82; }
+.fy-badge-industry   { background: #6b6357; }
+.fy-badge-fiesta     { background: #a8433a; }
+.fy-badge-person     { background: #4a5a78; }
+
+.fy-gcard-body {
+    flex: 1;
+    padding: 16px 18px 6px;
+}
+
+.fy-card-name {
+    display: block;
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #2c1a0e;
+    line-height: 1.3;
+    margin: 0 0 6px;
+}
+
+.fy-card-desc {
+    font-size: 13.5px;
+    color: rgba(44, 26, 14, 0.7);
+    line-height: 1.5;
+    margin: 0 0 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.fy-gcard-meta {
+    font-size: 12px;
+    color: rgba(44, 26, 14, 0.5);
+    margin: 0 0 14px;
+}
+
+/* ── Card action bar (Save / View / Share — like a post's action row) ── */
+.fy-card-actions {
+    display: flex;
+    border-top: 1px solid rgba(44, 26, 14, 0.08);
+}
+
+.fy-action-btn {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: rgba(44, 26, 14, 0.6);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.fy-share-toast {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    margin-bottom: 6px;
+    background: #2c1a0e;
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    animation: fyToastFade 1.4s ease forwards;
+    z-index: 6;
+}
+
+@keyframes fyToastFade {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.fy-card-actions .fy-action-btn + .fy-action-btn {
+    border-left: 1px solid rgba(44, 26, 14, 0.08);
+}
+
+.fy-action-btn:hover {
+    background: rgba(44, 26, 14, 0.05);
+    color: #2c1a0e;
+}
+
+.fy-action-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.fy-action-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.fy-fav-btn.is-favorited {
+    color: #8b2e1a;
+}
+
+/* ── Near You gate ── */
+.fy-location-gate {
+    border: 1px dashed rgba(44, 26, 14, 0.2);
+    border-radius: 14px;
+    padding: 48px 24px;
+    text-align: center;
+    max-width: 460px;
+    margin: 0 auto;
+    background: #faf7f2;
+}
+
+.fy-location-gate p {
+    color: rgba(44, 26, 14, 0.58);
+    font-size: 13.5px;
+    margin-bottom: 22px;
+}
+
+.fy-location-btn {
+    background: #8b2e1a;
+    border: 1.5px solid #8b2e1a;
+    color: #fff;
+    border-radius: 30px;
+    padding: 13px 30px;
+}
+
+.fy-location-btn:hover {
+    background: #a83520;
+    border-color: #a83520;
+    color: #fff;
+}
+
+.fy-location-status {
+    margin-top: 16px !important;
+    font-size: 12px !important;
+    color: #8b2e1a !important;
+}
+
+.fy-nearby-grid {
+    margin-top: 8px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+    .fy-hero { padding: 56px 48px 44px; gap: 32px; }
+}
+
+@media (max-width: 900px) {
+    .fy-hero { flex-direction: column-reverse; }
+    .fy-hero-media { max-width: 100%; width: 100%; }
+    .fy-hero-media img { height: 220px; }
+    .fy-page-layout { flex-direction: column; gap: 24px; }
+    .fy-sidebar { width: 100%; position: static; }
+    .fy-cat-list { flex-direction: row; flex-wrap: wrap; }
+    .fy-cat-item { flex: 1 1 45%; }
+}
+
+@media (max-width: 640px) {
+    .fy-hero { padding: 44px 22px 36px; }
+    .fy-layout-wrap { padding: 40px 22px 60px; }
+    .fy-cat-item { flex: 1 1 100%; }
+    .fy-grid { grid-template-columns: 1fr; }
+}

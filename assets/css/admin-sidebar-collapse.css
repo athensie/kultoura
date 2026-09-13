@@ -1,0 +1,82 @@
+/* ============================================================
+   Collapsible sidebar (icon-only mode) — shared across every
+   admin page. Works by hiding label text, not the sidebar itself
+   (that's what the existing mobile hamburger/.sidebar.open already
+   does at narrow widths).
+
+   Relies on every sidebar icon having its own explicit font-size
+   (.nav-icon { font-size: 1rem }) or an inline rem-based width/height
+   (the avatar circle + logout icon) — already true everywhere this
+   is used — so `font-size: 0` on the link hides only the adjacent
+   text node without shrinking the icon next to it.
+============================================================ */
+
+.sidebar {
+    /* .sidebar already has position:fixed (a valid anchor for the
+       absolutely-positioned collapse button) and its own
+       `transition: transform .3s` for the mobile drawer slide — this
+       adds the collapse-width transition alongside it rather than
+       replacing it. */
+    transition: transform .3s, width .25s ease;
+}
+
+.sidebar-collapse-btn {
+    position: absolute;
+    top: 28px;
+    right: -13px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--sidebar);
+    border: 1px solid rgba(255,255,255,.12);
+    color: rgba(245,237,216,.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 210;
+    padding: 0;
+    transition: color .2s, background .2s;
+}
+.sidebar-collapse-btn:hover { color: var(--gold); background: rgba(255,255,255,.08); }
+.sidebar-collapse-btn .lucide { width: 14px; height: 14px; transition: transform .25s ease; }
+.sidebar.collapsed .sidebar-collapse-btn .lucide { transform: rotate(180deg); }
+
+.sidebar.collapsed {
+    width: 76px;
+}
+
+.sidebar.collapsed .sidebar-logo,
+.sidebar.collapsed .sidebar-tagline,
+.sidebar.collapsed .sidebar-section,
+.sidebar.collapsed .avatar-name,
+.sidebar.collapsed .avatar-role {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-nav li a,
+.sidebar.collapsed .logout-link {
+    font-size: 0;
+    gap: 0;
+    justify-content: center;
+}
+
+.sidebar.collapsed .admin-avatar {
+    justify-content: center;
+}
+
+.sidebar.collapsed ~ .main-content {
+    margin-left: 76px;
+}
+
+.main-content {
+    transition: margin-left .25s ease;
+}
+
+/* Icon-only mode is a desktop affordance — below the breakpoint where
+   the sidebar already becomes an off-canvas drawer (.sidebar.open),
+   the collapse button just gets in the way. */
+@media (max-width: 1100px) {
+    .sidebar-collapse-btn { display: none; }
+    .sidebar.collapsed ~ .main-content { margin-left: 0; }
+}
