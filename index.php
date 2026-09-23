@@ -443,7 +443,7 @@ if ($result = $conn->query(
         </div>
     </div>
     <div class="home-footer-bottom">
-        <p>&copy; <?php echo date('Y'); ?> KULTOURA. All rights reserved.</p>
+        <p>&copy; <?php echo date('Y'); ?> KULTOURA. All rights reservedness.</p>
         <button type="button" class="home-scroll-top" id="homeScrollTop" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
     </div>
 </footer>
