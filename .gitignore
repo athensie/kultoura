@@ -18,6 +18,13 @@ composer.lock
 .env.local
 .env.*.local
 
+# Secrets (real API keys — copy config/gemini.example.php to config/gemini.php and fill it in)
+config/gemini.php
+
+# One-time admin bootstrap script — reads credentials from env vars,
+# never hardcode real ones here (see config/createadmin.php's header)
+config/createadmin.php
+
 # Node
 node_modules/
 

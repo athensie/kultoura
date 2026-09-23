@@ -1,0 +1,4 @@
+# Shell scripts must keep LF endings even on Windows — they run inside
+# the Linux container's /bin/sh, which chokes on CRLF ("bad interpreter").
+*.sh text eol=lf
+Dockerfile text eol=lf

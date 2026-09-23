@@ -1,10 +1,21 @@
 <?php
-$host   = "localhost";
-$user   = "root";
-$pass   = "";            // default XAMPP: no password
-$dbname = "kultoura_db";
+/*
+ |--------------------------------------------------------------------
+ | DB CONNECTION — XAMPP locally, env vars in hosted deployments
+ |--------------------------------------------------------------------
+ | Local XAMPP has no env vars set, so these fall back to the same
+ | defaults as before (root / no password / kultoura_db). A host like
+ | Railway's MySQL plugin injects MYSQLHOST/MYSQLPORT/MYSQLUSER/
+ | MYSQLPASSWORD/MYSQLDATABASE automatically — no code change needed
+ | there beyond setting those in the service's environment.
+ */
+$host   = getenv('MYSQLHOST') ?: "localhost";
+$port   = (int) (getenv('MYSQLPORT') ?: 3306);
+$user   = getenv('MYSQLUSER') ?: "root";
+$pass   = getenv('MYSQLPASSWORD') ?: "";            // default XAMPP: no password
+$dbname = getenv('MYSQLDATABASE') ?: "kultoura_db";
 
-$conn = new mysqli($host, $user, $pass, $dbname);
+$conn = new mysqli($host, $user, $pass, $dbname, $port);
 
 if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);

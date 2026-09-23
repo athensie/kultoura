@@ -240,23 +240,43 @@ $stmt->close();
    week-over-week growth per page.
 ============================================================ */
 
-// Next month's projected page views, from the trailing real months.
-$nonZeroMonths = array_values(array_filter($monthlyVisitors, fn($m) => $m['value'] > 0));
+// Next month's projected page views — a least-squares trend line over
+// the real monthly totals (all 6 months, zero-filled, in chronological
+// order). The old method averaged month-over-month % changes after
+// dropping zero-view months, which (a) compared non-adjacent months as
+// if they were consecutive, and (b) let a single jump between small
+// numbers (e.g. 2 views -> 6 views = "+200%") dominate the whole
+// forecast. A trend line over the full series — plus a minimum sample
+// size before showing a number at all — keeps the projection from
+// overreacting to sparse/noisy traffic.
 $projectedNextMonth = null;
 $projectedGrowthPct = null;
-if (count($nonZeroMonths) >= 2) {
-    $changes = [];
-    for ($i = 1; $i < count($nonZeroMonths); $i++) {
-        $prev = $nonZeroMonths[$i - 1]['value'];
-        $cur  = $nonZeroMonths[$i]['value'];
-        if ($prev > 0) $changes[] = ($cur - $prev) / $prev;
+$monthsWithData = array_filter($monthlyVisitors, fn($m) => $m['value'] > 0);
+$totalRecentViews = array_sum(array_column($monthlyVisitors, 'value'));
+if (count($monthsWithData) >= 3 && $totalRecentViews >= 10) {
+    $n = count($monthlyVisitors);
+    $sumX = 0; $sumY = 0; $sumXY = 0; $sumXX = 0;
+    foreach (array_values($monthlyVisitors) as $i => $m) {
+        $sumX  += $i;
+        $sumY  += $m['value'];
+        $sumXY += $i * $m['value'];
+        $sumXX += $i * $i;
     }
-    if (!empty($changes)) {
-        $avgChange = array_sum($changes) / count($changes);
-        $latest = end($nonZeroMonths)['value'];
-        $projectedNextMonth = max(0, (int) round($latest * (1 + $avgChange)));
-        $projectedGrowthPct = (int) round($avgChange * 100);
-    }
+    $denominator = ($n * $sumXX) - ($sumX * $sumX);
+    $slope = $denominator != 0 ? ((($n * $sumXY) - ($sumX * $sumY)) / $denominator) : 0;
+    $intercept = ($sumY - ($slope * $sumX)) / $n;
+
+    $projectedNextMonth = max(0, (int) round($intercept + ($slope * $n)));
+
+    // % change vs. the latest actual month (falling back to the series
+    // average if the latest month happens to be zero), clamped so a
+    // noisy trend line can't produce a triple-digit headline number.
+    $latest = end($monthlyVisitors)['value'];
+    $baseline = $latest > 0 ? $latest : ($sumY / $n);
+    $projectedGrowthPct = $baseline > 0
+        ? (int) round((($projectedNextMonth - $baseline) / $baseline) * 100)
+        : 0;
+    $projectedGrowthPct = max(-90, min(200, $projectedGrowthPct));
 }
 
 // Pages gaining momentum: this week's views vs last week's, per page.
@@ -271,18 +291,24 @@ if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE viewed_at
 if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE viewed_at >= '$lastWeekStart' AND viewed_at < '$thisWeekStart' GROUP BY page")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) $lastWeekCounts[$r['page']] = (int) $r['c'];
 }
+// A page going from 1 view to 3 views is technically "+200%" but it's
+// noise, not momentum — require a minimum combined view count before a
+// page's week-over-week swing counts as a real trend, and cap the
+// displayed % so a small-number spike can't read as a huge one.
 $pageLabels = analytics_page_labels();
+$MIN_MOMENTUM_VIEWS = 5;
 foreach ($thisWeekCounts as $page => $count) {
     $prevCount = $lastWeekCounts[$page] ?? 0;
+    if (($count + $prevCount) < $MIN_MOMENTUM_VIEWS) {
+        continue;
+    }
     if ($prevCount > 0) {
         $growth = (int) round((($count - $prevCount) / $prevCount) * 100);
-    } elseif ($count > 0) {
-        $growth = 100; // brand-new activity this week
     } else {
-        $growth = 0;
+        $growth = 100; // brand-new activity this week, past the minimum-views gate above
     }
     if ($growth > 0) {
-        $trendingPages[] = ['label' => $pageLabels[$page] ?? ucfirst($page), 'growth' => $growth, 'views' => $count];
+        $trendingPages[] = ['label' => $pageLabels[$page] ?? ucfirst($page), 'growth' => min($growth, 300), 'views' => $count];
     }
 }
 usort($trendingPages, fn($a, $b) => $b['growth'] <=> $a['growth']);
@@ -628,7 +654,7 @@ if (empty($recommendations)) {
                     <div class="chart-empty">
                         <i data-lucide="line-chart" class="lucide"></i>
                         <div class="chart-empty-title">Not enough history yet</div>
-                        <div class="chart-empty-sub">Once at least 2 months of page views have been logged, a projection will appear here.</div>
+                        <div class="chart-empty-sub">Once at least 3 months of page views have been logged, a projection will appear here.</div>
                     </div>
                 <?php else: ?>
                     <div class="forecast-box">
@@ -636,7 +662,7 @@ if (empty($recommendations)) {
                         <div class="forecast-label">projected page views next month</div>
                         <div class="forecast-change <?php echo $projectedGrowthPct >= 0 ? 'up' : 'down'; ?>">
                             <i data-lucide="<?php echo $projectedGrowthPct >= 0 ? 'trending-up' : 'trending-down'; ?>" class="lucide"></i>
-                            <?php echo ($projectedGrowthPct >= 0 ? '+' : '') . $projectedGrowthPct; ?>% avg. month-over-month trend
+                            <?php echo ($projectedGrowthPct >= 0 ? '+' : '') . $projectedGrowthPct; ?>% vs. last month (trend-line estimate)
                         </div>
                     </div>
                 <?php endif; ?>

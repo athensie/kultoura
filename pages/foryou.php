@@ -2,6 +2,7 @@
 session_start();
 include '../config/dbmain.php';
 include '../config/analytics.php';
+include '../config/ai_recommend.php';
 analytics_track($conn, 'foryou');
 
 $siteName = "KULTOURA";
@@ -21,6 +22,9 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? '');
 ============================================================ */
 if (!isset($_SESSION['history'])) {
     $_SESSION['history'] = [];
+}
+if (!isset($_SESSION['itemHistory'])) {
+    $_SESSION['itemHistory'] = [];
 }
 
 if (isset($_GET['track'])) {
@@ -229,41 +233,224 @@ $categoryLabels = [
 ];
 
 /* ============================================================
-   RECOMMENDATION LOGIC
+   RECOMMENDATION LOGIC — content-based filtering (TF-IDF + cosine
+   similarity), the same vector-space technique most "AI-powered"
+   recommendation engines use under the hood — fully local, no API
+   key or external call needed.
    ------------------------------------------------------------
-   Count how often each category appears in the session history,
-   rank categories by frequency, then surface places from the
-   top categories. If there's no history yet, fall back to a
-   trending mix so the page never looks empty.
+   1. Every place becomes a TF-IDF vector built from its name,
+      category and description.
+   2. A "profile vector" for the visitor is the weighted centroid
+      of the vectors for every place they opened or favorited —
+      real interaction signals, not just which category page loaded:
+        - items opened ($_SESSION['itemHistory'])  weight 3x
+        - favorites    ($favoritedKeys)             weight 5x
+      Each is also recency-weighted so recent activity outweighs
+      older activity.
+   3. Every other place is scored by cosine similarity to that
+      profile vector — how much its actual content (not just its
+      category label) resembles what the visitor has shown
+      interest in — blended with a category-affinity score built
+      from those same signals plus plain page visits (1x).
+   4. Already-opened places rank last (via backfill) so the section
+      surfaces something new. No history yet falls back to a
+      trending mix so the page never looks empty.
 ============================================================ */
-$history = $_SESSION['history'];
-$hasHistory = count($history) > 0;
+function fy_tokenize(string $text): array
+{
+    $text = strtolower($text);
+    $text = preg_replace('/[^a-z0-9\s]/', ' ', $text);
+    $stopwords = ['the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for',
+        'with', 'is', 'are', 'was', 'were', 'it', 'its', 'this', 'that', 'as', 'by', 'from', 'be'];
+    $tokens = preg_split('/\s+/', trim($text));
+    return array_values(array_filter($tokens, fn($t) => $t !== '' && strlen($t) > 1 && !in_array($t, $stopwords, true)));
+}
 
-$freq = [];
-foreach ($history as $cat) {
-    if (!isset($freq[$cat])) $freq[$cat] = 0;
-    $freq[$cat]++;
+// Augmented term frequency (dampens long descriptions dominating short
+// names) times inverse document frequency (rewards words that make a
+// place distinctive rather than generic filler shared by everything).
+function fy_tfidf_vector(array $tokens, array $docFreq, int $totalDocs): array
+{
+    if (empty($tokens)) return [];
+    $termCounts = array_count_values($tokens);
+    $maxCount = max($termCounts);
+    $vector = [];
+    foreach ($termCounts as $term => $count) {
+        $tf = 0.5 + 0.5 * ($count / $maxCount);
+        $idf = log(($totalDocs + 1) / (($docFreq[$term] ?? 0) + 1)) + 1;
+        $vector[$term] = $tf * $idf;
+    }
+    return $vector;
+}
+
+function fy_cosine_similarity(array $a, array $b): float
+{
+    if (empty($a) || empty($b)) return 0.0;
+    $dot = 0.0;
+    foreach ($a as $term => $w) {
+        if (isset($b[$term])) $dot += $w * $b[$term];
+    }
+    if ($dot == 0.0) return 0.0;
+    $normA = sqrt(array_sum(array_map(fn($w) => $w * $w, $a)));
+    $normB = sqrt(array_sum(array_map(fn($w) => $w * $w, $b)));
+    return ($normA > 0 && $normB > 0) ? $dot / ($normA * $normB) : 0.0;
+}
+
+function fy_recency_weighted_scores(array $items, float $weight): array
+{
+    $scores = [];
+    $n = count($items);
+    foreach ($items as $i => $key) {
+        // Oldest entry ~0.5x weight, newest ~1.5x — recent activity
+        // matters more without letting old history drop to zero.
+        $recencyFactor = $n > 1 ? 0.5 + ($i / ($n - 1)) : 1.0;
+        $scores[$key] = ($scores[$key] ?? 0) + ($weight * $recencyFactor);
+    }
+    return $scores;
+}
+
+// -- Build a content vector for every place in the catalog --
+// When a Gemini key is configured (config/gemini.php — see
+// config/gemini.example.php), real semantic embeddings are used,
+// cached per place in `place_embeddings` so only new/edited listings
+// ever cost a live API call. Without a key, or if a place's embedding
+// can't be fetched this request, it falls back to the local TF-IDF
+// vector below — the page always has something to compare with.
+$aiAvailable = ai_configured();
+$aiFetchBudget = 15; // cap live Gemini calls per page load so a cold cache can't stall a request
+
+$placesByKey = [];
+$documents = [];
+$embedTexts = [];
+foreach ($places as $p) {
+    $placesByKey[$p['itemType'] . '-' . $p['itemId']] = $p;
+    $embedTexts[$p['id']] = $p['name'] . '. ' . ($p['badgeText'] ?? '') . '. ' . ucfirst($p['category']) . '. ' . ($p['desc'] ?? '');
+    // Name and category repeated so they outweigh incidental words
+    // in the free-text description when terms are scored (TF-IDF only).
+    $doc = $p['name'] . ' ' . $p['name'] . ' ' . ($p['badgeText'] ?? '') . ' '
+         . $p['category'] . ' ' . $p['category'] . ' ' . $p['category'] . ' '
+         . ($p['desc'] ?? '');
+    $documents[$p['id']] = fy_tokenize($doc);
+}
+$docFreq = [];
+foreach ($documents as $tokens) {
+    foreach (array_unique($tokens) as $t) {
+        $docFreq[$t] = ($docFreq[$t] ?? 0) + 1;
+    }
+}
+$totalDocs = count($documents);
+
+// Embedding vectors (1536-dim) and TF-IDF vectors (term-keyed) are not
+// comparable to each other — mixing them in the same profile centroid
+// would silently produce meaningless scores. So this only ever runs in
+// one mode per request: every place gets a real embedding, or every
+// place gets a TF-IDF vector; a place that can't get an embedding this
+// request (budget exhausted, API error) gets an empty vector instead
+// of a TF-IDF one, so it just contributes zero content-similarity
+// rather than corrupting the shared vector space.
+$placeVectors = [];
+foreach ($places as $p) {
+    if ($aiAvailable) {
+        // Cache reads are free and don't touch the fetch budget — only
+        // a genuine cache miss (new/edited listing) spends one of the
+        // capped live API calls below.
+        $embedding = ai_get_cached_embedding($conn, $p['itemType'], $p['itemId'], $embedTexts[$p['id']]);
+        if ($embedding === null && $aiFetchBudget > 0) {
+            $embedding = ai_get_place_embedding($conn, $p['itemType'], $p['itemId'], $embedTexts[$p['id']]);
+            $aiFetchBudget--;
+        }
+        $placeVectors[$p['id']] = $embedding ?? [];
+    } else {
+        $placeVectors[$p['id']] = fy_tfidf_vector($documents[$p['id']], $docFreq, $totalDocs);
+    }
+}
+
+$history = $_SESSION['history'];
+$itemHistory = $_SESSION['itemHistory'];
+$hasHistory = count($history) > 0 || count($itemHistory) > 0 || count($favoritedKeys) > 0;
+
+// -- Category affinity (recency-weighted, same three signals) --
+$freq = fy_recency_weighted_scores($history, 1.0);
+$itemHistoryCats = array_map(fn($h) => $h['type'], $itemHistory);
+foreach (fy_recency_weighted_scores($itemHistoryCats, 3.0) as $cat => $score) {
+    $freq[$cat] = ($freq[$cat] ?? 0) + $score;
+}
+foreach (array_keys($favoritedKeys) as $key) {
+    if (isset($placesByKey[$key])) {
+        $freq[$placesByKey[$key]['category']] = ($freq[$placesByKey[$key]['category']] ?? 0) + 5.0;
+    }
 }
 arsort($freq);
 $topCategories = array_keys($freq);
+$maxFreq = !empty($freq) ? max($freq) : 0;
+
+// -- Content profile vector: weighted centroid of every item opened
+//    or favorited, so what the visitor actually read about (not just
+//    which category they clicked) drives the similarity score. --
+$profileVector = [];
+$profileWeight = 0.0;
+$itemHistoryKeyed = array_map(fn($h) => $h['type'] . '-' . $h['id'], $itemHistory);
+foreach (fy_recency_weighted_scores($itemHistoryKeyed, 3.0) as $key => $weight) {
+    if (!isset($placesByKey[$key])) continue;
+    foreach ($placeVectors[$placesByKey[$key]['id']] as $term => $w) {
+        $profileVector[$term] = ($profileVector[$term] ?? 0) + ($w * $weight);
+    }
+    $profileWeight += $weight;
+}
+foreach (array_keys($favoritedKeys) as $key) {
+    if (!isset($placesByKey[$key])) continue;
+    $weight = 5.0;
+    foreach ($placeVectors[$placesByKey[$key]['id']] as $term => $w) {
+        $profileVector[$term] = ($profileVector[$term] ?? 0) + ($w * $weight);
+    }
+    $profileWeight += $weight;
+}
+if ($profileWeight > 0) {
+    foreach ($profileVector as $term => $w) {
+        $profileVector[$term] = $w / $profileWeight;
+    }
+}
+
+// Items already opened this session — excluded first so the section
+// surfaces something new rather than a repeat of what was just viewed.
+$viewedItemKeys = [];
+foreach ($itemHistory as $h) {
+    $viewedItemKeys[$h['type'] . '-' . $h['id']] = true;
+}
 
 $recommended = [];
 if ($hasHistory) {
-    foreach ($topCategories as $cat) {
-        foreach ($places as $p) {
-            if ($p['category'] === $cat) {
+    $scored = [];
+    foreach ($places as $p) {
+        $key = $p['itemType'] . '-' . $p['itemId'];
+        if (isset($viewedItemKeys[$key])) continue;
+        $contentScore = fy_cosine_similarity($profileVector, $placeVectors[$p['id']]);
+        $categoryScore = $maxFreq > 0 ? (($freq[$p['category']] ?? 0) / $maxFreq) : 0;
+        // Lean on content similarity once there's a real profile vector
+        // to compare against; otherwise (e.g. only page visits logged,
+        // no items opened yet) fall back to category affinity alone.
+        $score = $profileWeight > 0
+            ? (0.65 * $contentScore) + (0.35 * $categoryScore)
+            : $categoryScore;
+        $scored[] = ['place' => $p, 'score' => $score];
+    }
+    usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
+    $recommended = array_column(array_slice($scored, 0, 6), 'place');
+
+    // Catalog too small to fill 6 unseen picks? Backfill with
+    // already-viewed places by top category rather than a short section.
+    if (count($recommended) < 6) {
+        $seen = [];
+        foreach ($recommended as $p) $seen[$p['id']] = true;
+        foreach ($topCategories as $cat) {
+            foreach ($places as $p) {
+                if ($p['category'] !== $cat || isset($seen[$p['id']])) continue;
+                $seen[$p['id']] = true;
                 $recommended[] = $p;
+                if (count($recommended) >= 6) break 2;
             }
         }
     }
-    // de-duplicate while preserving order
-    $seen = [];
-    $recommended = array_filter($recommended, function ($p) use (&$seen) {
-        if (isset($seen[$p['id']])) return false;
-        $seen[$p['id']] = true;
-        return true;
-    });
-    $recommended = array_slice(array_values($recommended), 0, 6);
 } else {
     // trending fallback: one pick per category
     $used = [];

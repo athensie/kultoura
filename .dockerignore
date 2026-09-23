@@ -1,0 +1,19 @@
+.git
+.gitignore
+.gitattributes
+.claude
+.vscode
+.idea
+
+# Real secrets — set via Railway environment variables instead, never
+# baked into the image (config/gemini.example.php is the template).
+config/gemini.php
+
+# Not needed in the running container
+kultoura-20260913T120552Z-1-001.zip
+*.zip
+*.md
+
+Dockerfile
+docker-entrypoint.sh
+.dockerignore
