@@ -19,6 +19,7 @@ RUN printf '<?php header("Location: /kultoura/"); exit;\n' > /var/www/html/index
 RUN mkdir -p /var/www/html/kultoura/assets/uploads \
     && chown -R www-data:www-data /var/www/html/kultoura/assets/uploads
 
+# Must NOT be excluded in .dockerignore — this COPY needs it in the build context.
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
