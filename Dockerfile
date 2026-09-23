@@ -1,6 +1,9 @@
 FROM php:8.2-apache
 
 RUN docker-php-ext-install mysqli pdo pdo_mysql \
+    && (a2dismod mpm_event || true) \
+    && (a2dismod mpm_worker || true) \
+    && a2enmod mpm_prefork \
     && a2enmod rewrite
 
 # The app is served under /kultoura everywhere it already runs (local
