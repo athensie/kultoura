@@ -242,6 +242,7 @@ if ($result = $conn->query(
             <?php endif; ?>
             <span class="hero-collage-leaf hero-collage-leaf-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
             <span class="hero-collage-leaf hero-collage-leaf-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
+            <span class="hero-collage-label">Explore<br>Malvar</span>
         </div>
         <?php endif; ?>
 
@@ -254,7 +255,7 @@ if ($result = $conn->query(
 
     <div class="torn-edge" aria-hidden="true">
         <svg viewBox="0 0 1440 48" preserveAspectRatio="none">
-            <path d="M0,18 L48,30 L96,10 L144,34 L192,14 L240,38 L288,16 L336,40 L384,20 L432,36 L480,12 L528,32 L576,18 L624,40 L672,22 L720,34 L768,14 L816,38 L864,20 L912,36 L960,16 L1008,40 L1056,22 L1104,34 L1152,12 L1200,32 L1248,18 L1296,38 L1344,20 L1392,34 L1440,18 L1440,48 L0,48 Z" fill="#f0ebd8"/>
+            <path d="M0,10 L40,32 L80,6 L120,36 L160,8 L200,30 L240,4 L280,34 L320,10 L360,38 L400,6 L440,28 L480,2 L520,32 L560,12 L600,36 L640,8 L680,30 L720,4 L760,34 L800,10 L840,28 L880,6 L920,32 L960,14 L1000,36 L1040,8 L1080,30 L1120,4 L1160,34 L1200,10 L1240,28 L1280,6 L1320,32 L1360,14 L1400,36 L1440,10 L1440,48 L0,48 Z" fill="#f0ebd8"/>
         </svg>
     </div>
 
@@ -450,4 +451,4 @@ if ($result = $conn->query(
 <script src="index.js"></script>
 <script src="assets/js/home.js"></script>
 </body>
-</html> 
+</html>
