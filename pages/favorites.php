@@ -272,7 +272,7 @@ foreach ($favoriteRows as $r) {
 <header class="navbar navbar-solid">
 
     <?php if ($isLoggedIn): ?>
-        <div class="user-greeting-left"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>Hi, <?php echo $userName; ?></div>
+        <div class="user-greeting-left"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>Mabuhay, <?php echo $userName; ?></div>
     <?php else: ?>
         <div class="user-greeting-left" style="letter-spacing:2px;font-size:15px;font-weight:900;">
             <span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>
@@ -317,6 +317,10 @@ foreach ($favoriteRows as $r) {
         <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
         <a href="../auth/login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
     <?php endif; ?>
+
+    <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+    </button>
 
 </header>
 
@@ -446,6 +450,7 @@ foreach ($favoriteRows as $r) {
 <!-- ── TOAST ── -->
 <div class="f-toast" id="favToast"></div>
 
+<script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/favorites.js"></script>
 <script>
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }

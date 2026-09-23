@@ -56,6 +56,10 @@ unset($_SESSION['error'], $_SESSION['success']);
         </nav>
 
         <a href="signup.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN UP</span></a>
+
+        <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
     </header>
 
     <main class="auth-content">
@@ -131,6 +135,7 @@ unset($_SESSION['error'], $_SESSION['success']);
 
 </div>
 
+<script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/index.js"></script>
 
 </body>

@@ -148,7 +148,7 @@ if ($result = $conn->query(
     <header class="navbar">
 
         <?php if ($isLoggedIn): ?>
-            <div class="user-greeting-left"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>Hi, <?php echo $userName; ?></div>
+            <div class="user-greeting-left"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>Mabuhay, <?php echo $userName; ?></div>
         <?php else: ?>
             <div class="user-greeting-left" style="color:#C8A96E;letter-spacing:2px;font-size:15px;font-weight:900;"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>KUL<span style="color:#9fb88a">TOURA</span></div>
         <?php endif; ?>
@@ -193,6 +193,10 @@ if ($result = $conn->query(
             <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
             <a href="auth/login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
         <?php endif; ?>
+
+        <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
 
     </header>
 
@@ -248,10 +252,10 @@ if ($result = $conn->query(
 
     </main>
 
-    <div class="scroll-hint">
+    <button type="button" class="scroll-hint" id="scrollHintBtn" aria-label="Scroll to explore">
         <span class="scroll-line"></span>
         DISCOVER
-    </div>
+    </button>
 
     <div class="torn-edge" aria-hidden="true">
         <svg viewBox="0 0 1440 48" preserveAspectRatio="none">
@@ -263,7 +267,7 @@ if ($result = $conn->query(
 
 <!-- ── For You Preview (mirrors pages/foryou.php) ── -->
 <section class="home-foryou">
-    <div class="home-foryou-top">
+    <div class="home-foryou-top reveal">
         <div class="home-foryou-intro">
             <p class="home-eyebrow home-eyebrow-rust">CURATED FOR YOU</p>
             <h2 class="home-heading">For You</h2>
@@ -300,7 +304,7 @@ if ($result = $conn->query(
         </button>
     </div>
 
-    <div class="home-carousel-wrap">
+    <div class="home-carousel-wrap reveal">
         <button type="button" class="home-carousel-nav home-carousel-prev" id="homeCarouselPrev" aria-label="Previous">&#8249;</button>
         <div class="home-carousel" id="homeCarousel">
             <?php foreach ($forYouPreview as $item): ?>
@@ -324,12 +328,12 @@ if ($result = $conn->query(
 <?php if (!empty($homeNews)): ?>
 <!-- ── News & Announcements (mirrors admin/adminannouncements.php) ── -->
 <section class="home-news">
-    <div class="home-news-top">
+    <div class="home-news-top reveal">
         <p class="home-eyebrow home-eyebrow-gold">LATEST NEWS</p>
         <h2 class="home-heading">News &amp; Announcements</h2>
     </div>
 
-    <div class="home-news-grid">
+    <div class="home-news-grid reveal">
         <?php foreach ($homeNews as $n): ?>
             <?php $meta = $homeNewsTypeMeta[$n['type']] ?? ['label' => ucfirst($n['type']), 'color' => '#8a8a5c']; ?>
             <article class="home-news-card">
@@ -356,7 +360,7 @@ if ($result = $conn->query(
 
 <!-- ── About Malvar Preview (mirrors pages/about.php) ── -->
 <section class="home-about">
-    <div class="home-about-text">
+    <div class="home-about-text reveal">
         <p class="home-eyebrow home-eyebrow-gold">ABOUT MALVAR</p>
         <h2 class="home-heading home-heading-light">About Malvar</h2>
         <p class="home-about-desc">A town of farmers and factories, waterfalls and church bells — this is the story of Malvar.</p>
@@ -396,7 +400,7 @@ if ($result = $conn->query(
     </div>
 
     <?php if ($aboutPhoto): ?>
-    <div class="home-about-photo">
+    <div class="home-about-photo reveal">
         <img src="<?php echo htmlspecialchars($aboutPhoto['image']); ?>" alt="<?php echo htmlspecialchars($aboutPhoto['name']); ?>" loading="lazy">
         <span class="home-about-leaf home-about-leaf-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
         <span class="home-about-leaf home-about-leaf-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
@@ -443,12 +447,13 @@ if ($result = $conn->query(
         </div>
     </div>
     <div class="home-footer-bottom">
-        <p>&copy; <?php echo date('Y'); ?> KULTOURA. All rights reservedness.</p>
+        <p>&copy; <?php echo date('Y'); ?> KULTOURA. All rights reserved.</p>
         <button type="button" class="home-scroll-top" id="homeScrollTop" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
     </div>
 </footer>
 
 <script src="index.js"></script>
+<script src="assets/js/navbar.js"></script>
 <script src="assets/js/home.js"></script>
 </body>
 </html>

@@ -70,3 +70,44 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 })();
+
+/* ---------------- Scroll-hint jumps to the next section ---------------- */
+(function () {
+    const btn = document.getElementById('scrollHintBtn');
+    const target = document.querySelector('.home-foryou');
+    if (!btn || !target) return;
+    btn.addEventListener('click', () => {
+        target.scrollIntoView({ behavior: 'smooth' });
+    });
+})();
+
+/* ---------------- Navbar gains a shadow once the page is scrolled ---------------- */
+(function () {
+    const navbar = document.querySelector('.navbar');
+    if (!navbar) return;
+    const onScroll = () => navbar.classList.toggle('is-scrolled', window.scrollY > 10);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+})();
+
+/* ---------------- Fade sections in as they enter the viewport ---------------- */
+(function () {
+    const revealEls = document.querySelectorAll('.reveal');
+    if (!revealEls.length) return;
+
+    if (!('IntersectionObserver' in window)) {
+        revealEls.forEach((el) => el.classList.add('in-view'));
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach((el) => observer.observe(el));
+})();
