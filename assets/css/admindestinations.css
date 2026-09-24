@@ -132,9 +132,12 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 
 /* ---------- CATEGORY BADGE ---------- */
 .category-badge { display: inline-flex; align-items: center; font-size: .68rem; padding: 3px 10px; border-radius: 999px; letter-spacing: .5px; white-space: nowrap; }
-.category-badge.nature   { background: rgba(44,122,69,.18); color: #6EE783; }
-.category-badge.industry { background: rgba(122,59,30,.25); color: #E39A6B; }
-.category-badge.resort   { background: rgba(45,130,183,.18); color: #7ea5f5; }
+.category-badge.nature        { background: rgba(44,122,69,.18); color: #6EE783; }
+.category-badge.industry      { background: rgba(122,59,30,.25); color: #E39A6B; }
+.category-badge.resort        { background: rgba(45,130,183,.18); color: #7ea5f5; }
+.category-badge.accommodation { background: rgba(125,95,163,.2); color: #c3a6f0; }
+.category-badge.bank          { background: rgba(47,102,144,.22); color: #7fbfe0; }
+.category-badge.service       { background: rgba(122,106,83,.25); color: #d9c3a0; }
 
 /* ---------- PAGINATION ---------- */
 .pagination { display: flex; align-items: center; gap: 6px; margin-top: 18px; justify-content: center; }

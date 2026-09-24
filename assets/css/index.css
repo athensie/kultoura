@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -134,16 +136,33 @@ body {
 }
 
 .navbar-logo-icon svg { width: 100%; height: 100%; display: block; }
+.navbar-logo-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.navbar-logo-icon-salakot {
+    width: 42px;
+    height: 42px;
+}
+
+.user-greeting-name {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+}
 
 .user-greeting-left:hover .navbar-logo-icon {
     transform: rotate(-12deg) scale(1.1);
+}
+
+.navbar-brand-logo img {
+    display: block;
+    height: 32px;
+    width: auto;
 }
 
 .nav-links {
     display: flex;
     align-items: center;
     gap: 26px;
-    margin: 0 auto;
+    margin-left: auto;
 }
 
 .nav-item {
@@ -293,6 +312,28 @@ body {
     box-shadow: none;
 }
 
+/* Icon-only variant (e.g. Sign Out) — keeps the label for screen readers only */
+.sign-in-btn-icon-only {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    border-radius: 50%;
+}
+.sign-in-btn-icon-only svg { width: 17px; height: 17px; }
+.sign-in-btn-icon-only span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* ── Mobile hamburger toggle (hidden on desktop) ── */
 .navbar-hamburger {
     display: none;
@@ -398,6 +439,14 @@ body {
 
 .hero-content-split .brand-title {
     font-size: clamp(56px, 7.5vw, 96px);
+}
+
+.brand-title-logo img {
+    display: block;
+    width: clamp(420px, 48vw, 700px);
+    height: auto;
+    margin-left: -16px;
+    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.35));
 }
 
 .brand-light  {
@@ -1049,13 +1098,14 @@ body {
 }
 
 .home-footer-logo {
-    font-family: 'Arial Black', 'Helvetica Neue', sans-serif;
-    font-size: 20px;
-    letter-spacing: 1px;
-    color: var(--cream);
     margin-bottom: 14px;
 }
-.home-footer-logo span { color: var(--sage); }
+.home-footer-logo img {
+    display: block;
+    height: 30px;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
 
 .home-footer-brand p {
     font-size: 13px;
@@ -1230,6 +1280,13 @@ body {
 .mega-column a:hover {
     color: #9fb88a;
     padding-left: 10px;
+}
+
+/* "More" dropdown — a single narrow column instead of the 3-up grid */
+.mega-menu-simple {
+    width: 220px;
+    grid-template-columns: 1fr;
+    padding: 18px;
 }
 
 /* ── Scroll reveal ── */

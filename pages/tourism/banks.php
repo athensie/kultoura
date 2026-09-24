@@ -2,21 +2,21 @@
 session_start();
 include '../../config/dbmain.php';
 include '../../config/analytics.php';
-analytics_track($conn, 'nature');
+analytics_track($conn, 'banks');
 
 // Logged for foryou.php's "Because You Explored" recommendations.
-$_SESSION['history'][] = 'nature';
+$_SESSION['history'][] = 'bank';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? '');
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
-// Industry zone listings come from the same `destination` table the admin
-// panel (admindestinations.php) writes to, filtered to this category.
-// The EXISTS subquery checks THIS user's favorites table row (not the
+// Bank listings come from the same `destination` table the admin panel
+// (admindestinations.php) writes to, filtered to this category. The
+// EXISTS subquery checks THIS user's favorites table row (not the
 // destination table's own `favorited` column, which isn't user-specific).
-$zones = [];
+$spots = [];
 $stmt = $conn->prepare(
     "SELECT d.*,
         EXISTS (
@@ -24,7 +24,7 @@ $stmt = $conn->prepare(
             WHERE f.user_id = ? AND f.item_type = 'destination' AND f.item_id = d.destination_id
         ) AS is_favorited
      FROM destination d
-     WHERE d.category = 'nature' AND d.status = 'active'
+     WHERE d.category = 'bank' AND d.status = 'active'
      ORDER BY d.created_at DESC"
 );
 $stmt->bind_param('i', $currentUserId);
@@ -49,10 +49,10 @@ $stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nature – KULTOURA</title>
+    <title>Banks – KULTOURA</title>
     <link rel="stylesheet" href="../../assets/css/index.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
-    <link rel="stylesheet" href="../../assets/css/nature.css">
+    <link rel="stylesheet" href="../../assets/css/banks.css">
 </head>
 <body>
 
@@ -71,7 +71,7 @@ $stmt->close();
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
-            <a href="../tourism.php" class="nav-item nav-active"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg></span><span>EXPLORE MALVAR ▾</span></a>
+            <a href="../tourism.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg></span><span>EXPLORE MALVAR ▾</span></a>
             <div class="mega-menu">
                 <div class="mega-column">
                     <h4>Local Products</h4>
@@ -93,7 +93,7 @@ $stmt->close();
         </div>
         <a href="restaurants.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg></span><span>RESTAURANTS</span></a>
         <a href="accommodation.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M22 12v8"/><path d="M2 12h20"/><path d="M2 8h6a2 2 0 0 1 2 2v2"/><path d="M22 8h-6a2 2 0 0 0-2 2v2"/></svg></span><span>ACCOMMODATION</span></a>
-        <a href="banks.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M2 10h20L12 4z"/><path d="M8 14v4M12 14v4M16 14v4"/></svg></span><span>BANKS</span></a>
+        <a href="banks.php" class="nav-item nav-active"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M2 10h20L12 4z"/><path d="M8 14v4M12 14v4M16 14v4"/></svg></span><span>BANKS</span></a>
         <div class="dropdown">
             <a href="#" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></span><span>MORE ▾</span></a>
             <div class="mega-menu mega-menu-simple">
@@ -128,42 +128,42 @@ $stmt->close();
     <div class="t-hero-orb t-orb-1"></div>
     <div class="t-hero-orb t-orb-2"></div>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
-        <h1 class="t-page-title">Nature</h1>
+        <p class="t-eyebrow">MONEY &amp; FINANCE · MALVAR, BATANGAS</p>
+        <h1 class="t-page-title">Banks</h1>
         <p class="t-page-sub">
-            Parks, trails, and scenic views that showcase Malvar's natural beauty.
+            Banks, ATMs, and remittance centers travelers rely on while in Malvar.
         </p>
     </div>
 </section>
 
-<!-- ── Nature Grid ── -->
+<!-- ── Banks Grid ── -->
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="nature.php" method="get">
-            <input type="text" name="q" placeholder="Search parks, trails, viewpoints…">
+        <form class="p-search-bar" action="banks.php" method="get">
+            <input type="text" name="q" placeholder="Search banks, ATMs, remittance centers…">
             <select name="category" class="p-category-select">
                 <option>All Categories</option>
-                <option>Park</option>
-                <option>Trail</option>
-                <option>Viewpoint</option>
-                <option>River / Falls</option>
+                <option>Bank</option>
+                <option>ATM</option>
+                <option>Pawnshop</option>
+                <option>Remittance Center</option>
             </select>
         </form>
     </section>
 
-    <section class="t-category" id="nature">
+    <section class="t-category" id="banks">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Local Destinations</p>
-                <h2 class="t-cat-title">Nature</h2>
-                <p class="t-cat-desc">Green spaces and natural landmarks worth the trip around Malvar.</p>
+                <p class="t-cat-label">Money &amp; Finance</p>
+                <h2 class="t-cat-title">Banks</h2>
+                <p class="t-cat-desc">Where to withdraw, deposit, or send money while visiting Malvar.</p>
             </div>
         </div>
 
         <?php if (empty($spots)): ?>
         <div class="p-empty-state">
-            <h3>No nature spots added yet</h3>
+            <h3>No banks listed yet</h3>
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
@@ -265,7 +265,7 @@ function ktTrackItemView(type, id) {
 }
 
 function ktOpenViewDetails(btn) {
-    ktTrackItemView('nature', btn.dataset.id);
+    ktTrackItemView('bank', btn.dataset.id);
     const image = btn.dataset.image || '';
     const imgEl = document.getElementById('ktVdImage');
     imgEl.src = image;

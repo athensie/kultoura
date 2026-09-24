@@ -2,21 +2,22 @@
 session_start();
 include '../../config/dbmain.php';
 include '../../config/analytics.php';
-analytics_track($conn, 'nature');
+analytics_track($conn, 'services');
 
 // Logged for foryou.php's "Because You Explored" recommendations.
-$_SESSION['history'][] = 'nature';
+$_SESSION['history'][] = 'service';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? '');
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
-// Industry zone listings come from the same `destination` table the admin
-// panel (admindestinations.php) writes to, filtered to this category.
-// The EXISTS subquery checks THIS user's favorites table row (not the
-// destination table's own `favorited` column, which isn't user-specific).
-$zones = [];
+// Other-services listings (hospitals, terminals, gas stations, etc.) come
+// from the same `destination` table the admin panel (admindestinations.php)
+// writes to, filtered to this category. The EXISTS subquery checks THIS
+// user's favorites table row (not the destination table's own `favorited`
+// column, which isn't user-specific).
+$spots = [];
 $stmt = $conn->prepare(
     "SELECT d.*,
         EXISTS (
@@ -24,7 +25,7 @@ $stmt = $conn->prepare(
             WHERE f.user_id = ? AND f.item_type = 'destination' AND f.item_id = d.destination_id
         ) AS is_favorited
      FROM destination d
-     WHERE d.category = 'nature' AND d.status = 'active'
+     WHERE d.category = 'service' AND d.status = 'active'
      ORDER BY d.created_at DESC"
 );
 $stmt->bind_param('i', $currentUserId);
@@ -49,10 +50,10 @@ $stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nature – KULTOURA</title>
+    <title>Other Services – KULTOURA</title>
     <link rel="stylesheet" href="../../assets/css/index.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
-    <link rel="stylesheet" href="../../assets/css/nature.css">
+    <link rel="stylesheet" href="../../assets/css/services.css">
 </head>
 <body>
 
@@ -128,42 +129,43 @@ $stmt->close();
     <div class="t-hero-orb t-orb-1"></div>
     <div class="t-hero-orb t-orb-2"></div>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
-        <h1 class="t-page-title">Nature</h1>
+        <p class="t-eyebrow">ESSENTIAL SERVICES · MALVAR, BATANGAS</p>
+        <h1 class="t-page-title">Other Services</h1>
         <p class="t-page-sub">
-            Parks, trails, and scenic views that showcase Malvar's natural beauty.
+            Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.
         </p>
     </div>
 </section>
 
-<!-- ── Nature Grid ── -->
+<!-- ── Other Services Grid ── -->
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="nature.php" method="get">
-            <input type="text" name="q" placeholder="Search parks, trails, viewpoints…">
+        <form class="p-search-bar" action="services.php" method="get">
+            <input type="text" name="q" placeholder="Search hospitals, terminals, gas stations…">
             <select name="category" class="p-category-select">
                 <option>All Categories</option>
-                <option>Park</option>
-                <option>Trail</option>
-                <option>Viewpoint</option>
-                <option>River / Falls</option>
+                <option>Hospital / Clinic</option>
+                <option>Terminal</option>
+                <option>Gas Station</option>
+                <option>Police Station</option>
+                <option>Pharmacy</option>
             </select>
         </form>
     </section>
 
-    <section class="t-category" id="nature">
+    <section class="t-category" id="services">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Local Destinations</p>
-                <h2 class="t-cat-title">Nature</h2>
-                <p class="t-cat-desc">Green spaces and natural landmarks worth the trip around Malvar.</p>
+                <p class="t-cat-label">Essential Services</p>
+                <h2 class="t-cat-title">Other Services</h2>
+                <p class="t-cat-desc">Primary places a tourist may need — from health care to transport terminals.</p>
             </div>
         </div>
 
         <?php if (empty($spots)): ?>
         <div class="p-empty-state">
-            <h3>No nature spots added yet</h3>
+            <h3>No services listed yet</h3>
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
@@ -265,7 +267,7 @@ function ktTrackItemView(type, id) {
 }
 
 function ktOpenViewDetails(btn) {
-    ktTrackItemView('nature', btn.dataset.id);
+    ktTrackItemView('service', btn.dataset.id);
     const image = btn.dataset.image || '';
     const imgEl = document.getElementById('ktVdImage');
     imgEl.src = image;

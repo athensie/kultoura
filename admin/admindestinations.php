@@ -198,13 +198,19 @@ if ($result) {
 $destinationViews = array_merge(
     analytics_item_views_bulk($conn, 'nature'),
     analytics_item_views_bulk($conn, 'resort'),
-    analytics_item_views_bulk($conn, 'industry')
+    analytics_item_views_bulk($conn, 'industry'),
+    analytics_item_views_bulk($conn, 'accommodation'),
+    analytics_item_views_bulk($conn, 'bank'),
+    analytics_item_views_bulk($conn, 'service')
 );
 
 $categoryLabels = [
-    'nature'   => 'Nature',
-    'industry' => 'Industry Zone',
-    'resort'   => 'Resort',
+    'nature'        => 'Nature',
+    'industry'      => 'Industry Zone',
+    'resort'        => 'Resort',
+    'accommodation' => 'Accommodation',
+    'bank'          => 'Banks',
+    'service'       => 'Other Services',
 ];
 
 $totalCount    = count($destinations);
@@ -353,6 +359,9 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <option value="nature">Nature</option>
                 <option value="industry">Industry Zone</option>
                 <option value="resort">Resort</option>
+                <option value="accommodation">Accommodation</option>
+                <option value="bank">Banks</option>
+                <option value="service">Other Services</option>
             </select>
             <select class="filter-select" id="destStatusFilter" onchange="filterByStatus(this.value)">
                 <option value="all">All Status</option>
@@ -525,6 +534,9 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                         <option value="nature">Nature</option>
                         <option value="industry">Industry Zone</option>
                         <option value="resort">Resort</option>
+                        <option value="accommodation">Accommodation</option>
+                        <option value="bank">Banks</option>
+                        <option value="service">Other Services</option>
                     </select>
                 </div>
             </div>
@@ -584,6 +596,9 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                         <option value="nature">Nature</option>
                         <option value="industry">Industry Zone</option>
                         <option value="resort">Resort</option>
+                        <option value="accommodation">Accommodation</option>
+                        <option value="bank">Banks</option>
+                        <option value="service">Other Services</option>
                     </select>
                 </div>
             </div>

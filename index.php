@@ -7,7 +7,6 @@ include 'config/announcements.php';
 analytics_track($conn, 'home');
 
 $siteName = "KULTOURA";
-$tagline  = "Your Digital Gateway to Malvar's Culture & Local Destinations";
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? '');
@@ -20,13 +19,16 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? '');
    convention used by pages/traveldiary.php and pages/foryou.php.
 ============================================================ */
 $homeImageSubfolder = [
-    'product'    => 'products',
-    'restaurant' => 'food',
-    'nature'     => 'destinations',
-    'resort'     => 'destinations',
-    'industry'   => 'destinations',
-    'fiesta'     => 'fiestas',
-    'person'     => 'people',
+    'product'       => 'products',
+    'restaurant'    => 'food',
+    'nature'        => 'destinations',
+    'resort'        => 'destinations',
+    'industry'      => 'destinations',
+    'accommodation' => 'destinations',
+    'bank'          => 'destinations',
+    'service'       => 'destinations',
+    'fiesta'        => 'fiestas',
+    'person'        => 'people',
 ];
 function home_img(string $category, ?string $raw, array $subfolders): string
 {
@@ -37,13 +39,16 @@ function home_img(string $category, ?string $raw, array $subfolders): string
 // Badge colors reused from the Travel Diary category palette, so the
 // same category reads the same color everywhere on the site.
 $homeBadgeColors = [
-    'product'    => '#a9843f',
-    'restaurant' => '#8b2e1a',
-    'nature'     => '#5f7d4c',
-    'resort'     => '#3f7d82',
-    'industry'   => '#6b6357',
-    'fiesta'     => '#a8433a',
-    'person'     => '#4a5a78',
+    'product'       => '#a9843f',
+    'restaurant'    => '#8b2e1a',
+    'nature'        => '#5f7d4c',
+    'resort'        => '#3f7d82',
+    'industry'      => '#6b6357',
+    'accommodation' => '#7d5fa3',
+    'bank'          => '#2f6690',
+    'service'       => '#7a6a53',
+    'fiesta'        => '#a8433a',
+    'person'        => '#4a5a78',
 ];
 
 // Up to 3 real destination photos: first 2 for the hero collage, the
@@ -148,20 +153,19 @@ if ($result = $conn->query(
     <header class="navbar">
 
         <?php if ($isLoggedIn): ?>
-            <div class="user-greeting-left"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>Mabuhay, <?php echo $userName; ?></div>
+            <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="assets/images/salakot.png" alt=""></span>Mabuhay, <?php echo $userName; ?></div>
         <?php else: ?>
-            <div class="user-greeting-left" style="color:#C8A96E;letter-spacing:2px;font-size:15px;font-weight:900;"><span class="navbar-logo-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>KUL<span style="color:#9fb88a">TOURA</span></div>
+            <div class="user-greeting-left navbar-brand-logo"><img src="assets/images/kultoura.png" alt="KulToura"></div>
         <?php endif; ?>
 
         <nav class="nav-links">
             <a href="index.php" class="nav-item nav-active"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
             <div class="dropdown">
-                <a href="pages/tourism.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg></span><span>TOURISM ▾</span></a>
+                <a href="pages/tourism.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg></span><span>EXPLORE MALVAR ▾</span></a>
                 <div class="mega-menu">
                     <div class="mega-column">
-                        <h4>Food</h4>
+                        <h4>Local Products</h4>
                         <a href="pages/tourism/products.php">Products</a>
-                        <a href="pages/tourism/restaurants.php">Restaurants</a>
                     </div>
                     <div class="mega-column">
                         <h4>Local Destinations</h4>
@@ -170,25 +174,34 @@ if ($result = $conn->query(
                         <a href="pages/tourism/resort.php">Resort</a>
                     </div>
                     <div class="mega-column">
-                        <h4>Others</h4>
+                        <h4>Culture &amp; Services</h4>
                         <a href="pages/tourism/fiestas.php">Fiestas</a>
                         <a href="pages/tourism/people.php">People of Malvar</a>
+                        <a href="pages/tourism/services.php">Other Services</a>
                     </div>
                 </div>
             </div>
 
-            <a href="../kultoura/pages/foryou.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg></span><span>FOR YOU</span></a>
-            <a href="../kultoura/pages/traveldiary.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M16 4v3h3"/><path d="M8 10h8M8 14h8M8 18h5"/></svg></span><span>TRAVEL DIARY</span></a>
-            <a href="../kultoura/pages/favorites.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C.5 7 2 3.5 5.5 3.5c2 0 3.5 1 4.5 2.5 1-1.5 2.5-2.5 4.5-2.5C18 3.5 19.5 7 19.5 11 17 15.5 12 20 12 20z"/></svg></span><span>FAVORITES</span></a>
-            <a href="../kultoura/pages/mostpopular.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 6-3 6-6.5 0-2.5-1.5-4-2.5-5.5.5 2-1 3-2 2 0-2.5-1.5-4-3-6-.5 3-3 4.5-3 8 0 1-1 1.5-2 1-.5 3 2 7 6.5 7z"/></svg></span><span>MOST POPULAR</span></a>
-            <a href="../kultoura/pages/about.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11.5v5"/><circle cx="12" cy="7.8" r="0.9" fill="currentColor" stroke="none"/></svg></span><span>ABOUT</span></a>
-
-
+            <a href="pages/tourism/restaurants.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg></span><span>RESTAURANTS</span></a>
+            <a href="pages/tourism/accommodation.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M22 12v8"/><path d="M2 12h20"/><path d="M2 8h6a2 2 0 0 1 2 2v2"/><path d="M22 8h-6a2 2 0 0 0-2 2v2"/></svg></span><span>ACCOMMODATION</span></a>
+            <a href="pages/tourism/banks.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M2 10h20L12 4z"/><path d="M8 14v4M12 14v4M16 14v4"/></svg></span><span>BANKS</span></a>
+            <div class="dropdown">
+                <a href="#" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></span><span>MORE ▾</span></a>
+                <div class="mega-menu mega-menu-simple">
+                    <div class="mega-column">
+                        <a href="pages/foryou.php">For You</a>
+                        <a href="pages/traveldiary.php">Travel Diary</a>
+                        <a href="pages/favorites.php">Favorites</a>
+                        <a href="pages/mostpopular.php">Most Popular</a>
+                        <a href="pages/about.php">About</a>
+                    </div>
+                </div>
+            </div>
         </nav>
 
         <?php if ($isLoggedIn): ?>
             <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
-            <a href="auth/logout.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>SIGN OUT</span></a>
+            <a href="auth/logout.php" class="sign-in-btn sign-in-btn-icon-only" aria-label="Sign Out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>SIGN OUT</span></a>
         <?php else: ?>
             <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
             <a href="auth/login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
@@ -204,20 +217,10 @@ if ($result = $conn->query(
 
         <div class="hero-text-col">
 
-            <p class="hero-eyebrow">
-                <span class="hero-eyebrow-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 4 4 8 4 13c0 3 2 5 5 5 1 0 2-.3 2.8-.8C10 19 8 21 6 22c4-.3 7-2 8.5-5C16 15 17 12 17 9c0-3-2-5-5-7z"/></svg></span>
-                WELCOME TO
-            </p>
-
-            <h1 class="brand-title">
-                <span class="brand-light">KUL</span><span class="brand-accent">TOURA</span>
+            <h1 class="brand-title brand-title-logo">
+                <img src="assets/images/kultoura.png" alt="KulToura — Malvar, Batangas · Cultural Tourism">
             </h1>
 
-            <p class="brand-sub">Malvar, Batangas · Est. Culture</p>
-
-            <p class="tagline">
-                <?php echo $tagline; ?>
-            </p>
 
             <div class="cta-buttons">
                 <button class="btn btn-filled" id="exploreBtn">
@@ -259,7 +262,7 @@ if ($result = $conn->query(
 
     <div class="torn-edge" aria-hidden="true">
         <svg viewBox="0 0 1440 48" preserveAspectRatio="none">
-            <path d="M0,10 L40,32 L80,6 L120,36 L160,8 L200,30 L240,4 L280,34 L320,10 L360,38 L400,6 L440,28 L480,2 L520,32 L560,12 L600,36 L640,8 L680,30 L720,4 L760,34 L800,10 L840,28 L880,6 L920,32 L960,14 L1000,36 L1040,8 L1080,30 L1120,4 L1160,34 L1200,10 L1240,28 L1280,6 L1320,32 L1360,14 L1400,36 L1440,10 L1440,48 L0,48 Z" fill="#f0ebd8"/>
+            <path d="M0,24 Q60,4 120,24 Q180,44 240,24 Q300,4 360,24 Q420,44 480,24 Q540,4 600,24 Q660,44 720,24 Q780,4 840,24 Q900,44 960,24 Q1020,4 1080,24 Q1140,44 1200,24 Q1260,4 1320,24 Q1380,44 1440,24 L1440,48 L0,48 Z" fill="#f0ebd8"/>
         </svg>
     </div>
 
@@ -412,8 +415,7 @@ if ($result = $conn->query(
 <footer class="home-footer">
     <div class="home-footer-top">
         <div class="home-footer-brand">
-            <div class="home-footer-logo">KUL<span>TOURA</span></div>
-            <p>Your Digital Gateway to Malvar's Culture &amp; Local Destinations</p>
+            <div class="home-footer-logo"><img src="assets/images/kultoura.png" alt="KulToura"></div>
             <div class="home-footer-social">
                 <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8.4h2.8l.4-3.3h-3.2V8.1c0-.9.3-1.6 1.7-1.6h1.7V3.5C16.6 3.4 15.5 3.3 14.3 3.3c-2.6 0-4.3 1.6-4.3 4.4v2.6H7.2v3.3h2.8V22h3.5z"/></svg></a>
                 <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg></a>
