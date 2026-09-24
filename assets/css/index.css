@@ -1329,6 +1329,7 @@ body {
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {
+    .hero { min-height: auto; }
     .hero-content-split { flex-direction: column; text-align: center; padding: 70px 32px 110px; }
     .hero-text-col { max-width: 100%; }
     .hero-text-col .cta-buttons { justify-content: center; }

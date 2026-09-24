@@ -235,10 +235,6 @@ if ($result = $conn->query(
 
         <?php if (!empty($heroPhotos)): ?>
         <div class="hero-collage" aria-hidden="true">
-            <span class="hero-collage-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
-            <svg class="hero-collage-path" viewBox="0 0 220 90" preserveAspectRatio="none">
-                <path d="M14 14 Q100 8 130 40 T206 66" fill="none" stroke="#C8A96E" stroke-width="2" stroke-dasharray="1 9" stroke-linecap="round"/>
-            </svg>
             <div class="hero-photo hero-photo-1">
                 <img src="<?php echo htmlspecialchars($heroPhotos[0]['image']); ?>" alt="<?php echo htmlspecialchars($heroPhotos[0]['name']); ?>" loading="lazy">
             </div>
@@ -249,7 +245,6 @@ if ($result = $conn->query(
             <?php endif; ?>
             <span class="hero-collage-leaf hero-collage-leaf-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
             <span class="hero-collage-leaf hero-collage-leaf-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
-            <span class="hero-collage-label">Explore<br>Malvar</span>
         </div>
         <?php endif; ?>
 
