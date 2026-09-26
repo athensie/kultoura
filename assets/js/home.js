@@ -62,6 +62,12 @@
     });
 })();
 
+/* ---------------- Footer accordion (collapsed on mobile) ---------------- */
+function toggleFooterAccordion(heading) {
+    const col = heading.closest('.footer-accordion');
+    if (col) col.classList.toggle('is-open');
+}
+
 /* ---------------- Scroll to top ---------------- */
 (function () {
     const btn = document.getElementById('homeScrollTop');

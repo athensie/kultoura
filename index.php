@@ -72,6 +72,11 @@ $adminHero2 = sitecontent_get_photo($conn, 'home_hero_2');
 if ($adminHero1) $heroPhotos[0] = ['name' => 'Malvar, Batangas', 'image' => $adminHero1];
 if ($adminHero2) $heroPhotos[1] = ['name' => 'Malvar, Batangas', 'image' => $adminHero2];
 
+// Full-bleed background photo behind the hero (Admin → Site Content →
+// "Homepage — Hero Background Photo"). Falls back to the green gradient
+// when no photo has been set — same pattern as about.php's a-hero.
+$heroBgPhoto = sitecontent_get_photo($conn, 'home_hero_bg');
+
 // A small real-data sample for the "For You" preview carousel — one
 // destination, one fiesta, one restaurant, so the teaser is genuine
 // catalog content rather than placeholder copy.
@@ -143,7 +148,12 @@ if ($result = $conn->query(
 </head>
 <body>
 
-<div class="hero">
+<div class="hero<?php echo $heroBgPhoto ? '' : ' hero-no-bg-photo'; ?>">
+
+    <?php if ($heroBgPhoto): ?>
+        <img class="hero-bg-photo" src="<?php echo htmlspecialchars($heroBgPhoto); ?>" alt="">
+        <div class="hero-bg-scrim"></div>
+    <?php endif; ?>
 
     <!-- Ambient orbs -->
     <div class="orb orb-1"></div>
@@ -221,6 +231,7 @@ if ($result = $conn->query(
                 <img src="assets/images/kultoura.png" alt="KulToura — Malvar, Batangas · Cultural Tourism">
             </h1>
 
+            <p class="hero-mobile-tagline">Discover the culture, people, and local experiences of Malvar, Batangas.</p>
 
             <div class="cta-buttons">
                 <button class="btn btn-filled" id="exploreBtn">
@@ -252,8 +263,13 @@ if ($result = $conn->query(
 
     <button type="button" class="scroll-hint" id="scrollHintBtn" aria-label="Scroll to explore">
         <span class="scroll-line"></span>
-        DISCOVER
+        <span class="scroll-hint-label-desktop">DISCOVER</span>
+        <span class="scroll-hint-label-mobile">Scroll</span>
+        <span class="scroll-hint-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </button>
+
+    <span class="hero-corner-leaf hero-corner-leaf-left" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
+    <span class="hero-corner-leaf hero-corner-leaf-right" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
 
     <div class="torn-edge" aria-hidden="true">
         <svg viewBox="0 0 1440 48" preserveAspectRatio="none">
@@ -417,22 +433,26 @@ if ($result = $conn->query(
                 <a href="pages/tourism.php" aria-label="Explore destinations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></a>
             </div>
         </div>
-        <div class="home-footer-col">
-            <h4>Explore</h4>
-            <a href="index.php">Home</a>
-            <a href="pages/foryou.php">For You</a>
-            <a href="pages/tourism.php">Tourism</a>
-            <a href="pages/traveldiary.php">Travel Diary</a>
-            <a href="pages/favorites.php">Favorites</a>
-            <a href="pages/mostpopular.php">Most Popular</a>
+        <div class="home-footer-col footer-accordion">
+            <h4 onclick="toggleFooterAccordion(this)">Explore <span class="footer-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span></h4>
+            <div class="footer-accordion-body">
+                <a href="index.php">Home</a>
+                <a href="pages/foryou.php">For You</a>
+                <a href="pages/tourism.php">Tourism</a>
+                <a href="pages/traveldiary.php">Travel Diary</a>
+                <a href="pages/favorites.php">Favorites</a>
+                <a href="pages/mostpopular.php">Most Popular</a>
+            </div>
         </div>
-        <div class="home-footer-col">
-            <h4>Resources</h4>
-            <a href="pages/about.php">About</a>
-            <a href="#">Contact Us</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Help Center</a>
+        <div class="home-footer-col footer-accordion">
+            <h4 onclick="toggleFooterAccordion(this)">Resources <span class="footer-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span></h4>
+            <div class="footer-accordion-body">
+                <a href="pages/about.php">About</a>
+                <a href="#">Contact Us</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Help Center</a>
+            </div>
         </div>
         <div class="home-footer-col home-footer-newsletter">
             <h4>Newsletter</h4>

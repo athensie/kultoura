@@ -38,6 +38,25 @@ body {
         linear-gradient(160deg, #070e08 0%, #111e14 50%, #1c3322 100%);
 }
 
+/* Full-bleed hero background photo (Admin → Site Content), falling
+   back to the gradient above when no photo has been set. Same
+   photo+scrim technique as about.css's .a-hero-photo/.a-hero-scrim. */
+.hero-bg-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+.hero-bg-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(7, 14, 8, 0.88) 0%, rgba(17, 30, 20, 0.78) 50%, rgba(28, 51, 34, 0.6) 100%);
+    z-index: 1;
+}
+
 /* Woven texture overlay — the signature element */
 .hero::before {
     content: '';
@@ -449,6 +468,12 @@ body {
     filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.35));
 }
 
+/* Shown only on mobile — see @media (max-width: 768px) below. On
+   desktop the logo image's own baked-in tagline is enough. */
+.hero-mobile-tagline {
+    display: none;
+}
+
 .brand-light  {
     color: var(--cream);
     display: inline-block;
@@ -575,6 +600,18 @@ body {
 @keyframes scrollPulse {
     0%, 100% { opacity: 0.4; transform: scaleY(1); }
     50%       { opacity: 1;   transform: scaleY(1.15); }
+}
+
+/* Mobile-only scroll hint: a circular bouncing chevron instead of the
+   line + "DISCOVER" — see @media (max-width: 768px) below. */
+.scroll-hint-label-mobile,
+.scroll-hint-chevron {
+    display: none;
+}
+
+/* Mobile-only hero corner leaf accents — hidden on desktop. */
+.hero-corner-leaf {
+    display: none;
 }
 
 /* ── Hero photo collage ── */
@@ -1152,6 +1189,12 @@ body {
 }
 .home-footer-col a:hover { color: var(--sage); }
 
+/* Collapses into an accordion only on mobile — see @media (max-width:
+   768px) below; on desktop this renders exactly as a plain column. */
+.footer-accordion-chevron {
+    display: none;
+}
+
 .home-footer-newsletter p {
     font-size: 13px;
     color: var(--muted);
@@ -1429,8 +1472,145 @@ body {
     .mega-column a { padding: 8px 0; border-bottom: none; }
 
     .cta-buttons { flex-direction: column; width: 80%; }
+    .cta-buttons .btn { border-radius: 999px; padding: 15px 28px; }
     .home-foryou, .home-about, .home-news { padding: 64px 24px; }
     .home-footer-top { grid-template-columns: 1fr; }
     .home-footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
     .home-card { flex: 0 0 85%; }
+
+    /* ── Hero: tagline, corner leaves, circular scroll chevron ── */
+    .hero-mobile-tagline {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+        max-width: 300px;
+        margin: 0 auto 26px;
+    }
+
+    .hero-corner-leaf {
+        display: block;
+        position: absolute;
+        bottom: 66px;
+        width: 28px;
+        height: 28px;
+        color: var(--sage);
+        opacity: 0.55;
+        z-index: 2;
+    }
+    .hero-corner-leaf-left { left: 14px; transform: scaleX(-1) rotate(-15deg); }
+    .hero-corner-leaf-right { right: 14px; transform: rotate(165deg); }
+
+    .scroll-line,
+    .scroll-hint-label-desktop {
+        display: none;
+    }
+    .scroll-hint-label-mobile {
+        display: block;
+    }
+    .scroll-hint-chevron {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 1px solid rgba(240, 235, 216, 0.4);
+        animation: scrollChevronBounce 1.8s ease-in-out infinite;
+    }
+    .scroll-hint-chevron svg { width: 16px; height: 16px; }
+
+    /* ── Category pills → icon grid ── */
+    .home-pills {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        max-width: 340px;
+    }
+    .home-pill {
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px 6px;
+        border-radius: 14px;
+        font-size: 10.5px;
+        text-align: center;
+    }
+    .home-pill svg { width: 22px; height: 22px; }
+
+    /* ── Footer accordion (Explore / Resources collapse) ── */
+    .footer-accordion h4 {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+    .footer-accordion-chevron {
+        display: inline-flex;
+        width: 16px;
+        height: 16px;
+        transition: transform 0.25s ease;
+    }
+    .footer-accordion.is-open .footer-accordion-chevron {
+        transform: rotate(90deg);
+    }
+    .footer-accordion-body {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    .footer-accordion.is-open .footer-accordion-body {
+        max-height: 300px;
+    }
+
+    /* ── Sub-item icons in the mobile nav dropdowns (Explore Malvar /
+       More) — decorative only, matched by position since the markup
+       is shared with the desktop hover mega-menu, which has no icons. ── */
+    .mega-menu:not(.mega-menu-simple) .mega-column a,
+    .mega-menu-simple .mega-column a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        padding-left: 14px;
+    }
+    /* Vertical "tree" connector line down the indented sub-list */
+    .mega-menu:not(.mega-menu-simple) .mega-column,
+    .mega-menu-simple .mega-column {
+        position: relative;
+        padding-left: 10px;
+        border-left: 1px solid rgba(44, 26, 14, 0.12);
+        margin-left: 4px;
+    }
+    .mega-menu:not(.mega-menu-simple) .mega-column a::before,
+    .mega-menu-simple .mega-column a::before {
+        content: '';
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        background: rgba(44, 26, 14, 0.65);
+        -webkit-mask: var(--sub-icon) center / contain no-repeat;
+        mask: var(--sub-icon) center / contain no-repeat;
+    }
+
+    /* Explore Malvar: column 1 = Products, column 2 = Nature/Industry/Resort, column 3 = Fiestas/People/Other Services */
+    .mega-menu:not(.mega-menu-simple) .mega-column:nth-child(1) a:nth-of-type(1)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%208h12l-1%2012H7L6%208z%22/%3E%3Cpath%20d%3D%22M9%208V6a3%203%200%200%201%206%200v2%22/%3E%3C/svg%3E"); }
+    .mega-menu:not(.mega-menu-simple) .mega-column:nth-child(2) a:nth-of-type(1)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2019c8%200%2014-6%2014-14-8%200-14%206-14%2014z%22/%3E%3Cpath%20d%3D%22M5%2019c2-4%205-7%209-9%22/%3E%3C/svg%3E"); }
+    .mega-menu:not(.mega-menu-simple) .mega-column:nth-child(2) a:nth-of-type(2)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%223%22/%3E%3Cpath%20d%3D%22M19.4%2015a1.65%201.65%200%200%200%20.33%201.82l.06.06a2%202%200%201%201-2.83%202.83l-.06-.06a1.65%201.65%200%200%200-1.82-.33%201.65%201.65%200%200%200-1%201.51V21a2%202%200%200%201-4%200v-.09A1.65%201.65%200%200%200%209%2019.4a1.65%201.65%200%200%200-1.82.33l-.06.06a2%202%200%201%201-2.83-2.83l.06-.06a1.65%201.65%200%200%200%20.33-1.82%201.65%201.65%200%200%200-1.51-1H3a2%202%200%200%201%200-4h.09A1.65%201.65%200%200%200%204.6%209a1.65%201.65%200%200%200-.33-1.82l-.06-.06a2%202%200%201%201%202.83-2.83l.06.06a1.65%201.65%200%200%200%201.82.33H9a1.65%201.65%200%200%200%201-1.51V3a2%202%200%200%201%204%200v.09a1.65%201.65%200%200%200%201%201.51%201.65%201.65%200%200%200%201.82-.33l.06-.06a2%202%200%201%201%202.83%202.83l-.06.06a1.65%201.65%200%200%200-.33%201.82V9a1.65%201.65%200%200%200%201.51%201H21a2%202%200%200%201%200%204h-.09a1.65%201.65%200%200%200-1.51%201z%22/%3E%3C/svg%3E"); }
+    .mega-menu:not(.mega-menu-simple) .mega-column:nth-child(2) a:nth-of-type(3)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203a9%209%200%200%200-9%209h18a9%209%200%200%200-9-9z%22/%3E%3Cpath%20d%3D%22M12%2012v8%22/%3E%3Cpath%20d%3D%22M9%2022c0-1.2%201.3-2%203-2s3%20.8%203%202%22/%3E%3C/svg%3E"); }
+    .mega-menu:not(.mega-menu-simple) .mega-column:nth-child(3) a:nth-of-type(1)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2216%22%20rx%3D%222%22/%3E%3Cpath%20d%3D%22M3%2010h18M8%203v4M16%203v4%22/%3E%3C/svg%3E"); }
+    .mega-menu:not(.mega-menu-simple) .mega-column:nth-child(3) a:nth-of-type(2)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M17%2021v-2a4%204%200%200%200-4-4H5a4%204%200%200%200-4%204v2%22/%3E%3Ccircle%20cx%3D%229%22%20cy%3D%227%22%20r%3D%224%22/%3E%3Cpath%20d%3D%22M23%2021v-2a4%204%200%200%200-3-3.87%22/%3E%3Cpath%20d%3D%22M16%203.13a4%204%200%200%201%200%207.75%22/%3E%3C/svg%3E"); }
+    .mega-menu:not(.mega-menu-simple) .mega-column:nth-child(3) a:nth-of-type(3)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%225%22%20cy%3D%2212%22%20r%3D%221.4%22%20fill%3D%22black%22%20stroke%3D%22none%22/%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221.4%22%20fill%3D%22black%22%20stroke%3D%22none%22/%3E%3Ccircle%20cx%3D%2219%22%20cy%3D%2212%22%20r%3D%221.4%22%20fill%3D%22black%22%20stroke%3D%22none%22/%3E%3C/svg%3E"); }
+
+    /* More: For You, Travel Diary, Favorites, Most Popular, About */
+    .mega-menu-simple .mega-column a:nth-of-type(1)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203l1.8%205.2L19%2010l-5.2%201.8L12%2017l-1.8-5.2L5%2010l5.2-1.8z%22%20fill%3D%22black%22%20stroke%3D%22none%22/%3E%3C/svg%3E"); }
+    .mega-menu-simple .mega-column a:nth-of-type(2)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%204h11l3%203v13a1%201%200%200%201-1%201H5a1%201%200%200%201-1-1V5a1%201%200%200%201%201-1z%22/%3E%3Cpath%20d%3D%22M16%204v3h3%22/%3E%3Cpath%20d%3D%22M8%2010h8M8%2014h8M8%2018h5%22/%3E%3C/svg%3E"); }
+    .mega-menu-simple .mega-column a:nth-of-type(3)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%2020s-7-4.5-9.5-9C.5%207%202%203.5%205.5%203.5c2%200%203.5%201%204.5%202.5%201-1.5%202.5-2.5%204.5-2.5C18%203.5%2019.5%207%2019.5%2011%2017%2015.5%2012%2020%2012%2020z%22/%3E%3C/svg%3E"); }
+    .mega-menu-simple .mega-column a:nth-of-type(4)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%2020V10M12%2020V4M20%2020v-7%22/%3E%3C/svg%3E"); }
+    .mega-menu-simple .mega-column a:nth-of-type(5)::before { --sub-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22/%3E%3Cpath%20d%3D%22M12%2011.5v5%22/%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%227.8%22%20r%3D%220.9%22%20fill%3D%22black%22%20stroke%3D%22none%22/%3E%3C/svg%3E"); }
+}
+
+@keyframes scrollChevronBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
 }

@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // ---- Hero / singleton photo slots (home_hero_1, home_hero_2, about_hero) ----
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
-        if (in_array($key, ['home_hero_1', 'home_hero_2', 'about_hero'], true)) {
+        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero'], true)) {
             if (!empty($_POST['remove_image'])) {
                 $stmt = $conn->prepare("INSERT INTO site_photos (photo_key, image) VALUES (?, NULL) ON DUPLICATE KEY UPDATE image = NULL");
                 $stmt->bind_param('s', $key);
@@ -158,9 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
  | DATA FOR THE PAGE
  */
 $heroPhotoSlots = [
-    'home_hero_1' => ['label' => 'Homepage — Hero Photo 1', 'hint' => 'The top photo in the landing page collage.'],
-    'home_hero_2' => ['label' => 'Homepage — Hero Photo 2', 'hint' => 'The second, smaller photo in the landing page collage.'],
-    'about_hero'  => ['label' => 'About Page — Hero Photo', 'hint' => 'The full-width background photo behind "About / Malvar".'],
+    'home_hero_bg' => ['label' => 'Homepage — Hero Background Photo', 'hint' => 'The full-width background photo behind the "Welcome to KulToura" hero. Leave empty to keep the green gradient.'],
+    'home_hero_1'  => ['label' => 'Homepage — Hero Photo 1', 'hint' => 'The top photo in the landing page collage.'],
+    'home_hero_2'  => ['label' => 'Homepage — Hero Photo 2', 'hint' => 'The second, smaller photo in the landing page collage.'],
+    'about_hero'   => ['label' => 'About Page — Hero Photo', 'hint' => 'The full-width background photo behind "About / Malvar".'],
 ];
 foreach ($heroPhotoSlots as $key => &$slot) {
     $slot['image'] = sitecontent_get_photo($conn, $key);
