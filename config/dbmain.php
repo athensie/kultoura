@@ -15,10 +15,27 @@ $user   = getenv('MYSQLUSER') ?: "root";
 $pass   = getenv('MYSQLPASSWORD') ?: "";            // default XAMPP: no password
 $dbname = getenv('MYSQLDATABASE') ?: "kultoura_db";
 
+/*
+ |--------------------------------------------------------------------
+ | ERROR VISIBILITY — hide details in production, keep them local
+ |--------------------------------------------------------------------
+ | Same "is this hosted?" signal dbmain.php already uses above. On
+ | Railway, PHP's default display_errors=On would otherwise print raw
+ | DB errors, file paths, and stack traces straight to visitors.
+ | Locally it's left alone so XAMPP development still shows errors.
+ */
+$isHosted = (bool) getenv('MYSQLHOST');
+if ($isHosted) {
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
+    error_reporting(E_ALL);
+}
+
 $conn = new mysqli($host, $user, $pass, $dbname, $port);
 
 if ($conn->connect_error) {
-    die("Database connection failed: " . $conn->connect_error);
+    error_log('Database connection failed: ' . $conn->connect_error);
+    die($isHosted ? 'Something went wrong. Please try again shortly.' : "Database connection failed: " . $conn->connect_error);
 }
 
 $conn->set_charset("utf8mb4");

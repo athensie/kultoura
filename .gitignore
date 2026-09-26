@@ -37,8 +37,13 @@ cache/
 tmp/
 *.cache
 
-# Uploads (user content)
-uploads/
+# Uploads (user content) — except the .htaccess that blocks executing
+# anything an attacker manages to sneak past the upload validators.
+# (Ignoring contents with /* rather than the bare directory name lets
+# the negation below actually apply — git won't re-include a file
+# whose parent directory itself was excluded.)
+assets/uploads/*
+!assets/uploads/.htaccess
 
 # XAMPP
 xamppfiles/

@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 require_once '../config/dbmain.php';
 require_once '../config/analytics.php';
+require_once '../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -88,6 +89,11 @@ function kt_handle_image_upload(string $fieldName = 'image_file'): ?string
         return null;
     }
 
+    // Confirm it's actually an image, not just a renamed file.
+    if (@getimagesize($_FILES[$fieldName]['tmp_name']) === false) {
+        return null;
+    }
+
     // Physical uploads folder is /kultoura/assets/uploads/food/ — confirmed
     // from the actual project structure. restaurants.php's <img> src was the
     // thing pointing at the wrong place (fixed separately), not this path.
@@ -119,6 +125,7 @@ function kt_handle_image_upload(string $fieldName = 'image_file'): ?string
  | based on the submitted listing_type.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
+    csrf_verify();
     $formAction  = $_POST['form_action'];
     $listingType = $_POST['listing_type'] ?? '';
     $map         = $tableMap[$listingType] ?? null;
@@ -510,6 +517,7 @@ sort($categoriesByType['product']);
         <div class="modal-sub">Fill in the details to add a new restaurant, eatery, or local product.</div>
         <form id="addListingForm" method="POST" action="adminfoodanddining.php" enctype="multipart/form-data" onsubmit="return validateListingForm('add');">
             <input type="hidden" name="form_action" value="add_listing">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="latitude" id="addLatInput" value="">
             <input type="hidden" name="longitude" id="addLngInput" value="">
 
@@ -607,6 +615,7 @@ sort($categoriesByType['product']);
         <div class="modal-sub" id="editListingName">Editing: —</div>
         <form id="editListingForm" method="POST" action="adminfoodanddining.php" enctype="multipart/form-data" onsubmit="return validateListingForm('edit');">
             <input type="hidden" name="form_action" value="edit_listing">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="editIdInput" value="">
             <input type="hidden" name="listing_type" id="editTypeInput" value="">
             <input type="hidden" name="latitude" id="editLatInput" value="">
@@ -725,6 +734,7 @@ sort($categoriesByType['product']);
         <div class="modal-sub" id="deleteDesc">This action cannot be undone.</div>
         <form method="POST" action="adminfoodanddining.php">
             <input type="hidden" name="form_action" value="delete_listing">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="deleteIdInput" value="">
             <input type="hidden" name="listing_type" id="deleteTypeInput" value="">
             <div style="display:flex; gap:10px; margin-top:20px;">

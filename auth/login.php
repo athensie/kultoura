@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 
 // Same base path used in admin/admindashboard.php — keep these in sync.
 define('BASE_URL', '/kultoura');

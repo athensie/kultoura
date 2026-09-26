@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 
 if (isset($_SESSION['user_id'])) {
     header("Location: index.php");
@@ -146,8 +146,8 @@ unset($_SESSION['error']);
                         type="password"
                         id="password"
                         name="password"
-                        placeholder="Minimum 6 characters"
-                        minlength="6"
+                        placeholder="Minimum 8 characters"
+                        minlength="8"
                         required>
 
                     <span class="toggle-pw" onclick="togglePw('password', this)">
@@ -163,7 +163,7 @@ unset($_SESSION['error']);
                         id="confirm_password"
                         name="confirm_password"
                         placeholder="••••••••"
-                        minlength="6"
+                        minlength="8"
                         required>
 
                     <span class="toggle-pw" onclick="togglePw('confirm_password', this)">

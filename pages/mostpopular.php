@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
 analytics_track($conn, 'mostpopular');

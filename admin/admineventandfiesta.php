@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/analytics.php';
+require_once __DIR__ . '/../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -58,6 +59,7 @@ $adminRole = $_SESSION['role'] ?? 'Admin';
  |     ADD COLUMN longitude DECIMAL(10,7) NULL AFTER latitude;
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add') {
@@ -357,6 +359,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
         <div class="modal-sub">Fill in the details to add a new fiesta or community event.</div>
         <form id="addEventForm" method="POST" action="admineventandfiesta.php">
             <input type="hidden" name="action" value="add">
+            <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label class="form-label">Event Name</label>
                 <input class="form-input" type="text" name="name" placeholder="e.g. Pista ng Malvar" required>
@@ -406,6 +409,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
         <div class="modal-sub" id="editEventName">Editing: —</div>
         <form id="editEventForm" method="POST" action="admineventandfiesta.php">
             <input type="hidden" name="action" value="edit">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="fiesta_id" id="editFiestaId">
             <div class="form-group">
                 <label class="form-label">Event Name</label>
@@ -476,6 +480,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
         <div class="modal-sub" id="deleteDesc">This action cannot be undone.</div>
         <form id="deleteForm" method="POST" action="admineventandfiesta.php">
             <input type="hidden" name="action" value="delete">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="fiesta_id" id="deleteFiestaId">
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>

@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
+require_once __DIR__ . '/../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -37,6 +38,10 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
+
+// Flash message from settings_actions.php (PRG pattern) — shown as a toast below.
+$flashMessage = $_SESSION['flash_message'] ?? null;
+unset($_SESSION['flash_message']);
 
 /*
  |--------------------------------------------------------------------
@@ -226,6 +231,7 @@ $settings = [
 
                 <form id="accountForm" action="<?php echo BASE_URL; ?>/admin/settings_actions.php" method="POST">
                     <input type="hidden" name="action" value="update_account">
+                    <?php echo csrf_field(); ?>
 
                     <div class="form-group" style="margin-bottom:14px;">
                         <label class="form-label">Display Name</label>
@@ -237,7 +243,7 @@ $settings = [
                     </div>
                     <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
                         <button type="submit" class="btn-primary"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>
-                        <button type="button" class="btn-ghost" onclick="requestPasswordReset()"><i data-lucide="key-round" class="lucide" style="width:.85rem;height:.85rem;"></i> Change Password</button>
+                        <button type="button" class="btn-ghost" onclick="openModal('changePasswordModal')"><i data-lucide="key-round" class="lucide" style="width:.85rem;height:.85rem;"></i> Change Password</button>
                     </div>
                 </form>
             </div>
@@ -256,6 +262,7 @@ $settings = [
                     </div>
                     <form action="<?php echo BASE_URL; ?>/admin/settings_actions.php" method="POST" onsubmit="return confirm('Reset all analytics data? This cannot be undone.');">
                         <input type="hidden" name="action" value="reset_analytics">
+                        <?php echo csrf_field(); ?>
                         <button type="submit" class="tbl-btn delete" style="padding:8px 16px;"><i data-lucide="rotate-ccw" class="lucide" style="width:.75rem;height:.75rem;"></i> Reset</button>
                     </form>
                 </div>
@@ -266,6 +273,7 @@ $settings = [
                     </div>
                     <form action="<?php echo BASE_URL; ?>/admin/settings_actions.php" method="POST" onsubmit="return confirm('Log out every currently active user?');">
                         <input type="hidden" name="action" value="clear_sessions">
+                        <?php echo csrf_field(); ?>
                         <button type="submit" class="tbl-btn delete" style="padding:8px 16px;"><i data-lucide="x-circle" class="lucide" style="width:.75rem;height:.75rem;"></i> Clear</button>
                     </form>
                 </div>
@@ -275,12 +283,46 @@ $settings = [
     </div>
 </div>
 
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="changePasswordModal" onclick="closeModalOutside(event, 'changePasswordModal')">
+    <div class="modal-card">
+        <button class="modal-close" onclick="closeModal('changePasswordModal')"><i data-lucide="x" class="lucide"></i></button>
+        <div class="modal-title">Change Password</div>
+        <div class="modal-sub">Choose a new password for this admin account.</div>
+
+        <form id="changePasswordForm" onsubmit="return submitChangePassword(event)">
+            <div class="form-group" style="margin-bottom:14px;">
+                <label class="form-label">Current Password</label>
+                <input class="form-input" type="password" name="current_password" required autocomplete="current-password">
+            </div>
+            <div class="form-group" style="margin-bottom:14px;">
+                <label class="form-label">New Password</label>
+                <input class="form-input" type="password" name="new_password" minlength="8" required autocomplete="new-password">
+            </div>
+            <div class="form-group" style="margin-bottom:14px;">
+                <label class="form-label">Confirm New Password</label>
+                <input class="form-input" type="password" name="confirm_password" minlength="8" required autocomplete="new-password">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Update Password</button>
+                <button type="button" class="btn-ghost" onclick="closeModal('changePasswordModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/adminsettings.js"></script>
-<script>initSidebarCollapse();</script>
+<script>
+initSidebarCollapse();
+const KT_CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
+<?php if ($flashMessage): ?>
+showToast(<?php echo json_encode($flashMessage); ?>);
+<?php endif; ?>
+</script>
 
 </body>
 </html>

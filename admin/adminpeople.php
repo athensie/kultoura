@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/analytics.php';
+require_once __DIR__ . '/../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -41,6 +42,7 @@ $adminRole = $_SESSION['role'] ?? 'Admin';
  | title, achievement, description, image, created_at.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add') {
@@ -315,6 +317,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         <div class="modal-sub">Fill in the details to add a person of Malvar.</div>
         <form id="addPersonForm" method="POST" action="adminpeople.php">
             <input type="hidden" name="action" value="add">
+            <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label class="form-label">Full Name</label>
                 <input class="form-input" type="text" name="fullname" placeholder="e.g. Juan Dela Cruz" required>
@@ -349,6 +352,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         <div class="modal-sub" id="editPersonName">Editing: —</div>
         <form id="editPersonForm" method="POST" action="adminpeople.php">
             <input type="hidden" name="action" value="edit">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="person_id" id="editPersonId">
             <div class="form-group">
                 <label class="form-label">Full Name</label>
@@ -403,6 +407,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         <div class="modal-sub" id="deleteDesc">This action cannot be undone.</div>
         <form id="deleteForm" method="POST" action="adminpeople.php">
             <input type="hidden" name="action" value="delete">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="person_id" id="deletePersonId">
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>

@@ -1,0 +1,13 @@
+# Defense in depth: even though every upload handler already validates
+# file extension + actual image content (getimagesize()) before saving
+# here, this stops any file that ever slips through from being executed
+# as a script if it's requested directly.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar|pl|py|cgi|asp|aspx|sh|exe)$">
+    Require all denied
+</FilesMatch>

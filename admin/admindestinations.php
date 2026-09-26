@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
+require_once '../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -78,6 +79,13 @@ function handleDestinationImageUpload(): ?string
         return null;
     }
 
+    // Confirm it's actually an image, not just a renamed file (e.g. a
+    // .php file with a .jpg extension) — the extension check above
+    // alone doesn't inspect the actual file content.
+    if (@getimagesize($_FILES['image']['tmp_name']) === false) {
+        return null;
+    }
+
     $uploadDir = __DIR__ . '/../assets/uploads/destinations/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
@@ -101,6 +109,7 @@ function handleDestinationImageUpload(): ?string
  | so refreshing the page doesn't resubmit the form.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    csrf_verify();
     $action = $_POST['action'];
 
     if ($action === 'create') {
@@ -521,6 +530,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 
         <form id="addDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="create">
+            <?php echo csrf_field(); ?>
 
             <div class="form-group">
                 <label class="form-label">Destination Name</label>
@@ -583,6 +593,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 
         <form id="editDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="editDestinationId" value="">
 
             <div class="form-group">
@@ -682,6 +693,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
         <div class="modal-sub">This action cannot be undone.</div>
         <form id="deleteDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST">
             <input type="hidden" name="action" value="delete">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="deleteDestinationId" value="">
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>

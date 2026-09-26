@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
+require_once __DIR__ . '/../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -148,6 +149,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
 
             <form id="announceForm" action="<?php echo BASE_URL; ?>/admin/announcements_actions.php" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="create">
+                <?php echo csrf_field(); ?>
                 <input type="hidden" name="type" id="announceTypeInput" value="info">
                 <input type="hidden" name="status" id="announceStatusInput" value="live">
 
@@ -303,6 +305,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         <form id="editAnnouncementForm" action="<?php echo BASE_URL; ?>/admin/announcements_actions.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="id" id="editAnnId" value="">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="existing_image" id="editAnnExistingImage" value="">
 
             <div class="form-group">
@@ -356,6 +359,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         <form id="deleteAnnouncementForm" action="<?php echo BASE_URL; ?>/admin/announcements_actions.php" method="POST">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id" id="deleteAnnId" value="">
+            <?php echo csrf_field(); ?>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Remove</button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteAnnouncementModal')">Cancel</button>

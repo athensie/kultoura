@@ -3,7 +3,7 @@
  * Include this at the very top of every admin dashboard page,
  * before any HTML output.
  */
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 
 $role = strtolower($_SESSION['role'] ?? '');
 

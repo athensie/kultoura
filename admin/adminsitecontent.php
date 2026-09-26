@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/sitecontent.php';
+require_once '../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -40,6 +41,11 @@ function handleSiteContentImageUpload(string $field): ?string
         return null;
     }
 
+    // Confirm it's actually an image, not just a renamed file.
+    if (@getimagesize($_FILES[$field]['tmp_name']) === false) {
+        return null;
+    }
+
     $uploadDir = __DIR__ . '/../assets/uploads/sitecontent/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
@@ -58,6 +64,7 @@ function handleSiteContentImageUpload(string $field): ?string
  | HANDLE ADD / EDIT / DELETE / REORDER — POST back to this same page.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    csrf_verify();
     $action = $_POST['action'];
 
     // ---- Hero / singleton photo slots (home_hero_1, home_hero_2, about_hero) ----
@@ -261,6 +268,7 @@ $iconLabels = sitecontent_icon_labels();
                             <input type="hidden" name="action" value="save_photo">
                             <input type="hidden" name="photo_key" value="<?php echo htmlspecialchars($key); ?>">
                             <input type="hidden" name="remove_image" value="1">
+                            <?php echo csrf_field(); ?>
                             <button type="submit" class="btn-ghost btn-sm btn-danger-text" onclick="return confirm('Remove this photo and fall back to the automatic default?');">
                                 <i data-lucide="trash-2" class="lucide" style="width:.8rem;height:.8rem;"></i> Remove
                             </button>
@@ -271,6 +279,7 @@ $iconLabels = sitecontent_icon_labels();
                 <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" enctype="multipart/form-data" id="form-<?php echo $key; ?>">
                     <input type="hidden" name="action" value="save_photo">
                     <input type="hidden" name="photo_key" value="<?php echo htmlspecialchars($key); ?>">
+                    <?php echo csrf_field(); ?>
                     <input type="file" name="image" id="file-<?php echo $key; ?>" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="document.getElementById('form-<?php echo $key; ?>').submit()">
                 </form>
             </div>
@@ -301,12 +310,14 @@ $iconLabels = sitecontent_icon_labels();
                             <input type="hidden" name="action" value="move_section">
                             <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
                             <input type="hidden" name="direction" value="up">
+                            <?php echo csrf_field(); ?>
                             <button type="submit" class="order-btn" <?php echo $i === 0 ? 'disabled' : ''; ?> aria-label="Move up"><i data-lucide="chevron-up" class="lucide"></i></button>
                         </form>
                         <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST">
                             <input type="hidden" name="action" value="move_section">
                             <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
                             <input type="hidden" name="direction" value="down">
+                            <?php echo csrf_field(); ?>
                             <button type="submit" class="order-btn" <?php echo $i === count($aboutSections) - 1 ? 'disabled' : ''; ?> aria-label="Move down"><i data-lucide="chevron-down" class="lucide"></i></button>
                         </form>
                     </div>
@@ -337,6 +348,7 @@ $iconLabels = sitecontent_icon_labels();
                         <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" style="display:inline;" onsubmit="return confirm('Delete the &quot;<?php echo htmlspecialchars(addslashes($s['title'])); ?>&quot; section? This can\'t be undone.');">
                             <input type="hidden" name="action" value="delete_section">
                             <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
+                            <?php echo csrf_field(); ?>
                             <button type="submit" class="tbl-btn delete"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
                         </form>
                     </div>
@@ -357,6 +369,7 @@ $iconLabels = sitecontent_icon_labels();
 
         <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="create_section">
+            <?php echo csrf_field(); ?>
 
             <div class="form-group">
                 <label class="form-label">Section Title</label>
@@ -397,6 +410,7 @@ $iconLabels = sitecontent_icon_labels();
         <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update_section">
             <input type="hidden" name="id" id="editSectionId">
+            <?php echo csrf_field(); ?>
 
             <div class="form-group">
                 <label class="form-label">Section Title</label>

@@ -9,7 +9,7 @@
  | announcements composer/edit/delete forms already targeted this exact
  | path — kept that instead of rewiring three form actions.
  */
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 
 define('BASE_URL', '/kultoura');
 
@@ -26,11 +26,14 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 include '../config/dbmain.php';
 include '../config/announcements.php';
+require_once '../config/csrf.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: adminannouncements.php");
     exit;
 }
+
+csrf_verify();
 
 /*
  |--------------------------------------------------------------------
@@ -51,6 +54,11 @@ function kt_handle_announcement_image_upload(): ?string
     $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     $ext = strtolower(pathinfo($_FILES['image_file']['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $allowedExt, true)) {
+        return null;
+    }
+
+    // Confirm it's actually an image, not just a renamed file.
+    if (@getimagesize($_FILES['image_file']['tmp_name']) === false) {
         return null;
     }
 

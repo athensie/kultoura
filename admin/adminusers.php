@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 
 /*
  |--------------------------------------------------------------------
@@ -14,6 +14,7 @@ define('BASE_URL', '/kultoura');
  |--------------------------------------------------------------------
  */
 require_once __DIR__ . '/../config/dbmain.php';
+require_once __DIR__ . '/../config/csrf.php';
 
 /*
  |--------------------------------------------------------------------
@@ -45,6 +46,7 @@ $adminRole = $_SESSION['role'] ?? 'Admin';
 $flashMessage = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $formAction = $_POST['form_action'] ?? '';
     $source     = $_POST['source'] ?? '';
     $id         = (int) ($_POST['id'] ?? 0);
@@ -413,6 +415,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
             <input type="hidden" name="form_action" value="edit">
             <input type="hidden" name="source" id="editSource" value="">
             <input type="hidden" name="id" id="editId" value="">
+            <?php echo csrf_field(); ?>
 
             <!-- ADMIN FIELDS -->
             <div id="editAdminFields" style="display:none;">
@@ -479,6 +482,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
             <input type="hidden" name="form_action" value="delete">
             <input type="hidden" name="source" id="deleteSource" value="">
             <input type="hidden" name="id" id="deleteId" value="">
+            <?php echo csrf_field(); ?>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteModal')">Cancel</button>

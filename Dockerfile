@@ -9,6 +9,12 @@ RUN docker-php-ext-install mysqli pdo pdo_mysql \
     && grep -rl FOREGROUND /etc/apache2/ || true \
     && apache2ctl -D FOREGROUND -t
 
+# The base image's default vhost has AllowOverride None, which would
+# silently ignore assets/uploads/.htaccess (the block-script-execution
+# defense-in-depth for uploaded files) on Railway even though it works
+# locally under XAMPP's default config.
+RUN sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+
 # The app is served under /kultoura everywhere it already runs (local
 # XAMPP htdocs, the athensie/kultoura GitHub Pages-style layout), and
 # every page's nav/links/BASE_URL is hardcoded to that path. Keeping

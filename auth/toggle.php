@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 require_once '../../config/dbmain.php';
 
 header('Content-Type: application/json');

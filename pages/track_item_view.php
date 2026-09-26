@@ -9,7 +9,7 @@
  | reads or exposes anything. item_type is checked against the fixed
  | allowlist in analytics_item_types() before anything is written.
  */
-session_start();
+require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
 

@@ -33,6 +33,7 @@ async function toggleSetting(btn) {
         action: 'toggle_setting',
         key: key,
         value: newValue ? '1' : '0',
+        csrf_token: KT_CSRF_TOKEN,
       }),
     });
 
@@ -62,23 +63,55 @@ function formatSettingLabel(key) {
   return labels[key] || 'Setting';
 }
 
-/* ---------- PASSWORD RESET ---------- */
-async function requestPasswordReset() {
-  if (!confirm('Send a password reset link to this admin\'s email?')) return;
+/* ---------- MODALS ---------- */
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.add('open');
+}
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove('open');
+}
+function closeModalOutside(event, id) {
+  if (event.target.id === id) closeModal(id);
+}
+
+/* ---------- CHANGE PASSWORD ---------- */
+async function submitChangePassword(event) {
+  event.preventDefault();
+  const form = event.target;
+  const newPassword = form.new_password.value;
+  const confirmPassword = form.confirm_password.value;
+
+  if (newPassword !== confirmPassword) {
+    showToast('New password and confirmation do not match.');
+    return false;
+  }
 
   try {
     const response = await fetch('/kultoura/admin/settings_actions.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ action: 'send_password_reset' }),
+      body: new URLSearchParams({
+        action: 'change_password',
+        current_password: form.current_password.value,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+        csrf_token: KT_CSRF_TOKEN,
+      }),
     });
 
-    if (!response.ok) throw new Error('Request failed');
-    showToast('Password reset email sent.');
+    const data = await response.json();
+    showToast(data.message || (data.success ? 'Password updated.' : 'Could not update password.'));
+    if (data.success) {
+      form.reset();
+      closeModal('changePasswordModal');
+    }
   } catch (err) {
     console.error(err);
-    showToast('Could not send the reset email. Try again.');
+    showToast('Could not update password. Try again.');
   }
+  return false;
 }
 
 /* ---------- MOBILE SIDEBAR TOGGLE ---------- */
