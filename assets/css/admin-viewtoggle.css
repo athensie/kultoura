@@ -8,8 +8,8 @@
 .view-toggle {
     display: flex;
     gap: 4px;
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(var(--overlay-rgb),.05);
+    border: 1px solid rgba(var(--overlay-rgb),.08);
     border-radius: 10px;
     padding: 4px;
     flex-shrink: 0;
@@ -24,12 +24,12 @@
     border: none;
     border-radius: 7px;
     background: transparent;
-    color: rgba(245,237,216,.4);
+    color: rgba(var(--cream-rgb),.8);
     cursor: pointer;
     transition: background .2s, color .2s;
 }
 .view-btn .lucide { width: 16px; height: 16px; }
-.view-btn:hover { color: rgba(245,237,216,.75); }
+.view-btn:hover { color: var(--cream); }
 .view-btn.active { background: rgba(232,168,66,.15); color: var(--gold); }
 
 /* ---------- GRID VIEW ---------- */
@@ -40,8 +40,8 @@
 }
 
 .grid-card {
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(var(--overlay-rgb),.05);
+    border: 1px solid rgba(var(--overlay-rgb),.08);
     border-radius: 14px;
     overflow: hidden;
     display: flex;
@@ -53,11 +53,11 @@
 .grid-card-media {
     width: 100%;
     height: 140px;
-    background: rgba(255,255,255,.03);
+    background: rgba(var(--overlay-rgb),.03);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(245,237,216,.2);
+    color: rgba(var(--cream-rgb),.35);
     position: relative;
     flex-shrink: 0;
 }
@@ -67,8 +67,8 @@
 
 .grid-card-body { padding: 16px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
 .grid-card-title { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--cream); line-height: 1.3; }
-.grid-card-sub { font-size: .76rem; color: rgba(245,237,216,.45); }
-.grid-card-meta { display: flex; align-items: center; gap: 10px; font-size: .72rem; color: rgba(245,237,216,.35); margin-top: 6px; flex-wrap: wrap; }
+.grid-card-sub { font-size: .76rem; color: rgba(var(--cream-rgb),.6); }
+.grid-card-meta { display: flex; align-items: center; gap: 10px; font-size: .72rem; color: rgba(var(--cream-rgb),.5); margin-top: 6px; flex-wrap: wrap; }
 .grid-card-meta .lucide { width: 12px; height: 12px; }
 .grid-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
 
@@ -76,7 +76,7 @@
     display: flex;
     gap: 6px;
     padding: 12px 16px;
-    border-top: 1px solid rgba(255,255,255,.06);
+    border-top: 1px solid rgba(var(--overlay-rgb),.06);
     margin-top: auto;
 }
 .grid-card-actions .tbl-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }

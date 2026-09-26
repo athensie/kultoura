@@ -70,7 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // ---- Hero / singleton photo slots (home_hero_1, home_hero_2, about_hero) ----
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
-        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero'], true)) {
+        if (in_array($key, [
+            'home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero',
+            'tourism_hero', 'products_hero', 'nature_hero', 'resort_hero', 'industry_hero', 'churches_hero',
+            'fiestas_hero', 'people_hero', 'restaurants_hero', 'accommodation_hero',
+            'banks_hero', 'services_hero', 'favorites_hero', 'mostpopular_hero',
+        ], true)) {
             if (!empty($_POST['remove_image'])) {
                 $stmt = $conn->prepare("INSERT INTO site_photos (photo_key, image) VALUES (?, NULL) ON DUPLICATE KEY UPDATE image = NULL");
                 $stmt->bind_param('s', $key);
@@ -126,27 +131,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->close();
     }
 
-    if ($action === 'move_section') {
-        $id  = (int) $_POST['id'];
-        $dir = $_POST['direction'] ?? '';
-        $all = sitecontent_get_about_sections($conn);
-        $index = null;
-        foreach ($all as $i => $s) {
-            if ((int) $s['section_id'] === $id) { $index = $i; break; }
+    // ---- Drag-and-drop reorder — AJAX, responds with JSON instead of redirecting ----
+    if ($action === 'reorder_sections') {
+        $order = $_POST['order'] ?? [];
+        header('Content-Type: application/json');
+        if (!is_array($order) || empty($order)) {
+            http_response_code(400);
+            echo json_encode(['success' => false]);
+            exit;
         }
-        if ($index !== null) {
-            $swapWith = $dir === 'up' ? $index - 1 : $index + 1;
-            if (isset($all[$swapWith])) {
-                $a = $all[$index];
-                $b = $all[$swapWith];
-                $stmt = $conn->prepare("UPDATE about_sections SET sort_order = ? WHERE section_id = ?");
-                $stmt->bind_param('ii', $b['sort_order'], $a['section_id']);
-                $stmt->execute();
-                $stmt->bind_param('ii', $a['sort_order'], $b['section_id']);
-                $stmt->execute();
-                $stmt->close();
-            }
+        $stmt = $conn->prepare("UPDATE about_sections SET sort_order = ? WHERE section_id = ?");
+        foreach (array_values($order) as $position => $sectionId) {
+            $sectionId = (int) $sectionId;
+            $stmt->bind_param('ii', $position, $sectionId);
+            $stmt->execute();
         }
+        $stmt->close();
+        echo json_encode(['success' => true]);
+        exit;
     }
 
     header("Location: " . BASE_URL . "/admin/adminsitecontent.php");
@@ -157,16 +159,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
  |--------------------------------------------------------------------
  | DATA FOR THE PAGE
  */
-$heroPhotoSlots = [
-    'home_hero_bg' => ['label' => 'Homepage — Hero Background Photo', 'hint' => 'The full-width background photo behind the "Welcome to KulToura" hero. Leave empty to keep the green gradient.'],
-    'home_hero_1'  => ['label' => 'Homepage — Hero Photo 1', 'hint' => 'The top photo in the landing page collage.'],
-    'home_hero_2'  => ['label' => 'Homepage — Hero Photo 2', 'hint' => 'The second, smaller photo in the landing page collage.'],
-    'about_hero'   => ['label' => 'About Page — Hero Photo', 'hint' => 'The full-width background photo behind "About / Malvar".'],
+// Grouped by where they live in the site nav, so the admin can find a slot
+// by "which page is this" instead of scanning one long flat list. Each slot
+// carries the live page's URL so admin can jump straight there to see
+// exactly where the photo will land.
+$heroPhotoGroups = [
+    'Homepage' => [
+        'icon'  => 'home',
+        'slots' => [
+            'home_hero_bg' => ['label' => 'Hero Background Photo', 'hint' => 'The full-width background photo behind the "Welcome to KulToura" hero. Leave empty to keep the green gradient.', 'url' => BASE_URL . '/index.php', 'highlight' => '.hero'],
+            'home_hero_1'  => ['label' => 'Hero Photo 1', 'hint' => 'The top photo in the landing page collage.', 'url' => BASE_URL . '/index.php', 'highlight' => '.hero-photo-1'],
+            'home_hero_2'  => ['label' => 'Hero Photo 2', 'hint' => 'The second, smaller photo in the landing page collage.', 'url' => BASE_URL . '/index.php', 'highlight' => '.hero-photo-2'],
+        ],
+    ],
+    'About Page' => [
+        'icon'  => 'info',
+        'slots' => [
+            'about_hero' => ['label' => 'Hero Photo', 'hint' => 'The full-width background photo behind "About / Malvar".', 'url' => BASE_URL . '/pages/about.php', 'highlight' => '.a-hero'],
+        ],
+    ],
+    'Tourism Hub' => [
+        'icon'  => 'compass',
+        'slots' => [
+            'tourism_hero' => ['label' => 'Hero Background Photo', 'hint' => 'The full-width background photo behind the "Tourism" hub page hero. Leave empty to keep the plain cream background.', 'url' => BASE_URL . '/pages/tourism.php', 'highlight' => '.t-hero'],
+        ],
+    ],
+    'Explore Malvar (nav dropdown)' => [
+        'icon'  => 'map',
+        'slots' => [
+            'products_hero'  => ['label' => 'Products — Hero Photo', 'hint' => 'Behind the "Products" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/products.php', 'highlight' => '.t-hero'],
+            'nature_hero'    => ['label' => 'Nature — Hero Photo', 'hint' => 'Behind the "Nature" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/nature.php', 'highlight' => '.t-hero'],
+            'resort_hero'    => ['label' => 'Resort — Hero Photo', 'hint' => 'Behind the "Resort" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/resort.php', 'highlight' => '.t-hero'],
+            'industry_hero'  => ['label' => 'Industry Zone — Hero Photo', 'hint' => 'Behind the "Industry Zone" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/industry.php', 'highlight' => '.t-hero'],
+            'churches_hero'  => ['label' => 'Churches — Hero Photo', 'hint' => 'Behind the "Churches" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/churches.php', 'highlight' => '.t-hero'],
+            'fiestas_hero'   => ['label' => 'Fiestas — Hero Photo', 'hint' => 'Behind the "Fiestas" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/fiestas.php', 'highlight' => '.t-hero'],
+            'people_hero'    => ['label' => 'People of Malvar — Hero Photo', 'hint' => 'Behind the "People of Malvar" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/people.php', 'highlight' => '.t-hero'],
+            'services_hero'  => ['label' => 'Other Services — Hero Photo', 'hint' => 'Behind the "Other Services" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/services.php', 'highlight' => '.t-hero'],
+        ],
+    ],
+    'Main Nav Pages' => [
+        'icon'  => 'utensils',
+        'slots' => [
+            'restaurants_hero'   => ['label' => 'Restaurants — Hero Photo', 'hint' => 'Behind the "Restaurants" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/restaurants.php', 'highlight' => '.t-hero'],
+            'accommodation_hero' => ['label' => 'Accommodation — Hero Photo', 'hint' => 'Behind the "Accommodation" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/accommodation.php', 'highlight' => '.t-hero'],
+            'banks_hero'         => ['label' => 'Banks — Hero Photo', 'hint' => 'Behind the "Banks" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/banks.php', 'highlight' => '.t-hero'],
+        ],
+    ],
+    'More Menu' => [
+        'icon'  => 'more-horizontal',
+        'slots' => [
+            'favorites_hero'   => ['label' => 'Favorites — Hero Photo', 'hint' => 'Behind the "Your Favorites" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/favorites.php', 'highlight' => '.t-hero'],
+            'mostpopular_hero' => ['label' => 'Most Popular — Hero Photo', 'hint' => 'Behind the "Most Popular" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/mostpopular.php', 'highlight' => '.t-hero'],
+        ],
+    ],
 ];
-foreach ($heroPhotoSlots as $key => &$slot) {
-    $slot['image'] = sitecontent_get_photo($conn, $key);
+foreach ($heroPhotoGroups as &$group) {
+    foreach ($group['slots'] as $key => &$slot) {
+        $slot['image'] = sitecontent_get_photo($conn, $key);
+    }
+    unset($slot);
 }
-unset($slot);
+unset($group);
 
 $aboutSections = sitecontent_get_about_sections($conn);
 $iconSvgs   = sitecontent_icons();
@@ -179,11 +232,21 @@ $iconLabels = sitecontent_icon_labels();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Content – KULTOURA Admin</title>
 
+    <script>
+        (function () {
+            var saved = localStorage.getItem('kt-admin-theme');
+            if (saved === 'light' || saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', saved);
+            }
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 
     <link rel="stylesheet" href="../assets/css/adminsitecontent.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
+    <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
 </head>
 <body>
 
@@ -215,6 +278,11 @@ $iconLabels = sitecontent_icon_labels();
     </ul>
 
     <div class="sidebar-footer">
+        <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
+            <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
+            <span class="theme-toggle-option" data-theme-option="light"><i data-lucide="sun" class="lucide"></i> Light</span>
+            <span class="theme-toggle-thumb"></span>
+        </button>
         <div class="admin-avatar">
             <div class="avatar-circle"><i data-lucide="user" class="lucide" style="width:1.1rem;height:1.1rem;"></i></div>
             <div>
@@ -239,53 +307,82 @@ $iconLabels = sitecontent_icon_labels();
             <div>
                 <div class="section-label">Content Management</div>
                 <h1>Site <em>Content</em></h1>
-                <p>Control the photos on the homepage and the About page — including the History, Geography, and other story sections.</p>
+                <p>Control the hero photos across every public page, plus the About page's History, Geography, and other story sections.</p>
             </div>
         </div>
 
         <!-- HERO PHOTOS -->
         <h2 class="content-h2">Hero Photos</h2>
-        <p class="content-sub">These are fixed photo slots used directly on the public pages.</p>
+        <p class="content-sub">Grouped by where they show up in the site's navigation. Click "Preview page" on any card to see exactly where a photo will land before you upload it.</p>
 
-        <div class="photo-card-grid animate">
-            <?php foreach ($heroPhotoSlots as $key => $slot): ?>
-            <div class="photo-card">
-                <div class="photo-card-preview">
-                    <?php if ($slot['image']): ?>
-                        <img src="<?php echo htmlspecialchars($slot['image']); ?>" alt="">
-                    <?php else: ?>
-                        <div class="photo-card-empty"><i data-lucide="image-off" class="lucide"></i><span>No photo set — using an automatic fallback</span></div>
-                    <?php endif; ?>
-                </div>
-                <div class="photo-card-body">
-                    <div class="photo-card-label"><?php echo htmlspecialchars($slot['label']); ?></div>
-                    <div class="photo-card-hint"><?php echo htmlspecialchars($slot['hint']); ?></div>
-                    <div class="photo-card-actions">
-                        <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('file-<?php echo $key; ?>').click()">
-                            <i data-lucide="upload" class="lucide" style="width:.8rem;height:.8rem;"></i> <?php echo $slot['image'] ? 'Replace' : 'Upload'; ?> Photo
-                        </button>
+        <nav class="hero-group-jump" aria-label="Jump to a page group">
+            <?php foreach ($heroPhotoGroups as $groupName => $group):
+                $groupSlug  = preg_replace('/[^a-z0-9]+/i', '-', $groupName);
+                $groupTotal = count($group['slots']);
+                $groupSet   = count(array_filter($group['slots'], fn($s) => !empty($s['image'])));
+                $statusClass = $groupSet === 0 ? 'is-empty' : ($groupSet === $groupTotal ? 'is-complete' : 'is-partial');
+            ?>
+                <a href="#hero-group-<?php echo htmlspecialchars($groupSlug); ?>" data-group="hero-group-<?php echo htmlspecialchars($groupSlug); ?>">
+                    <i data-lucide="<?php echo htmlspecialchars($group['icon']); ?>" class="lucide" style="width:.8rem;height:.8rem;"></i>
+                    <?php echo htmlspecialchars($groupName); ?>
+                    <span class="hero-group-jump-count <?php echo $statusClass; ?>" title="<?php echo $groupSet; ?> of <?php echo $groupTotal; ?> photo slot(s) set"><?php echo $groupSet; ?>/<?php echo $groupTotal; ?></span>
+                </a>
+            <?php endforeach; ?>
+        </nav>
+
+        <?php foreach ($heroPhotoGroups as $groupName => $group):
+            $groupSlug = preg_replace('/[^a-z0-9]+/i', '-', $groupName);
+        ?>
+        <div class="hero-photo-group" id="hero-group-<?php echo htmlspecialchars($groupSlug); ?>">
+            <h3 class="hero-group-title">
+                <i data-lucide="<?php echo htmlspecialchars($group['icon']); ?>" class="lucide"></i>
+                <?php echo htmlspecialchars($groupName); ?>
+            </h3>
+
+            <div class="photo-card-grid animate">
+                <?php foreach ($group['slots'] as $key => $slot): ?>
+                <div class="photo-card">
+                    <div class="photo-card-preview">
                         <?php if ($slot['image']): ?>
-                        <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="save_photo">
-                            <input type="hidden" name="photo_key" value="<?php echo htmlspecialchars($key); ?>">
-                            <input type="hidden" name="remove_image" value="1">
-                            <?php echo csrf_field(); ?>
-                            <button type="submit" class="btn-ghost btn-sm btn-danger-text" onclick="return confirm('Remove this photo and fall back to the automatic default?');">
-                                <i data-lucide="trash-2" class="lucide" style="width:.8rem;height:.8rem;"></i> Remove
-                            </button>
-                        </form>
+                            <img src="<?php echo htmlspecialchars($slot['image']); ?>" alt="">
+                        <?php else: ?>
+                            <div class="photo-card-empty"><i data-lucide="image-off" class="lucide"></i><span>No photo set — using an automatic fallback</span></div>
                         <?php endif; ?>
                     </div>
+                    <div class="photo-card-body">
+                        <div class="photo-card-label"><?php echo htmlspecialchars($slot['label']); ?></div>
+                        <div class="photo-card-hint"><?php echo htmlspecialchars($slot['hint']); ?></div>
+                        <button type="button" class="photo-card-preview-link" onclick="openPagePreview('<?php echo htmlspecialchars($slot['url'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($groupName . ' — ' . $slot['label'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($slot['highlight'] ?? '', ENT_QUOTES); ?>')">
+                            <i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> Preview page
+                        </button>
+                        <div class="photo-card-actions">
+                            <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('file-<?php echo $key; ?>').click()">
+                                <i data-lucide="upload" class="lucide" style="width:.8rem;height:.8rem;"></i> <?php echo $slot['image'] ? 'Replace' : 'Upload'; ?> Photo
+                            </button>
+                            <?php if ($slot['image']): ?>
+                            <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="save_photo">
+                                <input type="hidden" name="photo_key" value="<?php echo htmlspecialchars($key); ?>">
+                                <input type="hidden" name="remove_image" value="1">
+                                <?php echo csrf_field(); ?>
+                                <button type="submit" class="btn-ghost btn-sm btn-danger-text" onclick="return confirm('Remove this photo and fall back to the automatic default?');">
+                                    <i data-lucide="trash-2" class="lucide" style="width:.8rem;height:.8rem;"></i> Remove
+                                </button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" enctype="multipart/form-data" id="form-<?php echo $key; ?>">
+                        <input type="hidden" name="action" value="save_photo">
+                        <input type="hidden" name="photo_key" value="<?php echo htmlspecialchars($key); ?>">
+                        <?php echo csrf_field(); ?>
+                        <input type="file" name="image" id="file-<?php echo $key; ?>" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="document.getElementById('form-<?php echo $key; ?>').submit()">
+                    </form>
                 </div>
-                <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" enctype="multipart/form-data" id="form-<?php echo $key; ?>">
-                    <input type="hidden" name="action" value="save_photo">
-                    <input type="hidden" name="photo_key" value="<?php echo htmlspecialchars($key); ?>">
-                    <?php echo csrf_field(); ?>
-                    <input type="file" name="image" id="file-<?php echo $key; ?>" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="document.getElementById('form-<?php echo $key; ?>').submit()">
-                </form>
+                <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
         </div>
+        <?php endforeach; ?>
 
         <!-- ABOUT SECTIONS -->
         <div class="content-h2-row">
@@ -296,7 +393,7 @@ $iconLabels = sitecontent_icon_labels();
             <button class="btn-primary" onclick="openAddSection()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Section</button>
         </div>
 
-        <div class="section-list animate">
+        <div class="section-list animate" id="sectionList">
             <?php if (empty($aboutSections)): ?>
                 <div class="table-empty">
                     <i data-lucide="layout-list" class="lucide"></i>
@@ -305,22 +402,9 @@ $iconLabels = sitecontent_icon_labels();
                 </div>
             <?php else: ?>
                 <?php foreach ($aboutSections as $i => $s): ?>
-                <div class="section-row">
-                    <div class="section-row-order">
-                        <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST">
-                            <input type="hidden" name="action" value="move_section">
-                            <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
-                            <input type="hidden" name="direction" value="up">
-                            <?php echo csrf_field(); ?>
-                            <button type="submit" class="order-btn" <?php echo $i === 0 ? 'disabled' : ''; ?> aria-label="Move up"><i data-lucide="chevron-up" class="lucide"></i></button>
-                        </form>
-                        <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST">
-                            <input type="hidden" name="action" value="move_section">
-                            <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
-                            <input type="hidden" name="direction" value="down">
-                            <?php echo csrf_field(); ?>
-                            <button type="submit" class="order-btn" <?php echo $i === count($aboutSections) - 1 ? 'disabled' : ''; ?> aria-label="Move down"><i data-lucide="chevron-down" class="lucide"></i></button>
-                        </form>
+                <div class="section-row" draggable="true" data-id="<?php echo (int) $s['section_id']; ?>">
+                    <div class="section-row-handle" aria-label="Drag to reorder" title="Drag to reorder">
+                        <i data-lucide="grip-vertical" class="lucide"></i>
                     </div>
 
                     <div class="section-row-thumb">
@@ -445,9 +529,33 @@ $iconLabels = sitecontent_icon_labels();
     </div>
 </div>
 
+<!-- PAGE PREVIEW MODAL -->
+<div class="modal-overlay preview-modal-overlay" id="pagePreviewModal" onclick="closeModalOutside(event, 'pagePreviewModal')">
+    <div class="modal-card preview-modal-card">
+        <button class="modal-close" onclick="closeModal('pagePreviewModal')"><i data-lucide="x" class="lucide"></i></button>
+        <div class="preview-modal-header">
+            <div>
+                <div class="modal-title" id="pagePreviewTitle">Page Preview</div>
+                <div class="preview-modal-hint"><i data-lucide="sparkles" class="lucide"></i> The highlighted, pulsing section below is what this photo changes</div>
+            </div>
+            <div class="preview-modal-sizes">
+                <button type="button" class="preview-size-btn active" data-size="desktop" onclick="setPreviewSize('desktop')" aria-label="Desktop view"><i data-lucide="monitor" class="lucide"></i></button>
+                <button type="button" class="preview-size-btn" data-size="mobile" onclick="setPreviewSize('mobile')" aria-label="Mobile view"><i data-lucide="smartphone" class="lucide"></i></button>
+                <a class="preview-size-btn" id="pagePreviewOpenNew" href="#" target="_blank" rel="noopener" aria-label="Open in new tab"><i data-lucide="external-link" class="lucide"></i></a>
+            </div>
+        </div>
+        <div class="preview-modal-frame-wrap" id="previewFrameWrap">
+            <div class="preview-modal-loading" id="previewFrameLoading"><i data-lucide="loader-2" class="lucide"></i> Loading preview…</div>
+            <iframe id="pagePreviewFrame" class="preview-modal-frame" title="Page preview" onload="handlePreviewFrameLoad(this)"></iframe>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
+<script src="../assets/js/admin-theme.js"></script>
+<script>window.KT_CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;</script>
 <script src="../assets/js/adminsitecontent.js"></script>
 <script>lucide.createIcons(); initSidebarCollapse();</script>
 </body>

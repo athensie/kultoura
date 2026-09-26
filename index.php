@@ -27,6 +27,7 @@ $homeImageSubfolder = [
     'accommodation' => 'destinations',
     'bank'          => 'destinations',
     'service'       => 'destinations',
+    'church'        => 'destinations',
     'fiesta'        => 'fiestas',
     'person'        => 'people',
 ];
@@ -47,6 +48,7 @@ $homeBadgeColors = [
     'accommodation' => '#7d5fa3',
     'bank'          => '#2f6690',
     'service'       => '#7a6a53',
+    'church'        => '#8b3a3a',
     'fiesta'        => '#a8433a',
     'person'        => '#4a5a78',
 ];
@@ -182,6 +184,7 @@ if ($result = $conn->query(
                         <a href="pages/tourism/nature.php">Nature</a>
                         <a href="pages/tourism/industry.php">Industry Zone</a>
                         <a href="pages/tourism/resort.php">Resort</a>
+                        <a href="pages/tourism/churches.php">Churches</a>
                     </div>
                     <div class="mega-column">
                         <h4>Culture &amp; Services</h4>
@@ -428,9 +431,9 @@ if ($result = $conn->query(
         <div class="home-footer-brand">
             <div class="home-footer-logo"><img src="assets/images/kultoura.png" alt="KulToura"></div>
             <div class="home-footer-social">
-                <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8.4h2.8l.4-3.3h-3.2V8.1c0-.9.3-1.6 1.7-1.6h1.7V3.5C16.6 3.4 15.5 3.3 14.3 3.3c-2.6 0-4.3 1.6-4.3 4.4v2.6H7.2v3.3h2.8V22h3.5z"/></svg></a>
-                <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg></a>
-                <a href="pages/tourism.php" aria-label="Explore destinations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></a>
+                <a href="https://www.facebook.com/MalvarBatangasOfficial" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8.4h2.8l.4-3.3h-3.2V8.1c0-.9.3-1.6 1.7-1.6h1.7V3.5C16.6 3.4 15.5 3.3 14.3 3.3c-2.6 0-4.3 1.6-4.3 4.4v2.6H7.2v3.3h2.8V22h3.5z"/></svg></a>
+                <a href="https://maps.app.goo.gl/jnx86pEBNWb8op8QA" target="_blank" rel="noopener" aria-label="Location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></a>
+                <a href="mailto:malvartourismoffice@gmail.com" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></a>
             </div>
         </div>
         <div class="home-footer-col footer-accordion">

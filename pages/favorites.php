@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
+include '../config/sitecontent.php';
 analytics_track($conn, 'favorites');
+
+$favoritesHeroPhoto = sitecontent_get_photo($conn, 'favorites_hero');
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? '');
@@ -191,6 +194,7 @@ $destinationPageByCategory = [
     'accommodation' => 'accommodation.php',
     'bank'          => 'banks.php',
     'service'       => 'services.php',
+    'church'        => 'churches.php',
 ];
 
 $favorites = [];
@@ -297,6 +301,7 @@ foreach ($favoriteRows as $r) {
                     <a href="tourism/nature.php">Nature</a>
                     <a href="tourism/industry.php">Industry Zone</a>
                     <a href="tourism/resort.php">Resort</a>
+                    <a href="tourism/churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>
@@ -338,9 +343,14 @@ foreach ($favoriteRows as $r) {
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero">
-    <div class="t-hero-orb t-orb-1"></div>
-    <div class="t-hero-orb t-orb-2"></div>
+<section class="t-hero<?php echo $favoritesHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($favoritesHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($favoritesHeroPhoto); ?>" alt="">
+        <div class="t-hero-scrim"></div>
+    <?php else: ?>
+        <div class="t-hero-orb t-orb-1"></div>
+        <div class="t-hero-orb t-orb-2"></div>
+    <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Your Favorites</h1>

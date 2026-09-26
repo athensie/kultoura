@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
+include '../config/sitecontent.php';
 analytics_track($conn, 'mostpopular');
+
+$mostpopularHeroPhoto = sitecontent_get_photo($conn, 'mostpopular_hero');
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? '');
@@ -92,6 +95,7 @@ $destinationPageByCategory = [
     'accommodation' => 'accommodation.php',
     'bank'          => 'banks.php',
     'service'       => 'services.php',
+    'church'        => 'churches.php',
 ];
 
 $popularItems = [];
@@ -183,6 +187,7 @@ foreach ($popularItems as $p) {
                     <a href="tourism/nature.php">Nature</a>
                     <a href="tourism/industry.php">Industry Zone</a>
                     <a href="tourism/resort.php">Resort</a>
+                    <a href="tourism/churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>
@@ -224,9 +229,14 @@ foreach ($popularItems as $p) {
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero">
-    <div class="t-hero-orb t-orb-1"></div>
-    <div class="t-hero-orb t-orb-2"></div>
+<section class="t-hero<?php echo $mostpopularHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($mostpopularHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($mostpopularHeroPhoto); ?>" alt="">
+        <div class="t-hero-scrim"></div>
+    <?php else: ?>
+        <div class="t-hero-orb t-orb-1"></div>
+        <div class="t-hero-orb t-orb-2"></div>
+    <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Most Popular</h1>

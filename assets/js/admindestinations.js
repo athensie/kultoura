@@ -218,7 +218,7 @@ function openAddDestination() {
 /* ---------- VIEW ---------- */
 function openViewDestination(btn) {
   const d = btn.dataset;
-  const categoryLabels = { nature: 'Nature', industry: 'Industry Zone', resort: 'Resort', accommodation: 'Accommodation', bank: 'Banks', service: 'Other Services' };
+  const categoryLabels = { nature: 'Nature', industry: 'Industry Zone', resort: 'Resort', accommodation: 'Accommodation', bank: 'Banks', service: 'Other Services', church: 'Churches' };
 
   const imgEl = document.getElementById('vdImage');
   if (imgEl) {

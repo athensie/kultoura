@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../../config/session_boot.php';
 include '../../config/dbmain.php';
 include '../../config/analytics.php';
+include '../../config/sitecontent.php';
 analytics_track($conn, 'fiestas');
+
+$fiestasHeroPhoto = sitecontent_get_photo($conn, 'fiestas_hero');
 
 // Logged for foryou.php's "Because You Explored" recommendations.
 // Skipped on the ajax_calendar ping so flipping through months doesn't
@@ -143,6 +146,7 @@ if (isset($_GET['ajax_calendar'])) {
                     <a href="nature.php">Nature</a>
                     <a href="industry.php">Industry Zone</a>
                     <a href="resort.php">Resort</a>
+                    <a href="churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>
@@ -185,9 +189,14 @@ if (isset($_GET['ajax_calendar'])) {
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero">
-    <div class="t-hero-orb t-orb-1"></div>
-    <div class="t-hero-orb t-orb-2"></div>
+<section class="t-hero<?php echo $fiestasHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($fiestasHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($fiestasHeroPhoto); ?>" alt="">
+        <div class="t-hero-scrim"></div>
+    <?php else: ?>
+        <div class="t-hero-orb t-orb-1"></div>
+        <div class="t-hero-orb t-orb-2"></div>
+    <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">CULTURE · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Fiestas</h1>
@@ -243,21 +252,21 @@ if (isset($_GET['ajax_calendar'])) {
                         $fid   = (int) $item['fiesta_id'];
                         $isFav = in_array((string) $fid, $favoritedFiestaIds, true);
                     ?>
-                    <article class="p-card">
+                    <article class="p-card" onclick="openViewDetails(<?= $fid ?>)">
                         <div class="p-card-body">
                             <div class="p-card-top-row">
-                                <?php if (!empty($item['type'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['type']) ?></span><?php else: ?><span></span><?php endif; ?>
                                 <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
                                         data-fiesta-id="<?= $fid ?>"
-                                        onclick="toggleFavoriteRequest(<?= $fid ?>)"
+                                        onclick="event.stopPropagation(); toggleFavoriteRequest(<?= $fid ?>)"
                                         aria-label="Save to favorites"><?= $isFav ? '&#9829;' : '&#9825;' ?></button>
+                                <?php if (!empty($item['type'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['type']) ?></span><?php else: ?><span></span><?php endif; ?>
                             </div>
                             <?php if (!empty($item['celebration_date'])): ?><p class="p-card-category"><?= htmlspecialchars(date('F j, Y', strtotime($item['celebration_date']))) ?></p><?php endif; ?>
                             <h3 class="p-card-title"><?= htmlspecialchars($item['fiesta_name']) ?></h3>
                             <p class="p-card-desc"><?= htmlspecialchars($item['description'] ?? '') ?></p>
                             <div class="p-card-actions">
-                                <button type="button" class="p-btn p-btn-primary" onclick="openViewDetails(<?= $fid ?>)">View Details</button>
-                                <button type="button" class="p-btn p-btn-outline" onclick="openNavigate(<?= $fid ?>)">Navigate</button>
+                                <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= $fid ?>)">View Details</button>
+                                <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= $fid ?>)">Navigate</button>
                             </div>
                         </div>
                     </article>

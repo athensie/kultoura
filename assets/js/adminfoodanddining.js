@@ -394,6 +394,95 @@ function filterListings() {
   });
 }
 
+// EXPORT AS EXCEL
+async function exportFoodListingsExcel() {
+  const btn = document.getElementById('exportExcelBtn');
+  if (!btn) return;
+
+  const rows = Array.from(document.querySelectorAll('#foodListingsTable tbody tr'))
+    .filter(r => r.style.display !== 'none');
+
+  if (rows.length === 0) {
+    showToast('No listings to export yet.');
+    return;
+  }
+
+  btn.classList.add('loading');
+  const label = btn.querySelector('span');
+  const originalLabel = label.textContent;
+  label.textContent = 'Generating…';
+
+  if (!window.XLSX) {
+    try {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load SheetJS'));
+        document.head.appendChild(script);
+      });
+    } catch (err) {
+      console.error(err);
+      showToast('Could not load the export library. Check your connection.');
+      btn.classList.remove('loading');
+      label.textContent = originalLabel;
+      return;
+    }
+  }
+
+  try {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const sheetRows = [
+      ['KulToura — Food & Dining Export'],
+      [`Generated: ${dateStr}`],
+      [],
+      ['#', 'Listing', 'Type', 'Category', 'Location', 'Price / Contact', 'Views'],
+    ];
+
+    let products = 0, restaurants = 0;
+
+    rows.forEach((row, i) => {
+      const cells = row.querySelectorAll('td');
+      const name = cells[0]?.textContent.trim() || '';
+      const type = cells[1]?.textContent.trim() || '';
+      const category = cells[2]?.textContent.trim() || '';
+      const location = cells[3]?.textContent.trim() || '';
+      const priceContact = cells[4]?.textContent.trim() || '';
+      const views = cells[5]?.textContent.trim() || '';
+
+      sheetRows.push([i + 1, name, type, category, location, priceContact, views]);
+
+      if (type.toLowerCase() === 'product') products++;
+      else if (type.toLowerCase() === 'restaurant') restaurants++;
+    });
+
+    sheetRows.push([]);
+    sheetRows.push(['Total Listings', rows.length]);
+    sheetRows.push(['Products', products]);
+    sheetRows.push(['Restaurants', restaurants]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+    ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 24 }, { wch: 18 }, { wch: 10 }];
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Food & Dining');
+
+    XLSX.writeFile(wb, `KulToura-FoodAndDining-${now.toISOString().slice(0, 10)}.xlsx`);
+    showToast('Export ready — check your downloads.');
+  } catch (err) {
+    console.error(err);
+    showToast('Something went wrong generating the export.');
+  } finally {
+    btn.classList.remove('loading');
+    label.textContent = originalLabel;
+  }
+}
+
 // TOAST
 let _toastTimer;
 function showToast(msg) {

@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
+include '../config/sitecontent.php';
 analytics_track($conn, 'tourism');
+
+$tourismHeroPhoto = sitecontent_get_photo($conn, 'tourism_hero');
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? '');
@@ -42,6 +45,7 @@ $hubImages = [
     'fiestas'     => kt_latest_image($conn, 'fiestas'),
     'people'      => kt_latest_image($conn, 'people'),
     'services'    => kt_latest_image($conn, 'destination', 'category', 'service'),
+    'churches'    => kt_latest_image($conn, 'destination', 'category', 'church'),
 ];
 
 /*
@@ -65,6 +69,7 @@ $hubImageSubfolder = [
     'fiestas'     => 'fiestas',
     'people'      => 'people',
     'services'    => 'destinations',
+    'churches'    => 'destinations',
 ];
 
 foreach ($hubImages as $key => $value) {
@@ -110,6 +115,7 @@ foreach ($hubImages as $key => $value) {
                     <a href="tourism/nature.php">Nature</a>
                     <a href="tourism/industry.php">Industry Zone</a>
                     <a href="tourism/resort.php">Resort</a>
+                    <a href="tourism/churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>
@@ -151,9 +157,14 @@ foreach ($hubImages as $key => $value) {
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero">
-    <div class="t-hero-orb t-orb-1"></div>
-    <div class="t-hero-orb t-orb-2"></div>
+<section class="t-hero<?php echo $tourismHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($tourismHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($tourismHeroPhoto); ?>" alt="">
+        <div class="t-hero-scrim"></div>
+    <?php else: ?>
+        <div class="t-hero-orb t-orb-1"></div>
+        <div class="t-hero-orb t-orb-2"></div>
+    <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Tourism</h1>
@@ -244,6 +255,19 @@ foreach ($hubImages as $key => $value) {
                 <div class="t-card-body">
                     <h3>Industry Zone</h3>
                     <p>Discover the commercial and industrial districts that drive Malvar forward.</p>
+                </div>
+                <div class="t-card-arrow">→</div>
+            </a>
+
+            <a href="tourism/churches.php" class="t-card">
+                <div class="t-card-media">
+                    <?php if (!empty($hubImages['churches'])): ?>
+                        <img src="<?php echo htmlspecialchars($hubImages['churches']); ?>" alt="">
+                    <?php endif; ?>
+                </div>
+                <div class="t-card-body">
+                    <h3>Churches</h3>
+                    <p>Parishes, chapels, and shrines that anchor Malvar's faith and community life.</p>
                 </div>
                 <div class="t-card-arrow">→</div>
             </a>

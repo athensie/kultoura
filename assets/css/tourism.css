@@ -23,6 +23,30 @@ body {
 
 .t-hero::before { display: none; }
 
+.t-hero-has-photo {
+    background: #2c1a0e;
+}
+
+.t-hero-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+.t-hero-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(20, 12, 6, 0.85) 0%, rgba(20, 12, 6, 0.55) 45%, rgba(20, 12, 6, 0.2) 75%);
+    z-index: 1;
+}
+
+.t-hero-has-photo .t-eyebrow { color: #e8b98f; }
+.t-hero-has-photo .t-page-title,
+.t-hero-has-photo .t-page-sub { color: #f5efe3; }
+
 .t-hero-orb {
     position: absolute;
     border-radius: 50%;
@@ -295,6 +319,7 @@ body {
     position: absolute;
     top: 14px;
     right: 16px;
+    z-index: 5;
     background: #f0ebe3;
     border: none;
     color: #2c1a0e;
@@ -335,7 +360,7 @@ img.p-modal-media {
 .p-modal-fav-icon {
     position: absolute;
     top: 12px;
-    right: 12px;
+    left: 12px;
     width: 38px;
     height: 38px;
     border-radius: 50%;

@@ -135,10 +135,20 @@ $addedThisMonth = count(array_filter($people, function ($p) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>People of Malvar – KULTOURA Admin</title>
 
+    <script>
+        (function () {
+            var saved = localStorage.getItem('kt-admin-theme');
+            if (saved === 'light' || saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', saved);
+            }
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 
     <link rel="stylesheet" href="../assets/css/adminpeople.css">
+    <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
@@ -172,6 +182,11 @@ $addedThisMonth = count(array_filter($people, function ($p) {
     </ul>
 
     <div class="sidebar-footer">
+        <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
+            <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
+            <span class="theme-toggle-option" data-theme-option="light"><i data-lucide="sun" class="lucide"></i> Light</span>
+            <span class="theme-toggle-thumb"></span>
+        </button>
         <div class="admin-avatar">
             <div class="avatar-circle"><i data-lucide="user" class="lucide" style="width:1.1rem;height:1.1rem;"></i></div>
             <div>
@@ -199,6 +214,12 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <p>Manage profiles of artists, leaders, farmers, and community pillars. Anything added here shows up on the public People of Malvar page.</p>
             </div>
             <div class="header-actions">
+                <?php if (!empty($people)): ?>
+                    <button class="btn-export-excel" id="exportExcelBtn" onclick="exportPeopleExcel()">
+                        <i data-lucide="file-spreadsheet" class="lucide" style="width:.9rem;height:.9rem;"></i>
+                        <span>Export as Excel</span>
+                    </button>
+                <?php endif; ?>
                 <button class="btn-primary" onclick="openAddPerson()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Profile</button>
             </div>
         </div>
@@ -425,6 +446,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
 </script>
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
+<script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/adminpeople.js"></script>
 <script>initViewToggle('people', '.data-table-wrap', '#peopleGrid'); initSidebarCollapse();</script>
 <script>

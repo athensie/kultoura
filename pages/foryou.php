@@ -153,6 +153,7 @@ $destinationMeta = [
     'accommodation' => ['link' => 'tourism/accommodation.php'],
     'bank'          => ['link' => 'tourism/banks.php'],
     'service'       => ['link' => 'tourism/services.php'],
+    'church'        => ['link' => 'tourism/churches.php'],
 ];
 if ($result = $conn->query("SELECT destination_id, destination_name, description, image, category, address, latitude, longitude, created_at FROM destination WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
@@ -549,6 +550,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                     <a href="tourism/nature.php">Nature</a>
                     <a href="tourism/industry.php">Industry Zone</a>
                     <a href="tourism/resort.php">Resort</a>
+                    <a href="tourism/churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>

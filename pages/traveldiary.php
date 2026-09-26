@@ -153,6 +153,7 @@ $destinationLinks = [
     'accommodation' => 'tourism/accommodation.php',
     'bank'          => 'tourism/banks.php',
     'service'       => 'tourism/services.php',
+    'church'        => 'tourism/churches.php',
 ];
 if ($result = $conn->query("SELECT destination_id, destination_name, category, image, google_maps FROM destination WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
@@ -585,6 +586,7 @@ usort($checklist, function ($a, $b) {
                     <a href="tourism/nature.php">Nature</a>
                     <a href="tourism/industry.php">Industry Zone</a>
                     <a href="tourism/resort.php">Resort</a>
+                    <a href="tourism/churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>

@@ -217,9 +217,13 @@ function analytics_traffic_sources(mysqli $conn, ?string $sinceSql = null, int $
 function analytics_item_types(): array
 {
     return [
-        'nature'     => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'nature'"],
-        'resort'     => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'resort'"],
-        'industry'   => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'industry'"],
+        'nature'        => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'nature'"],
+        'resort'        => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'resort'"],
+        'industry'      => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'industry'"],
+        'accommodation' => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'accommodation'"],
+        'bank'          => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'bank'"],
+        'service'       => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'service'"],
+        'church'        => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'church'"],
         'product'    => ['table' => 'products',     'id_col' => 'product_id',      'name_col' => 'product_name',     'where' => '1=1'],
         'restaurant' => ['table' => 'restaurants',  'id_col' => 'restaurant_id',   'name_col' => 'restaurant_name',  'where' => '1=1'],
         'fiesta'     => ['table' => 'fiestas',      'id_col' => 'fiesta_id',       'name_col' => 'fiesta_name',      'where' => '1=1'],

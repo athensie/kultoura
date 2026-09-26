@@ -67,7 +67,7 @@ DROP TABLE IF EXISTS `destination`;
 CREATE TABLE `destination` (
   `destination_id` int(11) NOT NULL AUTO_INCREMENT,
   `destination_name` varchar(100) NOT NULL,
-  `category` enum('nature','industry','resort','accommodation','bank','service') NOT NULL,
+  `category` enum('nature','industry','resort','accommodation','bank','service','church') NOT NULL,
   `status` enum('active','pending','inactive') NOT NULL DEFAULT 'pending',
   `views` int(11) NOT NULL DEFAULT 0,
   `favorited` tinyint(1) NOT NULL DEFAULT 0,

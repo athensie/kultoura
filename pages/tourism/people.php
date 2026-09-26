@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../../config/session_boot.php';
 include '../../config/dbmain.php';
 include '../../config/analytics.php';
+include '../../config/sitecontent.php';
 analytics_track($conn, 'people');
+
+$peopleHeroPhoto = sitecontent_get_photo($conn, 'people_hero');
 
 // Logged for foryou.php's "Because You Explored" recommendations.
 $_SESSION['history'][] = 'person';
@@ -55,6 +58,7 @@ if ($result = $conn->query("SELECT * FROM people ORDER BY fullname ASC")) {
                     <a href="nature.php">Nature</a>
                     <a href="industry.php">Industry Zone</a>
                     <a href="resort.php">Resort</a>
+                    <a href="churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>
@@ -97,9 +101,14 @@ if ($result = $conn->query("SELECT * FROM people ORDER BY fullname ASC")) {
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero">
-    <div class="t-hero-orb t-orb-1"></div>
-    <div class="t-hero-orb t-orb-2"></div>
+<section class="t-hero<?php echo $peopleHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($peopleHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($peopleHeroPhoto); ?>" alt="">
+        <div class="t-hero-scrim"></div>
+    <?php else: ?>
+        <div class="t-hero-orb t-orb-1"></div>
+        <div class="t-hero-orb t-orb-2"></div>
+    <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">CULTURE · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">People of Malvar</h1>

@@ -1,0 +1,31 @@
+/* =========================================================
+   KULTOURA — ADMIN DASHBOARD — DARK / LIGHT MODE TOGGLE
+   Shared across every admin page's sidebar footer. Relies on
+   each page's own :root / [data-theme="light"] variables
+   (--overlay-rgb, --cream-rgb, --gold) already being defined.
+   ========================================================= */
+
+.theme-toggle {
+  position: relative; display: flex; align-items: center;
+  width: 100%; margin-bottom: 16px; padding: 3px;
+  background: rgba(var(--overlay-rgb),.05); border: 1px solid rgba(var(--overlay-rgb),.1);
+  border-radius: 999px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+}
+.theme-toggle-option {
+  position: relative; z-index: 1; flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 7px 0; font-size: .7rem; font-weight: 500;
+  color: rgba(var(--cream-rgb),.4); transition: color .2s ease;
+}
+.theme-toggle-option .lucide { width: 13px; height: 13px; }
+.theme-toggle-thumb {
+  position: absolute; top: 3px; left: 3px; z-index: 0;
+  width: calc(50% - 3px); height: calc(100% - 6px);
+  background: var(--gold); border-radius: 999px;
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+}
+.theme-toggle[data-active="light"] .theme-toggle-thumb { transform: translateX(100%); }
+.theme-toggle[data-active="dark"] .theme-toggle-option[data-theme-option="dark"],
+.theme-toggle[data-active="light"] .theme-toggle-option[data-theme-option="light"] {
+  color: var(--dark); font-weight: 700;
+}

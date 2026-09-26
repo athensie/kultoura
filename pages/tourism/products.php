@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../../config/session_boot.php';
 require_once '../../config/dbmain.php';
 require_once '../../config/analytics.php';
+include '../../config/sitecontent.php';
 analytics_track($conn, 'products');
+
+$productsHeroPhoto = sitecontent_get_photo($conn, 'products_hero');
 
 // Logged for foryou.php's "Because You Explored" recommendations.
 $_SESSION['history'][] = 'product';
@@ -120,6 +123,7 @@ foreach ($rows as $r) {
                     <a href="nature.php">Nature</a>
                     <a href="industry.php">Industry Zone</a>
                     <a href="resort.php">Resort</a>
+                    <a href="churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>
@@ -162,9 +166,14 @@ foreach ($rows as $r) {
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero">
-    <div class="t-hero-orb t-orb-1"></div>
-    <div class="t-hero-orb t-orb-2"></div>
+<section class="t-hero<?php echo $productsHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($productsHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($productsHeroPhoto); ?>" alt="">
+        <div class="t-hero-scrim"></div>
+    <?php else: ?>
+        <div class="t-hero-orb t-orb-1"></div>
+        <div class="t-hero-orb t-orb-2"></div>
+    <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Products</h1>
@@ -206,14 +215,14 @@ foreach ($rows as $r) {
         <?php else: ?>
         <div class="p-card-grid">
             <?php foreach ($products as $item): ?>
-            <article class="p-card">
+            <article class="p-card" onclick="openViewDetails(<?= (int) $item['id'] ?>)">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?>
                         <img src="../../uploads/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="p-card-img">
                     <?php endif; ?>
                     <button class="p-fav-btn <?= !empty($item['favorited']) ? 'is-favorited' : '' ?>" type="button"
                             data-item-id="<?= (int) $item['id'] ?>" data-item-type="product"
-                            onclick="toggleFavorite(this)" aria-label="Save to favorites">&#9825;</button>
+                            onclick="event.stopPropagation(); toggleFavorite(this)" aria-label="Save to favorites">&#9825;</button>
                     <span class="p-tag-pill"><?= htmlspecialchars($item['tag']) ?></span>
                 </div>
                 <div class="p-card-body">
@@ -224,8 +233,8 @@ foreach ($rows as $r) {
                         <p class="p-card-price">₱<?= htmlspecialchars(number_format((float) $item['price'], 2)) ?></p>
                     <?php endif; ?>
                     <div class="p-card-actions">
-                        <button type="button" class="p-btn p-btn-primary" onclick="openViewDetails(<?= (int) $item['id'] ?>)">View Details</button>
-                        <button type="button" class="p-btn p-btn-outline" onclick="openNavigate(<?= (int) $item['id'] ?>)">Navigate</button>
+                        <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= (int) $item['id'] ?>)">View Details</button>
+                        <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= (int) $item['id'] ?>)">Navigate</button>
                     </div>
                 </div>
             </article>

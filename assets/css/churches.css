@@ -1,4 +1,4 @@
-/* ── industry.css — page-specific styles for industry.php ── */
+/* ── churches.css — page-specific styles for churches.php ── */
 /* Reuses index.css (navbar) and tourism.css (hero, .t-* layout) as-is. */
 /* All selectors here are prefixed with p- so nothing collides with either file. */
 
@@ -67,7 +67,7 @@
     margin: 0;
 }
 
-/* Card grid (for when the admin has added products) */
+/* Card grid (for when the admin has added listings) */
 .p-card-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

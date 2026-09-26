@@ -73,6 +73,86 @@ function filterPeople(val) {
   });
 }
 
+// EXPORT AS EXCEL
+async function exportPeopleExcel() {
+  const btn = document.getElementById('exportExcelBtn');
+  if (!btn) return;
+
+  const rows = Array.from(document.querySelectorAll('#peopleTable tbody tr'))
+    .filter(r => r.style.display !== 'none');
+
+  if (rows.length === 0) {
+    showToast('No profiles to export yet.');
+    return;
+  }
+
+  btn.classList.add('loading');
+  const label = btn.querySelector('span');
+  const originalLabel = label.textContent;
+  label.textContent = 'Generating…';
+
+  if (!window.XLSX) {
+    try {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load SheetJS'));
+        document.head.appendChild(script);
+      });
+    } catch (err) {
+      console.error(err);
+      showToast('Could not load the export library. Check your connection.');
+      btn.classList.remove('loading');
+      label.textContent = originalLabel;
+      return;
+    }
+  }
+
+  try {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const sheetRows = [
+      ['KulToura — People of Malvar Export'],
+      [`Generated: ${dateStr}`],
+      [],
+      ['#', 'Name', 'Title', 'Achievement', 'Views'],
+    ];
+
+    rows.forEach((row, i) => {
+      const cells = row.querySelectorAll('td');
+      const name = cells[0]?.textContent.trim() || '';
+      const title = cells[1]?.textContent.trim() || '';
+      const achievement = cells[2]?.textContent.trim() || '';
+      const views = cells[3]?.textContent.trim() || '';
+
+      sheetRows.push([i + 1, name, title, achievement, views]);
+    });
+
+    sheetRows.push([]);
+    sheetRows.push(['Total Profiles', rows.length]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+    ws['!cols'] = [{ wch: 4 }, { wch: 28 }, { wch: 20 }, { wch: 32 }, { wch: 10 }];
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'People of Malvar');
+
+    XLSX.writeFile(wb, `KulToura-People-${now.toISOString().slice(0, 10)}.xlsx`);
+    showToast('Export ready — check your downloads.');
+  } catch (err) {
+    console.error(err);
+    showToast('Something went wrong generating the export.');
+  } finally {
+    btn.classList.remove('loading');
+    label.textContent = originalLabel;
+  }
+}
+
 // TOAST
 let _toastTimer;
 function showToast(msg) {

@@ -3,22 +3,22 @@ require_once __DIR__ . '/../../config/session_boot.php';
 include '../../config/dbmain.php';
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
-analytics_track($conn, 'services');
+analytics_track($conn, 'churches');
 
-$servicesHeroPhoto = sitecontent_get_photo($conn, 'services_hero');
+$churchesHeroPhoto = sitecontent_get_photo($conn, 'churches_hero');
 
 // Logged for foryou.php's "Because You Explored" recommendations.
-$_SESSION['history'][] = 'service';
+$_SESSION['history'][] = 'church';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? '');
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
-// Other-services listings (hospitals, terminals, gas stations, etc.) come
-// from the same `destination` table the admin panel (admindestinations.php)
-// writes to, filtered to this category. The EXISTS subquery checks THIS
-// user's favorites table row (not the destination table's own `favorited`
+// Church listings (parishes, chapels, shrines) come from the same
+// `destination` table the admin panel (admindestinations.php) writes to,
+// filtered to this category. The EXISTS subquery checks THIS user's
+// favorites table row (not the destination table's own `favorited`
 // column, which isn't user-specific).
 $spots = [];
 $stmt = $conn->prepare(
@@ -28,7 +28,7 @@ $stmt = $conn->prepare(
             WHERE f.user_id = ? AND f.item_type = 'destination' AND f.item_id = d.destination_id
         ) AS is_favorited
      FROM destination d
-     WHERE d.category = 'service' AND d.status = 'active'
+     WHERE d.category = 'church' AND d.status = 'active'
      ORDER BY d.created_at DESC"
 );
 $stmt->bind_param('i', $currentUserId);
@@ -53,10 +53,10 @@ $stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Other Services – KULTOURA</title>
+    <title>Churches – KULTOURA</title>
     <link rel="stylesheet" href="../../assets/css/index.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
-    <link rel="stylesheet" href="../../assets/css/services.css">
+    <link rel="stylesheet" href="../../assets/css/churches.css">
 </head>
 <body>
 
@@ -129,52 +129,50 @@ $stmt->close();
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero<?php echo $servicesHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
-    <?php if ($servicesHeroPhoto): ?>
-        <img class="t-hero-photo" src="<?php echo htmlspecialchars($servicesHeroPhoto); ?>" alt="">
+<section class="t-hero<?php echo $churchesHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($churchesHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($churchesHeroPhoto); ?>" alt="">
         <div class="t-hero-scrim"></div>
     <?php else: ?>
         <div class="t-hero-orb t-orb-1"></div>
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">ESSENTIAL SERVICES · MALVAR, BATANGAS</p>
-        <h1 class="t-page-title">Other Services</h1>
+        <p class="t-eyebrow">SACRED SITES · MALVAR, BATANGAS</p>
+        <h1 class="t-page-title">Churches</h1>
         <p class="t-page-sub">
-            Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.
+            Parishes, chapels, and shrines that anchor Malvar's faith and community life.
         </p>
     </div>
 </section>
 
-<!-- ── Other Services Grid ── -->
+<!-- ── Churches Grid ── -->
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="services.php" method="get">
-            <input type="text" name="q" placeholder="Search hospitals, terminals, gas stations…">
+        <form class="p-search-bar" action="churches.php" method="get">
+            <input type="text" name="q" placeholder="Search parishes, chapels, shrines…">
             <select name="category" class="p-category-select">
                 <option>All Categories</option>
-                <option>Hospital / Clinic</option>
-                <option>Terminal</option>
-                <option>Gas Station</option>
-                <option>Police Station</option>
-                <option>Pharmacy</option>
+                <option>Parish Church</option>
+                <option>Chapel</option>
+                <option>Shrine</option>
             </select>
         </form>
     </section>
 
-    <section class="t-category" id="services">
+    <section class="t-category" id="churches">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Essential Services</p>
-                <h2 class="t-cat-title">Other Services</h2>
-                <p class="t-cat-desc">Primary places a tourist may need — from health care to transport terminals.</p>
+                <p class="t-cat-label">Sacred Sites</p>
+                <h2 class="t-cat-title">Churches</h2>
+                <p class="t-cat-desc">Places of worship and reflection across Malvar's barangays.</p>
             </div>
         </div>
 
         <?php if (empty($spots)): ?>
         <div class="p-empty-state">
-            <h3>No services listed yet</h3>
+            <h3>No churches listed yet</h3>
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
@@ -276,7 +274,7 @@ function ktTrackItemView(type, id) {
 }
 
 function ktOpenViewDetails(btn) {
-    ktTrackItemView('service', btn.dataset.id);
+    ktTrackItemView('church', btn.dataset.id);
     const image = btn.dataset.image || '';
     const imgEl = document.getElementById('ktVdImage');
     imgEl.src = image;

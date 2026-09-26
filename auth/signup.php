@@ -47,6 +47,7 @@ unset($_SESSION['error']);
                         <a href="../pages/tourism/nature.php">Nature</a>
                         <a href="../pages/tourism/industry.php">Industry Zone</a>
                         <a href="../pages/tourism/resort.php">Resort</a>
+                        <a href="../pages/tourism/churches.php">Churches</a>
                     </div>
                     <div class="mega-column">
                         <h4>Culture &amp; Services</h4>

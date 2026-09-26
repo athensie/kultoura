@@ -2,7 +2,10 @@
 require_once __DIR__ . '/../../config/session_boot.php';
 include '../../config/dbmain.php';
 include '../../config/analytics.php';
+include '../../config/sitecontent.php';
 analytics_track($conn, 'industry');
+
+$industryHeroPhoto = sitecontent_get_photo($conn, 'industry_hero');
 
 // Logged for foryou.php's "Because You Explored" recommendations.
 $_SESSION['history'][] = 'industry';
@@ -82,6 +85,7 @@ $stmt->close();
                     <a href="nature.php">Nature</a>
                     <a href="industry.php">Industry Zone</a>
                     <a href="resort.php">Resort</a>
+                    <a href="churches.php">Churches</a>
                 </div>
                 <div class="mega-column">
                     <h4>Culture &amp; Services</h4>
@@ -124,9 +128,14 @@ $stmt->close();
 </header>
 
 <!-- ── Page Hero ── -->
-<section class="t-hero">
-    <div class="t-hero-orb t-orb-1"></div>
-    <div class="t-hero-orb t-orb-2"></div>
+<section class="t-hero<?php echo $industryHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
+    <?php if ($industryHeroPhoto): ?>
+        <img class="t-hero-photo" src="<?php echo htmlspecialchars($industryHeroPhoto); ?>" alt="">
+        <div class="t-hero-scrim"></div>
+    <?php else: ?>
+        <div class="t-hero-orb t-orb-1"></div>
+        <div class="t-hero-orb t-orb-2"></div>
+    <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Industry Zone</h1>
@@ -168,13 +177,13 @@ $stmt->close();
         <?php else: ?>
         <div class="p-card-grid">
             <?php foreach ($zones as $item): ?>
-            <article class="p-card">
+            <article class="p-card" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?><img src="<?= htmlspecialchars($item['image']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php endif; ?>
                     <button class="p-fav-btn <?= $item['isFavorited'] ? 'is-favorited' : '' ?>" type="button"
                         data-id="<?= (int) $item['id'] ?>"
                         aria-label="Save to favorites"
-                        onclick="ktToggleFavorite(<?= (int) $item['id'] ?>)"><?= $item['isFavorited'] ? '&#9829;' : '&#9825;' ?></button>
+                        onclick="event.stopPropagation(); ktToggleFavorite(<?= (int) $item['id'] ?>)"><?= $item['isFavorited'] ? '&#9829;' : '&#9825;' ?></button>
                 </div>
                 <div class="p-card-body">
                     <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
@@ -191,11 +200,11 @@ $stmt->close();
                             data-image="<?= htmlspecialchars($item['image']) ?>"
                             data-gmaps="<?= htmlspecialchars($item['gmaps']) ?>"
                             data-favorited="<?= $item['isFavorited'] ? '1' : '0' ?>"
-                            onclick="ktOpenViewDetails(this)">View Details</button>
+                            onclick="event.stopPropagation(); ktOpenViewDetails(this)">View Details</button>
                         <button type="button" class="p-btn p-btn-outline"
                             data-name="<?= htmlspecialchars($item['name']) ?>"
                             data-gmaps="<?= htmlspecialchars($item['gmaps']) ?>"
-                            onclick="ktOpenNavigate(this)">Navigate</button>
+                            onclick="event.stopPropagation(); ktOpenNavigate(this)">Navigate</button>
                     </div>
                 </div>
             </article>

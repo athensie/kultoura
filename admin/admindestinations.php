@@ -210,7 +210,8 @@ $destinationViews = array_merge(
     analytics_item_views_bulk($conn, 'industry'),
     analytics_item_views_bulk($conn, 'accommodation'),
     analytics_item_views_bulk($conn, 'bank'),
-    analytics_item_views_bulk($conn, 'service')
+    analytics_item_views_bulk($conn, 'service'),
+    analytics_item_views_bulk($conn, 'church')
 );
 
 $categoryLabels = [
@@ -220,6 +221,7 @@ $categoryLabels = [
     'accommodation' => 'Accommodation',
     'bank'          => 'Banks',
     'service'       => 'Other Services',
+    'church'        => 'Churches',
 ];
 
 $totalCount    = count($destinations);
@@ -234,10 +236,20 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Destinations – KULTOURA Admin</title>
 
+    <script>
+        (function () {
+            var saved = localStorage.getItem('kt-admin-theme');
+            if (saved === 'light' || saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', saved);
+            }
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 
     <link rel="stylesheet" href="../assets/css/admindestinations.css">
+    <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 
@@ -303,6 +315,11 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
     </ul>
 
     <div class="sidebar-footer">
+        <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
+            <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
+            <span class="theme-toggle-option" data-theme-option="light"><i data-lucide="sun" class="lucide"></i> Light</span>
+            <span class="theme-toggle-thumb"></span>
+        </button>
         <div class="admin-avatar">
             <div class="avatar-circle"><i data-lucide="user" class="lucide" style="width:1.1rem;height:1.1rem;"></i></div>
             <div>
@@ -371,6 +388,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <option value="accommodation">Accommodation</option>
                 <option value="bank">Banks</option>
                 <option value="service">Other Services</option>
+                <option value="church">Churches</option>
             </select>
             <select class="filter-select" id="destStatusFilter" onchange="filterByStatus(this.value)">
                 <option value="all">All Status</option>
@@ -547,6 +565,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                         <option value="accommodation">Accommodation</option>
                         <option value="bank">Banks</option>
                         <option value="service">Other Services</option>
+                        <option value="church">Churches</option>
                     </select>
                 </div>
             </div>
@@ -610,6 +629,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                         <option value="accommodation">Accommodation</option>
                         <option value="bank">Banks</option>
                         <option value="service">Other Services</option>
+                        <option value="church">Churches</option>
                     </select>
                 </div>
             </div>
@@ -708,6 +728,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
+<script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admindestinations.js"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 

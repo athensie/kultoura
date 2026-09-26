@@ -108,7 +108,7 @@
 .p-fav-btn {
     position: absolute;
     top: 12px;
-    right: 12px;
+    left: 12px;
     width: 32px;
     height: 32px;
     border-radius: 50%;
