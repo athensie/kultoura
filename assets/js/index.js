@@ -1,12 +1,35 @@
+const KT_EYE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const KT_EYE_OFF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.49 18.49 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a18.49 18.49 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+
+function openAuthModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.add('open');
+}
+
+function closeAuthModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove('open');
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.tc-modal-overlay.open').forEach(function(modal) {
+            modal.classList.remove('open');
+        });
+    }
+});
+
 function togglePw(id, el) {
     const input = document.getElementById(id);
 
     if (input.type === "password") {
         input.type = "text";
-        el.textContent = "Hide";
+        el.innerHTML = KT_EYE_OFF_ICON;
+        el.setAttribute('aria-label', 'Hide password');
     } else {
         input.type = "password";
-        el.textContent = "Show";
+        el.innerHTML = KT_EYE_ICON;
+        el.setAttribute('aria-label', 'Show password');
     }
 }
 

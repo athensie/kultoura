@@ -22,15 +22,7 @@ unset($_SESSION['error']);
 </head>
 <body>
 
-<div class="hero auth-page">
-
-    <div class="bg-curves">
-        <svg viewBox="0 0 1324 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M-50,150 C150,150 150,-50 350,-50" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none"/>
-            <path d="M-50,50 C150,50 150,-150 350,-150" stroke="rgba(255,255,255,0.10)" stroke-width="2" fill="none"/>
-            <path d="M974,750 C1174,750 1174,550 1374,550" stroke="rgba(255,255,255,0.12)" stroke-width="2" fill="none"/>
-        </svg>
-    </div>
+<div class="auth-page">
 
     <header class="navbar">
         <nav class="nav-links">
@@ -85,10 +77,10 @@ unset($_SESSION['error']);
         <div class="auth-card">
 
             <div class="auth-brand">
-                <span class="brand-light">KUL</span><span class="brand-accent">TOURA</span>
+                <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
 
-            <h2 class="auth-title">Create Account</h2>
+            <h2 class="auth-title">Create Your Account</h2>
             <p class="auth-sub">Join Kultoura and discover Malvar</p>
 
             <?php if ($error): ?>
@@ -143,33 +135,46 @@ unset($_SESSION['error']);
                 <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Minimum 8 characters"
-                        minlength="8"
-                        required>
+                    <div class="pw-field">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Minimum 8 characters"
+                            minlength="8"
+                            required>
 
-                    <span class="toggle-pw" onclick="togglePw('password', this)">
-                        Show
-                    </span>
+                        <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </span>
+                    </div>
+                    <p class="field-hint">Must be at least 8 characters</p>
                 </div>
 
                 <!-- Confirm Password -->
                 <div class="form-group">
                     <label for="confirm_password">Confirm Password</label>
-                    <input
-                        type="password"
-                        id="confirm_password"
-                        name="confirm_password"
-                        placeholder="••••••••"
-                        minlength="8"
-                        required>
+                    <div class="pw-field">
+                        <input
+                            type="password"
+                            id="confirm_password"
+                            name="confirm_password"
+                            placeholder="••••••••"
+                            minlength="8"
+                            required>
 
-                    <span class="toggle-pw" onclick="togglePw('confirm_password', this)">
-                        Show
-                    </span>
+                        <span class="toggle-pw" onclick="togglePw('confirm_password', this)" aria-label="Show password">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Terms & Conditions (required) -->
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="agree_terms" value="1" required>
+                        I agree to the <button type="button" class="tc-link" onclick="openAuthModal('terms-modal')">Terms of Service</button> and <button type="button" class="tc-link" onclick="openAuthModal('privacy-modal')">Privacy Policy</button>.
+                    </label>
                 </div>
 
                 <!-- Promotional Email -->
@@ -194,10 +199,60 @@ unset($_SESSION['error']);
         </div>
     </main>
 
+    <!-- Terms of Service Modal -->
+    <div class="tc-modal-overlay" id="terms-modal" onclick="if (event.target === this) closeAuthModal('terms-modal')">
+        <div class="tc-modal-card">
+            <button type="button" class="tc-modal-close" onclick="closeAuthModal('terms-modal')" aria-label="Close">&times;</button>
+            <h3 class="tc-modal-title">Terms of Service</h3>
+            <p class="tc-modal-sub">Please read these terms before creating a KulToura account.</p>
+            <div class="tc-modal-body">
+                <h4>1. Acceptance of Terms</h4>
+                <p>By creating an account on KulToura, you agree to use this platform responsibly to explore, save, and share information about Malvar's tourism destinations, products, and services.</p>
+
+                <h4>2. Your Account</h4>
+                <p>You are responsible for keeping your username and password confidential and for all activity that happens under your account. Please notify us if you suspect any unauthorized use.</p>
+
+                <h4>3. Acceptable Use</h4>
+                <p>You agree not to misuse the platform, including posting false information, attempting to disrupt the service, or accessing other users' accounts without permission.</p>
+
+                <h4>4. Content</h4>
+                <p>Features such as Favorites and Travel Diary let you save and organize content within KulToura. This content remains tied to your account and may be removed if it violates these terms.</p>
+
+                <h4>5. Changes</h4>
+                <p>KulToura may update these terms from time to time. Continued use of the platform after changes means you accept the updated terms.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy Policy Modal -->
+    <div class="tc-modal-overlay" id="privacy-modal" onclick="if (event.target === this) closeAuthModal('privacy-modal')">
+        <div class="tc-modal-card">
+            <button type="button" class="tc-modal-close" onclick="closeAuthModal('privacy-modal')" aria-label="Close">&times;</button>
+            <h3 class="tc-modal-title">Privacy Policy</h3>
+            <p class="tc-modal-sub">How KulToura collects, uses, and protects your information.</p>
+            <div class="tc-modal-body">
+                <h4>1. Information We Collect</h4>
+                <p>When you sign up, we collect your full name, username, email address, and password (stored securely as a one-way hash, never in plain text).</p>
+
+                <h4>2. How We Use Your Information</h4>
+                <p>Your account information is used to let you sign in, personalize your experience (such as Favorites, For You, and Travel Diary), and, only if you opt in, send promotional emails about Malvar tourism.</p>
+
+                <h4>3. Data Sharing</h4>
+                <p>We do not sell your personal information to third parties. Your data is used only within KulToura to operate and improve the platform.</p>
+
+                <h4>4. Data Security</h4>
+                <p>We apply reasonable safeguards to protect your account, including password hashing and login attempt monitoring to prevent unauthorized access.</p>
+
+                <h4>5. Your Choices</h4>
+                <p>You can update your account details at any time, and you may unsubscribe from promotional emails whenever you like.</p>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="../assets/js/navbar.js"></script>
-<script src="index.js"></script>
+<script src="../assets/js/index.js"></script>
 
 </body>
 </html>

@@ -25,7 +25,7 @@ unset($_SESSION['error'], $_SESSION['success']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In – KULTOURA</title>
+    <title>Forgot Password – KULTOURA</title>
 
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
@@ -90,8 +90,8 @@ unset($_SESSION['error'], $_SESSION['success']);
                 <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
 
-            <h2 class="auth-title">Welcome Back!</h2>
-            <p class="auth-sub">Sign in to continue exploring Malvar</p>
+            <h2 class="auth-title">Forgot Password</h2>
+            <p class="auth-sub">Enter your username and the email on your account to continue.</p>
 
             <?php if ($error): ?>
                 <div class="alert alert-error">
@@ -107,7 +107,7 @@ unset($_SESSION['error'], $_SESSION['success']);
 
             <form action="auth.php" method="POST" class="auth-form">
 
-                <input type="hidden" name="action" value="login">
+                <input type="hidden" name="action" value="verify_reset">
 
                 <!-- Username -->
                 <div class="form-group">
@@ -124,35 +124,26 @@ unset($_SESSION['error'], $_SESSION['success']);
                         required>
                 </div>
 
-                <!-- Password -->
+                <!-- Email -->
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="pw-field">
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            placeholder="••••••••"
-                            minlength="6"
-                            required>
-
-                        <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </span>
-                    </div>
+                    <label for="email">Email Address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="you@email.com"
+                        required>
                 </div>
 
-                <p class="auth-forgot"><a href="forgot-password.php">Forgot password?</a></p>
-
                 <button type="submit" class="auth-btn">
-                    SIGN IN
+                    VERIFY &amp; CONTINUE
                 </button>
 
             </form>
 
             <p class="auth-switch">
-                Don't have an account?
-                <a href="signup.php">Sign Up</a>
+                Remembered your password?
+                <a href="login.php">Sign In</a>
             </p>
 
         </div>

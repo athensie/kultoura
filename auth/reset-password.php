@@ -14,6 +14,17 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Only reachable right after a successful verify_reset (see auth.php) —
+// anyone landing here without that fresh, unexpired flag gets bounced
+// back to re-verify their identity first.
+$verifiedExpires = $_SESSION['reset_verified_expires'] ?? 0;
+if (empty($_SESSION['reset_verified_id']) || time() > $verifiedExpires) {
+    unset($_SESSION['reset_verified_id'], $_SESSION['reset_verified_table'], $_SESSION['reset_verified_expires']);
+    $_SESSION['error'] = 'Please verify your identity first.';
+    header("Location: " . BASE_URL . "/auth/forgot-password.php");
+    exit;
+}
+
 $error   = $_SESSION['error'] ?? '';
 $success = $_SESSION['success'] ?? '';
 
@@ -25,7 +36,7 @@ unset($_SESSION['error'], $_SESSION['success']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In – KULTOURA</title>
+    <title>Reset Password – KULTOURA</title>
 
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
@@ -76,7 +87,7 @@ unset($_SESSION['error'], $_SESSION['success']);
             </div>
         </nav>
 
-        <a href="signup.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN UP</span></a>
+        <a href="login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg><span>SIGN IN</span></a>
 
         <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
             <span></span><span></span><span></span>
@@ -90,8 +101,8 @@ unset($_SESSION['error'], $_SESSION['success']);
                 <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
 
-            <h2 class="auth-title">Welcome Back!</h2>
-            <p class="auth-sub">Sign in to continue exploring Malvar</p>
+            <h2 class="auth-title">Set a New Password</h2>
+            <p class="auth-sub">Identity verified — choose a new password for your account.</p>
 
             <?php if ($error): ?>
                 <div class="alert alert-error">
@@ -107,53 +118,50 @@ unset($_SESSION['error'], $_SESSION['success']);
 
             <form action="auth.php" method="POST" class="auth-form">
 
-                <input type="hidden" name="action" value="login">
+                <input type="hidden" name="action" value="do_reset">
 
-                <!-- Username -->
+                <!-- New Password -->
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="Enter your username"
-                        minlength="3"
-                        maxlength="20"
-                        pattern="^[A-Za-z0-9_]+$"
-                        title="Username can only contain letters, numbers, and underscores."
-                        required>
-                </div>
-
-                <!-- Password -->
-                <div class="form-group">
-                    <label for="password">Password</label>
+                    <label for="password">New Password</label>
                     <div class="pw-field">
                         <input
                             type="password"
                             id="password"
                             name="password"
-                            placeholder="••••••••"
-                            minlength="6"
+                            placeholder="Minimum 8 characters"
+                            minlength="8"
                             required>
 
                         <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         </span>
                     </div>
+                    <p class="field-hint">Must be at least 8 characters</p>
                 </div>
 
-                <p class="auth-forgot"><a href="forgot-password.php">Forgot password?</a></p>
+                <!-- Confirm New Password -->
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <div class="pw-field">
+                        <input
+                            type="password"
+                            id="confirm_password"
+                            name="confirm_password"
+                            placeholder="••••••••"
+                            minlength="8"
+                            required>
+
+                        <span class="toggle-pw" onclick="togglePw('confirm_password', this)" aria-label="Show password">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </span>
+                    </div>
+                </div>
 
                 <button type="submit" class="auth-btn">
-                    SIGN IN
+                    RESET PASSWORD
                 </button>
 
             </form>
-
-            <p class="auth-switch">
-                Don't have an account?
-                <a href="signup.php">Sign Up</a>
-            </p>
 
         </div>
     </main>

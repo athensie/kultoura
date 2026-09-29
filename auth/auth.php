@@ -75,6 +75,7 @@ if ($action === 'signup') {
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['confirm_password'] ?? '';
     $promo    = isset($_POST['promotional_email']) ? 1 : 0;
+    $agreedTerms = isset($_POST['agree_terms']);
 
     $error = null;
     if ($fullname === '' || !preg_match("/^[A-Za-z\s.'-]+$/", $fullname)) {
@@ -87,6 +88,8 @@ if ($action === 'signup') {
         $error = 'Password must be at least 8 characters long.';
     } elseif ($password !== $confirm) {
         $error = 'Passwords do not match.';
+    } elseif (!$agreedTerms) {
+        $error = 'You must agree to the Terms of Service and Privacy Policy to create an account.';
     }
 
     if ($error === null) {
@@ -122,6 +125,124 @@ if ($action === 'signup') {
 
     $_SESSION['error'] = $error;
     header("Location: " . BASE_URL . "/auth/signup.php");
+    exit;
+}
+
+/*
+ |--------------------------------------------------------------------
+ | FORGOT PASSWORD — step 1: verify identity (username + email match)
+ |--------------------------------------------------------------------
+ | No email is actually sent (this project has no mail-sending
+ | capability configured). Instead, a visitor proves ownership by
+ | supplying BOTH the username AND the email on file for that account;
+ | a match unlocks a short-lived (10-minute) session flag that lets
+ | them set a new password on the very next request. This is weaker
+ | than a real emailed reset link (no out-of-band confirmation), but
+ | it's the realistic self-service option without adding SMTP/PHPMailer.
+ */
+if ($action === 'verify_reset') {
+    $throttleMessage = login_throttle_check($conn);
+    if ($throttleMessage !== null) {
+        $_SESSION['error'] = $throttleMessage;
+        header("Location: " . BASE_URL . "/auth/forgot-password.php");
+        exit;
+    }
+
+    $username = trim($_POST['username'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+
+    if ($username === '' || $email === '') {
+        $_SESSION['error'] = 'Please enter both your username and email address.';
+        header("Location: " . BASE_URL . "/auth/forgot-password.php");
+        exit;
+    }
+
+    $matchedId    = null;
+    $matchedTable = null;
+
+    $stmt = $conn->prepare("SELECT admin_id FROM admins WHERE username = ? AND email = ? LIMIT 1");
+    $stmt->bind_param('ss', $username, $email);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if ($row) {
+        $matchedId    = (int) $row['admin_id'];
+        $matchedTable = 'admins';
+    }
+
+    if ($matchedId === null) {
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ? AND email = ? LIMIT 1");
+        $stmt->bind_param('ss', $username, $email);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($row) {
+            $matchedId    = (int) $row['id'];
+            $matchedTable = 'users';
+        }
+    }
+
+    if ($matchedId === null) {
+        login_throttle_record_failure($conn);
+        $_SESSION['error'] = "We couldn't find an account with that username and email combination.";
+        header("Location: " . BASE_URL . "/auth/forgot-password.php");
+        exit;
+    }
+
+    login_throttle_clear($conn);
+    session_regenerate_id(true);
+    $_SESSION['reset_verified_id']      = $matchedId;
+    $_SESSION['reset_verified_table']   = $matchedTable;
+    $_SESSION['reset_verified_expires'] = time() + 600; // 10 minutes
+
+    header("Location: " . BASE_URL . "/auth/reset-password.php");
+    exit;
+}
+
+/*
+ |--------------------------------------------------------------------
+ | FORGOT PASSWORD — step 2: actually set the new password
+ |--------------------------------------------------------------------
+ | Only reachable with a fresh 'reset_verified_*' session flag set by
+ | the verify_reset step above (see reset-password.php's own guard too).
+ */
+if ($action === 'do_reset') {
+    $verifiedId      = $_SESSION['reset_verified_id'] ?? null;
+    $verifiedTable   = $_SESSION['reset_verified_table'] ?? null;
+    $verifiedExpires = $_SESSION['reset_verified_expires'] ?? 0;
+
+    if (!$verifiedId || !in_array($verifiedTable, ['admins', 'users'], true) || time() > $verifiedExpires) {
+        unset($_SESSION['reset_verified_id'], $_SESSION['reset_verified_table'], $_SESSION['reset_verified_expires']);
+        $_SESSION['error'] = 'Your reset session expired. Please verify your identity again.';
+        header("Location: " . BASE_URL . "/auth/forgot-password.php");
+        exit;
+    }
+
+    $password = $_POST['password'] ?? '';
+    $confirm  = $_POST['confirm_password'] ?? '';
+
+    if (strlen($password) < 8) {
+        $_SESSION['error'] = 'Password must be at least 8 characters long.';
+        header("Location: " . BASE_URL . "/auth/reset-password.php");
+        exit;
+    }
+    if ($password !== $confirm) {
+        $_SESSION['error'] = 'Passwords do not match.';
+        header("Location: " . BASE_URL . "/auth/reset-password.php");
+        exit;
+    }
+
+    $hash  = password_hash($password, PASSWORD_DEFAULT);
+    $idCol = $verifiedTable === 'admins' ? 'admin_id' : 'id';
+    $stmt  = $conn->prepare("UPDATE {$verifiedTable} SET password = ? WHERE {$idCol} = ?");
+    $stmt->bind_param('si', $hash, $verifiedId);
+    $stmt->execute();
+    $stmt->close();
+
+    unset($_SESSION['reset_verified_id'], $_SESSION['reset_verified_table'], $_SESSION['reset_verified_expires']);
+
+    $_SESSION['success'] = 'Your password has been reset. You can now sign in.';
+    header("Location: " . BASE_URL . "/auth/login.php");
     exit;
 }
 
