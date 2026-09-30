@@ -132,7 +132,7 @@ unset($_SESSION['error'], $_SESSION['success']);
                             type="password"
                             id="password"
                             name="password"
-                            placeholder="••••••••"
+                            placeholder="Enter your password"
                             minlength="6"
                             required>
 

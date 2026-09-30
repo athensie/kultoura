@@ -100,7 +100,7 @@ unset($_SESSION['error']);
                         type="text"
                         id="fullname"
                         name="fullname"
-                        placeholder="Juan dela Cruz"
+                        placeholder="Enter your full name"
                         pattern="^[A-Za-z\s.'-]+$"
                         title="Full name should only contain letters."
                         required>
@@ -113,12 +113,13 @@ unset($_SESSION['error']);
                         type="text"
                         id="username"
                         name="username"
-                        placeholder="Choose a username"
-                        minlength="3"
+                        placeholder="Enter your username"
+                        minlength="4"
                         maxlength="20"
                         pattern="^[A-Za-z0-9_]+$"
-                        title="Username can only contain letters, numbers, and underscores."
+                        title="4-20 characters, letters, numbers, and underscores only."
                         required>
+                    <p class="field-hint">At least 4 characters — must be unique</p>
                 </div>
 
                 <!-- Email -->
@@ -128,7 +129,7 @@ unset($_SESSION['error']);
                         type="email"
                         id="email"
                         name="email"
-                        placeholder="you@email.com"
+                        placeholder="Enter your email"
                         required>
                 </div>
 
@@ -140,15 +141,21 @@ unset($_SESSION['error']);
                             type="password"
                             id="password"
                             name="password"
-                            placeholder="Minimum 8 characters"
+                            placeholder="Enter your password"
                             minlength="8"
+                            pattern="^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$"
+                            title="At least 8 characters, including one uppercase letter and one special character."
                             required>
 
                         <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         </span>
                     </div>
-                    <p class="field-hint">Must be at least 8 characters</p>
+                    <ul class="pw-requirements" id="pwRequirements">
+                        <li data-rule="length"><span class="pw-req-icon"></span>Minimum 8 characters</li>
+                        <li data-rule="uppercase"><span class="pw-req-icon"></span>One uppercase letter</li>
+                        <li data-rule="special"><span class="pw-req-icon"></span>One special character</li>
+                    </ul>
                 </div>
 
                 <!-- Confirm Password -->
@@ -159,7 +166,7 @@ unset($_SESSION['error']);
                             type="password"
                             id="confirm_password"
                             name="confirm_password"
-                            placeholder="••••••••"
+                            placeholder="Confirm your password"
                             minlength="8"
                             required>
 
@@ -169,19 +176,27 @@ unset($_SESSION['error']);
                     </div>
                 </div>
 
-                <!-- Terms & Conditions (required) -->
+                <!-- Terms of Service (required) -->
                 <div class="form-group checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="agree_terms" value="1" required>
-                        I agree to the <button type="button" class="tc-link" onclick="openAuthModal('terms-modal')">Terms of Service</button> and <button type="button" class="tc-link" onclick="openAuthModal('privacy-modal')">Privacy Policy</button>.
+                        I agree to the <button type="button" class="tc-link" onclick="openAuthModal('terms-modal')">Terms of Service</button>.
                     </label>
                 </div>
 
-                <!-- Promotional Email -->
+                <!-- Privacy Policy (required, separate from Terms of Service) -->
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="agree_privacy" value="1" required>
+                        I agree to the <button type="button" class="tc-link" onclick="openAuthModal('privacy-modal')">Privacy Policy</button>.
+                    </label>
+                </div>
+
+                <!-- Promotional Email (optional, not required to sign up) -->
                 <div class="form-group checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="promotional_email" value="1">
-                        I agree to receive promotional emails, travel updates, and special offers from KULTOURA.
+                        I agree to receive promotional emails, travel updates, and special offers from KULTOURA. <span class="optional-tag">(Optional)</span>
                     </label>
                 </div>
 

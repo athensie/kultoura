@@ -18,7 +18,7 @@ if (!defined('LOGIN_THROTTLE_MAX_ATTEMPTS')) {
     define('LOGIN_THROTTLE_MAX_ATTEMPTS', 5);
 }
 if (!defined('LOGIN_THROTTLE_WINDOW_MINUTES')) {
-    define('LOGIN_THROTTLE_WINDOW_MINUTES', 15);
+    define('LOGIN_THROTTLE_WINDOW_MINUTES', 1);
 }
 
 if (!function_exists('login_throttle_ensure_table')) {
@@ -69,7 +69,7 @@ if (!function_exists('login_throttle_check')) {
         $stmt->close();
 
         if ((int) ($row['attempts'] ?? 0) >= LOGIN_THROTTLE_MAX_ATTEMPTS) {
-            return 'Too many failed login attempts. Please wait a few minutes and try again.';
+            return 'Too many failed login attempts. Please wait 1 minute and try again.';
         }
         return null;
     }

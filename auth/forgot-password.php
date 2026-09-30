@@ -131,7 +131,7 @@ unset($_SESSION['error'], $_SESSION['success']);
                         type="email"
                         id="email"
                         name="email"
-                        placeholder="you@email.com"
+                        placeholder="Enter your email"
                         required>
                 </div>
 

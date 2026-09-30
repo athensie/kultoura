@@ -34,6 +34,28 @@ function togglePw(id, el) {
 }
 
 
+// Live password requirements checklist (signup) — lights up each rule
+// as it's met while typing, in addition to the submit-time check below.
+(function () {
+    const passwordInput = document.getElementById("password");
+    const pwRequirements = document.getElementById("pwRequirements");
+    if (!passwordInput || !pwRequirements) return;
+
+    const rules = {
+        length: (pw) => pw.length >= 8,
+        uppercase: (pw) => /[A-Z]/.test(pw),
+        special: (pw) => /[^A-Za-z0-9]/.test(pw),
+    };
+
+    passwordInput.addEventListener("input", function () {
+        const pw = passwordInput.value;
+        Object.keys(rules).forEach(function (rule) {
+            const li = pwRequirements.querySelector('[data-rule="' + rule + '"]');
+            if (li) li.classList.toggle("met", rules[rule](pw));
+        });
+    });
+})();
+
 const form = document.querySelector(".auth-form");
 
 if (form) {
@@ -64,8 +86,8 @@ if (form) {
             return;
         }
 
-        if(username.length < 3 || username.length > 20){
-            alert("Username must be between 3 and 20 characters.");
+        if(username.length < 4 || username.length > 20){
+            alert("Username must be between 4 and 20 characters.");
             e.preventDefault();
             return;
         }
@@ -80,8 +102,8 @@ if (form) {
         }
 
         // Password
-        if(password.length < 8){
-            alert("Password must be at least 8 characters long.");
+        if(password.length < 8 || !/[A-Z]/.test(password) || !/[^A-Za-z0-9]/.test(password)){
+            alert("Password must be at least 8 characters long and include an uppercase letter and a special character.");
             e.preventDefault();
             return;
         }

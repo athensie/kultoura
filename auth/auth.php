@@ -29,6 +29,15 @@ define('BASE_URL', '/kultoura');
      promotional_email, created_at
 ───────────────────────────────────────────── */
 
+// Shared by signup and password reset — at least 8 characters, one
+// uppercase letter, and one special (non-alphanumeric) character.
+function kt_password_meets_policy(string $password): bool
+{
+    return strlen($password) >= 8
+        && preg_match('/[A-Z]/', $password)
+        && preg_match('/[^A-Za-z0-9]/', $password);
+}
+
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 
 /*
@@ -75,21 +84,22 @@ if ($action === 'signup') {
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['confirm_password'] ?? '';
     $promo    = isset($_POST['promotional_email']) ? 1 : 0;
-    $agreedTerms = isset($_POST['agree_terms']);
+    $agreedTerms  = isset($_POST['agree_terms']);
+    $agreedPrivacy = isset($_POST['agree_privacy']);
 
     $error = null;
     if ($fullname === '' || !preg_match("/^[A-Za-z\s.'-]+$/", $fullname)) {
         $error = 'Full name should only contain letters.';
-    } elseif ($username === '' || !preg_match('/^[A-Za-z0-9_]+$/', $username) || strlen($username) < 3 || strlen($username) > 20) {
-        $error = 'Username must be 3-20 characters and contain only letters, numbers, and underscores.';
+    } elseif ($username === '' || !preg_match('/^[A-Za-z0-9_]+$/', $username) || strlen($username) < 4 || strlen($username) > 20) {
+        $error = 'Username must be 4-20 characters and contain only letters, numbers, and underscores.';
     } elseif ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
-    } elseif (strlen($password) < 8) {
-        $error = 'Password must be at least 8 characters long.';
+    } elseif (!kt_password_meets_policy($password)) {
+        $error = 'Password must be at least 8 characters long and include an uppercase letter and a special character.';
     } elseif ($password !== $confirm) {
         $error = 'Passwords do not match.';
-    } elseif (!$agreedTerms) {
-        $error = 'You must agree to the Terms of Service and Privacy Policy to create an account.';
+    } elseif (!$agreedTerms || !$agreedPrivacy) {
+        $error = 'You must agree to both the Terms of Service and the Privacy Policy to create an account.';
     }
 
     if ($error === null) {
@@ -221,8 +231,8 @@ if ($action === 'do_reset') {
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['confirm_password'] ?? '';
 
-    if (strlen($password) < 8) {
-        $_SESSION['error'] = 'Password must be at least 8 characters long.';
+    if (!kt_password_meets_policy($password)) {
+        $_SESSION['error'] = 'Password must be at least 8 characters long and include an uppercase letter and a special character.';
         header("Location: " . BASE_URL . "/auth/reset-password.php");
         exit;
     }

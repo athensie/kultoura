@@ -128,15 +128,17 @@ unset($_SESSION['error'], $_SESSION['success']);
                             type="password"
                             id="password"
                             name="password"
-                            placeholder="Minimum 8 characters"
+                            placeholder="Enter your new password"
                             minlength="8"
+                            pattern="^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$"
+                            title="At least 8 characters, including one uppercase letter and one special character."
                             required>
 
                         <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         </span>
                     </div>
-                    <p class="field-hint">Must be at least 8 characters</p>
+                    <p class="field-hint">At least 8 characters, with 1 uppercase letter and 1 special character</p>
                 </div>
 
                 <!-- Confirm New Password -->
@@ -147,7 +149,7 @@ unset($_SESSION['error'], $_SESSION['success']);
                             type="password"
                             id="confirm_password"
                             name="confirm_password"
-                            placeholder="••••••••"
+                            placeholder="Confirm your new password"
                             minlength="8"
                             required>
 
