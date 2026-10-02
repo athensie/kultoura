@@ -115,7 +115,7 @@ $stmt->close();
         <a href="../../auth/logout.php" class="sign-in-btn sign-in-btn-icon-only" aria-label="Sign Out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>SIGN OUT</span></a>
     <?php else: ?>
         <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
-        <a href="../../login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
+        <a href="../../auth/login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
     <?php endif; ?>
 
     <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
@@ -146,15 +146,10 @@ $stmt->close();
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="resort.php" method="get">
-            <input type="text" name="q" placeholder="Search resorts, pools, getaways…">
-            <select name="category" class="p-category-select">
-                <option>All Categories</option>
-                <option>Day Tour</option>
-                <option>Overnight Resort</option>
-                <option>Private Pool</option>
-            </select>
+        <form class="p-search-bar" id="resortSearchForm" action="resort.php" method="get">
+            <input type="text" name="q" id="resortSearchInput" placeholder="Search resorts, pools, getaways…" autocomplete="off">
         </form>
+        <p class="p-search-empty" id="resortSearchEmpty" hidden>No resorts match your search.</p>
     </section>
 
     <section class="t-category" id="resort">
@@ -172,9 +167,9 @@ $stmt->close();
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
-        <div class="p-card-grid">
+        <div class="p-card-grid" id="resortCardGrid">
             <?php foreach ($resorts as $item): ?>
-            <article class="p-card" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
+            <article class="p-card" data-id="<?= (int) $item['id'] ?>" data-category="<?= htmlspecialchars($item['category']) ?>" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?><img src="<?= htmlspecialchars($item['image']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php endif; ?>
                     <button class="p-fav-btn <?= $item['isFavorited'] ? 'is-favorited' : '' ?>" type="button"
@@ -257,6 +252,48 @@ $stmt->close();
 <script>
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ---------------- Live search (name + category) ---------------- */
+(function () {
+    const searchInput = document.getElementById('resortSearchInput');
+    const grid = document.getElementById('resortCardGrid');
+    const emptyMsg = document.getElementById('resortSearchEmpty');
+    const form = document.getElementById('resortSearchForm');
+    if (!searchInput || !grid) return;
+
+    function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        grid.querySelectorAll('.p-card[data-id]').forEach((card) => {
+            const name = (card.querySelector('.p-card-title')?.textContent || '').toLowerCase();
+            const category = (card.dataset.category || '').toLowerCase();
+            const matches = query === '' || name.includes(query) || category.includes(query);
+
+            if (matches) {
+                visibleCount++;
+                if (card.style.display === 'none') {
+                    card.style.display = '';
+                    card.style.opacity = '0';
+                    requestAnimationFrame(() => { card.style.opacity = '1'; });
+                }
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (emptyMsg) emptyMsg.hidden = visibleCount > 0;
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            applyFilters();
+        });
+    }
+    applyFilters();
+})();
 
 function ktTrackItemView(type, id) {
     if (!id) return;

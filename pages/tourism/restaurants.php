@@ -21,37 +21,24 @@ $userId     = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
  | adminfoodanddining.php (only 'active' ones are shown here).
  |--------------------------------------------------------------------
  */
-$categoryChoices = ['Carinderia', 'Family Restaurant', 'Café', 'Fast Food'];
+// Matches the category choices in admin/adminfoodanddining.php's
+// $categoriesByType['restaurant'] — keep these two lists in sync.
+$categoryChoices = ['Restaurant', 'Karinderya', 'Cafe', 'Fast Food', 'Bulalo & Lomi House', 'Bakery', 'Milk Tea & Beverage Shop', 'Dessert Shop'];
 $q        = trim($_GET['q'] ?? '');
 $category = trim($_GET['category'] ?? '');
 
-$sql    = "SELECT restaurant_id, restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, image, google_map
-           FROM restaurants WHERE 1=1";
-$params = [];
-$types  = '';
-
-if ($q !== '') {
-    $sql     .= " AND (restaurant_name LIKE ? OR description LIKE ?)";
-    $like     = '%' . $q . '%';
-    $params[] = $like;
-    $params[] = $like;
-    $types   .= 'ss';
-}
-if ($category !== '' && $category !== 'All Categories' && in_array($category, $categoryChoices, true)) {
-    $sql     .= " AND category = ?";
-    $params[] = $category;
-    $types   .= 's';
-}
-$sql .= " ORDER BY restaurant_name ASC";
-
+// $q / $category above only pre-fill the search box and category select
+// (so a shared link like ?q=cafe still lands pre-filtered visually) — the
+// actual filtering happens client-side in JS against the full catalog,
+// so clearing the search box or switching categories can reveal items
+// without a round trip to the server.
+$sql  = "SELECT restaurant_id, restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, image, google_map
+         FROM restaurants ORDER BY restaurant_name ASC";
 $rows = [];
-$stmt = $conn->prepare($sql);
-if ($types !== '') {
-    $stmt->bind_param($types, ...$params);
+$res  = $conn->query($sql);
+if ($res) {
+    $rows = $res->fetch_all(MYSQLI_ASSOC);
 }
-$stmt->execute();
-$rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
 
 // Which of these the logged-in user has already favorited.
 $favoritedIds = [];
@@ -159,7 +146,7 @@ foreach ($rows as $r) {
         <a href="../../auth/logout.php" class="sign-in-btn sign-in-btn-icon-only" aria-label="Sign Out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>SIGN OUT</span></a>
     <?php else: ?>
         <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
-        <a href="../../login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
+        <a href="../../auth/login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
     <?php endif; ?>
 
     <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
@@ -190,23 +177,24 @@ foreach ($rows as $r) {
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="restaurants.php" method="get">
-            <input type="text" name="q" placeholder="Search restaurants, cuisines, areas…" value="<?= htmlspecialchars($q) ?>">
-            <select name="category" class="p-category-select">
+        <form class="p-search-bar" id="restaurantSearchForm" action="restaurants.php" method="get">
+            <input type="text" name="q" id="restaurantSearchInput" placeholder="Search restaurants, cuisines, areas…" value="<?= htmlspecialchars($q) ?>" autocomplete="off">
+            <select name="category" id="restaurantCategorySelect" class="p-category-select">
                 <option<?= $category === '' ? ' selected' : '' ?>>All Categories</option>
                 <?php foreach ($categoryChoices as $cat): ?>
                     <option<?= $category === $cat ? ' selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
                 <?php endforeach; ?>
             </select>
         </form>
+        <p class="p-search-empty" id="restaurantSearchEmpty" hidden>No restaurants match your search.</p>
     </section>
 
     <section class="t-category" id="restaurants">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Food</p>
-                <h2 class="t-cat-title">Restaurants</h2>
-                <p class="t-cat-desc">Where to eat around Malvar, from everyday carinderias to sit-down family spots.</p>
+                <p class="t-cat-label" id="restaurantCatLabel">Food</p>
+                <h2 class="t-cat-title" id="restaurantCatTitle">Restaurants</h2>
+                <p class="t-cat-desc" id="restaurantCatDesc">Where to eat around Malvar, from everyday carinderias to sit-down family spots.</p>
             </div>
         </div>
 
@@ -216,9 +204,9 @@ foreach ($rows as $r) {
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
-        <div class="p-card-grid">
+        <div class="p-card-grid" id="restaurantCardGrid">
             <?php foreach ($restaurants as $item): ?>
-            <article class="p-card" onclick="openViewDetails(<?= (int) $item['id'] ?>)">
+            <article class="p-card" data-id="<?= (int) $item['id'] ?>" onclick="openViewDetails(<?= (int) $item['id'] ?>)">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?>
                         <img src="../../assets/uploads/food/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="p-card-img">
@@ -299,6 +287,89 @@ foreach ($rows as $r) {
 const restaurantsData = <?php echo json_encode($restaurants); ?>;
 
 function findProduct(id) { return restaurantsData.find(p => p.id === id); }
+
+/* ---------------- Live search + category filter ---------------- */
+/* Same approach as products.php: filters the already-loaded cards
+   client-side (by name and category — not description), updating
+   instantly as you type. No page reload per keystroke; Enter is
+   harmless since the filter's already live. */
+(function () {
+    const searchInput = document.getElementById('restaurantSearchInput');
+    const categorySelect = document.getElementById('restaurantCategorySelect');
+    const grid = document.getElementById('restaurantCardGrid');
+    const emptyMsg = document.getElementById('restaurantSearchEmpty');
+    const form = document.getElementById('restaurantSearchForm');
+    const catLabel = document.getElementById('restaurantCatLabel');
+    const catTitle = document.getElementById('restaurantCatTitle');
+    const catDesc = document.getElementById('restaurantCatDesc');
+    if (!searchInput || !categorySelect || !grid) return;
+
+    const CATEGORY_META = {
+        'Restaurant': { label: 'Restaurant', desc: 'Full sit-down restaurants serving a wider menu.' },
+        'Karinderya': { label: 'Karinderya', desc: 'Everyday carinderias serving home-style Filipino meals.' },
+        'Cafe': { label: 'Cafe', desc: 'Coffee shops and cafés for a relaxed bite or brew.' },
+        'Fast Food': { label: 'Fast Food', desc: 'Quick-service spots for a fast, casual meal.' },
+        'Bulalo & Lomi House': { label: 'Bulalo & Lomi House', desc: 'Specialty houses known for bulalo and lomi.' },
+        'Bakery': { label: 'Bakery', desc: 'Bakeries for fresh bread, pastries, and baked goods.' },
+        'Milk Tea & Beverage Shop': { label: 'Milk Tea & Beverage Shop', desc: 'Milk tea and beverage shops for drinks and refreshments.' },
+        'Dessert Shop': { label: 'Dessert Shop', desc: 'Dessert shops for sweets and after-meal treats.' },
+    };
+    const GENERAL_META = { label: 'Restaurants', desc: 'Where to eat around Malvar, from everyday carinderias to sit-down family spots.' };
+
+    function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        const category = categorySelect.value;
+        let visibleCount = 0;
+        const visibleCategories = new Set();
+
+        restaurantsData.forEach((item) => {
+            const card = grid.querySelector('.p-card[data-id="' + item.id + '"]');
+            if (!card) return;
+
+            const matchesCategory = category === '' || category === 'All Categories' || item.category === category;
+            const matchesQuery = query === ''
+                || (item.name || '').toLowerCase().includes(query)
+                || (item.category || '').toLowerCase().includes(query);
+            const matches = matchesCategory && matchesQuery;
+
+            if (matches) {
+                visibleCount++;
+                visibleCategories.add(item.category);
+                if (card.style.display === 'none') {
+                    card.style.display = '';
+                    card.style.opacity = '0';
+                    requestAnimationFrame(() => { card.style.opacity = '1'; });
+                }
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (emptyMsg) emptyMsg.hidden = visibleCount > 0;
+
+        // Heading reflects what's actually showing: a single category
+        // name when everything visible belongs to just one (whether
+        // from the dropdown or a search that happens to narrow it
+        // down), or the general "Restaurants" heading otherwise.
+        const meta = (visibleCategories.size === 1)
+            ? (CATEGORY_META[[...visibleCategories][0]] || GENERAL_META)
+            : GENERAL_META;
+        if (catLabel) catLabel.textContent = meta.label;
+        if (catTitle) catTitle.textContent = meta.label;
+        if (catDesc) catDesc.textContent = meta.desc;
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    categorySelect.addEventListener('change', applyFilters);
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            applyFilters();
+        });
+    }
+
+    applyFilters();
+})();
 
 function openModalX(id) { document.getElementById(id).classList.add('open'); }
 function closeModalX(id) { document.getElementById(id).classList.remove('open'); }

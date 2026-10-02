@@ -206,11 +206,24 @@ function ktRefreshEditMap(savedGoogleMaps) {
   }, 150);
 }
 
+/* ---------- SUBCATEGORY (Nature only: Park / River & Falls) ---------- */
+function ktToggleSubcategoryField(which) {
+  const categorySelect = document.getElementById(which === 'add' ? 'addCategoryInput' : 'editDestinationCategoryInput');
+  const group = document.getElementById(which === 'add' ? 'addSubcategoryGroup' : 'editSubcategoryGroup');
+  const select = document.getElementById(which === 'add' ? 'addSubcategoryInput' : 'editDestinationSubcategoryInput');
+  if (!categorySelect || !group) return;
+
+  const isNature = categorySelect.value === 'nature';
+  group.hidden = !isNature;
+  if (!isNature && select) select.value = ''; // don't silently carry a stale subcategory into a non-Nature save
+}
+
 /* ---------- ADD ---------- */
 function openAddDestination() {
   document.getElementById('addDestinationForm').reset();
   const addGoogleMaps = document.getElementById('addGoogleMaps');
   if (addGoogleMaps) addGoogleMaps.value = '';
+  ktToggleSubcategoryField('add');
   openModal('addDestinationModal');
   ktRefreshAddMap();
 }
@@ -277,6 +290,9 @@ function openEditDestination(btn) {
 
   const categorySelect = document.getElementById('editDestinationCategoryInput');
   if (categorySelect) categorySelect.value = d.category || 'nature';
+  ktToggleSubcategoryField('edit');
+  const subcategorySelect = document.getElementById('editDestinationSubcategoryInput');
+  if (subcategorySelect) subcategorySelect.value = d.subcategory || '';
 
   const statusSelect = document.getElementById('editDestinationStatusInput');
   if (statusSelect) statusSelect.value = d.status || 'active';

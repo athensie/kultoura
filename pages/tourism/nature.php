@@ -19,7 +19,7 @@ $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 // panel (admindestinations.php) writes to, filtered to this category.
 // The EXISTS subquery checks THIS user's favorites table row (not the
 // destination table's own `favorited` column, which isn't user-specific).
-$zones = [];
+$spots = [];
 $stmt = $conn->prepare(
     "SELECT d.*,
         EXISTS (
@@ -38,6 +38,7 @@ while ($row = $result->fetch_assoc()) {
         'id'          => (int) $row['destination_id'],
         'name'        => $row['destination_name'],
         'category'    => ucfirst($row['category']),
+        'subcategory' => $row['subcategory'] ?? '',
         'tag'         => $row['address'],
         'desc'        => $row['description'],
         'image'       => $row['image'],
@@ -115,7 +116,7 @@ $stmt->close();
         <a href="../../auth/logout.php" class="sign-in-btn sign-in-btn-icon-only" aria-label="Sign Out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>SIGN OUT</span></a>
     <?php else: ?>
         <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
-        <a href="../../login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
+        <a href="../../auth/login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
     <?php endif; ?>
 
     <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
@@ -146,24 +147,23 @@ $stmt->close();
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="nature.php" method="get">
-            <input type="text" name="q" placeholder="Search parks, trails, viewpoints…">
-            <select name="category" class="p-category-select">
+        <form class="p-search-bar" id="natureSearchForm" action="nature.php" method="get">
+            <input type="text" name="q" id="natureSearchInput" placeholder="Search parks, river and falls…" autocomplete="off">
+            <select name="category" id="natureCategorySelect" class="p-category-select">
                 <option>All Categories</option>
                 <option>Park</option>
-                <option>Trail</option>
-                <option>Viewpoint</option>
                 <option>River / Falls</option>
             </select>
         </form>
+        <p class="p-search-empty" id="natureSearchEmpty" hidden>No nature spots match your search.</p>
     </section>
 
     <section class="t-category" id="nature">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Local Destinations</p>
-                <h2 class="t-cat-title">Nature</h2>
-                <p class="t-cat-desc">Green spaces and natural landmarks worth the trip around Malvar.</p>
+                <p class="t-cat-label" id="natureCatLabel">Local Destinations</p>
+                <h2 class="t-cat-title" id="natureCatTitle">Nature</h2>
+                <p class="t-cat-desc" id="natureCatDesc">Green spaces and natural landmarks worth the trip around Malvar.</p>
             </div>
         </div>
 
@@ -173,9 +173,9 @@ $stmt->close();
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
-        <div class="p-card-grid">
+        <div class="p-card-grid" id="natureCardGrid">
             <?php foreach ($spots as $item): ?>
-            <article class="p-card" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
+            <article class="p-card" data-id="<?= (int) $item['id'] ?>" data-subcategory="<?= htmlspecialchars($item['subcategory']) ?>" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?><img src="<?= htmlspecialchars($item['image']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php endif; ?>
                     <button class="p-fav-btn <?= $item['isFavorited'] ? 'is-favorited' : '' ?>" type="button"
@@ -184,7 +184,7 @@ $stmt->close();
                         onclick="event.stopPropagation(); ktToggleFavorite(<?= (int) $item['id'] ?>)"><?= $item['isFavorited'] ? '&#9829;' : '&#9825;' ?></button>
                 </div>
                 <div class="p-card-body">
-                    <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
+                    <p class="p-card-category"><?= htmlspecialchars($item['subcategory'] ?: $item['category']) ?></p>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['name']) ?></h3>
                     <p class="p-card-location">📍 <?= htmlspecialchars($item['tag']) ?></p>
                     <p class="p-card-desc"><?= htmlspecialchars($item['desc']) ?></p>
@@ -258,6 +258,83 @@ $stmt->close();
 <script>
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ---------------- Live search + subcategory filter ---------------- */
+/* Same approach as products.php: filters the already-loaded cards
+   client-side (by name and subcategory — not description), updating
+   instantly as you type. No page reload per keystroke; Enter is
+   harmless since the filter's already live. */
+(function () {
+    const searchInput = document.getElementById('natureSearchInput');
+    const categorySelect = document.getElementById('natureCategorySelect');
+    const grid = document.getElementById('natureCardGrid');
+    const emptyMsg = document.getElementById('natureSearchEmpty');
+    const form = document.getElementById('natureSearchForm');
+    const catLabel = document.getElementById('natureCatLabel');
+    const catTitle = document.getElementById('natureCatTitle');
+    const catDesc = document.getElementById('natureCatDesc');
+    if (!searchInput || !categorySelect || !grid) return;
+
+    const SUBCATEGORY_META = {
+        'Park': { label: 'Park', desc: 'Open green spaces and recreational parks around Malvar.' },
+        'River / Falls': { label: 'River / Falls', desc: 'Rivers, waterfalls, and natural water spots to explore.' },
+    };
+    const GENERAL_META = { label: 'Nature', desc: 'Green spaces and natural landmarks worth the trip around Malvar.' };
+
+    function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        const subcategory = categorySelect.value;
+        let visibleCount = 0;
+        const visibleSubcats = new Set();
+
+        grid.querySelectorAll('.p-card[data-id]').forEach((card) => {
+            const name = (card.querySelector('.p-card-title')?.textContent || '').toLowerCase();
+            const cardSubcategory = card.dataset.subcategory || '';
+
+            const matchesCategory = subcategory === '' || subcategory === 'All Categories' || cardSubcategory === subcategory;
+            const matchesQuery = query === ''
+                || name.includes(query)
+                || cardSubcategory.toLowerCase().includes(query);
+            const matches = matchesCategory && matchesQuery;
+
+            if (matches) {
+                visibleCount++;
+                visibleSubcats.add(cardSubcategory);
+                if (card.style.display === 'none') {
+                    card.style.display = '';
+                    card.style.opacity = '0';
+                    requestAnimationFrame(() => { card.style.opacity = '1'; });
+                }
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (emptyMsg) emptyMsg.hidden = visibleCount > 0;
+
+        // Heading reflects what's actually showing: a single subcategory
+        // name when everything visible shares one (from the dropdown or
+        // a search that happens to narrow it down), general "Nature"
+        // otherwise (including spots with no subcategory set at all).
+        const meta = (visibleSubcats.size === 1)
+            ? (SUBCATEGORY_META[[...visibleSubcats][0]] || GENERAL_META)
+            : GENERAL_META;
+        if (catLabel) catLabel.textContent = meta.label;
+        if (catTitle) catTitle.textContent = meta.label;
+        if (catDesc) catDesc.textContent = meta.desc;
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    categorySelect.addEventListener('change', applyFilters);
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            applyFilters();
+        });
+    }
+
+    applyFilters();
+})();
 
 function ktTrackItemView(type, id) {
     if (!id) return;

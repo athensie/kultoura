@@ -25,33 +25,18 @@ $categoryChoices = ['Local Food', 'Local Products', 'Crafts'];
 $q        = trim($_GET['q'] ?? '');
 $category = trim($_GET['category'] ?? '');
 
-$sql    = "SELECT product_id, product_name, category, description, price, location, latitude, longitude, image
-           FROM products WHERE 1=1";
-$params = [];
-$types  = '';
-
-if ($q !== '') {
-    $sql     .= " AND (product_name LIKE ? OR description LIKE ?)";
-    $like     = '%' . $q . '%';
-    $params[] = $like;
-    $params[] = $like;
-    $types   .= 'ss';
-}
-if ($category !== '' && $category !== 'All Categories' && in_array($category, $categoryChoices, true)) {
-    $sql     .= " AND category = ?";
-    $params[] = $category;
-    $types   .= 's';
-}
-$sql .= " ORDER BY product_name ASC";
-
+// $q / $category below only pre-fill the search box and category select
+// (so a shared link like ?q=rice still lands pre-filtered visually) — the
+// actual filtering happens client-side in JS against the full catalog,
+// so clearing the search box or switching categories can reveal items
+// without a round trip to the server.
+$sql  = "SELECT product_id, product_name, category, description, price, location, latitude, longitude, image
+         FROM products ORDER BY product_name ASC";
 $rows = [];
-$stmt = $conn->prepare($sql);
-if ($types !== '') {
-    $stmt->bind_param($types, ...$params);
+$res  = $conn->query($sql);
+if ($res) {
+    $rows = $res->fetch_all(MYSQLI_ASSOC);
 }
-$stmt->execute();
-$rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
 
 // Which of these the logged-in user has already favorited.
 $favoritedIds = [];
@@ -153,7 +138,7 @@ foreach ($rows as $r) {
         <a href="../../auth/logout.php" class="sign-in-btn sign-in-btn-icon-only" aria-label="Sign Out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>SIGN OUT</span></a>
     <?php else: ?>
         <span class="navbar-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
-        <a href="../../login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
+        <a href="../../auth/login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
     <?php endif; ?>
 
     <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
@@ -184,35 +169,36 @@ foreach ($rows as $r) {
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="products.php" method="get">
-            <input type="text" name="q" placeholder="Search food, places, events…" value="<?= htmlspecialchars($q) ?>">
-            <select name="category" class="p-category-select">
+        <form class="p-search-bar" action="products.php" method="get" id="productSearchForm">
+            <input type="text" name="q" id="productSearchInput" placeholder="Search food, places, events…" value="<?= htmlspecialchars($q) ?>" autocomplete="off">
+            <select name="category" id="productCategorySelect" class="p-category-select">
                 <option<?= $category === '' ? ' selected' : '' ?>>All Categories</option>
                 <?php foreach ($categoryChoices as $cat): ?>
                     <option<?= $category === $cat ? ' selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
                 <?php endforeach; ?>
             </select>
         </form>
+        <p class="p-search-empty" id="productSearchEmpty" hidden>No products match your search.</p>
     </section>
 
-    <section class="t-category" id="local-food">
+    <section class="t-category" id="products-list">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Local Food</p>
-                <h2 class="t-cat-title">Local Food</h2>
-                <p class="t-cat-desc">Traditional dishes and delicacies rooted in Malvar's culinary heritage.</p>
+                <p class="t-cat-label" id="productCatLabel">Products</p>
+                <h2 class="t-cat-title" id="productCatTitle">Products</h2>
+                <p class="t-cat-desc" id="productCatDesc">A mix of local products, food, and crafts from Malvar.</p>
             </div>
         </div>
 
         <?php if (empty($products)): ?>
         <div class="p-empty-state">
-            <h3>No local food entries yet</h3>
+            <h3>No products yet</h3>
             <p>Once the admin adds items, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
-        <div class="p-card-grid">
+        <div class="p-card-grid" id="productCardGrid">
             <?php foreach ($products as $item): ?>
-            <article class="p-card" onclick="openViewDetails(<?= (int) $item['id'] ?>)">
+            <article class="p-card" data-id="<?= (int) $item['id'] ?>" onclick="openViewDetails(<?= (int) $item['id'] ?>)">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?>
                         <img src="../../uploads/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="p-card-img">
@@ -288,6 +274,84 @@ foreach ($rows as $r) {
 const productsData = <?php echo json_encode($products); ?>;
 
 function findProduct(id) { return productsData.find(p => p.id === id); }
+
+/* ---------------- Live search + category filter ---------------- */
+/* Filters the already-loaded productsData/cards client-side, so results
+   update instantly as you type — no page reload per keystroke. Pressing
+   Enter still works, it just re-applies the same filter instead of
+   submitting the form (the filter is already live, so nothing changes). */
+(function () {
+    const searchInput = document.getElementById('productSearchInput');
+    const categorySelect = document.getElementById('productCategorySelect');
+    const grid = document.getElementById('productCardGrid');
+    const emptyMsg = document.getElementById('productSearchEmpty');
+    const form = document.getElementById('productSearchForm');
+    const catLabel = document.getElementById('productCatLabel');
+    const catTitle = document.getElementById('productCatTitle');
+    const catDesc = document.getElementById('productCatDesc');
+    if (!searchInput || !categorySelect || !grid) return;
+
+    const CATEGORY_META = {
+        'Local Food': { label: 'Local Food', desc: "Traditional dishes and delicacies rooted in Malvar's culinary heritage." },
+        'Local Products': { label: 'Local Products', desc: 'Everyday goods and specialty items made by local producers in Malvar.' },
+        'Crafts': { label: 'Crafts', desc: "Handmade crafts and bamboo creations from Malvar's artisans." },
+    };
+    const GENERAL_META = { label: 'Products', desc: 'A mix of local products, food, and crafts from Malvar.' };
+
+    function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        const category = categorySelect.value;
+        let visibleCount = 0;
+        const visibleCategories = new Set();
+
+        productsData.forEach((item) => {
+            const card = grid.querySelector('.p-card[data-id="' + item.id + '"]');
+            if (!card) return;
+
+            const matchesCategory = category === '' || category === 'All Categories' || item.category === category;
+            const matchesQuery = query === ''
+                || (item.name || '').toLowerCase().includes(query)
+                || (item.category || '').toLowerCase().includes(query);
+            const matches = matchesCategory && matchesQuery;
+
+            if (matches) {
+                visibleCount++;
+                visibleCategories.add(item.category);
+                if (card.style.display === 'none') {
+                    card.style.display = '';
+                    card.style.opacity = '0';
+                    requestAnimationFrame(() => { card.style.opacity = '1'; });
+                }
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (emptyMsg) emptyMsg.hidden = visibleCount > 0;
+
+        // Heading reflects what's actually showing: a single category name
+        // when everything visible belongs to just one (whether that's from
+        // the dropdown or a search that happens to narrow it down), or a
+        // general "Products" heading otherwise.
+        const meta = (visibleCategories.size === 1)
+            ? (CATEGORY_META[[...visibleCategories][0]] || GENERAL_META)
+            : GENERAL_META;
+        if (catLabel) catLabel.textContent = meta.label;
+        if (catTitle) catTitle.textContent = meta.label;
+        if (catDesc) catDesc.textContent = meta.desc;
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    categorySelect.addEventListener('change', applyFilters);
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault(); // already live-filtered — no reload needed
+            applyFilters();
+        });
+    }
+
+    applyFilters(); // respect any ?q=/&category= the page was loaded with
+})();
 
 function openModalX(id) { document.getElementById(id).classList.add('open'); }
 function closeModalX(id) { document.getElementById(id).classList.remove('open'); }

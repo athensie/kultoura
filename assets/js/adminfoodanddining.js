@@ -13,12 +13,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // Default category + field set for the Add modal's initial "product" type.
   updateCategoryOptions('addTypeInput', 'addCategoryInput');
   toggleTypeFields('add');
-
-  // Restaurant category dropdown setup (product keeps the free-text field).
-  const addSelect = document.getElementById('addCategorySelect');
-  if (addSelect) buildRestaurantCategorySelect(addSelect);
-  const editSelect = document.getElementById('editCategorySelect');
-  if (editSelect) buildRestaurantCategorySelect(editSelect);
   toggleCategoryField('add');
 
   const addTypeInput = document.getElementById('addTypeInput');
@@ -43,42 +37,23 @@ function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
 /* ------------------------------------------------------------------ *
  * CATEGORY <-> TYPE
  * ------------------------------------------------------------------ *
- * Category is a free-text input (not a locked-down select) so admins
- * can type their own category, e.g. "Local at Malvar". The datalist
- * tied to it via the input's `list` attribute just offers suggestions
- * — presets plus whatever custom categories have been used before for
- * that listing type (see $categoriesByType in adminfoodanddining.php).
+ * Category is a fixed dropdown for both listing types — the choices
+ * come from $categoriesByType in adminfoodanddining.php (product:
+ * Local Food / Local Products / Crafts; restaurant: its own preset
+ * list). The hidden text input isn't user-facing; it only carries the
+ * value being edited over to toggleCategoryField(), which builds the
+ * real <select> admins actually use.
  */
 function updateCategoryOptions(typeSelectId, categoryInputId, selected) {
-  const typeSelect = document.getElementById(typeSelectId);
   const categoryInput = document.getElementById(categoryInputId);
-  if (!typeSelect || !categoryInput) return;
-  const type = typeSelect.value || 'product';
-  const options = (window.categoriesByType && window.categoriesByType[type]) || [];
-
-  const datalist = document.getElementById(categoryInput.getAttribute('list'));
-  if (datalist) {
-    datalist.innerHTML = options.map(c => `<option value="${c}"></option>`).join('');
-  }
-
+  if (!categoryInput) return;
   if (selected !== undefined) {
     categoryInput.value = selected;
   }
 }
 
-/* ------------------------------------------------------------------ *
- * RESTAURANT CATEGORY DROPDOWN
- * ------------------------------------------------------------------ *
- * Restaurants use a fixed dropdown instead of the free-text + datalist
- * combo products use. Both the text input and the select share
- * name="category" in the HTML — only one is ever enabled at a time
- * (the disabled one is excluded from the form submission), toggled by
- * whichever listing type is selected.
- */
-const RESTAURANT_CATEGORIES = ['Restaurant', 'Karinderya', 'Cafe', 'Fast Food', 'Bulalo & Lomi House', 'Bakery', 'Milk Tea & Beverage Shop', 'Dessert Shop'];
-
-function buildRestaurantCategorySelect(selectEl) {
-  selectEl.innerHTML = RESTAURANT_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+function buildCategorySelect(selectEl, options) {
+  selectEl.innerHTML = options.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
 function toggleCategoryField(prefix) {
@@ -87,30 +62,26 @@ function toggleCategoryField(prefix) {
   const typeEl = document.getElementById(prefix + 'TypeInput');
   if (!textInput || !select || !typeEl) return;
 
-  const isRestaurant = typeEl.value === 'restaurant';
+  const type = typeEl.value || 'product';
+  const options = (window.categoriesByType && window.categoriesByType[type]) || [];
+  buildCategorySelect(select, options);
 
-  if (isRestaurant) {
-    // Carry over whatever value is already in the text field (e.g. a
-    // legacy/custom category set by openEditListing()) so nothing is lost.
-    const current = textInput.value;
-    if (current && ![...select.options].some(o => o.value === current)) {
-      const opt = document.createElement('option');
-      opt.value = current;
-      opt.textContent = current + ' (existing)';
-      select.insertBefore(opt, select.firstChild);
-    }
-    if (current) select.value = current;
-
-    textInput.style.display = 'none';
-    textInput.disabled = true;
-    select.style.display = '';
-    select.disabled = false;
-  } else {
-    textInput.style.display = '';
-    textInput.disabled = false;
-    select.style.display = 'none';
-    select.disabled = true;
+  // Carry over whatever value is already in the (hidden) text field —
+  // e.g. a legacy category on an existing row that predates the fixed
+  // list — so editing a listing never silently discards its category.
+  const current = textInput.value;
+  if (current && ![...select.options].some(o => o.value === current)) {
+    const opt = document.createElement('option');
+    opt.value = current;
+    opt.textContent = current + ' (existing)';
+    select.insertBefore(opt, select.firstChild);
   }
+  if (current) select.value = current;
+
+  textInput.style.display = 'none';
+  textInput.disabled = true;
+  select.style.display = '';
+  select.disabled = false;
 }
 
 // Shows the product-only fields (price/location) or restaurant-only fields

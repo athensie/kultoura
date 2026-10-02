@@ -39,6 +39,10 @@
     height: 38px;
     width: auto;
     display: block;
+    /* Same fix as .navbar-brand-logo in index.css — the logo's "K" is
+       pale cream, meant for a dark background, nearly invisible on
+       this white card without a little contrast help. */
+    filter: drop-shadow(0 0 0.6px rgba(44, 26, 14, 0.6)) drop-shadow(0 0 0.6px rgba(44, 26, 14, 0.6)) drop-shadow(0 0 1.5px rgba(44, 26, 14, 0.35));
 }
 
 .auth-title {

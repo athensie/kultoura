@@ -49,6 +49,9 @@ $adminRole = $_SESSION['role'] ?? 'Admin';
  | location is a plain text field (or a pasted Google Maps link for
  | restaurants).
  */
+// Both listing types use a fixed category dropdown in the Add/Edit forms
+// (see assets/js/adminfoodanddining.js's toggleCategoryField) — these are
+// the only choices offered for a new entry.
 $categoriesByType = [
     'product'    => ['Local Food', 'Local Products', 'Crafts'],
     'restaurant' => ['Restaurant', 'Karinderya', 'Cafe', 'Fast Food', 'Bulalo & Lomi House', 'Bakery', 'Milk Tea & Beverage Shop', 'Dessert Shop'],
@@ -268,18 +271,10 @@ $restaurantCount = count(array_filter($foodListings, fn($l) => $l['type'] === 'r
 $addedThisMonth = count(array_filter($foodListings, fn($l) => date('Y-m', strtotime($l['created_at'])) === date('Y-m')));
 
 // Flat list of every category actually in use (for the table's filter dropdown) —
-// pulled from the real data rather than the preset list, since admins can type
-// in their own custom categories now (e.g. "Local at Malvar").
+// pulled from the real data, since older rows may still carry a category
+// outside the current preset lists below.
 $allCategories = array_values(array_unique(array_filter(array_column($foodListings, 'category'))));
 sort($allCategories);
-
-// Suggestions shown in the Add/Edit category datalist (product only — restaurant
-// now uses a fixed dropdown, see $categoriesByType above) = the presets plus any
-// custom categories admins have already typed in for that listing type, so the
-// list grows organically instead of staying stuck at 3 options forever.
-$usedForProduct = array_column(array_filter($foodListings, fn($l) => $l['type'] === 'product'), 'category');
-$categoriesByType['product'] = array_values(array_unique(array_merge($categoriesByType['product'], array_filter($usedForProduct))));
-sort($categoriesByType['product']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -552,11 +547,10 @@ sort($categoriesByType['product']);
                 </div>
                 <div class="form-group">
                     <label class="form-label">Category</label>
-                    <!-- Product: free text with growable datalist suggestions -->
-                    <input class="form-input" type="text" name="category" id="addCategoryInput" list="addCategoryList" placeholder="Pick a suggestion or type your own">
-                    <datalist id="addCategoryList"></datalist>
-                    <!-- Restaurant: fixed dropdown (populated by inline script below) -->
-                    <select class="filter-select" name="category" id="addCategorySelect" style="display:none; width:100%; padding:11px 14px; border-radius:8px;"></select>
+                    <!-- Hidden value carrier only — toggleCategoryField() builds and
+                         shows the real <select> below, options set per listing type. -->
+                    <input class="form-input" type="hidden" name="category" id="addCategoryInput">
+                    <select class="filter-select" name="category" id="addCategorySelect" style="width:100%; padding:11px 14px; border-radius:8px;"></select>
                 </div>
             </div>
 
@@ -652,11 +646,10 @@ sort($categoriesByType['product']);
             </div>
             <div class="form-group">
                 <label class="form-label">Category</label>
-                <!-- Product: free text with growable datalist suggestions -->
-                <input class="form-input" type="text" name="category" id="editCategoryInput" list="editCategoryList" placeholder="Pick a suggestion or type your own">
-                <datalist id="editCategoryList"></datalist>
-                <!-- Restaurant: fixed dropdown (populated by inline script below) -->
-                <select class="filter-select" name="category" id="editCategorySelect" style="display:none; width:100%; padding:11px 14px; border-radius:8px;"></select>
+                <!-- Hidden value carrier only — toggleCategoryField() builds and
+                     shows the real <select> below, options set per listing type. -->
+                <input class="form-input" type="hidden" name="category" id="editCategoryInput">
+                <select class="filter-select" name="category" id="editCategorySelect" style="width:100%; padding:11px 14px; border-radius:8px;"></select>
             </div>
 
             <!-- Product-only fields -->

@@ -112,20 +112,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     csrf_verify();
     $action = $_POST['action'];
 
+    // Only Nature destinations currently have a subcategory (Park /
+    // River & Falls) — anything else is stored as NULL regardless of
+    // what was posted, so stray form state can't leak a subcategory
+    // onto a category that doesn't use one.
     if ($action === 'create') {
         $imagePath = handleDestinationImageUpload();
 
-        $googleMaps = $_POST['google_maps'] ?? '';
+        $googleMaps  = $_POST['google_maps'] ?? '';
+        $subcategory = ($_POST['category'] === 'nature' && !empty($_POST['subcategory'])) ? $_POST['subcategory'] : null;
 
         $stmt = $conn->prepare(
-            "INSERT INTO destination (destination_name, address, category, status, description, image, google_maps)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO destination (destination_name, address, category, subcategory, status, description, image, google_maps)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->bind_param(
-            'sssssss',
+            'ssssssss',
             $_POST['name'],
             $_POST['location'],
             $_POST['category'],
+            $subcategory,
             $_POST['status'],
             $_POST['description'],
             $imagePath,
@@ -138,19 +144,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'update') {
         $newImagePath = handleDestinationImageUpload();
         $googleMaps   = $_POST['google_maps'] ?? '';
+        $subcategory  = ($_POST['category'] === 'nature' && !empty($_POST['subcategory'])) ? $_POST['subcategory'] : null;
 
         if ($newImagePath !== null) {
             // A new image was uploaded — replace it.
             $stmt = $conn->prepare(
                 "UPDATE destination
-                 SET destination_name = ?, address = ?, category = ?, status = ?, description = ?, image = ?, google_maps = ?
+                 SET destination_name = ?, address = ?, category = ?, subcategory = ?, status = ?, description = ?, image = ?, google_maps = ?
                  WHERE destination_id = ?"
             );
             $stmt->bind_param(
-                'sssssssi',
+                'ssssssssi',
                 $_POST['name'],
                 $_POST['location'],
                 $_POST['category'],
+                $subcategory,
                 $_POST['status'],
                 $_POST['description'],
                 $newImagePath,
@@ -161,14 +169,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // No new file chosen — leave the existing image untouched.
             $stmt = $conn->prepare(
                 "UPDATE destination
-                 SET destination_name = ?, address = ?, category = ?, status = ?, description = ?, google_maps = ?
+                 SET destination_name = ?, address = ?, category = ?, subcategory = ?, status = ?, description = ?, google_maps = ?
                  WHERE destination_id = ?"
             );
             $stmt->bind_param(
-                'ssssssi',
+                'sssssssi',
                 $_POST['name'],
                 $_POST['location'],
                 $_POST['category'],
+                $subcategory,
                 $_POST['status'],
                 $_POST['description'],
                 $googleMaps,
@@ -458,6 +467,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                                         data-name="<?php echo htmlspecialchars($d['destination_name']); ?>"
                                         data-location="<?php echo htmlspecialchars($d['address']); ?>"
                                         data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
+                                        data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
                                         data-status="<?php echo htmlspecialchars($d['status']); ?>"
                                         data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                         data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
@@ -520,6 +530,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                                 data-name="<?php echo htmlspecialchars($d['destination_name']); ?>"
                                 data-location="<?php echo htmlspecialchars($d['address']); ?>"
                                 data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
+                                data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
                                 data-status="<?php echo htmlspecialchars($d['status']); ?>"
                                 data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                 data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
@@ -557,7 +568,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Category</label>
-                    <select class="filter-select" name="category" style="width:100%; padding:11px 14px; border-radius:8px;" required>
+                    <select class="filter-select" name="category" id="addCategoryInput" style="width:100%; padding:11px 14px; border-radius:8px;" onchange="ktToggleSubcategoryField('add')" required>
                         <option value="" disabled selected>Select a category…</option>
                         <option value="nature">Nature</option>
                         <option value="industry">Industry Zone</option>
@@ -568,6 +579,14 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                         <option value="church">Churches</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group" id="addSubcategoryGroup" hidden>
+                <label class="form-label">Subcategory</label>
+                <select class="filter-select" name="subcategory" id="addSubcategoryInput" style="width:100%; padding:11px 14px; border-radius:8px;">
+                    <option value="">None</option>
+                    <option value="Park">Park</option>
+                    <option value="River / Falls">River / Falls</option>
+                </select>
             </div>
             <div class="form-group">
                 <label class="form-label">Address</label>
@@ -622,7 +641,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Category</label>
-                    <select class="filter-select" name="category" id="editDestinationCategoryInput" style="width:100%; padding:11px 14px; border-radius:8px;" required>
+                    <select class="filter-select" name="category" id="editDestinationCategoryInput" style="width:100%; padding:11px 14px; border-radius:8px;" onchange="ktToggleSubcategoryField('edit')" required>
                         <option value="nature">Nature</option>
                         <option value="industry">Industry Zone</option>
                         <option value="resort">Resort</option>
@@ -632,6 +651,14 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                         <option value="church">Churches</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group" id="editSubcategoryGroup" hidden>
+                <label class="form-label">Subcategory</label>
+                <select class="filter-select" name="subcategory" id="editDestinationSubcategoryInput" style="width:100%; padding:11px 14px; border-radius:8px;">
+                    <option value="">None</option>
+                    <option value="Park">Park</option>
+                    <option value="River / Falls">River / Falls</option>
+                </select>
             </div>
             <div class="form-group">
                 <label class="form-label">Address</label>

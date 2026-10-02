@@ -39,6 +39,14 @@
     color: #2c1a0e;
 }
 
+/* Shown when a live search/category combo matches nothing */
+.p-search-empty {
+    margin: 16px 4px 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    color: rgba(44, 26, 14, 0.55);
+}
+
 /* Empty state */
 .p-empty-state {
     text-align: center;
