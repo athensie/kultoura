@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+  <rect width="800" height="450" fill="#f3e1e9"/>
+  <g transform="translate(400,190)">
+    <circle r="72" fill="#b4628a" opacity="0.12"/>
+    <g transform="translate(-36,-36) scale(3)" stroke="#b4628a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M16 13H3" />
+      <path d="M16 17H3" />
+      <path d="m7.2 7.9-3.388 2.5A2 2 0 0 0 3 12.01V20a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-8.654c0-2-2.44-6.026-6.44-8.026a1 1 0 0 0-1.082.057L10.4 5.6" />
+    </g>
+  </g>
+  <text x="400" y="330" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="#b4628a" text-anchor="middle">Dessert Shop</text>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+  <rect width="800" height="450" fill="#e3e8ef"/>
+  <g transform="translate(400,190)">
+    <circle r="72" fill="#2c4a6e" opacity="0.12"/>
+    <g transform="translate(-36,-36) scale(3)" stroke="#2c4a6e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M10 18v-7" />
+      <path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z" />
+      <path d="M14 18v-7" />
+      <path d="M18 18v-7" />
+      <path d="M3 22h18" />
+      <path d="M6 18v-7" />
+    </g>
+  </g>
+  <text x="400" y="330" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="#2c4a6e" text-anchor="middle">Bank</text>
+</svg>

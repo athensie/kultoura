@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+  <rect width="800" height="450" fill="#e6e9e4"/>
+  <g transform="translate(400,190)">
+    <circle r="72" fill="#556151" opacity="0.12"/>
+    <g transform="translate(-36,-36) scale(3)" stroke="#556151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M10 12h4" />
+      <path d="M10 8h4" />
+      <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+      <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
+      <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
+    </g>
+  </g>
+  <text x="400" y="330" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="#556151" text-anchor="middle">Other Services</text>
+</svg>
