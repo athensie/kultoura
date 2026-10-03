@@ -37,7 +37,10 @@ if (!is_file($sqlFile)) {
 // Refuse to run against tables that already have data — this script
 // only ever inserts, it never deletes, so a non-empty table here means
 // stop and look rather than risk a duplicate-key error mid-batch.
-foreach (['destination', 'products', 'restaurants', 'announcements', 'about_sections'] as $table) {
+// about_sections already has real content in production (seeded
+// separately) — left out of this migration entirely, local vs. prod
+// not compared/reconciled here.
+foreach (['destination', 'products', 'restaurants', 'announcements'] as $table) {
     $count = $conn->query("SELECT COUNT(*) c FROM `$table`")->fetch_assoc()['c'];
     if ($count > 0) {
         die("Aborting: `$table` already has $count row(s). This script only inserts and won't run against non-empty tables.\n");
@@ -59,7 +62,7 @@ if ($conn->error) {
     echo "Migration statements executed without error.\n";
 }
 
-foreach (['destination', 'products', 'restaurants', 'announcements', 'about_sections'] as $table) {
+foreach (['destination', 'products', 'restaurants', 'announcements'] as $table) {
     $r = $conn->query("SELECT COUNT(*) c FROM `$table`");
     echo "$table: " . $r->fetch_assoc()['c'] . " rows\n";
 }
