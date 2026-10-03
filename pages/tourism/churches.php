@@ -12,7 +12,7 @@ $_SESSION['history'][] = 'church';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
 // Church listings (parishes, chapels, shrines) come from the same
@@ -458,7 +458,6 @@ function ktOpenNavigate(btn) {
 </script>
 
 <script src="../../assets/js/navbar.js"></script>
-<script src="index.js"></script>
 
 </body>
 </html>

@@ -12,7 +12,7 @@ $_SESSION['history'][] = 'restaurant';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 $userId     = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
 
 /*
@@ -282,7 +282,6 @@ foreach ($rows as $r) {
 </footer>
 
 <script src="../../assets/js/navbar.js"></script>
-<script src="index.js"></script>
 <script>
 const restaurantsData = <?php echo json_encode($restaurants); ?>;
 
@@ -434,7 +433,7 @@ function toggleFavorite(btn) {
         .then(res => res.json())
         .then(data => {
             if (data.needsLogin) {
-                window.location.href = '../../login.php';
+                window.location.href = '../../auth/login.php';
                 return;
             }
             if (data.success) {

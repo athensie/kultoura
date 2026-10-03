@@ -187,7 +187,7 @@ function fyEscapeHtml(str) {
 
     if (!enableBtn) return;
 
-    const NEARBY_RADIUS_KM = 0.1; // 100 meters
+    const NEARBY_RADIUS_KM = 2; // Malvar is a small town — 2km covers a realistic "nearby" radius without just listing everything
 
     // Haversine formula — distance in km between two lat/lng points
     function distanceKm(lat1, lng1, lat2, lng2) {
@@ -221,7 +221,7 @@ function fyEscapeHtml(str) {
     function renderNearbyGrid(list) {
         if (list.length === 0) {
             nearbyGrid.innerHTML = '';
-            statusEl.textContent = "Nothing within 100 m of you right now — try again once you're closer to a listed spot.";
+            statusEl.textContent = "Nothing within 2 km of you right now — try again once you're closer to a listed spot.";
             gate.hidden = false;
             nearbyGrid.hidden = true;
             return;
@@ -265,7 +265,7 @@ function fyEscapeHtml(str) {
 
         if (list.length === 0) {
             widgetList.innerHTML = '';
-            widgetStatus.textContent = 'Nothing within 100 m of you right now.';
+            widgetStatus.textContent = 'Nothing within 2 km of you right now.';
             widgetStatus.hidden = false;
             return;
         }

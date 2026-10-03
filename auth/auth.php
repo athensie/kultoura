@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/session_boot.php';
 require_once '../config/dbmain.php';
 require_once '../config/login_throttle.php';
+require_once '../config/password_policy.php';
 
 /*
  |--------------------------------------------------------------------
@@ -29,14 +30,6 @@ define('BASE_URL', '/kultoura');
      promotional_email, created_at
 ───────────────────────────────────────────── */
 
-// Shared by signup and password reset — at least 8 characters, one
-// uppercase letter, and one special (non-alphanumeric) character.
-function kt_password_meets_policy(string $password): bool
-{
-    return strlen($password) >= 8
-        && preg_match('/[A-Z]/', $password)
-        && preg_match('/[^A-Za-z0-9]/', $password);
-}
 
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 

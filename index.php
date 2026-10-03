@@ -9,7 +9,7 @@ analytics_track($conn, 'home');
 $siteName = "KULTOURA";
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 /* ============================================================
    HOMEPAGE PREVIEWS
@@ -471,8 +471,6 @@ if ($result = $conn->query(
         <button type="button" class="home-scroll-top" id="homeScrollTop" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
     </div>
 </footer>
-
-<script src="index.js"></script>
 <script src="assets/js/navbar.js"></script>
 <script src="assets/js/home.js"></script>
 </body>

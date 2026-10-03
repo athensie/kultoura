@@ -12,7 +12,7 @@ $_SESSION['history'][] = 'product';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 $userId     = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
 
 /*
@@ -201,7 +201,7 @@ foreach ($rows as $r) {
             <article class="p-card" data-id="<?= (int) $item['id'] ?>" onclick="openViewDetails(<?= (int) $item['id'] ?>)">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?>
-                        <img src="../../uploads/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="p-card-img">
+                        <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="p-card-img">
                     <?php endif; ?>
                     <button class="p-fav-btn <?= !empty($item['favorited']) ? 'is-favorited' : '' ?>" type="button"
                             data-item-id="<?= (int) $item['id'] ?>" data-item-type="product"
@@ -269,7 +269,6 @@ foreach ($rows as $r) {
 </footer>
 
 <script src="../../assets/js/navbar.js"></script>
-<script src="index.js"></script>
 <script>
 const productsData = <?php echo json_encode($products); ?>;
 
@@ -381,7 +380,7 @@ function openViewDetails(id) {
     document.getElementById('vdDesc').textContent = item.desc || '';
 
     const img = document.getElementById('vdImage');
-    if (item.image) { img.src = '../../uploads/' + item.image; img.style.display = ''; }
+    if (item.image) { img.src = item.image; img.style.display = ''; }
     else { img.style.display = 'none'; }
 
     const favBtn = document.getElementById('vdFavBtn');
@@ -417,7 +416,7 @@ function toggleFavorite(btn) {
         .then(res => res.json())
         .then(data => {
             if (data.needsLogin) {
-                window.location.href = '../../login.php';
+                window.location.href = '../../auth/login.php';
                 return;
             }
             if (data.success) {

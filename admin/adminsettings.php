@@ -18,6 +18,7 @@ define('BASE_URL', '/kultoura');
  | name/email. Adjust the path if dbmain.php lives somewhere else.
  */
 require_once __DIR__ . '/../config/dbmain.php';
+require_once __DIR__ . '/../config/site_settings.php';
 
 /*
  |--------------------------------------------------------------------
@@ -65,23 +66,11 @@ $displayName = trim(($currentAdmin['first_name'] ?? '') . ' ' . ($currentAdmin['
  |--------------------------------------------------------------------
  | SITE SETTINGS
  |--------------------------------------------------------------------
- | Sensible defaults for now. Meant to be replaced with real rows from
- | a key/value `settings` table once it exists, e.g.:
- |
- |   CREATE TABLE settings (setting_key VARCHAR(64) PRIMARY KEY, setting_value TINYINT(1));
- |
- |   $result = $conn->query("SELECT setting_key, setting_value FROM settings");
- |   $settings = [];
- |   foreach ($result->fetch_all(MYSQLI_ASSOC) as $row) {
- |       $settings[$row['setting_key']] = (bool) $row['setting_value'];
- |   }
- |
- | Each toggle below posts immediately to settings_actions.php with
- | its key and new value, so once that table exists this page needs
- | no front-end changes — only the $settings array below needs to
- | start pulling from the database instead of these defaults.
+ | Backed by the `settings` key/value table (config/site_settings.php),
+ | written to by settings_actions.php's toggle_setting handler. These
+ | are just the defaults for a key that doesn't have a saved row yet.
  */
-$settings = [
+$settings = site_settings_get_all($conn, [
     'public_access'         => true,
     'maintenance_mode'      => false,
     'show_visitor_count'    => true,
@@ -89,7 +78,7 @@ $settings = [
     'new_listing_alert'     => true,
     'flagged_content_alert' => true,
     'weekly_summary'        => false,
-];
+]);
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -5,7 +5,7 @@ include '../config/analytics.php';
 analytics_track($conn, 'traveldiary');
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 // A diary is inherently personal — there's no meaningful guest view,
 // same guard pattern as favorites.php.
@@ -25,7 +25,10 @@ $userId = (int) $_SESSION['user_id'];
    enriching diary_entries rows (which only store item_type+item_id).
 ============================================================ */
 $imageSubfolder = [
-    'product'       => 'products',
+    // Products and restaurants share the same admin upload handler
+    // (adminfoodanddining.php), which always saves into
+    // assets/uploads/food/ regardless of listing type.
+    'product'       => 'food',
     'restaurant'    => 'food',
     'nature'        => 'destinations',
     'resort'        => 'destinations',
@@ -155,12 +158,20 @@ $destinationLinks = [
     'service'       => 'tourism/services.php',
     'church'        => 'tourism/churches.php',
 ];
-if ($result = $conn->query("SELECT destination_id, destination_name, category, image, google_maps FROM destination WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT destination_id, destination_name, category, image, latitude, longitude, google_maps FROM destination WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $cat = $row['category'];
         if (!isset($destinationLinks[$cat])) continue;
         $id = (int) $row['destination_id'];
-        [$destLat, $destLng] = td_parse_latlng_pair($row['google_maps'] ?? null);
+        // latitude/longitude (set by the admin's address picker / our
+        // geocoding pass) is the real source of truth; google_maps only
+        // carries a lat,lng pair on older rows that predate those columns.
+        if ($row['latitude'] !== null && $row['longitude'] !== null) {
+            $destLat = (float) $row['latitude'];
+            $destLng = (float) $row['longitude'];
+        } else {
+            [$destLat, $destLng] = td_parse_latlng_pair($row['google_maps'] ?? null);
+        }
         $catalog['destination-' . $id] = [
             'itemType'  => 'destination',
             'itemId'    => $id,
@@ -496,6 +507,9 @@ foreach ($entries as $e) {
         'badgeText'    => $item['badgeText'],
         'category'     => $item['category'],
         'itemType'     => $item['itemType'],
+        'itemId'       => $item['itemId'],
+        'lat'          => $item['lat'],
+        'lng'          => $item['lng'],
         'verb'         => $itemTypeVerbs[$item['itemType']] ?? 'Visited',
         'image'        => $item['image'],
         'link'         => $item['link'],
@@ -805,7 +819,25 @@ usort($checklist, function ($a, $b) {
                                     <?php if (!empty($t['note'])): ?>
                                         <p class="td-timeline-note"><?php echo htmlspecialchars($t['note']); ?></p>
                                     <?php endif; ?>
-                                    <button type="button" class="td-timeline-delete" data-entry-id="<?php echo (int) $t['entryId']; ?>">Remove</button>
+                                    <?php if (!empty($t['photos'])): ?>
+                                        <div class="td-timeline-photos">
+                                            <?php foreach ($t['photos'] as $p): ?>
+                                                <img src="<?php echo htmlspecialchars('../assets/uploads/diary/' . basename($p['image'])); ?>" alt="">
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="td-timeline-actions">
+                                        <button type="button" class="td-timeline-log-again"
+                                            data-item-type="<?php echo htmlspecialchars($t['itemType']); ?>"
+                                            data-item-id="<?php echo (int) $t['itemId']; ?>"
+                                            data-place="<?php echo htmlspecialchars($t['name']); ?>"
+                                            data-lat="<?php echo $t['lat'] !== null ? $t['lat'] : ''; ?>"
+                                            data-lng="<?php echo $t['lng'] !== null ? $t['lng'] : ''; ?>">+ Log Another Visit</button>
+                                        <button type="button" class="td-timeline-add-photo"
+                                            data-item-type="<?php echo htmlspecialchars($t['itemType']); ?>"
+                                            data-item-id="<?php echo (int) $t['itemId']; ?>">📷 Add Photo</button>
+                                        <button type="button" class="td-timeline-delete" data-entry-id="<?php echo (int) $t['entryId']; ?>">Remove</button>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -833,6 +865,8 @@ usort($checklist, function ($a, $b) {
                         <button type="button" class="td-filter-pill" data-type="fiesta">Fiestas</button>
                         <button type="button" class="td-filter-pill" data-type="person">People</button>
                     </div>
+                    <button type="button" class="td-nearby-btn" id="tdNearbyBtn">📍 Show places near me first</button>
+                    <p class="td-nearby-status" id="tdNearbyStatus" hidden></p>
 
                     <div class="td-checklist" id="tdChecklist">
                         <?php foreach ($checklist as $i => $c): ?>
@@ -849,6 +883,7 @@ usort($checklist, function ($a, $b) {
                                     <div class="td-check-top">
                                         <span class="td-check-name"><?php echo htmlspecialchars($c['name']); ?></span>
                                         <span class="td-badge td-badge-<?php echo htmlspecialchars($c['category']); ?>"><?php echo htmlspecialchars($c['badgeText']); ?></span>
+                                        <span class="td-nearby-badge" hidden>📍 Nearby</span>
                                     </div>
                                     <p class="td-check-status">
                                         <?php if ($c['visited']): ?>
@@ -870,6 +905,10 @@ usort($checklist, function ($a, $b) {
                                     </div>
                                 </div>
 
+                                <?php if ($c['visited']): ?>
+                                    <button type="button" class="td-check-photo-btn" aria-label="Add photo" title="Add photo"
+                                        data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>">📷</button>
+                                <?php endif; ?>
                                 <button type="button" class="td-check-toggle-note" aria-label="Add note or photo">✎</button>
 
                                 <label class="td-check-box">
@@ -1141,6 +1180,30 @@ usort($checklist, function ($a, $b) {
         <div class="td-visit-actions" id="tdVisitConfirmActions" hidden>
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdVisitCancel">Cancel</button>
             <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdVisitSubmit">Log Visit</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Add Photo: camera vs library choice ── -->
+<div class="td-photo-choice-overlay" id="tdPhotoChoiceOverlay">
+    <div class="td-photo-choice-card">
+        <button type="button" class="td-photo-choice-close" id="tdPhotoChoiceClose" aria-label="Close">&times;</button>
+        <h3 class="td-photo-choice-title">Add a Photo</h3>
+        <div class="td-photo-choice-options">
+            <button type="button" class="td-photo-choice-btn" id="tdPhotoChoiceCamera">
+                <span class="td-photo-choice-dot">📷</span>
+                <span class="td-photo-choice-copy">
+                    <span class="td-photo-choice-btn-title">Take Photo</span>
+                    <span class="td-photo-choice-btn-sub">Use your camera</span>
+                </span>
+            </button>
+            <button type="button" class="td-photo-choice-btn" id="tdPhotoChoiceLibrary">
+                <span class="td-photo-choice-dot">🖼</span>
+                <span class="td-photo-choice-copy">
+                    <span class="td-photo-choice-btn-title">Choose from Library</span>
+                    <span class="td-photo-choice-btn-sub">Pick one or more existing photos</span>
+                </span>
+            </button>
         </div>
     </div>
 </div>

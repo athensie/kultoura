@@ -7,7 +7,7 @@ analytics_track($conn, 'foryou');
 
 $siteName = "KULTOURA";
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 /* ============================================================
    BROWSING HISTORY TRACKER
@@ -91,12 +91,21 @@ function fy_is_favorited(string $itemType, int $itemId, array $favoritedKeys): b
 
 // Which broad filter pill each category belongs to, and which color
 // the category badge on each card should use.
+
 $filterGroup = [
-    'product' => 'product', 'restaurant' => 'restaurant',
-    'nature' => 'destination', 'resort' => 'destination', 'industry' => 'destination',
-    'accommodation' => 'destination', 'bank' => 'destination', 'service' => 'destination',
-    'fiesta' => 'fiesta', 'person' => 'person',
+    'product'       => 'product',
+    'restaurant'    => 'restaurant',
+    'nature'        => 'destination',
+    'resort'        => 'destination',
+    'industry'      => 'destination',
+    'accommodation' => 'destination',
+    'bank'          => 'destination',
+    'service'       => 'destination',
+    'church'        => 'destination',
+    'fiesta'        => 'fiesta',
+    'person'        => 'person',
 ];
+
 
 $places = [];
 
@@ -236,6 +245,7 @@ $categoryLabels = [
     'nature'        => 'Natural Wonders',
     'resort'        => 'Resorts & Relaxation',
     'industry'      => 'Industry Zones',
+    'church'        => 'Churches',
     'accommodation' => 'Accommodation',
     'bank'          => 'Banks & Finance',
     'service'       => 'Essential Services',

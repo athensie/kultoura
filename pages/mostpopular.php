@@ -8,7 +8,7 @@ analytics_track($conn, 'mostpopular');
 $mostpopularHeroPhoto = sitecontent_get_photo($conn, 'mostpopular_hero');
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 /*
  |--------------------------------------------------------------------

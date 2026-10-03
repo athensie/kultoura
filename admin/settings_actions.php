@@ -30,6 +30,8 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
+require_once __DIR__ . '/../config/password_policy.php';
+require_once __DIR__ . '/../config/site_settings.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: " . BASE_URL . "/admin/adminsettings.php");
@@ -88,8 +90,8 @@ if ($action === 'change_password') {
     if ($new !== $confirm) {
         settings_json(false, 'New password and confirmation do not match.');
     }
-    if (strlen($new) < 8) {
-        settings_json(false, 'New password must be at least 8 characters.');
+    if (!kt_password_meets_policy($new)) {
+        settings_json(false, 'New password must be at least 8 characters long and include an uppercase letter and a special character.');
     }
 
     $stmt = $conn->prepare("SELECT password FROM admins WHERE admin_id = ? LIMIT 1");
@@ -116,6 +118,16 @@ if ($action === 'change_password') {
    request instead of 404ing; nothing to persist until that table
    exists. ── */
 if ($action === 'toggle_setting') {
+    $validKeys = [
+        'public_access', 'maintenance_mode', 'show_visitor_count',
+        'email_alerts', 'new_listing_alert', 'flagged_content_alert', 'weekly_summary',
+    ];
+    $key = $_POST['key'] ?? '';
+    if (!in_array($key, $validKeys, true)) {
+        http_response_code(400);
+        exit;
+    }
+    site_settings_set($conn, $key, ($_POST['value'] ?? '') === '1');
     http_response_code(200);
     exit;
 }

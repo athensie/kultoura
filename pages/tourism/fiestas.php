@@ -16,7 +16,7 @@ if (!isset($_GET['ajax_calendar'])) {
 }
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 // Fiestas/Events are added by the admin via admineventandfiesta.php.
 // Only upcoming items (today onward), soonest first.
@@ -321,7 +321,6 @@ if (isset($_GET['ajax_calendar'])) {
 </footer>
 
 <script src="../../assets/js/navbar.js"></script>
-<script src="index.js"></script>
 
 <script>
 // Data for every fiesta currently on the page (mirrors the eventsData

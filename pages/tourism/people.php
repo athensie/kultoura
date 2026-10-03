@@ -12,7 +12,7 @@ $_SESSION['history'][] = 'person';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 // People profiles are added by the admin via adminpeople.php.
 $people = [];
@@ -187,7 +187,6 @@ function ktTrackItemView(type, id) {
 }
 </script>
 <script src="../../assets/js/navbar.js"></script>
-<script src="index.js"></script>
 
 </body>
 </html>

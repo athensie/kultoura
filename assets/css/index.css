@@ -22,6 +22,9 @@ body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     background: var(--deep);
     color: var(--cream);
+    /* Compensates for .navbar leaving normal flow (position:fixed below)
+       so page content starts right below it instead of sliding underneath. */
+    padding-top: var(--navbar-h, 69px);
 }
 
 
@@ -120,14 +123,18 @@ body {
 
 /* ── Navbar ── */
 .navbar {
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     z-index: 900;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 14px 48px;
-    background: #ffffff;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: #16261b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     transition: box-shadow 0.3s ease;
 }
 
@@ -139,7 +146,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #2f3f24;
+    color: #f5efe3;
     font-size: 15px;
     font-weight: 900;
     letter-spacing: 2px;
@@ -173,12 +180,8 @@ body {
 
 .navbar-brand-logo img {
     display: block;
-    height: 32px;
+    height: 40px;
     width: auto;
-    /* The logo's "K" is rendered in a pale cream meant for a dark
-       background — on this navbar's white background it's nearly
-       invisible without a little contrast help. */
-    filter: drop-shadow(0 0 0.6px rgba(44, 26, 14, 0.6)) drop-shadow(0 0 0.6px rgba(44, 26, 14, 0.6)) drop-shadow(0 0 1.5px rgba(44, 26, 14, 0.35));
 }
 
 .nav-links {
@@ -193,7 +196,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    color: rgba(44, 26, 14, 0.65);
+    color: rgba(245, 239, 227, 0.75);
     text-decoration: none;
     font-size: 10.5px;
     font-weight: 700;
@@ -252,7 +255,7 @@ body {
 .nav-item:hover::before { transform: translateX(-50%) scaleX(1); }
 
 .nav-active {
-    color: #2c1a0e !important;
+    color: #f5efe3 !important;
     font-weight: 800;
 }
 
@@ -290,7 +293,7 @@ body {
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: rgba(44, 26, 14, 0.22);
+    background: rgba(245, 239, 227, 0.3);
 }
 
 .sign-in-btn {
@@ -377,7 +380,7 @@ body {
     width: 22px;
     height: 2px;
     border-radius: 2px;
-    background: #2c1a0e;
+    background: #f5efe3;
     transition: transform 0.3s ease, opacity 0.2s ease;
 }
 .navbar.nav-open .navbar-hamburger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
@@ -1403,7 +1406,18 @@ body {
         justify-content: space-between;
         gap: 12px;
         padding: 14px 20px;
-        position: relative;
+    }
+
+    /* Background scroll is fully locked while the mobile menu is open
+       (navbar.js pins <body> itself with position:fixed, preserving
+       scroll position) — otherwise scrolling could carry the navbar
+       bar away while the fixed-position dropdown below it stayed put,
+       leaving the dropdown floating with nothing above it. This class
+       is the fallback/baseline; navbar.js's inline styles do the real
+       cross-browser-reliable locking (plain overflow:hidden on body
+       alone isn't enough on iOS Safari). */
+    body.nav-menu-open {
+        overflow: hidden;
     }
 
     .navbar-hamburger { display: flex; order: 3; }
@@ -1436,7 +1450,16 @@ body {
         z-index: 950;
     }
     .navbar.nav-open .nav-links {
-        max-height: 80vh;
+        /* position:fixed (not absolute) is the key part of this fix —
+           .navbar sits inside .hero, which has overflow:hidden for its
+           own background effects, and that was clipping the dropdown
+           to .hero's bounds no matter how tall max-height allowed it
+           to be. Fixed positioning escapes that ancestor clipping and
+           fills exactly the screen space left below the navbar (height
+           measured in navbar.js) instead of being cut short. */
+        position: fixed;
+        top: var(--navbar-h, 69px);
+        max-height: calc(100vh - var(--navbar-h, 69px));
         overflow-y: auto;
         opacity: 1;
         visibility: visible;
@@ -1450,8 +1473,13 @@ body {
         width: 100%;
         padding: 14px 4px;
         border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        /* .nav-item's default color is light cream for the dark navbar
+           bar — but this dropdown panel itself has a white background,
+           so it needs the original dark text back here, overriding that. */
+        color: rgba(44, 26, 14, 0.75);
     }
     .nav-item::before { display: none; }
+    .nav-active { color: #2c1a0e !important; }
     .nav-active::after { display: none; }
 
     .dropdown { width: 100%; }

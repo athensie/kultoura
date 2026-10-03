@@ -199,32 +199,45 @@ document.querySelectorAll('.td-checkbox').forEach((checkbox) => {
     });
 });
 
-/* ---------------- Checklist: log another visit ---------------- */
-document.querySelectorAll('.td-log-again-btn').forEach((btn) => {
+/* ---------------- Checklist + Timeline: log another visit ---------------- */
+document.querySelectorAll('.td-log-again-btn, .td-timeline-log-again').forEach((btn) => {
     btn.addEventListener('click', function () {
         if (!tdVisitModal) return;
-        const place = tdPlaceFromRow(this);
+        const place = this.classList.contains('td-timeline-log-again')
+            ? { placeName: this.dataset.place, lat: this.dataset.lat ? parseFloat(this.dataset.lat) : null, lng: this.dataset.lng ? parseFloat(this.dataset.lng) : null }
+            : tdPlaceFromRow(this);
         tdVisitModal.open({ itemType: this.dataset.itemType, itemId: this.dataset.itemId, ...place });
     });
 });
 
-/* ---------------- Checklist: upload photo ---------------- */
-document.querySelectorAll('.td-upload-btn').forEach((btn) => {
-    btn.addEventListener('click', function () {
-        const itemType = this.dataset.itemType;
-        const itemId = this.dataset.itemId;
+/* ---------------- Checklist + Timeline: upload photo ----------------
+   One picker click uploads as many photos as you select at once (instead
+   of repeating "pick a photo, wait, pick the next one" one at a time),
+   with the button showing live progress through the batch. useCamera
+   opens the device camera directly (capture="environment") instead of
+   the photo library — mobile browsers only; desktop just falls back to
+   its normal file picker, so this is safe to set unconditionally. */
+function tdUploadPhotos(itemType, itemId, btn, useCamera) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png, image/jpeg, image/webp, image/gif';
+    if (useCamera) {
+        input.capture = 'environment'; // a camera shot is inherently one photo at a time
+    } else {
+        input.multiple = true;
+    }
 
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/png, image/jpeg, image/webp, image/gif';
+    input.addEventListener('change', async () => {
+        const files = Array.from(input.files);
+        if (!files.length) return;
 
-        input.addEventListener('change', async () => {
-            const file = input.files[0];
-            if (!file) return;
+        btn.disabled = true;
+        const originalLabel = btn.textContent;
+        let uploaded = 0;
+        let failed = 0;
 
-            btn.disabled = true;
-            const originalLabel = btn.textContent;
-            btn.textContent = 'Uploading…';
+        for (const file of files) {
+            btn.textContent = files.length > 1 ? `Uploading ${uploaded + failed + 1}/${files.length}…` : 'Uploading…';
 
             const formData = new FormData();
             formData.append('action', 'upload_photo');
@@ -234,21 +247,79 @@ document.querySelectorAll('.td-upload-btn').forEach((btn) => {
 
             try {
                 const res = await fetch('traveldiary_actions.php', { method: 'POST', body: formData }).then((r) => r.json());
-                if (res.success) {
-                    location.reload();
-                } else {
-                    tdToast(res.message || 'Upload failed.');
-                    btn.disabled = false;
-                    btn.textContent = originalLabel;
-                }
+                if (res.success) uploaded++; else failed++;
             } catch (err) {
-                tdToast('Upload failed. Please try again.');
-                btn.disabled = false;
-                btn.textContent = originalLabel;
+                failed++;
             }
-        });
+        }
 
-        input.click();
+        if (uploaded > 0) {
+            location.reload();
+            return;
+        }
+
+        tdToast(failed === 1 ? 'Upload failed.' : `All ${failed} uploads failed.`);
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+    });
+
+    input.click();
+}
+
+/* ---------------- Add Photo: camera vs library choice ---------------- */
+const tdPhotoChoice = (function () {
+    const overlay = document.getElementById('tdPhotoChoiceOverlay');
+    if (!overlay) return null;
+
+    const closeBtn = document.getElementById('tdPhotoChoiceClose');
+    const cameraBtn = document.getElementById('tdPhotoChoiceCamera');
+    const libraryBtn = document.getElementById('tdPhotoChoiceLibrary');
+
+    let pending = null; // { itemType, itemId, btn }
+
+    function open(itemType, itemId, btn) {
+        pending = { itemType, itemId, btn };
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+        pending = null;
+    }
+
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+    });
+
+    cameraBtn.addEventListener('click', () => {
+        if (!pending) return;
+        const { itemType, itemId, btn } = pending;
+        close();
+        tdUploadPhotos(itemType, itemId, btn, true);
+    });
+
+    libraryBtn.addEventListener('click', () => {
+        if (!pending) return;
+        const { itemType, itemId, btn } = pending;
+        close();
+        tdUploadPhotos(itemType, itemId, btn, false);
+    });
+
+    return { open };
+})();
+
+document.querySelectorAll('.td-upload-btn, .td-timeline-add-photo, .td-check-photo-btn').forEach((btn) => {
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (tdPhotoChoice) {
+            tdPhotoChoice.open(this.dataset.itemType, this.dataset.itemId, this);
+        } else {
+            tdUploadPhotos(this.dataset.itemType, this.dataset.itemId, this, false);
+        }
     });
 });
 
@@ -514,6 +585,103 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         activeType = pill.dataset.type;
         applyFilter();
     });
+})();
+
+/* ---------------- Checklist: "show places near me first" ----------------
+   Moves any checklist item within GEOFENCE_METERS of the visitor's live
+   location to the top of the list (and out from behind the "View All
+   Places" collapse), so someone standing at an unvisited spot doesn't have
+   to search/scroll to find it. Same 1000m threshold as the visit-
+   confirmation modal above, since both answer the same "am I basically
+   here?" question. Click-to-opt-in (not an on-load prompt) matches the
+   Near You widget on foryou.js; a previously-granted permission still
+   re-runs automatically so returning visitors don't have to click again. */
+(function () {
+    const btn = document.getElementById('tdNearbyBtn');
+    const statusEl = document.getElementById('tdNearbyStatus');
+    const checklist = document.getElementById('tdChecklist');
+    if (!btn || !checklist) return;
+
+    const GEOFENCE_METERS = 1000;
+
+    function haversineMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const toRad = (d) => (d * Math.PI) / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function applyNearby(userLat, userLng) {
+        const rows = Array.from(checklist.querySelectorAll('.td-check-row'));
+        const nearby = [];
+
+        rows.forEach((row) => {
+            const lat = parseFloat(row.dataset.lat);
+            const lng = parseFloat(row.dataset.lng);
+            const badge = row.querySelector('.td-nearby-badge');
+            if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+            const dist = haversineMeters(userLat, userLng, lat, lng);
+            if (dist <= GEOFENCE_METERS) {
+                row.classList.add('td-is-nearby');
+                row.classList.remove('td-hidden-extra'); // always visible, regardless of the collapsed state
+                if (badge) badge.hidden = false;
+                nearby.push({ row, dist });
+            }
+        });
+
+        if (nearby.length === 0) {
+            statusEl.textContent = "Nothing on your list is within 1km of you right now.";
+            statusEl.hidden = false;
+            return;
+        }
+
+        nearby.sort((a, b) => a.dist - b.dist);
+        nearby.forEach(({ row }) => checklist.insertBefore(row, checklist.firstChild));
+
+        statusEl.textContent = nearby.length === 1
+            ? '1 place near you is now at the top of the list.'
+            : `${nearby.length} places near you are now at the top of the list.`;
+        statusEl.hidden = false;
+    }
+
+    function requestLocation() {
+        if (!navigator.geolocation) {
+            statusEl.textContent = "Your browser doesn't support location access.";
+            statusEl.hidden = false;
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '📍 Locating…';
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                btn.disabled = false;
+                btn.textContent = '📍 Show places near me first';
+                applyNearby(position.coords.latitude, position.coords.longitude);
+            },
+            (error) => {
+                btn.disabled = false;
+                btn.textContent = '📍 Show places near me first';
+                statusEl.textContent = error.code === error.PERMISSION_DENIED
+                    ? 'Location access was denied — you can enable it anytime in your browser settings.'
+                    : "Couldn't get your location. Please try again.";
+                statusEl.hidden = false;
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+    }
+
+    btn.addEventListener('click', requestLocation);
+
+    if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+            if (result.state === 'granted') requestLocation();
+        }).catch(() => {});
+    }
 })();
 
 /* ---------------- Timeline: delete an entry ---------------- */

@@ -8,7 +8,7 @@ analytics_track($conn, 'tourism');
 $tourismHeroPhoto = sitecontent_get_photo($conn, 'tourism_hero');
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 /*
  |--------------------------------------------------------------------
@@ -352,7 +352,6 @@ foreach ($hubImages as $key => $value) {
 </footer>
 
 <script src="../assets/js/navbar.js"></script>
-<script src="index.js"></script>
 
 </body>
 </html>

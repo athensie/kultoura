@@ -6,7 +6,7 @@ include '../config/analytics.php';
 analytics_track($conn, 'about');
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 
 /* ============================================================
    SECTION PHOTOS

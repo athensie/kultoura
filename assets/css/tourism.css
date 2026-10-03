@@ -7,8 +7,8 @@ body {
 
 /* Navbar */
 .navbar-solid {
-    background: #ffffff !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: #16261b !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: none;
 }
 

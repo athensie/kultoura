@@ -12,7 +12,7 @@ $_SESSION['history'][] = 'accommodation';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
 // Accommodation listings come from the same `destination` table the admin
@@ -146,16 +146,10 @@ $stmt->close();
 <main class="t-main">
 
     <section class="p-search-row">
-        <form class="p-search-bar" action="accommodation.php" method="get">
-            <input type="text" name="q" placeholder="Search hotels, inns, homestays…">
-            <select name="category" class="p-category-select">
-                <option>All Categories</option>
-                <option>Hotel</option>
-                <option>Inn</option>
-                <option>Homestay</option>
-                <option>Lodge</option>
-            </select>
+        <form class="p-search-bar" id="accommodationSearchForm" action="accommodation.php" method="get">
+            <input type="text" name="q" id="accommodationSearchInput" placeholder="Search hotels, inns, homestays…" autocomplete="off">
         </form>
+        <p class="p-search-empty" id="accommodationSearchEmpty" hidden>No accommodation matches your search.</p>
     </section>
 
     <section class="t-category" id="accommodation">
@@ -173,9 +167,9 @@ $stmt->close();
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
-        <div class="p-card-grid">
+        <div class="p-card-grid" id="accommodationCardGrid">
             <?php foreach ($spots as $item): ?>
-            <article class="p-card" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
+            <article class="p-card" data-id="<?= (int) $item['id'] ?>" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?><img src="<?= htmlspecialchars($item['image']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php endif; ?>
                     <button class="p-fav-btn <?= $item['isFavorited'] ? 'is-favorited' : '' ?>" type="button"
@@ -258,6 +252,47 @@ $stmt->close();
 <script>
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ---------------- Live search (name) ---------------- */
+(function () {
+    const searchInput = document.getElementById('accommodationSearchInput');
+    const grid = document.getElementById('accommodationCardGrid');
+    const emptyMsg = document.getElementById('accommodationSearchEmpty');
+    const form = document.getElementById('accommodationSearchForm');
+    if (!searchInput || !grid) return;
+
+    function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        grid.querySelectorAll('.p-card[data-id]').forEach((card) => {
+            const name = (card.querySelector('.p-card-title')?.textContent || '').toLowerCase();
+            const matches = query === '' || name.includes(query);
+
+            if (matches) {
+                visibleCount++;
+                if (card.style.display === 'none') {
+                    card.style.display = '';
+                    card.style.opacity = '0';
+                    requestAnimationFrame(() => { card.style.opacity = '1'; });
+                }
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (emptyMsg) emptyMsg.hidden = visibleCount > 0;
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            applyFilters();
+        });
+    }
+    applyFilters();
+})();
 
 function ktTrackItemView(type, id) {
     if (!id) return;
@@ -421,7 +456,6 @@ function ktOpenNavigate(btn) {
 </script>
 
 <script src="../../assets/js/navbar.js"></script>
-<script src="index.js"></script>
 
 </body>
 </html>
