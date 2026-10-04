@@ -2210,3 +2210,51 @@
     font-size: 12px;
     color: rgba(44, 26, 14, 0.55);
 }
+
+/* ── Live camera (Take Photo) ── */
+.td-camera-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 12, 6, 0.85);
+    z-index: 3200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.td-camera-overlay.open {
+    display: flex;
+}
+
+.td-camera-card {
+    position: relative;
+    width: min(480px, 100%);
+    background: #fff;
+    border-radius: 22px;
+    padding: 28px 20px 20px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.td-camera-video {
+    width: 100%;
+    max-height: 60vh;
+    background: #000;
+    border-radius: 14px;
+    object-fit: cover;
+    display: block;
+}
+
+.td-camera-error {
+    font-size: 13px;
+    color: #8b2e1a;
+    margin: 12px 0 0;
+}
+
+.td-camera-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+}

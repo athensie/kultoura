@@ -217,54 +217,148 @@ document.querySelectorAll('.td-log-again-btn, .td-timeline-log-again').forEach((
    opens the device camera directly (capture="environment") instead of
    the photo library — mobile browsers only; desktop just falls back to
    its normal file picker, so this is safe to set unconditionally. */
-function tdUploadPhotos(itemType, itemId, btn, useCamera) {
+async function tdUploadFiles(files, itemType, itemId, btn) {
+    if (!files.length) return;
+
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    let uploaded = 0;
+    let failed = 0;
+
+    for (const file of files) {
+        btn.textContent = files.length > 1 ? `Uploading ${uploaded + failed + 1}/${files.length}…` : 'Uploading…';
+
+        const formData = new FormData();
+        formData.append('action', 'upload_photo');
+        formData.append('item_type', itemType);
+        formData.append('item_id', itemId);
+        formData.append('photo', file);
+
+        try {
+            const res = await fetch('traveldiary_actions.php', { method: 'POST', body: formData }).then((r) => r.json());
+            if (res.success) uploaded++; else failed++;
+        } catch (err) {
+            failed++;
+        }
+    }
+
+    if (uploaded > 0) {
+        location.reload();
+        return;
+    }
+
+    tdToast(failed === 1 ? 'Upload failed.' : `All ${failed} uploads failed.`);
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+}
+
+function tdUploadPhotos(itemType, itemId, btn) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/png, image/jpeg, image/webp, image/gif';
-    if (useCamera) {
-        input.capture = 'environment'; // a camera shot is inherently one photo at a time
-    } else {
-        input.multiple = true;
+    input.multiple = true;
+    input.addEventListener('change', () => tdUploadFiles(Array.from(input.files), itemType, itemId, btn));
+    input.click();
+}
+
+/* Live camera: shows the device camera in-page (rear camera on phones,
+   webcam on laptops) and captures a still. Falls back to the OS camera
+   via a file input only if the browser can't provide a live stream. */
+const tdCamera = (function () {
+    const overlay = document.getElementById('tdCameraOverlay');
+    const video = document.getElementById('tdCameraVideo');
+    const canvas = document.getElementById('tdCameraCanvas');
+    const errorEl = document.getElementById('tdCameraError');
+    const shootBtn = document.getElementById('tdCameraShoot');
+    const cancelBtn = document.getElementById('tdCameraCancel');
+    const closeBtn = document.getElementById('tdCameraClose');
+    if (!overlay) return null;
+
+    let stream = null;
+    let pending = null; // { itemType, itemId, btn }
+
+    function stop() {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+        video.srcObject = null;
     }
 
-    input.addEventListener('change', async () => {
-        const files = Array.from(input.files);
-        if (!files.length) return;
+    function close() {
+        stop();
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+        pending = null;
+    }
 
-        btn.disabled = true;
-        const originalLabel = btn.textContent;
-        let uploaded = 0;
-        let failed = 0;
+    function showError(message) {
+        errorEl.textContent = message;
+        errorEl.hidden = false;
+        shootBtn.disabled = true;
+    }
 
-        for (const file of files) {
-            btn.textContent = files.length > 1 ? `Uploading ${uploaded + failed + 1}/${files.length}…` : 'Uploading…';
+    async function open(itemType, itemId, btn) {
+        pending = { itemType, itemId, btn };
+        errorEl.hidden = true;
+        shootBtn.disabled = false;
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
 
-            const formData = new FormData();
-            formData.append('action', 'upload_photo');
-            formData.append('item_type', itemType);
-            formData.append('item_id', itemId);
-            formData.append('photo', file);
-
-            try {
-                const res = await fetch('traveldiary_actions.php', { method: 'POST', body: formData }).then((r) => r.json());
-                if (res.success) uploaded++; else failed++;
-            } catch (err) {
-                failed++;
-            }
-        }
-
-        if (uploaded > 0) {
-            location.reload();
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            close();
+            fallbackToFileInput(itemType, itemId, btn);
             return;
         }
 
-        tdToast(failed === 1 ? 'Upload failed.' : `All ${failed} uploads failed.`);
-        btn.disabled = false;
-        btn.textContent = originalLabel;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } },
+                audio: false,
+            });
+            video.srcObject = stream;
+        } catch (err) {
+            showError(err.name === 'NotAllowedError'
+                ? 'Camera access was blocked. Allow camera access in your browser settings to take a photo.'
+                : "Couldn't open the camera. Try choosing a photo from your library instead.");
+        }
+    }
+
+    function fallbackToFileInput(itemType, itemId, btn) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment';
+        input.addEventListener('change', () => tdUploadFiles(Array.from(input.files), itemType, itemId, btn));
+        input.click();
+    }
+
+    shootBtn.addEventListener('click', () => {
+        if (!pending || !stream || !video.videoWidth) return;
+        const { itemType, itemId, btn } = pending;
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                tdToast("Couldn't capture that photo. Please try again.");
+                return;
+            }
+            const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            close();
+            tdUploadFiles([file], itemType, itemId, btn);
+        }, 'image/jpeg', 0.9);
     });
 
-    input.click();
-}
+    cancelBtn.addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+    });
+
+    return { open };
+})();
 
 /* ---------------- Add Photo: camera vs library choice ---------------- */
 const tdPhotoChoice = (function () {
@@ -299,14 +393,14 @@ const tdPhotoChoice = (function () {
         if (!pending) return;
         const { itemType, itemId, btn } = pending;
         close();
-        tdUploadPhotos(itemType, itemId, btn, true);
+        if (tdCamera) tdCamera.open(itemType, itemId, btn);
     });
 
     libraryBtn.addEventListener('click', () => {
         if (!pending) return;
         const { itemType, itemId, btn } = pending;
         close();
-        tdUploadPhotos(itemType, itemId, btn, false);
+        tdUploadPhotos(itemType, itemId, btn);
     });
 
     return { open };
@@ -318,7 +412,7 @@ document.querySelectorAll('.td-upload-btn, .td-timeline-add-photo, .td-check-pho
         if (tdPhotoChoice) {
             tdPhotoChoice.open(this.dataset.itemType, this.dataset.itemId, this);
         } else {
-            tdUploadPhotos(this.dataset.itemType, this.dataset.itemId, this, false);
+            tdUploadPhotos(this.dataset.itemType, this.dataset.itemId, this);
         }
     });
 });

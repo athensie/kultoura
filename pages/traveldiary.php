@@ -1208,6 +1208,21 @@ usort($checklist, function ($a, $b) {
     </div>
 </div>
 
+<!-- ── Live camera (Take Photo) ── -->
+<div class="td-camera-overlay" id="tdCameraOverlay">
+    <div class="td-camera-card">
+        <button type="button" class="td-photo-choice-close" id="tdCameraClose" aria-label="Close camera">&times;</button>
+        <h3 class="td-photo-choice-title">Take a Photo</h3>
+        <video id="tdCameraVideo" class="td-camera-video" autoplay playsinline muted></video>
+        <p class="td-camera-error" id="tdCameraError" hidden></p>
+        <div class="td-camera-actions">
+            <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraCancel">Cancel</button>
+            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraShoot">📷 Capture</button>
+        </div>
+    </div>
+</div>
+<canvas id="tdCameraCanvas" hidden></canvas>
+
 <!-- ── Photo lightbox ── -->
 <div class="td-lightbox" id="tdLightbox">
     <button type="button" class="td-lightbox-close" id="tdLightboxClose" aria-label="Close">&times;</button>
