@@ -20,7 +20,7 @@ if (!function_exists('kt_send_mail')) {
     function kt_send_mail(string $to, string $subject, string $body): bool
     {
         $transport = strtolower(getenv('MAIL_TRANSPORT') ?: 'smtp');
-        $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: '';
+        $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: 'kultouramalvar@gmail.com';
         $fromName = getenv('MAIL_FROM_NAME') ?: 'KULTOURA';
 
         if ($transport === 'log') {
@@ -32,7 +32,7 @@ if (!function_exists('kt_send_mail')) {
 
         $host = getenv('MAIL_HOST') ?: '';
         $port = (int) (getenv('MAIL_PORT') ?: 587);
-        $user = getenv('MAIL_USERNAME') ?: '';
+        $user = getenv('MAIL_USERNAME') ?: $fromAddress;
         $pass = getenv('MAIL_PASSWORD') ?: '';
         if ($host === '' || $user === '' || $pass === '' || $fromAddress === '') {
             error_log('Mail not configured: set MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM_ADDRESS.');
