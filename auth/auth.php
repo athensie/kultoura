@@ -322,7 +322,14 @@ if ($user && password_verify($password, $user['password'])) {
 
 /* ── Neither table matched ── */
 $attemptsLeft = login_throttle_record_failure($conn);
-$_SESSION['error'] = login_throttle_failure_message('Invalid username or password.', $attemptsLeft);
+$_SESSION['error'] = login_throttle_failure_message('', $attemptsLeft);
+
+// Which field is wrong: the username doesn't exist, or it exists but the password didn't match.
+$usernameExists = $admin !== null || $user !== null;
+$_SESSION['login_field_errors'] = $usernameExists
+    ? ['password' => 'Your password is incorrect.']
+    : ['username' => 'This username does not exist.'];
+
 $keepLoginInput();
 header("Location: " . BASE_URL . "/auth/login.php");
 exit;

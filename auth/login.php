@@ -17,8 +17,9 @@ if (isset($_SESSION['user_id'])) {
 $error   = $_SESSION['error'] ?? '';
 $success = $_SESSION['success'] ?? '';
 $retry   = $_SESSION['login_retry'] ?? ['username' => '', 'password' => ''];
+$fieldErrors = $_SESSION['login_field_errors'] ?? [];
 
-unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry']);
+unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESSION['login_field_errors']);
 ?>
 
 <!DOCTYPE html>
@@ -124,6 +125,7 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry']);
                         pattern="^[A-Za-z0-9_]+$"
                         title="Username can only contain letters, numbers, and underscores."
                         required>
+                    <p class="field-error" id="usernameError"<?php echo empty($fieldErrors['username']) ? ' hidden' : ''; ?>><?php echo htmlspecialchars($fieldErrors['username'] ?? ''); ?></p>
                 </div>
 
                 <!-- Password -->
@@ -143,6 +145,7 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry']);
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         </span>
                     </div>
+                    <p class="field-error" id="passwordError"<?php echo empty($fieldErrors['password']) ? ' hidden' : ''; ?>><?php echo htmlspecialchars($fieldErrors['password'] ?? ''); ?></p>
                 </div>
 
                 <p class="auth-forgot"><a href="forgot-password.php">Forgot password?</a></p>
@@ -165,6 +168,34 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry']);
 
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/index.js"></script>
+<script>
+(function () {
+    const usernameInput = document.getElementById('username');
+    const usernameError = document.getElementById('usernameError');
+    const passwordError = document.getElementById('passwordError');
+    if (!usernameInput) return;
+
+    function setError(el, message) {
+        el.textContent = message || '';
+        el.hidden = !message;
+    }
+
+    // Clears the error as soon as the user starts editing the field again.
+    usernameInput.addEventListener('input', function () { setError(usernameError, ''); });
+    document.getElementById('password').addEventListener('input', function () { setError(passwordError, ''); });
+
+    usernameInput.addEventListener('blur', function () {
+        const value = usernameInput.value.trim();
+        if (!/^[A-Za-z0-9_]{3,20}$/.test(value)) return;
+        fetch('check_username.php?username=' + encodeURIComponent(value), { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.exists === false) setError(usernameError, 'This username does not exist.');
+            })
+            .catch(function () {});
+    });
+})();
+</script>
 
 </body>
 </html>

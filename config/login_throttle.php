@@ -134,8 +134,9 @@ if (!function_exists('login_throttle_failure_message')) {
         if ($attemptsLeft <= 0) {
             return 'Too many failed login attempts. Please try again in ' . LOGIN_THROTTLE_LOCKOUT_SECONDS . ' seconds.';
         }
-        return $base . ' You have ' . $attemptsLeft . ' attempt' . ($attemptsLeft === 1 ? '' : 's') . ' left before a '
+        $attemptsText = 'You have ' . $attemptsLeft . ' attempt' . ($attemptsLeft === 1 ? '' : 's') . ' left before a '
             . LOGIN_THROTTLE_LOCKOUT_SECONDS . '-second lockout.';
+        return $base === '' ? $attemptsText : $base . ' ' . $attemptsText;
     }
 }
 
