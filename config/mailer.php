@@ -30,6 +30,34 @@ if (!function_exists('kt_send_mail')) {
             return file_put_contents($dir . '/mail.log', $entry, FILE_APPEND) !== false;
         }
 
+        $brevoKey = getenv('BREVO_API_KEY') ?: '';
+        if ($brevoKey !== '') {
+            // Web-based sending: Railway blocks outgoing SMTP ports, so the live
+            // site must use Brevo's HTTPS API. Sender must be verified in Brevo.
+            $payload = json_encode([
+                'sender'      => ['email' => $fromAddress, 'name' => $fromName],
+                'to'          => [['email' => $to]],
+                'subject'     => $subject,
+                'textContent' => $body,
+            ]);
+            $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+            curl_setopt_array($ch, [
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 15,
+                CURLOPT_HTTPHEADER     => ['api-key: ' . $brevoKey, 'Content-Type: application/json', 'Accept: application/json'],
+            ]);
+            $response = curl_exec($ch);
+            $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            curl_close($ch);
+            if ($status < 200 || $status >= 300) {
+                error_log("Brevo send failed ($status): " . $response);
+                return false;
+            }
+            return true;
+        }
+
         $host = getenv('MAIL_HOST') ?: 'smtp.gmail.com';
         $port = (int) (getenv('MAIL_PORT') ?: 587);
         $user = getenv('MAIL_USERNAME') ?: $fromAddress;
