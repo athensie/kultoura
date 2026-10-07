@@ -30,7 +30,7 @@ if (!function_exists('kt_send_mail')) {
             return file_put_contents($dir . '/mail.log', $entry, FILE_APPEND) !== false;
         }
 
-        $host = getenv('MAIL_HOST') ?: '';
+        $host = getenv('MAIL_HOST') ?: 'smtp.gmail.com';
         $port = (int) (getenv('MAIL_PORT') ?: 587);
         $user = getenv('MAIL_USERNAME') ?: $fromAddress;
         $pass = getenv('MAIL_PASSWORD') ?: '';
