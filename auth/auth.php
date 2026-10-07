@@ -257,19 +257,27 @@ if ($action !== 'login') {
     exit;
 }
 
+$username = trim($_POST['username'] ?? '');
+$password = $_POST['password'] ?? '';
+
+// Keeps what was typed on the login page after a failed attempt. Stored
+// one-time only: login.php reads and clears it on the very next page load.
+$keepLoginInput = function () use ($username, $password) {
+    $_SESSION['login_retry'] = ['username' => $username, 'password' => $password];
+};
+
 /* ── Brute-force check — before touching credentials or the DB tables ── */
 $throttleMessage = login_throttle_check($conn);
 if ($throttleMessage !== null) {
     $_SESSION['error'] = $throttleMessage;
+    $keepLoginInput();
     header("Location: " . BASE_URL . "/auth/login.php");
     exit;
 }
 
-$username = trim($_POST['username'] ?? '');
-$password = $_POST['password'] ?? '';
-
 if ($username === '' || $password === '') {
     $_SESSION['error'] = 'Please enter both username and password.';
+    $keepLoginInput();
     header("Location: " . BASE_URL . "/auth/login.php");
     exit;
 }
@@ -315,5 +323,6 @@ if ($user && password_verify($password, $user['password'])) {
 /* ── Neither table matched ── */
 $attemptsLeft = login_throttle_record_failure($conn);
 $_SESSION['error'] = login_throttle_failure_message('Invalid username or password.', $attemptsLeft);
+$keepLoginInput();
 header("Location: " . BASE_URL . "/auth/login.php");
 exit;

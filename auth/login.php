@@ -16,8 +16,9 @@ if (isset($_SESSION['user_id'])) {
 
 $error   = $_SESSION['error'] ?? '';
 $success = $_SESSION['success'] ?? '';
+$retry   = $_SESSION['login_retry'] ?? ['username' => '', 'password' => ''];
 
-unset($_SESSION['error'], $_SESSION['success']);
+unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry']);
 ?>
 
 <!DOCTYPE html>
@@ -116,6 +117,7 @@ unset($_SESSION['error'], $_SESSION['success']);
                         type="text"
                         id="username"
                         name="username"
+                        value="<?php echo htmlspecialchars($retry['username']); ?>"
                         placeholder="Enter your username"
                         minlength="3"
                         maxlength="20"
@@ -132,6 +134,7 @@ unset($_SESSION['error'], $_SESSION['success']);
                             type="password"
                             id="password"
                             name="password"
+                            value="<?php echo htmlspecialchars($retry['password']); ?>"
                             placeholder="Enter your password"
                             minlength="6"
                             required>
