@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../config/session_boot.php';
 require_once '../../config/dbmain.php';
+require_once __DIR__ . '/../../config/maintenance.php';
+kt_maintenance_gate($conn);
 require_once '../../config/analytics.php';
 include '../../config/sitecontent.php';
 analytics_track($conn, 'products');
