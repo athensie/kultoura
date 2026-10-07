@@ -2,35 +2,28 @@
 require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/admin_password_approval.php';
+require_once __DIR__ . '/../config/password_policy.php';
 
 define('BASE_URL', '/kultoura');
 
 $token  = $_GET['token'] ?? '';
 $action = $_GET['action'] ?? '';
 
-$title   = 'Link Invalid or Expired';
-$message = "This password-change link isn't valid anymore — it may have expired (links last 30 minutes) or already been used. If you still want to change your password, start again from Settings.";
-$isError = true;
+// A validation error from auth.php's set_admin_password action (e.g.
+// passwords didn't match) flashes back here so the form can be re-shown
+// with the message, instead of just failing silently.
+$formError = $_SESSION['error'] ?? '';
+unset($_SESSION['error']);
+
+$title     = 'Link Invalid or Expired';
+$message   = "This password-change link isn't valid anymore — it may have expired (links last 30 minutes) or already been used. If you still want to change your password, start again from Settings.";
+$isError   = true;
+$showForm  = false;
 
 $pending = $token !== '' ? kt_pwreq_find($conn, $token) : null;
 
 if ($pending && $action === 'approve') {
-    $adminId = (int) $pending['admin_id'];
-    $stmt = $conn->prepare("UPDATE admins SET password = ? WHERE admin_id = ?");
-    $stmt->bind_param('si', $pending['pending_password_hash'], $adminId);
-    $stmt->execute();
-    $stmt->close();
-
-    kt_pwreq_clear($conn, $adminId);
-
-    // Approving is a fresh credential for the account — every device
-    // currently logged in (including whichever one requested this) needs
-    // to sign in again with the new password.
-    kt_session_issue($conn, 'admins', 'admin_id', $adminId);
-
-    $title   = 'Password Changed';
-    $message = 'This admin account\'s password has been updated. Every device signed into it, including this one, has been signed out — please sign in again with the new password.';
-    $isError = false;
+    $showForm = true;
 } elseif ($pending && $action === 'reject') {
     kt_pwreq_clear($conn, (int) $pending['admin_id']);
 
@@ -44,7 +37,7 @@ if ($pending && $action === 'approve') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($title); ?> – KULTOURA</title>
+    <title><?php echo $showForm ? 'Set New Password' : htmlspecialchars($title); ?> – KULTOURA</title>
 
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
@@ -59,19 +52,74 @@ if ($pending && $action === 'approve') {
                 <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
 
-            <h2 class="auth-title"><?php echo htmlspecialchars($title); ?></h2>
+            <?php if ($showForm): ?>
 
-            <div class="alert <?php echo $isError ? 'alert-error' : 'alert-success'; ?>" style="margin-top:16px;">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
+                <h2 class="auth-title">Set a New Password</h2>
+                <p class="auth-sub">Approved — choose the new password for this admin account.</p>
 
-            <p class="auth-switch" style="margin-top:18px;">
-                <a href="login.php">Go to Sign In</a>
-            </p>
+                <?php if ($formError): ?>
+                    <div class="alert alert-error"><?php echo htmlspecialchars($formError); ?></div>
+                <?php endif; ?>
+
+                <form action="auth.php" method="POST" class="auth-form">
+                    <input type="hidden" name="action" value="set_admin_password">
+                    <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
+
+                    <div class="form-group">
+                        <label for="password">New Password</label>
+                        <div class="pw-field">
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your new password"
+                                minlength="8"
+                                pattern="^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$"
+                                title="At least 8 characters, including one uppercase letter and one special character."
+                                required>
+                            <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </span>
+                        </div>
+                        <p class="field-hint">At least 8 characters, with 1 uppercase letter and 1 special character</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <div class="pw-field">
+                            <input
+                                type="password"
+                                id="confirm_password"
+                                name="confirm_password"
+                                placeholder="Confirm your new password"
+                                minlength="8"
+                                required>
+                            <span class="toggle-pw" onclick="togglePw('confirm_password', this)" aria-label="Show password">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="auth-btn">SET NEW PASSWORD</button>
+                </form>
+
+            <?php else: ?>
+
+                <h2 class="auth-title"><?php echo htmlspecialchars($title); ?></h2>
+                <div class="alert <?php echo $isError ? 'alert-error' : 'alert-success'; ?>" style="margin-top:16px;">
+                    <?php echo htmlspecialchars($message); ?>
+                </div>
+                <p class="auth-switch" style="margin-top:18px;">
+                    <a href="login.php">Go to Sign In</a>
+                </p>
+
+            <?php endif; ?>
 
         </div>
     </main>
 </div>
+
+<script src="../assets/js/index.js"></script>
 
 </body>
 </html>

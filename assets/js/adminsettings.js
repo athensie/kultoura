@@ -90,13 +90,6 @@ function openChangePasswordModal() {
 async function submitChangePassword(event) {
   event.preventDefault();
   const form = event.target;
-  const newPassword = form.new_password.value;
-  const confirmPassword = form.confirm_password.value;
-
-  if (newPassword !== confirmPassword) {
-    showToast('New password and confirmation do not match.');
-    return false;
-  }
 
   try {
     const response = await fetch('/kultoura/admin/settings_actions.php', {
@@ -105,8 +98,6 @@ async function submitChangePassword(event) {
       body: new URLSearchParams({
         action: 'change_password',
         current_password: form.current_password.value,
-        new_password: newPassword,
-        confirm_password: confirmPassword,
         csrf_token: KT_CSRF_TOKEN,
       }),
     });
@@ -119,11 +110,11 @@ async function submitChangePassword(event) {
       form.hidden = true;
       document.getElementById('changePasswordPending').hidden = false;
     } else {
-      showToast(data.message || 'Could not update password.');
+      showToast(data.message || 'Could not send the approval email.');
     }
   } catch (err) {
     console.error(err);
-    showToast('Could not update password. Try again.');
+    showToast('Could not send the approval email. Try again.');
   }
   return false;
 }

@@ -230,3 +230,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
   .data-table { font-size: .76rem; }
   .settings-grid { grid-template-columns: 1fr; }
 }
+.field-hint {
+    font-size: .68rem;
+    color: rgba(var(--cream-rgb), .4);
+    margin-top: 6px;
+    line-height: 1.5;
+}

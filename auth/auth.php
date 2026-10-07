@@ -4,6 +4,7 @@ require_once '../config/dbmain.php';
 require_once '../config/login_throttle.php';
 require_once '../config/password_policy.php';
 require_once '../config/mailer.php';
+require_once '../config/admin_password_approval.php';
 
 /*
  |--------------------------------------------------------------------
@@ -351,6 +352,53 @@ if ($action === 'do_reset') {
     unset($_SESSION['reset_verified_id'], $_SESSION['reset_verified_table'], $_SESSION['reset_verified_expires']);
 
     $_SESSION['success'] = 'Your password has been reset. You can now sign in.';
+    header("Location: " . BASE_URL . "/auth/login.php");
+    exit;
+}
+
+/* ── ADMIN PASSWORD CHANGE — step 2: set the new password, after the
+   email approval link has already been clicked (see
+   auth/confirm_admin_password.php, which renders this form) ── */
+if ($action === 'set_admin_password') {
+    $token = $_POST['token'] ?? '';
+    $pending = $token !== '' ? kt_pwreq_find($conn, $token) : null;
+
+    if (!$pending) {
+        $_SESSION['error'] = 'This link has expired or was already used. Please start again from Settings.';
+        header("Location: " . BASE_URL . "/auth/login.php");
+        exit;
+    }
+
+    $password = $_POST['password'] ?? '';
+    $confirm  = $_POST['confirm_password'] ?? '';
+    $backToForm = BASE_URL . "/auth/confirm_admin_password.php?token=" . urlencode($token) . "&action=approve";
+
+    if (!kt_password_meets_policy($password)) {
+        $_SESSION['error'] = 'Password must be at least 8 characters long and include an uppercase letter and a special character.';
+        header("Location: " . $backToForm);
+        exit;
+    }
+    if ($password !== $confirm) {
+        $_SESSION['error'] = 'Passwords do not match.';
+        header("Location: " . $backToForm);
+        exit;
+    }
+
+    $adminId = (int) $pending['admin_id'];
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $stmt = $conn->prepare("UPDATE admins SET password = ? WHERE admin_id = ?");
+    $stmt->bind_param('si', $hash, $adminId);
+    $stmt->execute();
+    $stmt->close();
+
+    kt_pwreq_clear($conn, $adminId);
+
+    // A fresh credential means every device logged into this account
+    // (including whichever one requested the change) needs to sign in
+    // again with it.
+    kt_session_issue($conn, 'admins', 'admin_id', $adminId);
+
+    $_SESSION['success'] = 'Your password has been changed. Please sign in again.';
     header("Location: " . BASE_URL . "/auth/login.php");
     exit;
 }

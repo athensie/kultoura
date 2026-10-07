@@ -19,6 +19,7 @@ define('BASE_URL', '/kultoura');
  */
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/site_settings.php';
+require_once __DIR__ . '/../config/admin_email_approval.php';
 
 /*
  |--------------------------------------------------------------------
@@ -61,6 +62,7 @@ if ($row) {
     $currentAdmin = $row;
 }
 $displayName = trim(($currentAdmin['first_name'] ?? '') . ' ' . ($currentAdmin['last_name'] ?? '')) ?: $adminName;
+$maskedEmail = $currentAdmin['email'] ? kt_mask_email($currentAdmin['email']) : 'no email on file';
 
 /*
  |--------------------------------------------------------------------
@@ -243,7 +245,8 @@ $settings = site_settings_get_all($conn, [
                     </div>
                     <div class="form-group" style="margin-bottom:14px;">
                         <label class="form-label">Email</label>
-                        <input class="form-input" type="email" name="email" value="<?php echo htmlspecialchars($currentAdmin['email'] ?? ''); ?>" placeholder="Email" required>
+                        <input class="form-input" type="email" name="email" value="" placeholder="<?php echo htmlspecialchars($maskedEmail); ?>">
+                        <p class="field-hint">Current email, hidden for privacy. Type a new address only if you want to change it — doing so needs approval from the current one first.</p>
                     </div>
                     <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
                         <button type="submit" class="btn-primary"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>
@@ -292,23 +295,15 @@ $settings = site_settings_get_all($conn, [
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('changePasswordModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Change Password</div>
-        <div class="modal-sub">Choose a new password for this admin account.</div>
+        <div class="modal-sub">Confirm your current password to request a change. You'll choose the new one after approving it by email.</div>
 
         <form id="changePasswordForm" onsubmit="return submitChangePassword(event)">
             <div class="form-group" style="margin-bottom:14px;">
                 <label class="form-label">Current Password</label>
                 <input class="form-input" type="password" name="current_password" required autocomplete="current-password">
             </div>
-            <div class="form-group" style="margin-bottom:14px;">
-                <label class="form-label">New Password</label>
-                <input class="form-input" type="password" name="new_password" minlength="8" required autocomplete="new-password">
-            </div>
-            <div class="form-group" style="margin-bottom:14px;">
-                <label class="form-label">Confirm New Password</label>
-                <input class="form-input" type="password" name="confirm_password" minlength="8" required autocomplete="new-password">
-            </div>
             <div style="display:flex; gap:10px;">
-                <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Update Password</button>
+                <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="mail" class="lucide" style="width:.85rem;height:.85rem;"></i> Send Approval Email</button>
                 <button type="button" class="btn-ghost" onclick="closeModal('changePasswordModal')">Cancel</button>
             </div>
         </form>

@@ -3,11 +3,12 @@
  |--------------------------------------------------------------------
  | ADMIN PASSWORD CHANGE — requires email approval
  |--------------------------------------------------------------------
- | Submitting the "Change Password" form in Settings doesn't change the
- | password immediately. It stores the new password (already hashed)
- | as pending, emails the admin's own address on file two links —
- | Approve and Reject — and only applies the change once Approve is
- | clicked (see auth/confirm_admin_password.php). Expires after 30
+ | Clicking "Change Password" in Settings doesn't ask for a new
+ | password at all — it verifies the current one, then emails the
+ | admin's own address on file two links: Approve and Reject. Approve
+ | leads to a page where the new password is actually chosen (see
+ | auth/confirm_admin_password.php + auth.php's set_admin_password
+ | action); only submitting *that* form changes it. Expires after 30
  | minutes. Self-creating columns, same pattern as session_security.php.
  */
 
@@ -19,7 +20,6 @@ if (!function_exists('kt_pwreq_ensure_columns')) {
         $done = true;
 
         $alters = [
-            "ADD COLUMN pending_password_hash VARCHAR(255) NULL DEFAULT NULL",
             "ADD COLUMN pending_password_token VARCHAR(64) NULL DEFAULT NULL",
             "ADD COLUMN pending_password_expires DATETIME NULL DEFAULT NULL",
         ];
@@ -35,17 +35,17 @@ if (!function_exists('kt_pwreq_ensure_columns')) {
     }
 }
 
-// Stores the pending password change and returns the approval token.
+// Starts a password-change request and returns the approval token.
 if (!function_exists('kt_pwreq_create')) {
-    function kt_pwreq_create(mysqli $conn, int $adminId, string $newHash): string
+    function kt_pwreq_create(mysqli $conn, int $adminId): string
     {
         kt_pwreq_ensure_columns($conn);
         $token = bin2hex(random_bytes(32));
         $stmt = $conn->prepare(
-            "UPDATE admins SET pending_password_hash = ?, pending_password_token = ?,
-             pending_password_expires = NOW() + INTERVAL 30 MINUTE WHERE admin_id = ?"
+            "UPDATE admins SET pending_password_token = ?, pending_password_expires = NOW() + INTERVAL 30 MINUTE
+             WHERE admin_id = ?"
         );
-        $stmt->bind_param('ssi', $newHash, $token, $adminId);
+        $stmt->bind_param('si', $token, $adminId);
         $stmt->execute();
         $stmt->close();
         return $token;
@@ -58,7 +58,7 @@ if (!function_exists('kt_pwreq_find')) {
     {
         kt_pwreq_ensure_columns($conn);
         $stmt = $conn->prepare(
-            "SELECT admin_id, email, pending_password_hash FROM admins
+            "SELECT admin_id, email FROM admins
              WHERE pending_password_token = ? AND pending_password_expires > NOW() LIMIT 1"
         );
         $stmt->bind_param('s', $token);
@@ -73,8 +73,7 @@ if (!function_exists('kt_pwreq_clear')) {
     function kt_pwreq_clear(mysqli $conn, int $adminId): void
     {
         $stmt = $conn->prepare(
-            "UPDATE admins SET pending_password_hash = NULL, pending_password_token = NULL,
-             pending_password_expires = NULL WHERE admin_id = ?"
+            "UPDATE admins SET pending_password_token = NULL, pending_password_expires = NULL WHERE admin_id = ?"
         );
         $stmt->bind_param('i', $adminId);
         $stmt->execute();
