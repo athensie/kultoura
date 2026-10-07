@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once '../config/dbmain.php';
 require_once '../config/login_throttle.php';
 require_once '../config/password_policy.php';
+require_once '../config/mailer.php';
 
 /*
  |--------------------------------------------------------------------
@@ -197,11 +198,108 @@ if ($action === 'verify_reset') {
 
     login_throttle_clear($conn);
     session_regenerate_id(true);
-    $_SESSION['reset_verified_id']      = $matchedId;
-    $_SESSION['reset_verified_table']   = $matchedTable;
-    $_SESSION['reset_verified_expires'] = time() + 600; // 10 minutes
+
+    $code = (string) random_int(100000, 999999);
+    $sent = kt_send_mail(
+        $email,
+        'Confirm your KULTOURA password change',
+        "We received a request to change the password for your KULTOURA account.\r\n\r\n"
+        . "Your confirmation code is: $code\r\n\r\n"
+        . "The code expires in 10 minutes. If you didn't request this, you can ignore this email; your password won't change."
+    );
+    if (!$sent) {
+        $_SESSION['error'] = "We couldn't send the confirmation email right now. Please try again in a few minutes.";
+        header("Location: " . BASE_URL . "/auth/forgot-password.php");
+        exit;
+    }
+
+    $_SESSION['reset_pending'] = [
+        'id'        => $matchedId,
+        'table'     => $matchedTable,
+        'email'     => $email,
+        'code_hash' => password_hash($code, PASSWORD_DEFAULT),
+        'expires'   => time() + 600,
+        'sent_at'   => time(),
+        'attempts'  => 0,
+    ];
+    $_SESSION['success'] = 'We sent a 6-digit confirmation code to your email.';
+
+    header("Location: " . BASE_URL . "/auth/reset-code.php");
+    exit;
+}
+
+/* ── FORGOT PASSWORD — step 1b: check the emailed confirmation code ── */
+if ($action === 'verify_code') {
+    $pending = $_SESSION['reset_pending'] ?? null;
+    if (!$pending || time() > $pending['expires']) {
+        unset($_SESSION['reset_pending']);
+        $_SESSION['error'] = 'That code has expired. Please start again.';
+        header("Location: " . BASE_URL . "/auth/forgot-password.php");
+        exit;
+    }
+
+    $submitted = preg_replace('/\D/', '', $_POST['code'] ?? '');
+    if (!password_verify($submitted, $pending['code_hash'])) {
+        $pending['attempts']++;
+        if ($pending['attempts'] >= 5) {
+            unset($_SESSION['reset_pending']);
+            $_SESSION['error'] = 'Too many incorrect codes. Please start again.';
+            header("Location: " . BASE_URL . "/auth/forgot-password.php");
+            exit;
+        }
+        $_SESSION['reset_pending'] = $pending;
+        $left = 5 - $pending['attempts'];
+        $_SESSION['error'] = 'That code is incorrect. You have ' . $left . ' attempt' . ($left === 1 ? '' : 's') . ' left.';
+        header("Location: " . BASE_URL . "/auth/reset-code.php");
+        exit;
+    }
+
+    unset($_SESSION['reset_pending']);
+    $_SESSION['reset_verified_id']      = $pending['id'];
+    $_SESSION['reset_verified_table']   = $pending['table'];
+    $_SESSION['reset_verified_expires'] = time() + 600;
 
     header("Location: " . BASE_URL . "/auth/reset-password.php");
+    exit;
+}
+
+/* ── FORGOT PASSWORD — resend the confirmation code (60s cooldown) ── */
+if ($action === 'resend_code') {
+    $pending = $_SESSION['reset_pending'] ?? null;
+    if (!$pending) {
+        $_SESSION['error'] = 'Please enter your username and email again.';
+        header("Location: " . BASE_URL . "/auth/forgot-password.php");
+        exit;
+    }
+
+    $wait = 60 - (time() - $pending['sent_at']);
+    if ($wait > 0) {
+        $_SESSION['error'] = "Please wait {$wait} seconds before requesting another code.";
+        header("Location: " . BASE_URL . "/auth/reset-code.php");
+        exit;
+    }
+
+    $code = (string) random_int(100000, 999999);
+    $sent = kt_send_mail(
+        $pending['email'],
+        'Confirm your KULTOURA password change',
+        "Your new confirmation code is: $code\r\n\r\n"
+        . "The code expires in 10 minutes. If you didn't request this, you can ignore this email; your password won't change."
+    );
+    if (!$sent) {
+        $_SESSION['error'] = "We couldn't send the email right now. Please try again in a few minutes.";
+        header("Location: " . BASE_URL . "/auth/reset-code.php");
+        exit;
+    }
+
+    $pending['code_hash'] = password_hash($code, PASSWORD_DEFAULT);
+    $pending['expires']   = time() + 600;
+    $pending['sent_at']   = time();
+    $pending['attempts']  = 0;
+    $_SESSION['reset_pending'] = $pending;
+    $_SESSION['success'] = 'A new confirmation code was sent to your email.';
+
+    header("Location: " . BASE_URL . "/auth/reset-code.php");
     exit;
 }
 
