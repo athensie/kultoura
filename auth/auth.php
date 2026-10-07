@@ -186,8 +186,11 @@ if ($action === 'verify_reset') {
     }
 
     if ($matchedId === null) {
-        login_throttle_record_failure($conn);
-        $_SESSION['error'] = "We couldn't find an account with that username and email combination.";
+        $attemptsLeft = login_throttle_record_failure($conn);
+        $_SESSION['error'] = login_throttle_failure_message(
+            "We couldn't find an account with that username and email combination.",
+            $attemptsLeft
+        );
         header("Location: " . BASE_URL . "/auth/forgot-password.php");
         exit;
     }
@@ -310,7 +313,7 @@ if ($user && password_verify($password, $user['password'])) {
 }
 
 /* ── Neither table matched ── */
-login_throttle_record_failure($conn);
-$_SESSION['error'] = 'Invalid username or password.';
+$attemptsLeft = login_throttle_record_failure($conn);
+$_SESSION['error'] = login_throttle_failure_message('Invalid username or password.', $attemptsLeft);
 header("Location: " . BASE_URL . "/auth/login.php");
 exit;
