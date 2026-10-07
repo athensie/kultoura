@@ -77,6 +77,16 @@ function closeModalOutside(event, id) {
 }
 
 /* ---------- CHANGE PASSWORD ---------- */
+// Submitting doesn't change the password right away — it emails the
+// admin an Approve/Reject link (see settings_actions.php). On success
+// the modal swaps its form for a "check your email" panel instead of
+// just closing, so it's clear nothing has changed yet.
+function openChangePasswordModal() {
+  document.getElementById('changePasswordForm').hidden = false;
+  document.getElementById('changePasswordPending').hidden = true;
+  openModal('changePasswordModal');
+}
+
 async function submitChangePassword(event) {
   event.preventDefault();
   const form = event.target;
@@ -102,10 +112,14 @@ async function submitChangePassword(event) {
     });
 
     const data = await response.json();
-    showToast(data.message || (data.success ? 'Password updated.' : 'Could not update password.'));
     if (data.success) {
       form.reset();
-      closeModal('changePasswordModal');
+      document.getElementById('changePasswordPendingMsg').textContent =
+        data.message || "Check your email to approve this password change.";
+      form.hidden = true;
+      document.getElementById('changePasswordPending').hidden = false;
+    } else {
+      showToast(data.message || 'Could not update password.');
     }
   } catch (err) {
     console.error(err);

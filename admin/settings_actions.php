@@ -32,6 +32,8 @@ require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/password_policy.php';
 require_once __DIR__ . '/../config/site_settings.php';
+require_once __DIR__ . '/../config/mailer.php';
+require_once __DIR__ . '/../config/admin_password_approval.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: " . BASE_URL . "/admin/adminsettings.php");
@@ -94,7 +96,7 @@ if ($action === 'change_password') {
         settings_json(false, 'New password must be at least 8 characters long and include an uppercase letter and a special character.');
     }
 
-    $stmt = $conn->prepare("SELECT password FROM admins WHERE admin_id = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT password, email FROM admins WHERE admin_id = ? LIMIT 1");
     $stmt->bind_param('i', $adminId);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
@@ -103,18 +105,37 @@ if ($action === 'change_password') {
     if (!$row || !password_verify($current, $row['password'])) {
         settings_json(false, 'Current password is incorrect.');
     }
+    if (empty($row['email'])) {
+        settings_json(false, 'This admin account has no email on file to send the approval to.');
+    }
 
+    // Doesn't change the password yet — stores it pending and emails the
+    // admin's own address two links (Approve / Reject). Only applying it
+    // once approved means a session that isn't really the admin (e.g. a
+    // stolen login) can't silently take over the account.
     $newHash = password_hash($new, PASSWORD_DEFAULT);
-    $stmt = $conn->prepare("UPDATE admins SET password = ? WHERE admin_id = ?");
-    $stmt->bind_param('si', $newHash, $adminId);
-    $stmt->execute();
-    $stmt->close();
+    $token = kt_pwreq_create($conn, $adminId, $newHash);
 
-    // Signs out any other device logged into this admin account, while
-    // keeping this session (the one making the change) signed in.
-    $_SESSION['session_token'] = kt_session_issue($conn, 'admins', 'admin_id', $adminId);
+    $approveUrl = (empty($_SERVER['HTTPS']) ? 'http://' : 'https://') . $_SERVER['HTTP_HOST'] . BASE_URL
+        . '/auth/confirm_admin_password.php?token=' . $token . '&action=approve';
+    $rejectUrl = (empty($_SERVER['HTTPS']) ? 'http://' : 'https://') . $_SERVER['HTTP_HOST'] . BASE_URL
+        . '/auth/confirm_admin_password.php?token=' . $token . '&action=reject';
 
-    settings_json(true, 'Password updated.');
+    $sent = kt_send_mail(
+        $row['email'],
+        'Approve your KULTOURA admin password change',
+        "A password change was requested for your KULTOURA admin account.\r\n\r\n"
+        . "If this was you, approve it here:\r\n$approveUrl\r\n\r\n"
+        . "If this wasn't you, reject it here instead — your password will stay the same:\r\n$rejectUrl\r\n\r\n"
+        . "This link expires in 30 minutes. Approving it will sign out every device currently logged into this account, including this one — you'll need to sign in again with the new password."
+    );
+
+    if (!$sent) {
+        kt_pwreq_clear($conn, $adminId);
+        settings_json(false, "Couldn't send the approval email right now. Please try again in a few minutes.");
+    }
+
+    settings_json(true, 'Check your email to approve this password change. It won\'t take effect until you do.');
 }
 
 /* ── Setting toggles — no settings table yet (see adminsettings.php's

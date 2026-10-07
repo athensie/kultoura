@@ -247,7 +247,7 @@ $settings = site_settings_get_all($conn, [
                     </div>
                     <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
                         <button type="submit" class="btn-primary"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>
-                        <button type="button" class="btn-ghost" onclick="openModal('changePasswordModal')"><i data-lucide="key-round" class="lucide" style="width:.85rem;height:.85rem;"></i> Change Password</button>
+                        <button type="button" class="btn-ghost" onclick="openChangePasswordModal()"><i data-lucide="key-round" class="lucide" style="width:.85rem;height:.85rem;"></i> Change Password</button>
                     </div>
                 </form>
             </div>
@@ -312,6 +312,13 @@ $settings = site_settings_get_all($conn, [
                 <button type="button" class="btn-ghost" onclick="closeModal('changePasswordModal')">Cancel</button>
             </div>
         </form>
+
+        <div id="changePasswordPending" hidden style="text-align:center; padding:8px 0;">
+            <i data-lucide="mail-check" class="lucide" style="width:2.5rem;height:2.5rem;margin-bottom:10px;"></i>
+            <div class="modal-title" style="margin-bottom:6px;">Check Your Email</div>
+            <div class="modal-sub" id="changePasswordPendingMsg" style="margin-bottom:18px;"></div>
+            <button type="button" class="btn-primary" onclick="closeModal('changePasswordModal')" style="width:100%;">Got It</button>
+        </div>
     </div>
 </div>
 
