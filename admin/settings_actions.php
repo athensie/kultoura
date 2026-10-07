@@ -110,6 +110,10 @@ if ($action === 'change_password') {
     $stmt->execute();
     $stmt->close();
 
+    // Signs out any other device logged into this admin account, while
+    // keeping this session (the one making the change) signed in.
+    $_SESSION['session_token'] = kt_session_issue($conn, 'admins', 'admin_id', $adminId);
+
     settings_json(true, 'Password updated.');
 }
 

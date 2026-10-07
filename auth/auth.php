@@ -116,6 +116,7 @@ if ($action === 'signup') {
             $_SESSION['username']  = $username;
             $_SESSION['role']      = 'User';
             $_SESSION['user_name'] = $fullname;
+            $_SESSION['session_token'] = kt_session_issue($conn, 'users', 'id', $newUserId);
 
             header("Location: " . BASE_URL . "/index.php");
             exit;
@@ -343,6 +344,10 @@ if ($action === 'do_reset') {
     $stmt->execute();
     $stmt->close();
 
+    // Signs out any device currently logged into this account elsewhere —
+    // a session open before the reset shouldn't survive it.
+    kt_session_issue($conn, $verifiedTable, $idCol, (int) $verifiedId);
+
     unset($_SESSION['reset_verified_id'], $_SESSION['reset_verified_table'], $_SESSION['reset_verified_expires']);
 
     $_SESSION['success'] = 'Your password has been reset. You can now sign in.';
@@ -394,6 +399,7 @@ if ($admin && password_verify($password, $admin['password'])) {
     $_SESSION['username']  = $admin['username'];
     $_SESSION['role']      = $admin['role'];
     $_SESSION['user_name'] = trim($admin['first_name'] . ' ' . $admin['last_name']);
+    $_SESSION['session_token'] = kt_session_issue($conn, 'admins', 'admin_id', (int) $admin['admin_id']);
 
     header("Location: " . BASE_URL . "/admin/admindashboard.php");
     exit;
@@ -413,6 +419,7 @@ if ($user && password_verify($password, $user['password'])) {
     $_SESSION['username']  = $user['username'];
     $_SESSION['role']      = 'User';
     $_SESSION['user_name'] = $user['fullname'];
+    $_SESSION['session_token'] = kt_session_issue($conn, 'users', 'id', (int) $user['id']);
 
     header("Location: " . BASE_URL . "/index.php");
     exit;
