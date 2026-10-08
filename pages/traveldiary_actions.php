@@ -44,7 +44,11 @@ function td_save_uploaded_photo(array $file): array
         return ['ok' => false, 'message' => 'That file doesn\'t look like a valid image.'];
     }
 
-    $uploadDir = '../assets/uploads/diary/';
+    // __DIR__-anchored (not a bare relative path) — the other upload
+    // handlers in this codebase all do the same, since a relative path
+    // here depends on the server's working-directory convention for
+    // the request, which isn't guaranteed to be this file's directory.
+    $uploadDir = __DIR__ . '/../assets/uploads/diary/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
@@ -312,7 +316,7 @@ if ($action === 'delete_entry') {
     $photoStmt->close();
 
     foreach ($photos as $p) {
-        $path = '../assets/uploads/diary/' . basename($p['image']);
+        $path = __DIR__ . '/../assets/uploads/diary/' . basename($p['image']);
         if (is_file($path)) {
             @unlink($path);
         }

@@ -115,9 +115,15 @@ function td_parse_latlng_pair(?string $raw): array
     return [(float) $parts[0], (float) $parts[1]];
 }
 
+// Deliberately NOT filtered by status = 'active' — unlike the public
+// browse pages, this catalog also has to resolve a user's past diary
+// entries/photos for items that are now pending or archived. Hiding
+// those here would make a logged visit's photo silently vanish from
+// the user's own Travel Diary just because the place is no longer
+// publicly listed.
 $catalog = []; // keyed "itemType-itemId" => item details
 
-if ($result = $conn->query("SELECT product_id, product_name, category, image, latitude, longitude FROM products WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT product_id, product_name, category, image, latitude, longitude FROM products")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['product_id'];
         $catalog['product-' . $id] = [
@@ -134,7 +140,7 @@ if ($result = $conn->query("SELECT product_id, product_name, category, image, la
     }
 }
 
-if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, image, latitude, longitude FROM restaurants WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, image, latitude, longitude FROM restaurants")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['restaurant_id'];
         $catalog['restaurant-' . $id] = [
@@ -160,7 +166,7 @@ $destinationLinks = [
     'service'       => 'tourism/services.php',
     'church'        => 'tourism/churches.php',
 ];
-if ($result = $conn->query("SELECT destination_id, destination_name, category, image, latitude, longitude, google_maps FROM destination WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT destination_id, destination_name, category, image, latitude, longitude, google_maps FROM destination")) {
     while ($row = $result->fetch_assoc()) {
         $cat = $row['category'];
         if (!isset($destinationLinks[$cat])) continue;
@@ -188,7 +194,7 @@ if ($result = $conn->query("SELECT destination_id, destination_name, category, i
     }
 }
 
-if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, latitude, longitude FROM fiestas WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, latitude, longitude FROM fiestas")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['fiesta_id'];
         $catalog['fiesta-' . $id] = [
@@ -205,7 +211,7 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, latitude
     }
 }
 
-if ($result = $conn->query("SELECT person_id, fullname, title, image FROM people WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT person_id, fullname, title, image FROM people")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['person_id'];
         $catalog['person-' . $id] = [

@@ -76,9 +76,7 @@ $maskedEmail = $currentAdmin['email'] ? kt_mask_email($currentAdmin['email']) : 
  | are just the defaults for a key that doesn't have a saved row yet.
  */
 $settings = site_settings_get_all($conn, [
-    'public_access'         => true,
     'maintenance_mode'      => false,
-    'show_visitor_count'    => true,
     'email_alerts'          => true,
     'new_listing_alert'     => true,
     'flagged_content_alert' => true,
@@ -183,24 +181,10 @@ $settings = site_settings_get_all($conn, [
 
                 <div class="setting-row">
                     <div class="setting-info">
-                        <div class="setting-label">KulToura Public Access</div>
-                        <div class="setting-desc">Allow public users to browse the site</div>
-                    </div>
-                    <button class="toggle <?php echo $settings['public_access'] ? 'on' : ''; ?>" data-key="public_access" onclick="toggleSetting(this)"></button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
                         <div class="setting-label">Maintenance Mode</div>
                         <div class="setting-desc">Redirect all visitors to a maintenance page</div>
                     </div>
                     <button class="toggle <?php echo $settings['maintenance_mode'] ? 'on' : ''; ?>" data-key="maintenance_mode" onclick="toggleSetting(this)"></button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <div class="setting-label">Show Live Visitor Count</div>
-                        <div class="setting-desc">Display real-time visitors on homepage</div>
-                    </div>
-                    <button class="toggle <?php echo $settings['show_visitor_count'] ? 'on' : ''; ?>" data-key="show_visitor_count" onclick="toggleSetting(this)"></button>
                 </div>
             </div>
 
@@ -264,7 +248,8 @@ $settings = site_settings_get_all($conn, [
 
         </div>
 
-        <!-- DANGER ZONE -->
+        <!-- DANGER ZONE — Super Admin only -->
+        <?php if ($isSuperAdmin): ?>
         <div style="margin-top: 20px;" class="animate">
             <div class="settings-card danger">
                 <h3><i data-lucide="triangle-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Danger Zone</h3>
@@ -293,6 +278,7 @@ $settings = site_settings_get_all($conn, [
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
     </div>
 </div>

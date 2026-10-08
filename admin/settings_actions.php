@@ -35,6 +35,7 @@ require_once __DIR__ . '/../config/site_settings.php';
 require_once __DIR__ . '/../config/mailer.php';
 require_once __DIR__ . '/../config/admin_password_approval.php';
 require_once __DIR__ . '/../config/admin_email_approval.php';
+require_once __DIR__ . '/../config/admin_requests.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: " . BASE_URL . "/admin/adminsettings.php");
@@ -177,7 +178,7 @@ if ($action === 'change_password') {
    exists. ── */
 if ($action === 'toggle_setting') {
     $validKeys = [
-        'public_access', 'maintenance_mode', 'show_visitor_count',
+        'maintenance_mode',
         'email_alerts', 'new_listing_alert', 'flagged_content_alert', 'weekly_summary',
     ];
     $key = $_POST['key'] ?? '';
@@ -188,6 +189,13 @@ if ($action === 'toggle_setting') {
     site_settings_set($conn, $key, ($_POST['value'] ?? '') === '1');
     http_response_code(200);
     exit;
+}
+
+/* ── Danger Zone — Super Admin only; the page already hides this
+   section from a plain Admin, but the actions are gated here too
+   since a POST can always be sent directly. ── */
+if (in_array($action, ['reset_analytics', 'clear_sessions'], true) && !kt_is_super_admin()) {
+    settings_redirect_with_message('Only a Super Admin can do that.');
 }
 
 /* ── Reset all analytics data ── */
