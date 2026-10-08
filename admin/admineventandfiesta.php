@@ -158,6 +158,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Events &amp; Fiesta – KULTOURA Admin</title>
 
