@@ -21,4 +21,14 @@ PORT="${PORT:-80}"
 sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -i "s/:80>/:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 
+# Restore any seed images missing from assets/uploads/ — on Railway
+# that path is a persistent volume, which starts out empty the first
+# time it's attached (hiding the placeholder images baked into the
+# image at build time). -n (no-clobber) means this only ever fills in
+# what's missing; it never overwrites a real upload that's there.
+if [ -d /var/www/html/uploads-seed ]; then
+    cp -rn /var/www/html/uploads-seed/. /var/www/html/kultoura/assets/uploads/ 2>/dev/null || true
+    chown -R www-data:www-data /var/www/html/kultoura/assets/uploads
+fi
+
 exec apache2-foreground

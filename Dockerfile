@@ -22,12 +22,20 @@ RUN sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 # the site is reached at https://<railway-domain>/kultoura/.
 COPY . /var/www/html/kultoura/
 
+# Snapshot of assets/uploads/ exactly as it exists in the image — the
+# handful of seed/placeholder images committed to git. Kept outside the
+# mount path so docker-entrypoint.sh can restore any of them missing
+# from the persistent volume mounted at assets/uploads/ (e.g. on first
+# attach, when the volume starts empty) without ever touching a real
+# upload that's already there.
+RUN cp -r /var/www/html/kultoura/assets/uploads /var/www/html/uploads-seed
+
 # Bare-domain visits ("/") land somewhere real instead of a 404.
 RUN printf '<?php header("Location: /kultoura/"); exit;\n' > /var/www/html/index.php
 
-# Railway's uploads volume (if configured) mounts here — see the
-# deploy notes for adding a persistent volume at this path so admin-
-# uploaded photos survive redeploys.
+# Railway's persistent volume mounts here (see docker-entrypoint.sh for
+# the seed-restore step) so admin- and user-uploaded photos survive
+# redeploys instead of living on the container's throwaway filesystem.
 RUN mkdir -p /var/www/html/kultoura/assets/uploads \
     && chown -R www-data:www-data /var/www/html/kultoura/assets/uploads
 
