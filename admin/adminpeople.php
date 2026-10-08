@@ -280,7 +280,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                                     <div class="table-actions">
                                         <button class="tbl-btn view" onclick="openViewPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                                         <button class="tbl-btn edit" onclick="openEditPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                                        <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', '<?php echo htmlspecialchars($p['fullname'], ENT_QUOTES); ?>')"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                                        <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', '<?php echo htmlspecialchars($p['fullname'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                                     </div>
                                 </td>
                             </tr>
@@ -319,7 +319,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                         <div class="grid-card-actions">
                             <button class="tbl-btn view" onclick="openViewPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                             <button class="tbl-btn edit" onclick="openEditPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                            <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', '<?php echo htmlspecialchars($p['fullname'], ENT_QUOTES); ?>')"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                            <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', '<?php echo htmlspecialchars($p['fullname'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </div>
                     </div>
                 <?php endforeach; ?>

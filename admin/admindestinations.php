@@ -454,7 +454,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                                     <button class="tbl-btn delete"
                                         data-id="<?php echo (int) $d['destination_id']; ?>"
                                         data-name="<?php echo htmlspecialchars($d['destination_name']); ?>"
-                                        onclick="confirmDeleteDestination(this)"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                                        onclick="confirmDeleteDestination(this)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                                 </div>
                             </td>
                         </tr>
@@ -517,7 +517,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                             <button class="tbl-btn delete"
                                 data-id="<?php echo (int) $d['destination_id']; ?>"
                                 data-name="<?php echo htmlspecialchars($d['destination_name']); ?>"
-                                onclick="confirmDeleteDestination(this)"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                                onclick="confirmDeleteDestination(this)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </div>
                     </div>
                 <?php endforeach; ?>

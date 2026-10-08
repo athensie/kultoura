@@ -333,7 +333,7 @@ function openEditListing(id, type) {
 }
 
 function confirmDelete(id, type, name) {
-  document.getElementById('deleteTitle').textContent = 'Delete "' + name + '"?';
+  document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
   document.getElementById('deleteDesc').textContent = 'This will permanently remove this listing from KulToura.';
   document.getElementById('deleteIdInput').value = id;
   document.getElementById('deleteTypeInput').value = type;

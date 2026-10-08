@@ -83,7 +83,7 @@ function openEditEvent(id) {
 }
 
 function confirmDelete(id, name) {
-  document.getElementById('deleteTitle').textContent = 'Delete "' + name + '"?';
+  document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
   document.getElementById('deleteDesc').textContent = 'This will permanently remove this event from KulToura.';
   document.getElementById('deleteFiestaId').value = id;
   openModal('deleteModal');

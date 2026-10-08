@@ -125,7 +125,7 @@ function openEditAnnouncement(btn) {
 /* ---------- DELETE ANNOUNCEMENT ---------- */
 function confirmDeleteAnnouncement(btn) {
   const d = btn.dataset;
-  document.getElementById('deleteAnnouncementTitle').textContent = 'Remove "' + (d.title || 'this announcement') + '"?';
+  document.getElementById('deleteAnnouncementTitle').textContent = 'Archive "' + (d.title || 'this announcement') + '"?';
   document.getElementById('deleteAnnId').value = d.id || '';
   openModal('deleteAnnouncementModal');
 }

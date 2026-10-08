@@ -455,7 +455,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                                             data-id="<?php echo $acc['id']; ?>"
                                             data-name="<?php echo htmlspecialchars($acc['name'], ENT_QUOTES); ?>"
                                             data-active="<?php echo $acc['active'] ? '1' : '0'; ?>"
-                                            onclick="confirmDeleteAccount(this)"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> <?php echo $acc['active'] ? 'Deactivate' : 'Reactivate'; ?></button>
+                                            onclick="confirmDeleteAccount(this)"><i data-lucide="power" class="lucide" style="width:.75rem;height:.75rem;"></i> <?php echo $acc['active'] ? 'Deactivate' : 'Reactivate'; ?></button>
                                         <?php endif; ?>
                                     </div>
                                 </td>

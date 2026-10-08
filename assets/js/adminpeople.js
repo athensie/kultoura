@@ -56,7 +56,7 @@ function openEditPerson(id) {
 }
 
 function confirmDelete(id, name) {
-  document.getElementById('deleteTitle').textContent = 'Delete "' + name + '"?';
+  document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
   document.getElementById('deleteDesc').textContent = 'This will permanently remove this profile from KulToura.';
   document.getElementById('deletePersonId').value = id;
   openModal('deleteModal');

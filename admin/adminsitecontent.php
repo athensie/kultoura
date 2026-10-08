@@ -458,7 +458,7 @@ $iconLabels = sitecontent_icon_labels();
                             <input type="hidden" name="action" value="delete_section">
                             <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
                             <?php echo csrf_field(); ?>
-                            <button type="submit" class="tbl-btn delete"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                            <button type="submit" class="tbl-btn delete"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </form>
                     </div>
                 </div>

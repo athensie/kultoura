@@ -457,7 +457,7 @@ sort($allCategories);
                                     <div class="table-actions">
                                         <button type="button" class="tbl-btn view" onclick="openViewListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                                         <button type="button" class="tbl-btn edit" onclick="openEditListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                                        <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($l['name'], ENT_QUOTES); ?>')"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                                        <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($l['name'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                                     </div>
                                 </td>
                             </tr>
@@ -503,7 +503,7 @@ sort($allCategories);
                         <div class="grid-card-actions">
                             <button type="button" class="tbl-btn view" onclick="openViewListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                             <button type="button" class="tbl-btn edit" onclick="openEditListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                            <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($l['name'], ENT_QUOTES); ?>')"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                            <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($l['name'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </div>
                     </div>
                 <?php endforeach; ?>

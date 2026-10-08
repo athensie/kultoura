@@ -304,7 +304,7 @@ function openEditDestination(btn) {
 /* ---------- DELETE ---------- */
 function confirmDeleteDestination(btn) {
   const d = btn.dataset;
-  document.getElementById('deleteDestinationTitle').textContent = 'Delete "' + (d.name || 'this destination') + '"?';
+  document.getElementById('deleteDestinationTitle').textContent = 'Archive "' + (d.name || 'this destination') + '"?';
   document.getElementById('deleteDestinationId').value = d.id || '';
   openModal('deleteDestinationModal');
 }

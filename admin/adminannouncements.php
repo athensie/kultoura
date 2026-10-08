@@ -292,7 +292,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                                     <button class="tbl-btn delete"
                                         data-id="<?php echo (int) $a['id']; ?>"
                                         data-title="<?php echo htmlspecialchars($a['title']); ?>"
-                                        onclick="confirmDeleteAnnouncement(this)"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Remove</button>
+                                        onclick="confirmDeleteAnnouncement(this)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                                 </div>
                             </td>
                         </tr>
