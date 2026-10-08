@@ -18,7 +18,7 @@ if (!isset($_GET['ajax_calendar'])) {
 }
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
 
 // Fiestas/Events are added by the admin via admineventandfiesta.php.
 // Only upcoming items (today onward), soonest first.
@@ -126,7 +126,7 @@ if (isset($_GET['ajax_calendar'])) {
 <header class="navbar navbar-solid">
 
     <?php if ($isLoggedIn): ?>
-        <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png" alt=""></span>Mabuhay, <?php echo $userName; ?></div>
+        <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png?v=20261008" alt=""></span>Mabuhay, <?php echo $userName; ?></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>

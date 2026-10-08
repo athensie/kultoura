@@ -14,7 +14,7 @@ $_SESSION['history'][] = 'accommodation';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['username'] ?? '');
+$userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
 // Accommodation listings come from the same `destination` table the admin
@@ -65,7 +65,7 @@ $stmt->close();
 <header class="navbar navbar-solid">
 
     <?php if ($isLoggedIn): ?>
-        <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png" alt=""></span>Mabuhay, <?php echo $userName; ?></div>
+        <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png?v=20261008" alt=""></span>Mabuhay, <?php echo $userName; ?></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
