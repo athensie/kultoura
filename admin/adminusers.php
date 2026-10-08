@@ -15,6 +15,8 @@ define('BASE_URL', '/kultoura');
  */
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
+require_once __DIR__ . '/../config/admin_requests.php';
+require_once __DIR__ . '/../config/password_policy.php';
 
 /*
  |--------------------------------------------------------------------
@@ -35,73 +37,112 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
+$isSuperAdmin = kt_is_super_admin();
+$pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
  |--------------------------------------------------------------------
- | EDIT / DELETE (handled right here — no separate actions file)
+ | ADD / EDIT / DEACTIVATE (handled right here — no separate actions file)
  |--------------------------------------------------------------------
  | Every account row is tagged with 'source' => 'admin' or 'user', so
- | we know which table to write back to.
+ | we know which table to write back to. Account management isn't part
+ | of the 6-area request/approval workflow — a plain Admin can view
+ | this page but every mutation here is Super Admin-only.
+ | "Delete" deactivates (status = 'Inactive') rather than removing the
+ | row — consistent with the rest of the panel, nothing is ever deleted.
  */
 $flashMessage = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
-    $formAction = $_POST['form_action'] ?? '';
-    $source     = $_POST['source'] ?? '';
-    $id         = (int) ($_POST['id'] ?? 0);
 
-    if ($formAction === 'delete' && $id > 0) {
-        if ($source === 'admin') {
-            $stmt = $conn->prepare("DELETE FROM admins WHERE admin_id = ?");
-        } elseif ($source === 'user') {
-            $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
-        } else {
-            $stmt = null;
-        }
-        if ($stmt) {
-            $stmt->bind_param('i', $id);
-            $stmt->execute();
-            $stmt->close();
-            $flashMessage = 'Account deleted.';
-        }
-    }
+    if (!$isSuperAdmin) {
+        $flashMessage = 'Only a Super Admin can manage accounts.';
+    } else {
+        $formAction = $_POST['form_action'] ?? '';
+        $source     = $_POST['source'] ?? '';
+        $id         = (int) ($_POST['id'] ?? 0);
 
-    if ($formAction === 'edit' && $id > 0) {
-        if ($source === 'admin') {
+        if ($formAction === 'add_admin') {
             $firstName = trim($_POST['first_name'] ?? '');
             $lastName  = trim($_POST['last_name'] ?? '');
             $username  = trim($_POST['username'] ?? '');
             $email     = trim($_POST['email'] ?? '');
-            $adminRoleField = trim($_POST['admin_role'] ?? 'Admin');
+            $password  = (string) ($_POST['password'] ?? '');
 
-            if ($firstName !== '' && $username !== '' && $email !== '') {
-                $stmt = $conn->prepare(
-                    "UPDATE admins SET first_name=?, last_name=?, username=?, email=?, role=? WHERE admin_id=?"
-                );
-                $stmt->bind_param('sssssi', $firstName, $lastName, $username, $email, $adminRoleField, $id);
-                $stmt->execute();
-                $stmt->close();
-                $flashMessage = 'Admin account updated.';
+            if ($firstName === '' || $username === '' || $email === '') {
+                $flashMessage = 'Please fill in first name, username, and email.';
+            } elseif (!kt_password_meets_policy($password)) {
+                $flashMessage = 'Password must be at least 8 characters, with 1 uppercase letter and 1 special character.';
             } else {
-                $flashMessage = 'Could not update — missing required fields.';
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $role = 'Admin'; // in-app account creation only ever grants "Admin" — Super Admin stays CLI-only
+                $stmt = $conn->prepare(
+                    "INSERT INTO admins (first_name, last_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)"
+                );
+                $stmt->bind_param('ssssss', $firstName, $lastName, $username, $email, $hash, $role);
+                if ($stmt->execute()) {
+                    $flashMessage = 'Admin account "' . $username . '" created.';
+                } else {
+                    $flashMessage = $conn->errno === 1062 ? 'That username or email is already taken.' : 'Could not create the account.';
+                }
+                $stmt->close();
             }
-        } elseif ($source === 'user') {
-            $fullname = trim($_POST['fullname'] ?? '');
-            $username = trim($_POST['username'] ?? '');
-            $email    = trim($_POST['email'] ?? '');
-            $promo    = ((int) ($_POST['promotional_email'] ?? 0)) === 1 ? 1 : 0;
+        }
 
-            if ($fullname !== '' && $username !== '' && $email !== '') {
-                $stmt = $conn->prepare(
-                    "UPDATE users SET fullname=?, username=?, email=?, promotional_email=? WHERE id=?"
-                );
-                $stmt->bind_param('sssii', $fullname, $username, $email, $promo, $id);
+        if ($formAction === 'delete' && $id > 0) {
+            // Toggles, so the same button reactivates a deactivated account.
+            if ($source === 'admin') {
+                $stmt = $conn->prepare("UPDATE admins SET status = IF(status = 'Inactive', 'Active', 'Inactive') WHERE admin_id = ?");
+            } elseif ($source === 'user') {
+                $stmt = $conn->prepare("UPDATE users SET status = IF(status = 'Inactive', 'Active', 'Inactive') WHERE id = ?");
+            } else {
+                $stmt = null;
+            }
+            if ($stmt) {
+                $stmt->bind_param('i', $id);
                 $stmt->execute();
                 $stmt->close();
-                $flashMessage = 'User account updated.';
-            } else {
-                $flashMessage = 'Could not update — missing required fields.';
+                $flashMessage = 'Account status updated.';
+            }
+        }
+
+        if ($formAction === 'edit' && $id > 0) {
+            if ($source === 'admin') {
+                $firstName = trim($_POST['first_name'] ?? '');
+                $lastName  = trim($_POST['last_name'] ?? '');
+                $username  = trim($_POST['username'] ?? '');
+                $email     = trim($_POST['email'] ?? '');
+                $adminRoleField = trim($_POST['admin_role'] ?? 'Admin');
+
+                if ($firstName !== '' && $username !== '' && $email !== '') {
+                    $stmt = $conn->prepare(
+                        "UPDATE admins SET first_name=?, last_name=?, username=?, email=?, role=? WHERE admin_id=?"
+                    );
+                    $stmt->bind_param('sssssi', $firstName, $lastName, $username, $email, $adminRoleField, $id);
+                    $stmt->execute();
+                    $stmt->close();
+                    $flashMessage = 'Admin account updated.';
+                } else {
+                    $flashMessage = 'Could not update — missing required fields.';
+                }
+            } elseif ($source === 'user') {
+                $fullname = trim($_POST['fullname'] ?? '');
+                $username = trim($_POST['username'] ?? '');
+                $email    = trim($_POST['email'] ?? '');
+                $promo    = ((int) ($_POST['promotional_email'] ?? 0)) === 1 ? 1 : 0;
+
+                if ($fullname !== '' && $username !== '' && $email !== '') {
+                    $stmt = $conn->prepare(
+                        "UPDATE users SET fullname=?, username=?, email=?, promotional_email=? WHERE id=?"
+                    );
+                    $stmt->bind_param('sssii', $fullname, $username, $email, $promo, $id);
+                    $stmt->execute();
+                    $stmt->close();
+                    $flashMessage = 'User account updated.';
+                } else {
+                    $flashMessage = 'Could not update — missing required fields.';
+                }
             }
         }
     }
@@ -119,7 +160,8 @@ $accounts = [];
 $onlineThreshold = date('Y-m-d H:i:s', strtotime('-5 minutes'));
 
 // ---- Admin accounts ----
-$adminResult = $conn->query("SELECT admin_id, first_name, last_name, username, email, role, last_activity, created_at FROM admins ORDER BY created_at DESC");
+$adminAccounts = [];
+$adminResult = $conn->query("SELECT admin_id, first_name, last_name, username, email, role, status, last_activity, created_at FROM admins ORDER BY created_at DESC");
 if ($adminResult) {
     foreach ($adminResult->fetch_all(MYSQLI_ASSOC) as $a) {
         $normalizedRole = strtolower(trim($a['role'] ?? ''));
@@ -133,7 +175,7 @@ if ($adminResult) {
 
         $isOnline = !empty($a['last_activity']) && $a['last_activity'] >= $onlineThreshold;
 
-        $accounts[] = [
+        $row = [
             'source'      => 'admin',
             'id'          => (int) $a['admin_id'],
             'name'        => trim(($a['first_name'] ?? '') . ' ' . ($a['last_name'] ?? '')),
@@ -145,18 +187,22 @@ if ($adminResult) {
             'roleClass'   => $roleClass,
             'promo'       => null,
             'online'      => $isOnline,
+            'active'      => ($a['status'] ?? 'Active') !== 'Inactive',
             'created_at'  => $a['created_at'],
         ];
+        $adminAccounts[] = $row;
+        $accounts[] = $row;
     }
 }
 
 // ---- Regular user accounts ----
-$userResult = $conn->query("SELECT id, fullname, username, email, promotional_email, last_activity, created_at FROM users ORDER BY created_at DESC");
+$userAccounts = [];
+$userResult = $conn->query("SELECT id, fullname, username, email, promotional_email, status, last_activity, created_at FROM users ORDER BY created_at DESC");
 if ($userResult) {
     foreach ($userResult->fetch_all(MYSQLI_ASSOC) as $u) {
         $isOnline = !empty($u['last_activity']) && $u['last_activity'] >= $onlineThreshold;
 
-        $accounts[] = [
+        $row = [
             'source'      => 'user',
             'id'          => (int) $u['id'],
             'name'        => $u['fullname'],
@@ -168,8 +214,11 @@ if ($userResult) {
             'roleClass'   => 'user',
             'promo'       => (int) $u['promotional_email'] === 1,
             'online'      => $isOnline,
+            'active'      => ($u['status'] ?? 'Active') !== 'Inactive',
             'created_at'  => $u['created_at'],
         ];
+        $userAccounts[] = $row;
+        $accounts[] = $row;
     }
 }
 
@@ -231,6 +280,9 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php" class="active"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
 
@@ -266,6 +318,25 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                 <h1>Registered <em>Accounts</em></h1>
                 <p>Everyone with an account on KulToura — visitors and admins alike.</p>
             </div>
+            <?php if ($isSuperAdmin): ?>
+            <div class="header-actions">
+                <button class="btn-primary" onclick="openModal('addAdminModal')"><i data-lucide="user-plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Admin</button>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!$isSuperAdmin): ?>
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+            <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
+            <span>You're signed in as <strong>Admin</strong> — account management is Super Admin-only. You can view accounts here but not edit or deactivate them.</span>
+        </div>
+        <?php endif; ?>
+
+        <!-- ACCOUNT TYPE TABS -->
+        <div class="status-tabs" style="display:flex;gap:8px;margin-bottom:18px;">
+            <a href="#" id="tabAllBtn" class="active" onclick="showAccountsTab('all', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:var(--gold,#C8A96E);color:#1a1812;font-weight:600;">All (<?php echo $totalAccounts; ?>)</a>
+            <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Site Users (<?php echo $totalUsers; ?>)</a>
+            <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
         </div>
 
         <!-- KPI ROW -->
@@ -331,7 +402,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                     </thead>
                     <tbody>
                         <?php foreach ($accounts as $acc): ?>
-                            <tr data-role="<?php echo $acc['roleClass']; ?>" data-online="<?php echo $acc['online'] ? 'active' : 'offline'; ?>">
+                            <tr data-role="<?php echo $acc['roleClass']; ?>" data-tab="<?php echo $acc['source'] === 'admin' ? 'admin' : 'user'; ?>" data-online="<?php echo $acc['online'] ? 'active' : 'offline'; ?>">
                                 <td>
                                     <div class="user-cell">
                                         <div class="user-mini-avatar" style="background:linear-gradient(135deg,#C9572A,#E8A842)"><i data-lucide="user" class="lucide" style="width:.9rem;height:.9rem;"></i></div>
@@ -343,7 +414,13 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                                 </td>
                                 <td><?php echo htmlspecialchars($acc['username']); ?></td>
                                 <td><span class="role-badge <?php echo $acc['roleClass']; ?>"><?php echo htmlspecialchars($acc['role']); ?></span></td>
-                                <td><span class="status <?php echo $acc['online'] ? 'active' : 'inactive'; ?>"><?php echo $acc['online'] ? 'Active' : 'Offline'; ?></span></td>
+                                <td>
+                                    <?php if (!$acc['active']): ?>
+                                        <span class="status inactive">Deactivated</span>
+                                    <?php else: ?>
+                                        <span class="status <?php echo $acc['online'] ? 'active' : 'inactive'; ?>"><?php echo $acc['online'] ? 'Active' : 'Offline'; ?></span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo htmlspecialchars(date('M j, Y', strtotime($acc['created_at']))); ?></td>
                                 <td><?php echo $acc['promo'] === null ? '—' : ($acc['promo'] ? 'Yes' : 'No'); ?></td>
                                 <td>
@@ -361,6 +438,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                                             data-joined="<?php echo htmlspecialchars(date('M j, Y', strtotime($acc['created_at'])), ENT_QUOTES); ?>"
                                             data-promo="<?php echo $acc['promo'] === null ? '' : (int) $acc['promo']; ?>"
                                             onclick="openViewAccount(this)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
+                                        <?php if ($isSuperAdmin): ?>
                                         <button class="tbl-btn edit"
                                             data-source="<?php echo $acc['source']; ?>"
                                             data-id="<?php echo $acc['id']; ?>"
@@ -376,7 +454,9 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                                             data-source="<?php echo $acc['source']; ?>"
                                             data-id="<?php echo $acc['id']; ?>"
                                             data-name="<?php echo htmlspecialchars($acc['name'], ENT_QUOTES); ?>"
-                                            onclick="confirmDeleteAccount(this)"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                                            data-active="<?php echo $acc['active'] ? '1' : '0'; ?>"
+                                            onclick="confirmDeleteAccount(this)"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> <?php echo $acc['active'] ? 'Deactivate' : 'Reactivate'; ?></button>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -489,19 +569,60 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
     </div>
 </div>
 
-<!-- DELETE CONFIRM MODAL -->
+<!-- DEACTIVATE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event, 'deleteModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
-        <div class="modal-title" id="deleteTitle">Delete Account?</div>
-        <div class="modal-sub">This action cannot be undone.</div>
+        <div class="modal-title" id="deleteTitle">Deactivate Account?</div>
+        <div class="modal-sub">It won't be able to sign in until reactivated. Nothing is deleted.</div>
         <form id="deleteAccountForm" method="POST">
             <input type="hidden" name="form_action" value="delete">
             <input type="hidden" name="source" id="deleteSource" value="">
             <input type="hidden" name="id" id="deleteId" value="">
             <?php echo csrf_field(); ?>
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>
+                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Deactivate</button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ADD ADMIN MODAL -->
+<div class="modal-overlay" id="addAdminModal" onclick="closeModalOutside(event, 'addAdminModal')">
+    <div class="modal-card">
+        <button class="modal-close" onclick="closeModal('addAdminModal')"><i data-lucide="x" class="lucide"></i></button>
+        <div class="modal-title">Add Admin Account</div>
+        <div class="modal-sub">Creates an account with the "Admin" role — view access to the panel, with edits routed through your approval queue.</div>
+        <form method="POST">
+            <input type="hidden" name="form_action" value="add_admin">
+            <?php echo csrf_field(); ?>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">First Name</label>
+                    <input class="form-input" type="text" name="first_name" placeholder="First name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Last Name</label>
+                    <input class="form-input" type="text" name="last_name" placeholder="Last name">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input class="form-input" type="text" name="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input class="form-input" type="email" name="email" placeholder="Email address" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Temporary Password</label>
+                <input class="form-input" type="password" name="password" placeholder="At least 8 characters, 1 uppercase, 1 special character" minlength="8" required>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:8px;">
+                <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="user-plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Create Admin</button>
+                <button type="button" class="btn-ghost" onclick="closeModal('addAdminModal')">Cancel</button>
             </div>
         </form>
     </div>
@@ -514,6 +635,21 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/adminusers.js"></script>
 <script>initSidebarCollapse();</script>
+<script>
+function showAccountsTab(tab, btn) {
+    document.querySelectorAll('#usersTable tbody tr').forEach(function (row) {
+        row.style.display = (tab === 'all' || row.dataset.tab === tab) ? '' : 'none';
+    });
+    ['tabAllBtn', 'tabUsersBtn', 'tabAdminsBtn'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var active = el === btn;
+        el.style.background = active ? 'var(--gold,#C8A96E)' : 'rgba(255,255,255,.03)';
+        el.style.color = active ? '#1a1812' : 'rgba(245,237,216,.6)';
+        el.style.fontWeight = active ? '600' : 'normal';
+    });
+}
+</script>
 <?php if ($flashMessage): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($flashMessage); ?>); });

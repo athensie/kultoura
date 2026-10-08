@@ -20,6 +20,7 @@ define('BASE_URL', '/kultoura');
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/site_settings.php';
 require_once __DIR__ . '/../config/admin_email_approval.php';
+require_once __DIR__ . '/../config/admin_requests.php';
 
 /*
  |--------------------------------------------------------------------
@@ -40,6 +41,8 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
+$isSuperAdmin = kt_is_super_admin();
+$pendingRequestCount = kt_requests_pending_count($conn);
 
 // Flash message from settings_actions.php (PRG pattern) — shown as a toast below.
 $flashMessage = $_SESSION['flash_message'] ?? null;
@@ -132,6 +135,9 @@ $settings = site_settings_get_all($conn, [
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php" class="active"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
 

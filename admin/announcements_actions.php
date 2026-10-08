@@ -27,6 +27,11 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 include '../config/dbmain.php';
 include '../config/announcements.php';
 require_once '../config/csrf.php';
+require_once '../config/admin_requests.php';
+
+$isSuperAdmin = kt_is_super_admin();
+$adminName    = $_SESSION['username'] ?? 'Admin';
+kt_requests_ensure_schema($conn);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: adminannouncements.php");
@@ -75,30 +80,28 @@ function kt_handle_announcement_image_upload(): ?string
     return null;
 }
 
-// Deletes the physical file behind a stored /kultoura/assets/uploads/... path,
-// but only ever within that one uploads folder — never trusts the path enough
-// to unlink anything outside it.
-function kt_delete_announcement_image(?string $imagePath): void
-{
-    if (empty($imagePath)) return;
-    $uploadDir = realpath(__DIR__ . '/../assets/uploads/announcements/');
-    $target = realpath(__DIR__ . '/../' . ltrim(str_replace(BASE_URL, '', $imagePath), '/'));
-    if ($uploadDir && $target && str_starts_with($target, $uploadDir) && is_file($target)) {
-        unlink($target);
-    }
-}
-
 $validTypes    = ['info', 'alert', 'event', 'update', 'maintenance'];
 $validStatuses = ['live', 'draft', 'scheduled', 'archived'];
 $action = $_POST['action'] ?? '';
+$entityAction = $action === 'create' ? 'create' : ($action === 'update' ? 'update' : 'archive');
+$id = ($action === 'update' || $action === 'delete') ? (int) ($_POST['id'] ?? 0) : null;
 
-if ($action === 'create') {
+if ($entityAction === 'archive') {
+    $data = [];
+    $stmt = $conn->prepare("SELECT title AS name FROM announcements WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $title = $row['name'] ?? ('Announcement #' . $id);
+} else {
     $title    = trim($_POST['title'] ?? '');
     $body     = trim($_POST['body'] ?? '');
     $type     = in_array($_POST['type'] ?? '', $validTypes, true) ? $_POST['type'] : 'info';
     $status   = in_array($_POST['status'] ?? '', $validStatuses, true) ? $_POST['status'] : 'draft';
     $audience = trim($_POST['audience'] ?? '') ?: 'All Users';
-    $image    = kt_handle_announcement_image_upload();
+    $newImage = kt_handle_announcement_image_upload();
+    $image    = $entityAction === 'create' ? ($newImage ?? '') : ($newImage ?? trim($_POST['existing_image'] ?? ''));
 
     $scheduledAt = null;
     if ($status === 'scheduled' && !empty($_POST['scheduled_at'])) {
@@ -109,66 +112,31 @@ if ($action === 'create') {
 
     if ($title === '' || $body === '') {
         $_SESSION['admin_flash'] = 'Please enter a title and a message.';
-    } else {
-        $publishedAt = $status === 'live' ? date('Y-m-d H:i:s') : null;
-
-        $stmt = $conn->prepare(
-            "INSERT INTO announcements (title, body, type, audience, image, status, scheduled_at, published_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->bind_param('ssssssss', $title, $body, $type, $audience, $image, $status, $scheduledAt, $publishedAt);
-        $stmt->execute();
-        $stmt->close();
-
-        $_SESSION['admin_flash'] = $status === 'scheduled'
-            ? '"' . $title . '" was scheduled.'
-            : ($status === 'draft' ? '"' . $title . '" was saved as a draft.' : '"' . $title . '" was published.');
+        header("Location: adminannouncements.php");
+        exit;
     }
-} elseif ($action === 'update') {
-    $id       = (int) ($_POST['id'] ?? 0);
-    $title    = trim($_POST['title'] ?? '');
-    $body     = trim($_POST['body'] ?? '');
-    $type     = in_array($_POST['type'] ?? '', $validTypes, true) ? $_POST['type'] : 'info';
-    $status   = in_array($_POST['status'] ?? '', $validStatuses, true) ? $_POST['status'] : 'draft';
-    // Keep the existing image unless a new file was uploaded this time.
-    $newImage = kt_handle_announcement_image_upload();
-    $image    = $newImage ?? trim($_POST['existing_image'] ?? '');
 
-    if ($id <= 0 || $title === '' || $body === '') {
-        $_SESSION['admin_flash'] = 'Please enter a title and a message.';
-    } else {
-        // published_at is only ever set the first time a post goes live —
-        // re-saving an already-live announcement doesn't bump its date.
-        $stmt = $conn->prepare(
-            "UPDATE announcements
-             SET title = ?, body = ?, type = ?, status = ?, image = ?,
-                 published_at = CASE WHEN ? = 'live' AND published_at IS NULL THEN NOW() ELSE published_at END
-             WHERE id = ?"
-        );
-        $stmt->bind_param('ssssssi', $title, $body, $type, $status, $image, $status, $id);
-        $stmt->execute();
-        $stmt->close();
+    $data = [
+        'title'        => $title,
+        'body'         => $body,
+        'type'         => $type,
+        'audience'     => $audience,
+        'image'        => $image,
+        'status'       => $status,
+        'scheduled_at' => $scheduledAt,
+    ];
+}
 
-        $_SESSION['admin_flash'] = '"' . $title . '" was updated.';
-    }
-} elseif ($action === 'delete') {
-    $id = (int) ($_POST['id'] ?? 0);
-    if ($id > 0) {
-        $stmt = $conn->prepare("SELECT image FROM announcements WHERE id = ?");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-
-        $stmt = $conn->prepare("DELETE FROM announcements WHERE id = ?");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $stmt->close();
-
-        if ($row) kt_delete_announcement_image($row['image']);
-
-        $_SESSION['admin_flash'] = 'Announcement removed.';
-    }
+if ($isSuperAdmin) {
+    kt_apply_entity_change($conn, 'announcement', $entityAction, $id, $data);
+    $_SESSION['admin_flash'] = $entityAction === 'archive'
+        ? '"' . $title . '" archived.'
+        : ($entityAction === 'create'
+            ? (($data['status'] ?? '') === 'scheduled' ? '"' . $title . '" was scheduled.' : ((($data['status'] ?? '') === 'draft') ? '"' . $title . '" was saved as a draft.' : '"' . $title . '" was published.'))
+            : '"' . $title . '" was updated.');
+} else {
+    kt_requests_create($conn, 'announcement', $entityAction, $id, $data, $title, (int) $_SESSION['user_id'], $adminName);
+    $_SESSION['admin_flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $title . '" was submitted for Super Admin approval.';
 }
 
 header("Location: adminannouncements.php");

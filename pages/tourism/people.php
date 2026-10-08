@@ -18,7 +18,7 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?
 
 // People profiles are added by the admin via adminpeople.php.
 $people = [];
-if ($result = $conn->query("SELECT * FROM people ORDER BY fullname ASC")) {
+if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER BY fullname ASC")) {
     $people = $result->fetch_all(MYSQLI_ASSOC);
 }
 ?>

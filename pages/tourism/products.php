@@ -33,7 +33,7 @@ $category = trim($_GET['category'] ?? '');
 // so clearing the search box or switching categories can reveal items
 // without a round trip to the server.
 $sql  = "SELECT product_id, product_name, category, description, price, location, latitude, longitude, image
-         FROM products ORDER BY product_name ASC";
+         FROM products WHERE status = 'active' ORDER BY product_name ASC";
 $rows = [];
 $res  = $conn->query($sql);
 if ($res) {

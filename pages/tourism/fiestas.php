@@ -23,7 +23,7 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?
 // Fiestas/Events are added by the admin via admineventandfiesta.php.
 // Only upcoming items (today onward), soonest first.
 $fiestas = [];
-if ($result = $conn->query("SELECT * FROM fiestas WHERE celebration_date >= CURDATE() ORDER BY celebration_date ASC")) {
+if ($result = $conn->query("SELECT * FROM fiestas WHERE status = 'active' AND celebration_date >= CURDATE() ORDER BY celebration_date ASC")) {
     $fiestas = $result->fetch_all(MYSQLI_ASSOC);
 }
 

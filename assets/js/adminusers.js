@@ -73,7 +73,12 @@ function openEditAccount(btn) {
 
 function confirmDeleteAccount(btn) {
   const d = btn.dataset;
-  document.getElementById('deleteTitle').textContent = 'Delete "' + d.name + '"?';
+  const willDeactivate = d.active === '1';
+  document.getElementById('deleteTitle').textContent = (willDeactivate ? 'Deactivate "' : 'Reactivate "') + d.name + '"?';
+  document.querySelector('#deleteModal .modal-sub').textContent = willDeactivate
+    ? "It won't be able to sign in until reactivated. Nothing is deleted."
+    : 'It will be able to sign in again.';
+  document.querySelector('#deleteAccountForm button[type="submit"]').textContent = willDeactivate ? 'Yes, Deactivate' : 'Yes, Reactivate';
   document.getElementById('deleteSource').value = d.source;
   document.getElementById('deleteId').value = d.id;
   openModal('deleteModal');

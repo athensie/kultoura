@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/sitecontent.php';
 require_once '../config/csrf.php';
+require_once '../config/admin_requests.php';
 
 /*
  |--------------------------------------------------------------------
@@ -24,6 +25,9 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
+$isSuperAdmin = kt_is_super_admin();
+kt_requests_ensure_schema($conn);
+$pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
  |--------------------------------------------------------------------
@@ -67,6 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     csrf_verify();
     $action = $_POST['action'];
 
+    // ---- Hero / singleton photo slots + reorder — no "entry" to review, so
+    // these stay Super Admin-only (not part of the request/approval queue).
+    if (in_array($action, ['save_photo', 'reorder_sections'], true) && !$isSuperAdmin) {
+        $_SESSION['admin_flash'] = 'Only a Super Admin can update site photos directly.';
+        header("Location: " . BASE_URL . "/admin/adminsitecontent.php");
+        exit;
+    }
+
     // ---- Hero / singleton photo slots (home_hero_1, home_hero_2, about_hero) ----
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
@@ -93,42 +105,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 
-    // ---- About sections ----
-    if ($action === 'create_section') {
-        $imagePath = handleSiteContentImageUpload('image');
-        $maxRow = $conn->query("SELECT COALESCE(MAX(sort_order), 0) AS m FROM about_sections")->fetch_assoc();
-        $nextOrder = (int) $maxRow['m'] + 1;
+    // ---- About sections — create / update / archive, gated by role ----
+    if (in_array($action, ['create_section', 'update_section', 'delete_section'], true)) {
+        $id = isset($_POST['id']) && $_POST['id'] !== '' ? (int) $_POST['id'] : null;
+        $entityAction = $action === 'create_section' ? 'create' : ($action === 'update_section' ? 'update' : 'archive');
 
-        $stmt = $conn->prepare("INSERT INTO about_sections (title, icon_key, image, body, sort_order) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param('ssssi', $_POST['title'], $_POST['icon_key'], $imagePath, $_POST['body'], $nextOrder);
-        $stmt->execute();
-        $stmt->close();
-    }
-
-    if ($action === 'update_section') {
-        $id = (int) $_POST['id'];
-        $newImage = handleSiteContentImageUpload('image');
-
-        if (!empty($_POST['remove_image'])) {
-            $stmt = $conn->prepare("UPDATE about_sections SET title = ?, icon_key = ?, body = ?, image = NULL WHERE section_id = ?");
-            $stmt->bind_param('sssi', $_POST['title'], $_POST['icon_key'], $_POST['body'], $id);
-        } elseif ($newImage !== null) {
-            $stmt = $conn->prepare("UPDATE about_sections SET title = ?, icon_key = ?, body = ?, image = ? WHERE section_id = ?");
-            $stmt->bind_param('ssssi', $_POST['title'], $_POST['icon_key'], $_POST['body'], $newImage, $id);
+        if ($entityAction === 'archive') {
+            $data = [];
+            $stmt = $conn->prepare("SELECT title AS name FROM about_sections WHERE section_id = ?");
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            $title = $row['name'] ?? ('Section #' . $id);
         } else {
-            $stmt = $conn->prepare("UPDATE about_sections SET title = ?, icon_key = ?, body = ? WHERE section_id = ?");
-            $stmt->bind_param('sssi', $_POST['title'], $_POST['icon_key'], $_POST['body'], $id);
+            $imagePath = handleSiteContentImageUpload('image');
+            $title = trim($_POST['title'] ?? '');
+            $data = [
+                'title'        => $title,
+                'icon_key'     => $_POST['icon_key'] ?? 'history',
+                'body'         => $_POST['body'] ?? '',
+                'image'        => $imagePath,
+                'remove_image' => !empty($_POST['remove_image']),
+            ];
         }
-        $stmt->execute();
-        $stmt->close();
-    }
 
-    if ($action === 'delete_section') {
-        $stmt = $conn->prepare("DELETE FROM about_sections WHERE section_id = ?");
-        $id = (int) $_POST['id'];
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $stmt->close();
+        if ($isSuperAdmin) {
+            kt_apply_entity_change($conn, 'about_section', $entityAction, $id, $data);
+            $_SESSION['admin_flash'] = $entityAction === 'archive' ? '"' . $title . '" archived.' : ('"' . $title . '" ' . ($entityAction === 'create' ? 'added' : 'updated') . '.');
+        } else {
+            kt_requests_create($conn, 'about_section', $entityAction, $id, $data, $title, (int) $_SESSION['user_id'], $adminName);
+            $_SESSION['admin_flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $title . '" was submitted for Super Admin approval.';
+        }
     }
 
     // ---- Drag-and-drop reorder — AJAX, responds with JSON instead of redirecting ----
@@ -221,7 +229,7 @@ foreach ($heroPhotoGroups as &$group) {
 }
 unset($group);
 
-$aboutSections = sitecontent_get_about_sections($conn);
+$aboutSections = sitecontent_get_about_sections($conn, true);
 $iconSvgs   = sitecontent_icons();
 $iconLabels = sitecontent_icon_labels();
 ?>
@@ -275,6 +283,9 @@ $iconLabels = sitecontent_icon_labels();
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
 
@@ -311,6 +322,18 @@ $iconLabels = sitecontent_icon_labels();
                 <p>Control the hero photos across every public page, plus the About page's History, Geography, and other story sections.</p>
             </div>
         </div>
+
+        <?php if (!$isSuperAdmin): ?>
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+            <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
+            <span>You're signed in as <strong>Admin</strong> — hero photos are Super Admin-only; About section changes you submit are sent for approval before they go live.</span>
+        </div>
+        <?php elseif ($pendingRequestCount > 0): ?>
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.6);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span><?php echo $pendingRequestCount; ?> pending request<?php echo $pendingRequestCount === 1 ? '' : 's'; ?> awaiting your review.</span>
+            <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
+        </div>
+        <?php endif; ?>
 
         <!-- HERO PHOTOS -->
         <h2 class="content-h2">Hero Photos</h2>
@@ -431,11 +454,11 @@ $iconLabels = sitecontent_icon_labels();
                             'body' => $s['body'],
                             'hasImage' => !empty($s['image']),
                         ]), ENT_QUOTES); ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                        <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" style="display:inline;" onsubmit="return confirm('Delete the &quot;<?php echo htmlspecialchars(addslashes($s['title'])); ?>&quot; section? This can\'t be undone.');">
+                        <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" style="display:inline;" onsubmit="return confirm('<?php echo $isSuperAdmin ? 'Archive' : 'Submit a request to archive'; ?> the &quot;<?php echo htmlspecialchars(addslashes($s['title'])); ?>&quot; section? It will be hidden from the public About page.');">
                             <input type="hidden" name="action" value="delete_section">
                             <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
                             <?php echo csrf_field(); ?>
-                            <button type="submit" class="tbl-btn delete"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Delete</button>
+                            <button type="submit" class="tbl-btn delete"><i data-lucide="trash-2" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </form>
                     </div>
                 </div>
@@ -559,5 +582,8 @@ $iconLabels = sitecontent_icon_labels();
 <script>window.KT_CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;</script>
 <script src="../assets/js/adminsitecontent.js"></script>
 <script>lucide.createIcons(); initSidebarCollapse();</script>
+<?php if (!empty($_SESSION['admin_flash'])): ?>
+<script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
+<?php endif; ?>
 </body>
 </html>

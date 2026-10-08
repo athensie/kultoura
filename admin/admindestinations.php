@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/csrf.php';
+require_once '../config/admin_requests.php';
 
 /*
  |--------------------------------------------------------------------
@@ -32,6 +33,9 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
+$isSuperAdmin = kt_is_super_admin();
+kt_requests_ensure_schema($conn);
+$pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
  |--------------------------------------------------------------------
@@ -110,89 +114,48 @@ function handleDestinationImageUpload(): ?string
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     csrf_verify();
-    $action = $_POST['action'];
+    $formAction = $_POST['action'];
+    // "delete" is kept as the form's historical field value, but it has
+    // never actually deleted anything since this workflow shipped — it
+    // archives (see kt_apply_destination in config/admin_requests.php).
+    $entityAction = $formAction === 'delete' ? 'archive' : $formAction;
+    $id = isset($_POST['id']) && $_POST['id'] !== '' ? (int) $_POST['id'] : null;
 
     // Only Nature destinations currently have a subcategory (Park /
     // River & Falls) — anything else is stored as NULL regardless of
     // what was posted, so stray form state can't leak a subcategory
     // onto a category that doesn't use one.
-    if ($action === 'create') {
-        $imagePath = handleDestinationImageUpload();
+    $imagePath = in_array($entityAction, ['create', 'update'], true) ? handleDestinationImageUpload() : null;
 
-        $googleMaps  = $_POST['google_maps'] ?? '';
-        $subcategory = ($_POST['category'] === 'nature' && !empty($_POST['subcategory'])) ? $_POST['subcategory'] : null;
+    $data = [
+        'destination_name' => $_POST['name'] ?? '',
+        'address'           => $_POST['location'] ?? '',
+        'category'          => $_POST['category'] ?? '',
+        'subcategory'       => $_POST['subcategory'] ?? '',
+        'status'            => $_POST['status'] ?? 'active',
+        'description'       => $_POST['description'] ?? '',
+        'google_maps'       => $_POST['google_maps'] ?? '',
+        'image'             => $imagePath,
+    ];
 
-        $stmt = $conn->prepare(
-            "INSERT INTO destination (destination_name, address, category, subcategory, status, description, image, google_maps)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->bind_param(
-            'ssssssss',
-            $_POST['name'],
-            $_POST['location'],
-            $_POST['category'],
-            $subcategory,
-            $_POST['status'],
-            $_POST['description'],
-            $imagePath,
-            $googleMaps
-        );
+    // The archive form only posts action+id — look the name up so the
+    // flash message and (if this becomes a request) its label read right.
+    if ($entityAction === 'archive' && $data['destination_name'] === '' && $id) {
+        $stmt = $conn->prepare("SELECT destination_name FROM destination WHERE destination_id = ?");
+        $stmt->bind_param('i', $id);
         $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
+        $data['destination_name'] = $row['destination_name'] ?? '';
     }
 
-    if ($action === 'update') {
-        $newImagePath = handleDestinationImageUpload();
-        $googleMaps   = $_POST['google_maps'] ?? '';
-        $subcategory  = ($_POST['category'] === 'nature' && !empty($_POST['subcategory'])) ? $_POST['subcategory'] : null;
-
-        if ($newImagePath !== null) {
-            // A new image was uploaded — replace it.
-            $stmt = $conn->prepare(
-                "UPDATE destination
-                 SET destination_name = ?, address = ?, category = ?, subcategory = ?, status = ?, description = ?, image = ?, google_maps = ?
-                 WHERE destination_id = ?"
-            );
-            $stmt->bind_param(
-                'ssssssssi',
-                $_POST['name'],
-                $_POST['location'],
-                $_POST['category'],
-                $subcategory,
-                $_POST['status'],
-                $_POST['description'],
-                $newImagePath,
-                $googleMaps,
-                $_POST['id']
-            );
-        } else {
-            // No new file chosen — leave the existing image untouched.
-            $stmt = $conn->prepare(
-                "UPDATE destination
-                 SET destination_name = ?, address = ?, category = ?, subcategory = ?, status = ?, description = ?, google_maps = ?
-                 WHERE destination_id = ?"
-            );
-            $stmt->bind_param(
-                'sssssssi',
-                $_POST['name'],
-                $_POST['location'],
-                $_POST['category'],
-                $subcategory,
-                $_POST['status'],
-                $_POST['description'],
-                $googleMaps,
-                $_POST['id']
-            );
-        }
-        $stmt->execute();
-        $stmt->close();
-    }
-
-    if ($action === 'delete') {
-        $stmt = $conn->prepare("DELETE FROM destination WHERE destination_id = ?");
-        $stmt->bind_param('i', $_POST['id']);
-        $stmt->execute();
-        $stmt->close();
+    if ($isSuperAdmin) {
+        kt_apply_entity_change($conn, 'destination', $entityAction, $id, $data);
+        $_SESSION['admin_flash'] = $entityAction === 'archive' ? 'Destination archived.' : 'Destination saved.';
+    } else {
+        $label = $data['destination_name'] !== '' ? $data['destination_name'] : ('Destination #' . $id);
+        kt_requests_create($conn, 'destination', $entityAction, $id, $data, $label, (int) $_SESSION['user_id'], $adminName);
+        $_SESSION['admin_flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $label . '" was submitted for Super Admin approval.';
     }
 
     header("Location: " . BASE_URL . "/admin/admindestinations.php");
@@ -321,6 +284,9 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
 
@@ -366,6 +332,18 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <button class="btn-primary" onclick="openAddDestination()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Destination</button>
             </div>
         </div>
+
+        <?php if (!$isSuperAdmin): ?>
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+            <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
+            <span>You're signed in as <strong>Admin</strong> — changes you submit here are sent to a Super Admin for approval before they go live.</span>
+        </div>
+        <?php elseif ($pendingRequestCount > 0): ?>
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.6);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span><?php echo $pendingRequestCount; ?> pending request<?php echo $pendingRequestCount === 1 ? '' : 's'; ?> awaiting your review.</span>
+            <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
+        </div>
+        <?php endif; ?>
 
         <!-- MINI KPI ROW -->
         <div class="mini-kpi-row animate">
@@ -736,15 +714,15 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 <!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteDestinationModal" onclick="closeModalOutside(event, 'deleteDestinationModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
-        <div style="font-size:3rem; margin-bottom:12px;">🗑️</div>
-        <div class="modal-title" id="deleteDestinationTitle">Delete destination?</div>
-        <div class="modal-sub">This action cannot be undone.</div>
+        <div style="font-size:3rem; margin-bottom:12px;">🗄️</div>
+        <div class="modal-title" id="deleteDestinationTitle">Archive destination?</div>
+        <div class="modal-sub"><?php echo $isSuperAdmin ? 'It will be hidden from the public site. You can see it under archived entries, and this is reversible by editing its status.' : 'This will be submitted to a Super Admin for approval before it\'s archived.'; ?></div>
         <form id="deleteDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST">
             <input type="hidden" name="action" value="delete">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="deleteDestinationId" value="">
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>
+                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteDestinationModal')">Cancel</button>
             </div>
         </form>
@@ -759,6 +737,9 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admindestinations.js"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
+<?php if (!empty($_SESSION['admin_flash'])): ?>
+<script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
+<?php endif; ?>
 
 </body>
 </html>

@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/analytics.php';
 require_once __DIR__ . '/../config/csrf.php';
+require_once __DIR__ . '/../config/admin_requests.php';
 
 /*
  |--------------------------------------------------------------------
@@ -32,6 +33,9 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
+$isSuperAdmin = kt_is_super_admin();
+kt_requests_ensure_schema($conn);
+$pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
  |--------------------------------------------------------------------
@@ -45,61 +49,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $action = $_POST['action'] ?? '';
 
-    if ($action === 'add') {
-        $fullname    = trim($_POST['fullname'] ?? '');
-        $title       = trim($_POST['title'] ?? '');
-        $achievement = trim($_POST['achievement'] ?? '');
-        $desc        = trim($_POST['desc'] ?? '');
-
-        if ($fullname === '') {
-            $_SESSION['flash'] = 'Full name is required.';
-        } else {
-            $stmt = $conn->prepare(
-                "INSERT INTO people (fullname, title, achievement, description, created_at)
-                 VALUES (?, ?, ?, ?, NOW())"
-            );
-            $stmt->bind_param('ssss', $fullname, $title, $achievement, $desc);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['flash'] = '"' . $fullname . '" added.';
-        }
-        header('Location: adminpeople.php');
-        exit;
-    }
-
-    if ($action === 'edit') {
-        $id          = (int) ($_POST['person_id'] ?? 0);
-        $fullname    = trim($_POST['fullname'] ?? '');
-        $title       = trim($_POST['title'] ?? '');
-        $achievement = trim($_POST['achievement'] ?? '');
-        $desc        = trim($_POST['desc'] ?? '');
-
-        if ($id > 0 && $fullname !== '') {
-            $stmt = $conn->prepare(
-                "UPDATE people
-                 SET fullname = ?, title = ?, achievement = ?, description = ?
-                 WHERE person_id = ?"
-            );
-            $stmt->bind_param('ssssi', $fullname, $title, $achievement, $desc, $id);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['flash'] = '"' . $fullname . '" updated.';
-        } else {
-            $_SESSION['flash'] = 'Could not update — full name is required.';
-        }
-        header('Location: adminpeople.php');
-        exit;
-    }
-
-    if ($action === 'delete') {
+    if ($action === 'add' || $action === 'edit' || $action === 'delete') {
         $id = (int) ($_POST['person_id'] ?? 0);
-        if ($id > 0) {
-            $stmt = $conn->prepare("DELETE FROM people WHERE person_id = ?");
+        $entityAction = $action === 'add' ? 'create' : ($action === 'edit' ? 'update' : 'archive');
+
+        if ($entityAction === 'archive') {
+            $data = [];
+            $stmt = $conn->prepare("SELECT fullname AS name FROM people WHERE person_id = ?");
             $stmt->bind_param('i', $id);
             $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-            $_SESSION['flash'] = 'Profile deleted.';
+            $fullname = $row['name'] ?? ('Profile #' . $id);
+        } else {
+            $fullname = trim($_POST['fullname'] ?? '');
+            $data = [
+                'fullname'    => $fullname,
+                'title'       => trim($_POST['title'] ?? ''),
+                'achievement' => trim($_POST['achievement'] ?? ''),
+                'description' => trim($_POST['desc'] ?? ''),
+            ];
+
+            if ($fullname === '') {
+                $_SESSION['flash'] = $entityAction === 'create' ? 'Full name is required.' : 'Could not update — full name is required.';
+                header('Location: adminpeople.php');
+                exit;
+            }
         }
+
+        if ($isSuperAdmin) {
+            kt_apply_entity_change($conn, 'person', $entityAction, $id > 0 ? $id : null, $data);
+            $_SESSION['flash'] = $entityAction === 'archive' ? '"' . $fullname . '" archived.' : ('"' . $fullname . '" ' . ($entityAction === 'create' ? 'added' : 'updated') . '.');
+        } else {
+            kt_requests_create($conn, 'person', $entityAction, $id > 0 ? $id : null, $data, $fullname, (int) $_SESSION['user_id'], $adminName);
+            $_SESSION['flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $fullname . '" was submitted for Super Admin approval.';
+        }
+
         header('Location: adminpeople.php');
         exit;
     }
@@ -179,6 +164,9 @@ $addedThisMonth = count(array_filter($people, function ($p) {
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
 
@@ -224,6 +212,18 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <button class="btn-primary" onclick="openAddPerson()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Profile</button>
             </div>
         </div>
+
+        <?php if (!$isSuperAdmin): ?>
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+            <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
+            <span>You're signed in as <strong>Admin</strong> — changes you submit here are sent to a Super Admin for approval before they go live.</span>
+        </div>
+        <?php elseif ($pendingRequestCount > 0): ?>
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.6);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span><?php echo $pendingRequestCount; ?> pending request<?php echo $pendingRequestCount === 1 ? '' : 's'; ?> awaiting your review.</span>
+            <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
+        </div>
+        <?php endif; ?>
 
         <!-- KPI ROW -->
         <div class="mini-kpi-row animate">
@@ -425,14 +425,14 @@ $addedThisMonth = count(array_filter($people, function ($p) {
 <!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event, 'deleteModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
-        <div class="modal-title" id="deleteTitle">Delete Item?</div>
-        <div class="modal-sub" id="deleteDesc">This action cannot be undone.</div>
+        <div class="modal-title" id="deleteTitle">Archive Item?</div>
+        <div class="modal-sub" id="deleteDesc"><?php echo $isSuperAdmin ? 'It will be hidden from the public site, not permanently deleted.' : 'This will be submitted to a Super Admin for approval before it\'s archived.'; ?></div>
         <form id="deleteForm" method="POST" action="adminpeople.php">
             <input type="hidden" name="action" value="delete">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="person_id" id="deletePersonId">
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>
+                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteModal')">Cancel</button>
             </div>
         </form>

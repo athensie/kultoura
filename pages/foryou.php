@@ -111,7 +111,7 @@ $filterGroup = [
 
 $places = [];
 
-if ($result = $conn->query("SELECT product_id, product_name, category, description, image, location, latitude, longitude, created_at FROM products")) {
+if ($result = $conn->query("SELECT product_id, product_name, category, description, image, location, latitude, longitude, created_at FROM products WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['product_id'];
         $places[] = [
@@ -134,7 +134,7 @@ if ($result = $conn->query("SELECT product_id, product_name, category, descripti
     }
 }
 
-if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, description, image, address, latitude, longitude, created_at FROM restaurants")) {
+if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, description, image, address, latitude, longitude, created_at FROM restaurants WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['restaurant_id'];
         $places[] = [
@@ -192,7 +192,7 @@ if ($result = $conn->query("SELECT destination_id, destination_name, description
     }
 }
 
-if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, image, location, latitude, longitude, created_at FROM fiestas WHERE celebration_date >= CURDATE()")) {
+if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, image, location, latitude, longitude, created_at FROM fiestas WHERE status = 'active' AND celebration_date >= CURDATE()")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['fiesta_id'];
         $places[] = [
@@ -218,7 +218,7 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, im
 // People have no map coordinates — they'll show up in "Because You
 // Explored" but are naturally excluded from "Near You" (null lat/lng).
 // Their "location" line shows their role/title instead of an address.
-if ($result = $conn->query("SELECT person_id, fullname, description, image, title, created_at FROM people")) {
+if ($result = $conn->query("SELECT person_id, fullname, description, image, title, created_at FROM people WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['person_id'];
         $places[] = [

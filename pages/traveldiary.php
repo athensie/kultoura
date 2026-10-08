@@ -117,7 +117,7 @@ function td_parse_latlng_pair(?string $raw): array
 
 $catalog = []; // keyed "itemType-itemId" => item details
 
-if ($result = $conn->query("SELECT product_id, product_name, category, image, latitude, longitude FROM products")) {
+if ($result = $conn->query("SELECT product_id, product_name, category, image, latitude, longitude FROM products WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['product_id'];
         $catalog['product-' . $id] = [
@@ -134,7 +134,7 @@ if ($result = $conn->query("SELECT product_id, product_name, category, image, la
     }
 }
 
-if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, image, latitude, longitude FROM restaurants")) {
+if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, image, latitude, longitude FROM restaurants WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['restaurant_id'];
         $catalog['restaurant-' . $id] = [
@@ -188,7 +188,7 @@ if ($result = $conn->query("SELECT destination_id, destination_name, category, i
     }
 }
 
-if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, latitude, longitude FROM fiestas")) {
+if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, latitude, longitude FROM fiestas WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['fiesta_id'];
         $catalog['fiesta-' . $id] = [
@@ -205,7 +205,7 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, latitude
     }
 }
 
-if ($result = $conn->query("SELECT person_id, fullname, title, image FROM people")) {
+if ($result = $conn->query("SELECT person_id, fullname, title, image FROM people WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['person_id'];
         $catalog['person-' . $id] = [

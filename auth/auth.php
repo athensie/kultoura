@@ -434,10 +434,17 @@ if ($username === '' || $password === '') {
 }
 
 /* ── Try admins table first ── */
-$stmt = $conn->prepare("SELECT admin_id, username, password, role, first_name, last_name FROM admins WHERE username = ? LIMIT 1");
+$stmt = $conn->prepare("SELECT admin_id, username, password, role, status, first_name, last_name FROM admins WHERE username = ? LIMIT 1");
 $stmt->bind_param('s', $username);
 $stmt->execute();
 $admin = $stmt->get_result()->fetch_assoc();
+
+if ($admin && password_verify($password, $admin['password']) && ($admin['status'] ?? 'Active') === 'Inactive') {
+    $_SESSION['error'] = 'This account has been deactivated. Contact a Super Admin.';
+    $keepLoginInput();
+    header("Location: " . BASE_URL . "/auth/login.php");
+    exit;
+}
 
 if ($admin && password_verify($password, $admin['password'])) {
     login_throttle_clear($conn);
@@ -454,10 +461,17 @@ if ($admin && password_verify($password, $admin['password'])) {
 }
 
 /* ── Fall back to users table ── */
-$stmt = $conn->prepare("SELECT id, username, password, fullname FROM users WHERE username = ? LIMIT 1");
+$stmt = $conn->prepare("SELECT id, username, password, fullname, status FROM users WHERE username = ? LIMIT 1");
 $stmt->bind_param('s', $username);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
+
+if ($user && password_verify($password, $user['password']) && ($user['status'] ?? 'Active') === 'Inactive') {
+    $_SESSION['error'] = 'This account has been deactivated.';
+    $keepLoginInput();
+    header("Location: " . BASE_URL . "/auth/login.php");
+    exit;
+}
 
 if ($user && password_verify($password, $user['password'])) {
     login_throttle_clear($conn);

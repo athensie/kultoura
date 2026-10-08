@@ -52,10 +52,10 @@ function about_photo(?array $row, array $subfolders): ?array
 $natureRows     = about_fetch_rows($conn, "SELECT destination_name AS name, image, category FROM destination WHERE status = 'active' AND category = 'nature' ORDER BY destination_id ASC LIMIT 3");
 $industryRows   = about_fetch_rows($conn, "SELECT destination_name AS name, image, category FROM destination WHERE status = 'active' AND category = 'industry' ORDER BY destination_id ASC LIMIT 1");
 $anyDestRows    = about_fetch_rows($conn, "SELECT destination_name AS name, image, category FROM destination WHERE status = 'active' ORDER BY destination_id ASC LIMIT 3");
-$fiestaRows     = about_fetch_rows($conn, "SELECT fiesta_name AS name, image, 'fiesta' AS category FROM fiestas ORDER BY fiesta_id ASC LIMIT 1");
-$personRows     = about_fetch_rows($conn, "SELECT fullname AS name, image, 'person' AS category FROM people ORDER BY person_id ASC LIMIT 1");
-$productRows    = about_fetch_rows($conn, "SELECT product_name AS name, image, 'product' AS category FROM products ORDER BY product_id ASC LIMIT 1");
-$restaurantRows = about_fetch_rows($conn, "SELECT restaurant_name AS name, image, 'restaurant' AS category FROM restaurants ORDER BY restaurant_id ASC LIMIT 1");
+$fiestaRows     = about_fetch_rows($conn, "SELECT fiesta_name AS name, image, 'fiesta' AS category FROM fiestas WHERE status = 'active' ORDER BY fiesta_id ASC LIMIT 1");
+$personRows     = about_fetch_rows($conn, "SELECT fullname AS name, image, 'person' AS category FROM people WHERE status = 'active' ORDER BY person_id ASC LIMIT 1");
+$productRows    = about_fetch_rows($conn, "SELECT product_name AS name, image, 'product' AS category FROM products WHERE status = 'active' ORDER BY product_id ASC LIMIT 1");
+$restaurantRows = about_fetch_rows($conn, "SELECT restaurant_name AS name, image, 'restaurant' AS category FROM restaurants WHERE status = 'active' ORDER BY restaurant_id ASC LIMIT 1");
 
 $heroPhoto      = about_photo($natureRows[0] ?? $anyDestRows[0] ?? $industryRows[0] ?? null, $aboutImageSubfolder);
 $historyPhoto   = about_photo($anyDestRows[0] ?? $industryRows[0] ?? $productRows[0] ?? null, $aboutImageSubfolder);

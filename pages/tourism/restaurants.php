@@ -35,7 +35,7 @@ $category = trim($_GET['category'] ?? '');
 // so clearing the search box or switching categories can reveal items
 // without a round trip to the server.
 $sql  = "SELECT restaurant_id, restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, image, google_map
-         FROM restaurants ORDER BY restaurant_name ASC";
+         FROM restaurants WHERE status = 'active' ORDER BY restaurant_name ASC";
 $rows = [];
 $res  = $conn->query($sql);
 if ($res) {

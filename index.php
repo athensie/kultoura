@@ -98,7 +98,7 @@ if ($result = $conn->query("SELECT destination_name AS name, category, image, de
         ];
     }
 }
-if ($result = $conn->query("SELECT fiesta_name AS name, image, description FROM fiestas WHERE image IS NOT NULL AND image <> '' ORDER BY fiesta_id ASC LIMIT 1")) {
+if ($result = $conn->query("SELECT fiesta_name AS name, image, description FROM fiestas WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY fiesta_id ASC LIMIT 1")) {
     if ($row = $result->fetch_assoc()) {
         $forYouPreview[] = [
             'itemType'   => 'fiesta',
@@ -111,7 +111,7 @@ if ($result = $conn->query("SELECT fiesta_name AS name, image, description FROM 
         ];
     }
 }
-if ($result = $conn->query("SELECT restaurant_name AS name, image, description FROM restaurants WHERE image IS NOT NULL AND image <> '' ORDER BY restaurant_id ASC LIMIT 1")) {
+if ($result = $conn->query("SELECT restaurant_name AS name, image, description FROM restaurants WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY restaurant_id ASC LIMIT 1")) {
     if ($row = $result->fetch_assoc()) {
         $forYouPreview[] = [
             'itemType'   => 'restaurant',

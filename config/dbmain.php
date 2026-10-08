@@ -42,6 +42,17 @@ $conn->set_charset("utf8mb4");
 
 /*
  |--------------------------------------------------------------------
+ | RBAC / CONTENT-REQUEST SCHEMA — runs everywhere $conn exists
+ |--------------------------------------------------------------------
+ | Public pages filter the 6 content tables by their new `status`
+ | column (see config/admin_requests.php), so it has to exist before
+ | any of them run — not just when an admin page happens to load first.
+ */
+require_once __DIR__ . '/admin_requests.php';
+kt_requests_ensure_schema($conn);
+
+/*
+ |--------------------------------------------------------------------
  | SINGLE-SESSION ENFORCEMENT + ONLINE/OFFLINE HEARTBEAT
  |--------------------------------------------------------------------
  | Every page that includes this file has already called session_start()

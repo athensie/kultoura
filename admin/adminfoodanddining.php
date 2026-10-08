@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once '../config/dbmain.php';
 require_once '../config/analytics.php';
 require_once '../config/csrf.php';
+require_once '../config/admin_requests.php';
 
 /*
  |--------------------------------------------------------------------
@@ -30,6 +31,9 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
+$isSuperAdmin = kt_is_super_admin();
+kt_requests_ensure_schema($conn);
+$pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
  |--------------------------------------------------------------------
@@ -132,101 +136,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     $formAction  = $_POST['form_action'];
     $listingType = $_POST['listing_type'] ?? '';
     $map         = $tableMap[$listingType] ?? null;
-    $validCategories = $categoriesByType[$listingType] ?? [];
+    $entityType  = $listingType === 'product' ? 'product' : 'restaurant';
 
     if (!$map) {
         $_SESSION['admin_flash'] = 'Please choose a listing type (Product or Restaurant).';
-    } elseif ($formAction === 'add_listing') {
-        $name     = trim($_POST['name'] ?? '');
-        $category = trim($_POST['category'] ?? '');
-        $desc     = trim($_POST['desc'] ?? '');
-        $image    = kt_handle_image_upload() ?? '';
+        header("Location: adminfoodanddining.php");
+        exit;
+    }
 
-        if ($name === '' || $category === '') {
-            $_SESSION['admin_flash'] = 'Please enter a name and a category.';
-        } elseif ($listingType === 'product') {
-            $price    = ($_POST['price'] ?? '') !== '' ? (float) $_POST['price'] : null;
-            $location = trim($_POST['location'] ?? '');
-            $lat      = ($_POST['latitude'] ?? '') !== '' ? (float) $_POST['latitude'] : null;
-            $lng      = ($_POST['longitude'] ?? '') !== '' ? (float) $_POST['longitude'] : null;
+    $name     = trim($_POST['name'] ?? '');
+    $category = trim($_POST['category'] ?? '');
+    $entityAction = $formAction === 'add_listing' ? 'create' : ($formAction === 'edit_listing' ? 'update' : 'archive');
+    $id = ($formAction === 'edit_listing' || $formAction === 'delete_listing') ? (int) ($_POST['id'] ?? 0) : null;
 
-            $stmt = $conn->prepare(
-                "INSERT INTO products (product_name, category, description, price, location, latitude, longitude, image)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            );
-            $stmt->bind_param('sssdsdds', $name, $category, $desc, $price, $location, $lat, $lng, $image);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['admin_flash'] = '"' . $name . '" was added.';
-        } else {
-            $address  = trim($_POST['address'] ?? '');
-            $contact  = trim($_POST['contact_number'] ?? '');
-            $hours    = trim($_POST['opening_hours'] ?? '');
-            $googleMap = trim($_POST['google_map'] ?? '');
-            $lat      = ($_POST['latitude'] ?? '') !== '' ? (float) $_POST['latitude'] : null;
-            $lng      = ($_POST['longitude'] ?? '') !== '' ? (float) $_POST['longitude'] : null;
+    if ($entityAction !== 'archive' && ($name === '' || $category === '')) {
+        $_SESSION['admin_flash'] = 'Please enter a name and a category.';
+        header("Location: adminfoodanddining.php");
+        exit;
+    }
 
-            $stmt = $conn->prepare(
-                "INSERT INTO restaurants (restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, google_map, image)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            );
-            $stmt->bind_param('ssssddssss', $name, $category, $desc, $address, $lat, $lng, $contact, $hours, $googleMap, $image);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['admin_flash'] = '"' . $name . '" was added.';
-        }
-    } elseif ($formAction === 'edit_listing') {
-        $id       = (int) ($_POST['id'] ?? 0);
-        $name     = trim($_POST['name'] ?? '');
-        $category = trim($_POST['category'] ?? '');
-        $desc     = trim($_POST['desc'] ?? '');
-        // Keep the existing image unless a new file was uploaded this time.
-        $image    = kt_handle_image_upload() ?? trim($_POST['existing_image'] ?? '');
+    if ($entityAction === 'archive') {
+        $data = [];
+        // The delete form only posts the id/type — look the name up for
+        // the flash message and (if this becomes a request) its label.
+        $nameCol = $map['nameCol'];
+        $stmt = $conn->prepare("SELECT `$nameCol` AS name FROM `{$map['table']}` WHERE `{$map['idCol']}` = ?");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        $name = $row['name'] ?? ('Listing #' . $id);
+    } elseif ($listingType === 'product') {
+        $image = kt_handle_image_upload() ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
+        $data = [
+            'product_name' => $name,
+            'category'     => $category,
+            'description'  => trim($_POST['desc'] ?? ''),
+            'price'        => $_POST['price'] ?? '',
+            'location'     => trim($_POST['location'] ?? ''),
+            'latitude'     => $_POST['latitude'] ?? '',
+            'longitude'    => $_POST['longitude'] ?? '',
+            'image'        => $image,
+        ];
+    } else {
+        $image = kt_handle_image_upload() ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
+        $data = [
+            'restaurant_name' => $name,
+            'category'        => $category,
+            'description'     => trim($_POST['desc'] ?? ''),
+            'address'         => trim($_POST['address'] ?? ''),
+            'latitude'        => $_POST['latitude'] ?? '',
+            'longitude'       => $_POST['longitude'] ?? '',
+            'contact_number'  => trim($_POST['contact_number'] ?? ''),
+            'opening_hours'   => trim($_POST['opening_hours'] ?? ''),
+            'google_map'      => trim($_POST['google_map'] ?? ''),
+            'image'           => $image,
+        ];
+    }
 
-        if ($id <= 0 || $name === '' || $category === '') {
-            $_SESSION['admin_flash'] = 'Please enter a name and a category.';
-        } elseif ($listingType === 'product') {
-            $price    = ($_POST['price'] ?? '') !== '' ? (float) $_POST['price'] : null;
-            $location = trim($_POST['location'] ?? '');
-            $lat      = ($_POST['latitude'] ?? '') !== '' ? (float) $_POST['latitude'] : null;
-            $lng      = ($_POST['longitude'] ?? '') !== '' ? (float) $_POST['longitude'] : null;
-
-            $stmt = $conn->prepare(
-                "UPDATE products
-                 SET product_name = ?, category = ?, description = ?, price = ?, location = ?, latitude = ?, longitude = ?, image = ?
-                 WHERE product_id = ?"
-            );
-            $stmt->bind_param('sssdsddsi', $name, $category, $desc, $price, $location, $lat, $lng, $image, $id);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['admin_flash'] = '"' . $name . '" was updated.';
-        } else {
-            $address  = trim($_POST['address'] ?? '');
-            $contact  = trim($_POST['contact_number'] ?? '');
-            $hours    = trim($_POST['opening_hours'] ?? '');
-            $googleMap = trim($_POST['google_map'] ?? '');
-            $lat      = ($_POST['latitude'] ?? '') !== '' ? (float) $_POST['latitude'] : null;
-            $lng      = ($_POST['longitude'] ?? '') !== '' ? (float) $_POST['longitude'] : null;
-
-            $stmt = $conn->prepare(
-                "UPDATE restaurants
-                 SET restaurant_name = ?, category = ?, description = ?, address = ?, latitude = ?, longitude = ?, contact_number = ?, opening_hours = ?, google_map = ?, image = ?
-                 WHERE restaurant_id = ?"
-            );
-            $stmt->bind_param('ssssddssssi', $name, $category, $desc, $address, $lat, $lng, $contact, $hours, $googleMap, $image, $id);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['admin_flash'] = '"' . $name . '" was updated.';
-        }
-    } elseif ($formAction === 'delete_listing') {
-        $id = (int) ($_POST['id'] ?? 0);
-        if ($id > 0) {
-            $stmt = $conn->prepare("DELETE FROM {$map['table']} WHERE {$map['idCol']} = ?");
-            $stmt->bind_param('i', $id);
-            $stmt->execute();
-            $stmt->close();
-            $_SESSION['admin_flash'] = 'Listing deleted.';
-        }
+    if ($isSuperAdmin) {
+        kt_apply_entity_change($conn, $entityType, $entityAction, $id, $data);
+        $_SESSION['admin_flash'] = $entityAction === 'archive' ? 'Listing archived.' : ('"' . $name . '" was ' . ($entityAction === 'create' ? 'added' : 'updated') . '.');
+    } else {
+        $label = $name !== '' ? $name : (ucfirst($listingType) . ' #' . $id);
+        kt_requests_create($conn, $entityType, $entityAction, $id, $data, $label, (int) $_SESSION['user_id'], $adminName);
+        $_SESSION['admin_flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $label . '" was submitted for Super Admin approval.';
     }
 
     header("Location: adminfoodanddining.php");
@@ -342,6 +316,9 @@ sort($allCategories);
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
 
@@ -387,6 +364,18 @@ sort($allCategories);
                 <button class="btn-primary" onclick="openAddListing()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Listing</button>
             </div>
         </div>
+
+        <?php if (!$isSuperAdmin): ?>
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+            <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
+            <span>You're signed in as <strong>Admin</strong> — changes you submit here are sent to a Super Admin for approval before they go live.</span>
+        </div>
+        <?php elseif ($pendingRequestCount > 0): ?>
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.6);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span><?php echo $pendingRequestCount; ?> pending request<?php echo $pendingRequestCount === 1 ? '' : 's'; ?> awaiting your review.</span>
+            <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
+        </div>
+        <?php endif; ?>
 
         <!-- KPI ROW -->
         <div class="mini-kpi-row animate">
@@ -745,15 +734,15 @@ sort($allCategories);
 <!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event, 'deleteModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
-        <div class="modal-title" id="deleteTitle">Delete Item?</div>
-        <div class="modal-sub" id="deleteDesc">This action cannot be undone.</div>
+        <div class="modal-title" id="deleteTitle">Archive Item?</div>
+        <div class="modal-sub" id="deleteDesc"><?php echo $isSuperAdmin ? 'It will be hidden from the public site, not permanently deleted.' : 'This will be submitted to a Super Admin for approval before it\'s archived.'; ?></div>
         <form method="POST" action="adminfoodanddining.php">
             <input type="hidden" name="form_action" value="delete_listing">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="deleteIdInput" value="">
             <input type="hidden" name="listing_type" id="deleteTypeInput" value="">
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Delete</button>
+                <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteModal')">Cancel</button>
             </div>
         </form>

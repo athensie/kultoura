@@ -140,10 +140,11 @@ function sitecontent_get_photo(mysqli $conn, string $key): ?string
 
 // All About sections, admin-ordered, each with its 'paragraphs' array
 // pre-split so the template can just foreach() them into <p> tags.
-function sitecontent_get_about_sections(mysqli $conn): array
+function sitecontent_get_about_sections(mysqli $conn, bool $includeArchived = false): array
 {
     $sections = [];
-    $result = $conn->query("SELECT * FROM about_sections ORDER BY sort_order ASC, section_id ASC");
+    $where = $includeArchived ? '' : "WHERE status = 'active'";
+    $result = $conn->query("SELECT * FROM about_sections $where ORDER BY sort_order ASC, section_id ASC");
     if ($result) {
         while ($row = $result->fetch_assoc()) {
             $row['paragraphs'] = array_values(array_filter(array_map('trim', preg_split('/\r?\n\r?\n/', (string) $row['body']))));
