@@ -191,6 +191,13 @@ body {
     margin-left: auto;
 }
 
+/* Only ever shown inside the mobile hamburger dropdown (see the
+   max-width:768px block below) — on desktop, signing out already has
+   its own dedicated button outside the hamburger entirely. */
+.nav-signout-item {
+    display: none;
+}
+
 .nav-item {
     display: flex;
     flex-direction: column;
@@ -1427,6 +1434,11 @@ body {
     .navbar-dots { display: none; }
     .sign-in-btn { order: 2; padding: 9px 16px; }
     .sign-in-btn span { display: none; }
+    /* Signing out now lives inside the hamburger dropdown instead
+       (see .nav-signout-item below) — this icon-only button next to
+       the hamburger would otherwise duplicate it. Signing IN keeps its
+       own icon here; only the logged-in state moves. */
+    .sign-in-btn-icon-only { display: none; }
 
     /* Nav links collapse into a dropdown panel toggled by the hamburger */
     .nav-links {
@@ -1481,6 +1493,15 @@ body {
     .nav-item::before { display: none; }
     .nav-active { color: #2c1a0e !important; }
     .nav-active::after { display: none; }
+
+    .nav-signout-item {
+        display: flex;
+        margin-top: 8px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        border-bottom: none;
+        padding-top: 18px;
+        color: #C9572A;
+    }
 
     .dropdown { width: 100%; }
     .mega-menu {
