@@ -735,6 +735,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admindestinations.js"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>

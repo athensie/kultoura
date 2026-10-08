@@ -448,6 +448,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminpeople.js"></script>
 <script>initViewToggle('people', '.data-table-wrap', '#peopleGrid'); initSidebarCollapse();</script>
 <script>

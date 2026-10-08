@@ -329,6 +329,7 @@ $settings = site_settings_get_all($conn, [
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminsettings.js"></script>
 <script>
 initSidebarCollapse();

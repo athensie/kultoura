@@ -579,6 +579,7 @@ $iconLabels = sitecontent_icon_labels();
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script>window.KT_CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;</script>
 <script src="../assets/js/adminsitecontent.js"></script>
 <script>lucide.createIcons(); initSidebarCollapse();</script>

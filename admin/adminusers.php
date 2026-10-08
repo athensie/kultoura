@@ -633,6 +633,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminusers.js"></script>
 <script>initSidebarCollapse();</script>
 <script>

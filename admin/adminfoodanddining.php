@@ -772,6 +772,7 @@ sort($allCategories);
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminfoodanddining.js"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
 

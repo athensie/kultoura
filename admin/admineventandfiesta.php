@@ -518,6 +518,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admineventandfiesta.js"></script>
 <script>initViewToggle('events', '.data-table-wrap', '#eventsGrid'); initSidebarCollapse();</script>
 <script>

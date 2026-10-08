@@ -409,6 +409,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminannouncements.js"></script>
 <script>
 initSidebarCollapse();

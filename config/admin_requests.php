@@ -53,6 +53,125 @@ if (!function_exists('kt_requests_ensure_schema')) {
         } catch (mysqli_sql_exception $e) {
             if ($e->getCode() !== 1060) { throw $e; }
         }
+
+        $conn->query(
+            "CREATE TABLE IF NOT EXISTS admin_notifications (
+                notification_id INT AUTO_INCREMENT PRIMARY KEY,
+                admin_id INT NOT NULL,
+                message VARCHAR(255) NOT NULL,
+                link VARCHAR(255) NULL,
+                is_read TINYINT(1) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX (admin_id, is_read)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+    }
+}
+
+/*
+ |--------------------------------------------------------------------
+ | ENTITY METADATA — table/column/page for each of the 6 content
+ | types, shared by the current-value lookup (for the request queue's
+ | diff view) and by notification links.
+ |--------------------------------------------------------------------
+ */
+if (!function_exists('kt_entity_meta')) {
+    function kt_entity_meta(string $entityType): ?array
+    {
+        $map = [
+            'destination'   => ['table' => 'destination',   'idCol' => 'destination_id', 'page' => 'admindestinations.php',   'label' => 'Destination'],
+            'product'       => ['table' => 'products',       'idCol' => 'product_id',     'page' => 'adminfoodanddining.php',  'label' => 'Product'],
+            'restaurant'    => ['table' => 'restaurants',     'idCol' => 'restaurant_id',  'page' => 'adminfoodanddining.php',  'label' => 'Restaurant'],
+            'fiesta'        => ['table' => 'fiestas',         'idCol' => 'fiesta_id',      'page' => 'admineventandfiesta.php', 'label' => 'Event / Fiesta'],
+            'person'        => ['table' => 'people',          'idCol' => 'person_id',      'page' => 'adminpeople.php',         'label' => 'Person of Malvar'],
+            'announcement'  => ['table' => 'announcements',   'idCol' => 'id',             'page' => 'adminannouncements.php',  'label' => 'Announcement'],
+            'about_section' => ['table' => 'about_sections',  'idCol' => 'section_id',     'page' => 'adminsitecontent.php',    'label' => 'About Section'],
+        ];
+        return $map[$entityType] ?? null;
+    }
+}
+
+// The live row an 'update' or 'archive' request is based on, keyed the
+// same way as the request's payload — so the review queue can show
+// "current value -> proposed value" per field instead of just the new
+// state on its own.
+if (!function_exists('kt_fetch_entity_current')) {
+    function kt_fetch_entity_current(mysqli $conn, string $entityType, ?int $entityId): ?array
+    {
+        $meta = kt_entity_meta($entityType);
+        if (!$meta || !$entityId) {
+            return null;
+        }
+        $stmt = $conn->prepare("SELECT * FROM `{$meta['table']}` WHERE `{$meta['idCol']}` = ?");
+        $stmt->bind_param('i', $entityId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+}
+
+/*
+ |--------------------------------------------------------------------
+ | NOTIFICATIONS — a small per-admin feed, separate from the requests
+ | themselves. A Super Admin is notified when an Admin files a new
+ | request; the requesting Admin is notified when it's resolved.
+ |--------------------------------------------------------------------
+ */
+if (!function_exists('kt_notify')) {
+    function kt_notify(mysqli $conn, int $adminId, string $message, ?string $link = null): void
+    {
+        $stmt = $conn->prepare("INSERT INTO admin_notifications (admin_id, message, link) VALUES (?, ?, ?)");
+        $stmt->bind_param('iss', $adminId, $message, $link);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+if (!function_exists('kt_notify_super_admins')) {
+    function kt_notify_super_admins(mysqli $conn, string $message, ?string $link = null, ?int $excludeAdminId = null): void
+    {
+        $res = $conn->query("SELECT admin_id FROM admins WHERE LOWER(role) = 'super admin'");
+        if (!$res) return;
+        foreach ($res->fetch_all(MYSQLI_ASSOC) as $row) {
+            $id = (int) $row['admin_id'];
+            if ($id === $excludeAdminId) continue;
+            kt_notify($conn, $id, $message, $link);
+        }
+    }
+}
+
+if (!function_exists('kt_notifications_unread_count')) {
+    function kt_notifications_unread_count(mysqli $conn, int $adminId): int
+    {
+        $stmt = $conn->prepare("SELECT COUNT(*) AS c FROM admin_notifications WHERE admin_id = ? AND is_read = 0");
+        $stmt->bind_param('i', $adminId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return (int) ($row['c'] ?? 0);
+    }
+}
+
+if (!function_exists('kt_notifications_list')) {
+    function kt_notifications_list(mysqli $conn, int $adminId, int $limit = 20): array
+    {
+        $stmt = $conn->prepare("SELECT * FROM admin_notifications WHERE admin_id = ? ORDER BY created_at DESC LIMIT ?");
+        $stmt->bind_param('ii', $adminId, $limit);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $rows;
+    }
+}
+
+if (!function_exists('kt_notifications_mark_all_read')) {
+    function kt_notifications_mark_all_read(mysqli $conn, int $adminId): void
+    {
+        $stmt = $conn->prepare("UPDATE admin_notifications SET is_read = 1 WHERE admin_id = ? AND is_read = 0");
+        $stmt->bind_param('i', $adminId);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 
@@ -76,6 +195,13 @@ if (!function_exists('kt_requests_ensure_enum_value')) {
             return; // already has it (or the column doesn't exist — nothing to do)
         }
         $conn->query("ALTER TABLE `$table` MODIFY `$column` $newDefinitionSql");
+    }
+}
+
+if (!function_exists('kt_base_url')) {
+    function kt_base_url(): string
+    {
+        return defined('BASE_URL') ? BASE_URL : '/kultoura';
     }
 }
 
@@ -103,6 +229,15 @@ if (!function_exists('kt_requests_create')) {
         $stmt->execute();
         $id = $stmt->insert_id;
         $stmt->close();
+
+        $meta = kt_entity_meta($entityType);
+        $verb = $action === 'archive' ? 'archive' : $action;
+        kt_notify_super_admins(
+            $conn,
+            "$requestedByName requested to $verb " . ($meta['label'] ?? $entityType) . " \"$label\"",
+            kt_base_url() . '/admin/adminrequests.php'
+        );
+
         return $id;
     }
 }
@@ -148,12 +283,27 @@ if (!function_exists('kt_requests_find')) {
 if (!function_exists('kt_requests_resolve')) {
     function kt_requests_resolve(mysqli $conn, int $id, string $status, int $reviewerId, ?string $note = null): void
     {
+        $request = kt_requests_find($conn, $id);
+
         $stmt = $conn->prepare(
             "UPDATE admin_change_requests SET status = ?, reviewed_by = ?, review_note = ?, reviewed_at = NOW() WHERE request_id = ?"
         );
         $stmt->bind_param('sisi', $status, $reviewerId, $note, $id);
         $stmt->execute();
         $stmt->close();
+
+        if ($request) {
+            $meta = kt_entity_meta($request['entity_type']);
+            $verb = $request['action'] === 'archive' ? 'archive' : $request['action'];
+            $message = "Your request to $verb " . ($meta['label'] ?? $request['entity_type']) . " \"{$request['entity_label']}\" was " . $status
+                . ($status === 'rejected' && $note ? " ($note)" : '');
+            kt_notify(
+                $conn,
+                (int) $request['requested_by'],
+                $message,
+                kt_base_url() . '/admin/' . ($meta['page'] ?? 'admindashboard.php')
+            );
+        }
     }
 }
 

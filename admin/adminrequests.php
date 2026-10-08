@@ -120,6 +120,8 @@ $pendingCount = kt_requests_pending_count($conn);
         .req-tag.create { background: rgba(129,199,132,.15); color: #81c784; }
         .req-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px; }
         .req-field { background: rgba(255,255,255,.03); border-radius: 8px; padding: 8px 12px; }
+        .req-field.changed { background: rgba(200,169,110,.1); border: 1px solid rgba(200,169,110,.35); }
+        .req-field.changed .req-field-label { color: var(--gold,#C8A96E); }
         .req-field-label { font-size: .62rem; color: rgba(245,237,216,.35); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
         .req-field-value { font-size: .82rem; color: rgba(245,237,216,.85); word-break: break-word; }
         .req-field-value img { max-width: 100px; border-radius: 6px; margin-top: 4px; display: block; }
@@ -224,17 +226,36 @@ $pendingCount = kt_requests_pending_count($conn);
                         </div>
                     </div>
 
+                    <?php
+                    $currentRow = $r['action'] === 'update' ? kt_fetch_entity_current($conn, $r['entity_type'], $r['entity_id'] !== null ? (int) $r['entity_id'] : null) : null;
+                    ?>
+
                     <?php if ($r['action'] !== 'archive' && !empty($r['payload'])): ?>
+                        <?php if ($r['action'] === 'update'): ?>
+                            <p style="font-size:.72rem;color:rgba(245,237,216,.4);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Fields highlighted below are what this request actually changes</p>
+                        <?php endif; ?>
                         <div class="req-fields">
                             <?php foreach ($r['payload'] as $field => $value): ?>
-                                <?php if ($field === 'image' && $value): ?>
-                                    <div class="req-field">
-                                        <div class="req-field-label">Image</div>
+                                <?php
+                                if ($field === 'remove_image' || $value === '' || $value === null) continue;
+                                $currentValue = $currentRow[$field] ?? null;
+                                $isChanged = $currentRow === null || (string) $currentValue !== (string) $value;
+                                ?>
+                                <?php if ($field === 'image'): ?>
+                                    <div class="req-field<?php echo $isChanged ? ' changed' : ''; ?>">
+                                        <div class="req-field-label">Image<?php echo $isChanged ? ' — changed' : ''; ?></div>
+                                        <?php if ($isChanged && !empty($currentValue)): ?>
+                                            <div style="font-size:.68rem;color:rgba(245,237,216,.4);margin-bottom:3px;">Was:</div>
+                                            <img src="<?php echo htmlspecialchars($currentValue); ?>" alt="" style="opacity:.5;">
+                                        <?php endif; ?>
                                         <div class="req-field-value"><img src="<?php echo htmlspecialchars($value); ?>" alt=""></div>
                                     </div>
-                                <?php elseif ($value !== '' && $value !== null && $field !== 'image'): ?>
-                                    <div class="req-field">
-                                        <div class="req-field-label"><?php echo htmlspecialchars($fieldLabels[$field] ?? $field); ?></div>
+                                <?php else: ?>
+                                    <div class="req-field<?php echo $isChanged ? ' changed' : ''; ?>">
+                                        <div class="req-field-label"><?php echo htmlspecialchars($fieldLabels[$field] ?? $field); ?><?php echo $isChanged && $currentRow !== null ? ' — changed' : ''; ?></div>
+                                        <?php if ($isChanged && $currentRow !== null && $currentValue !== null && $currentValue !== ''): ?>
+                                            <div style="font-size:.72rem;color:rgba(245,237,216,.4);text-decoration:line-through;margin-bottom:2px;"><?php echo htmlspecialchars((string) $currentValue); ?></div>
+                                        <?php endif; ?>
                                         <div class="req-field-value"><?php echo is_bool($value) ? ($value ? 'Yes' : 'No') : htmlspecialchars((string) $value); ?></div>
                                     </div>
                                 <?php endif; ?>
@@ -271,6 +292,7 @@ $pendingCount = kt_requests_pending_count($conn);
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
+<script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminusers.js"></script>
 <script>initSidebarCollapse();</script>
 <?php if ($flashMessage): ?>
