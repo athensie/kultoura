@@ -1329,6 +1329,24 @@
     margin-top: 20px;
 }
 
+/* `.td-visit-icon`/`.td-visit-actions` both declare their own `display`,
+   which — at equal specificity with the browser's default `[hidden] {
+   display: none }` rule — let the later-loaded one win regardless of
+   which element actually has the `hidden` attribute. That let both the
+   "ask" and "confirm" button rows show at once instead of only the
+   active step. These two selectors restore `hidden` actually hiding. */
+.td-visit-icon[hidden],
+.td-visit-actions[hidden] {
+    display: none;
+}
+
+/* Same issue as above — this badge starts `hidden` in the markup and
+   only ever gets un-hidden (for a row actually near the user), so
+   without this it would show on every row from the start. */
+.td-nearby-badge[hidden] {
+    display: none;
+}
+
 .td-visit-btn {
     flex: 1;
     padding: 11px 14px;
@@ -2237,6 +2255,10 @@
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
 }
 
+.td-camera-video-wrap {
+    position: relative;
+}
+
 .td-camera-video {
     width: 100%;
     max-height: 60vh;
@@ -2244,6 +2266,32 @@
     border-radius: 14px;
     object-fit: cover;
     display: block;
+}
+
+.td-camera-flip {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+.td-camera-flip:hover {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.td-camera-flip[hidden] {
+    display: none;
 }
 
 .td-camera-error {

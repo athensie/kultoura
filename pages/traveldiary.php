@@ -909,9 +909,6 @@ usort($checklist, function ($a, $b) {
 
                                     <div class="td-check-expand" hidden>
                                         <textarea class="td-note-input" placeholder="Add a note…" data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>"><?php echo htmlspecialchars($c['note']); ?></textarea>
-                                        <div class="td-check-actions">
-                                            <button type="button" class="td-mini-btn td-upload-btn" data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>">Upload Photo</button>
-                                        </div>
                                     </div>
                                 </div>
 
@@ -919,7 +916,7 @@ usort($checklist, function ($a, $b) {
                                     <button type="button" class="td-check-photo-btn" aria-label="Add photo" title="Add photo"
                                         data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>">📷</button>
                                 <?php endif; ?>
-                                <button type="button" class="td-check-toggle-note" aria-label="Add note or photo">✎</button>
+                                <button type="button" class="td-check-toggle-note" aria-label="Add note" title="Add note">✎</button>
 
                                 <label class="td-check-box">
                                     <input type="checkbox" class="td-checkbox" data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>" <?php echo $c['visited'] ? 'checked' : ''; ?>>
@@ -1223,7 +1220,10 @@ usort($checklist, function ($a, $b) {
     <div class="td-camera-card">
         <button type="button" class="td-photo-choice-close" id="tdCameraClose" aria-label="Close camera">&times;</button>
         <h3 class="td-photo-choice-title">Take a Photo</h3>
-        <video id="tdCameraVideo" class="td-camera-video" autoplay playsinline muted></video>
+        <div class="td-camera-video-wrap">
+            <video id="tdCameraVideo" class="td-camera-video" autoplay playsinline muted></video>
+            <button type="button" class="td-camera-flip" id="tdCameraFlip" aria-label="Switch camera" title="Switch camera" hidden>🔄</button>
+        </div>
         <p class="td-camera-error" id="tdCameraError" hidden></p>
         <div class="td-camera-actions">
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraCancel">Cancel</button>

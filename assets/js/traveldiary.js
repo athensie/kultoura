@@ -272,10 +272,12 @@ const tdCamera = (function () {
     const shootBtn = document.getElementById('tdCameraShoot');
     const cancelBtn = document.getElementById('tdCameraCancel');
     const closeBtn = document.getElementById('tdCameraClose');
+    const flipBtn = document.getElementById('tdCameraFlip');
     if (!overlay) return null;
 
     let stream = null;
     let pending = null; // { itemType, itemId, btn }
+    let facingMode = 'environment'; // back camera by default — better for photographing a place
 
     function stop() {
         if (stream) stream.getTracks().forEach((t) => t.stop());
@@ -288,6 +290,7 @@ const tdCamera = (function () {
         overlay.classList.remove('open');
         document.body.style.overflow = '';
         pending = null;
+        facingMode = 'environment';
     }
 
     function showError(message) {
@@ -296,8 +299,43 @@ const tdCamera = (function () {
         shootBtn.disabled = true;
     }
 
+    // Only offer the flip button when the device actually has more than
+    // one camera — otherwise it's a button that can't do anything.
+    async function updateFlipAvailability() {
+        if (flipBtn) flipBtn.hidden = true;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cameraCount = devices.filter((d) => d.kind === 'videoinput').length;
+            if (flipBtn) flipBtn.hidden = cameraCount < 2;
+        } catch (err) {
+            // Can't enumerate (older browser, permissions) — leave the
+            // flip button hidden rather than offer something that may fail.
+        }
+    }
+
+    async function startStream() {
+        errorEl.hidden = true;
+        shootBtn.disabled = false;
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: facingMode } },
+                audio: false,
+            });
+            stop(); // only tear down the old stream once the new one is confirmed working
+            stream = newStream;
+            video.srcObject = stream;
+            updateFlipAvailability();
+        } catch (err) {
+            showError(err.name === 'NotAllowedError'
+                ? 'Camera access was blocked. Allow camera access in your browser settings to take a photo.'
+                : "Couldn't open the camera. Try choosing a photo from your library instead.");
+        }
+    }
+
     async function open(itemType, itemId, btn) {
         pending = { itemType, itemId, btn };
+        facingMode = 'environment';
         errorEl.hidden = true;
         shootBtn.disabled = false;
         overlay.classList.add('open');
@@ -309,17 +347,14 @@ const tdCamera = (function () {
             return;
         }
 
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: 'environment' } },
-                audio: false,
-            });
-            video.srcObject = stream;
-        } catch (err) {
-            showError(err.name === 'NotAllowedError'
-                ? 'Camera access was blocked. Allow camera access in your browser settings to take a photo.'
-                : "Couldn't open the camera. Try choosing a photo from your library instead.");
-        }
+        await startStream();
+    }
+
+    if (flipBtn) {
+        flipBtn.addEventListener('click', () => {
+            facingMode = facingMode === 'environment' ? 'user' : 'environment';
+            startStream();
+        });
     }
 
     function fallbackToFileInput(itemType, itemId, btn) {
