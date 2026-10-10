@@ -578,6 +578,7 @@ usort($checklist, function ($a, $b) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Diary – KULTOURA</title>
     <link rel="stylesheet" href="../assets/css/index.css">
+    <link rel="stylesheet" href="../assets/css/search.css">
     <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/traveldiary.css">
 </head>
@@ -635,7 +636,16 @@ usort($checklist, function ($a, $b) {
     </nav>
 
 
-    <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <div class="navbar-search" data-api="search_api.php" data-results="search.php">
+        <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <form class="navbar-search-form" action="search.php" method="GET">
+            <input type="search" name="q" class="navbar-search-input" placeholder="Search KulToura…" autocomplete="off">
+        </form>
+        <div class="navbar-search-dropdown"></div>
+    </div>
+<button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
 
@@ -1254,6 +1264,7 @@ const TD_WRAPPED_PERIOD = <?php echo json_encode($wrappedPeriod); ?>;
 <!-- Renders a slide's DOM into a downloadable/shareable PNG (used by Save Photo / Share). -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="../assets/js/navbar.js"></script>
+<script src="../assets/js/navbar-search.js"></script>
 <script src="../assets/js/traveldiary.js"></script>
 
 </body>

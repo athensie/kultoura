@@ -150,6 +150,7 @@ if ($result = $conn->query(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
     <link rel="stylesheet" href="assets/css/index.css">
+    <link rel="stylesheet" href="assets/css/search.css">
 </head>
 <body>
 
@@ -217,7 +218,16 @@ if ($result = $conn->query(
         </nav>
 
 
-        <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
+            <div class="navbar-search" data-api="pages/search_api.php" data-results="pages/search.php">
+        <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <form class="navbar-search-form" action="pages/search.php" method="GET">
+            <input type="search" name="q" class="navbar-search-input" placeholder="Search KulToura…" autocomplete="off">
+        </form>
+        <div class="navbar-search-dropdown"></div>
+    </div>
+<button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
 
@@ -469,6 +479,7 @@ if ($result = $conn->query(
     </div>
 </footer>
 <script src="assets/js/navbar.js"></script>
+<script src="assets/js/navbar-search.js"></script>
 <script src="assets/js/home.js"></script>
 </body>
 </html>

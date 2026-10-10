@@ -186,9 +186,14 @@ body {
 /* "Mabuhay, ___" text only — not the salakot icon beside it. */
 .navbar-greeting-text {
     font-family: 'Barabara', 'Fraunces', Georgia, serif;
-    font-size: 21px;
+    /* Barabara only defines uppercase letters (plus digits/punctuation)
+       — lowercase falls back to the next font in the stack, splitting
+       the greeting across two very different looks. Uppercasing it is
+       what actually renders the whole thing in Barabara. */
+    text-transform: uppercase;
+    font-size: 18px;
     font-weight: normal;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.75px;
 }
 
 .user-greeting-left:hover .navbar-logo-icon {
