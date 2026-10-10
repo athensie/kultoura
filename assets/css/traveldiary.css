@@ -102,13 +102,16 @@
     flex-shrink: 0;
 }
 
-.td-badge-product    { background: #a9843f; }
-.td-badge-restaurant { background: #8b2e1a; }
-.td-badge-nature     { background: #5f7d4c; }
-.td-badge-resort     { background: #3f7d82; }
-.td-badge-industry   { background: #6b6357; }
-.td-badge-fiesta     { background: #a8433a; }
-.td-badge-person     { background: #4a5a78; }
+.td-badge-product       { background: #a9843f; }
+.td-badge-restaurant    { background: #8b2e1a; }
+.td-badge-nature        { background: #5f7d4c; }
+.td-badge-resort        { background: #3f7d82; }
+.td-badge-industry      { background: #6b6357; }
+.td-badge-accommodation { background: #7a5c9e; }
+.td-badge-bank          { background: #2f6690; }
+.td-badge-service       { background: #8a6a2f; }
+.td-badge-fiesta        { background: #a8433a; }
+.td-badge-person        { background: #4a5a78; }
 
 /* ── Hero ── */
 .td-hero {
@@ -2064,7 +2067,7 @@
 .tw-theme-weekly .tw-slide-8 { background: #fdecd9; }
 .tw-theme-weekly .tw-slide-9 { background: #fbe5d0; }
 .tw-theme-weekly .tw-slide-10 { background: #fdf1e3; }
-.tw-theme-weekly .tw-map-pin circle, .tw-theme-weekly .tw-map-compass circle { fill: #c14a2b; }
+.tw-theme-weekly .tw-map-compass circle { fill: #c14a2b; }
 .tw-theme-weekly .tw-map-path { stroke: #c14a2b; }
 
 .tw-theme-monthly .tw-badge { background: #2f6690; }
@@ -2083,7 +2086,7 @@
 .tw-theme-monthly .tw-slide-8 { background: #e0f0f2; }
 .tw-theme-monthly .tw-slide-9 { background: #d6ebee; }
 .tw-theme-monthly .tw-slide-10 { background: #eaf5f7; }
-.tw-theme-monthly .tw-map-pin circle, .tw-theme-monthly .tw-map-compass circle { fill: #2f6690; }
+.tw-theme-monthly .tw-map-compass circle { fill: #2f6690; }
 .tw-theme-monthly .tw-map-path { stroke: #2f6690; }
 
 .tw-sub {
@@ -2490,6 +2493,7 @@
 
 /* Slide 7: travel map */
 .tw-map-wrap {
+    position: relative;
     width: 100%;
     max-width: 240px;
     margin: 0 auto 18px;
@@ -2499,6 +2503,7 @@
     width: 100%;
     height: auto;
     overflow: visible;
+    display: block;
 }
 
 .tw-map-blob {
@@ -2515,13 +2520,29 @@
     stroke-linecap: round;
 }
 
-.tw-map-pin circle {
-    fill: #8b2e1a;
-    stroke: #fff;
-    stroke-width: 1.2;
-    transform-origin: center;
-    transform-box: fill-box;
+/* Each visited place's marker is its own category icon (the fork-and-
+   knife for a restaurant, the leaf for nature, …) in a colored circle —
+   the same $categoryIcons + .td-badge-* colors used everywhere else on
+   the page — rather than a plain dot, so the map reads at a glance. An
+   HTML overlay (not native SVG) because it's just much easier to reuse
+   those existing icon/color classes this way than re-deriving them as
+   SVG sub-elements. */
+.tw-map-pin-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: #fff;
+    border: 1.5px solid #fff;
+    box-shadow: 0 2px 6px rgba(44, 26, 14, 0.35);
 }
+
+.tw-map-pin-marker svg { width: 100%; height: 100%; display: block; }
 
 .tw-map-compass circle {
     fill: rgba(44, 26, 14, 0.5);
@@ -2557,10 +2578,15 @@
 }
 
 .tw-map-legend-pin {
-    width: 15px;
-    height: 15px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
-    color: #8b2e1a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    color: #fff;
 }
 
 .tw-map-legend-pin svg { width: 100%; height: 100%; display: block; }
@@ -2664,7 +2690,7 @@
     .tw-slide.tw-animate .tw-collage-photo,
     .tw-slide.tw-animate .tw-scatter-photo,
     .tw-slide.tw-animate .tw-sticky-note,
-    .tw-slide.tw-animate .tw-map-pin circle {
+    .tw-slide.tw-animate .tw-map-pin-marker {
         animation: none !important;
     }
 }
@@ -2712,8 +2738,18 @@
 .tw-collage-photo:nth-child(4) { animation-delay: 0.6s; }
 .tw-sticky-note { animation-delay: 0.65s; }
 
-.tw-slide.tw-animate .tw-map-pin circle {
-    animation: tw-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+/* Separate from .tw-pop-in because the marker's own resting transform
+   (translate(-50%, -50%), centering it on its x/y position) has to be
+   preserved through every animation frame — a plain scale() keyframe
+   would overwrite that centering and the pin would jump to its
+   top-left corner for the duration of the animation. */
+@keyframes tw-pin-pop-in {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.tw-slide.tw-animate .tw-map-pin-marker {
+    animation: tw-pin-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     animation-delay: calc(0.3s + (var(--pin-i, 0) * 0.12s));
 }
 

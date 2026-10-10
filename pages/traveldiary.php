@@ -1325,19 +1325,21 @@ usort($checklist, function ($a, $b) {
                         <?php if (count($twMapPoints) > 1): ?>
                             <polyline class="tw-map-path" points="<?php echo implode(' ', array_map(fn($p) => round($p['x'], 1) . ',' . round($p['y'], 1), $twMapPoints)); ?>"/>
                         <?php endif; ?>
-                        <?php foreach ($twMapPoints as $i => $p): ?>
-                            <g class="tw-map-pin" style="--pin-i: <?php echo $i; ?>" transform="translate(<?php echo round($p['x'], 1); ?>,<?php echo round($p['y'], 1); ?>)"><circle r="3.4"/></g>
-                        <?php endforeach; ?>
                         <g class="tw-map-compass" transform="translate(86,14)">
                             <circle r="7"/>
                             <path d="M0 -4.5 L1.4 0 L0 4.5 L-1.4 0 Z"/>
                             <text y="-9.5" text-anchor="middle">N</text>
                         </g>
                     </svg>
+                    <?php foreach ($twMapPoints as $i => $p): ?>
+                        <div class="tw-map-pin-marker td-badge-<?php echo htmlspecialchars($p['category']); ?>" style="left: <?php echo round($p['x'], 1); ?>%; top: <?php echo round($p['y'], 1); ?>%; --pin-i: <?php echo $i; ?>" title="<?php echo htmlspecialchars($p['name']); ?>">
+                            <?php echo $categoryIcons[$p['category']] ?? $statIcons['pin']; ?>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
                 <div class="tw-map-legend">
                     <?php foreach ($twMapPoints as $p): ?>
-                        <div class="tw-map-legend-item"><span class="tw-map-legend-pin"><?php echo $statIcons['pin']; ?></span><?php echo htmlspecialchars($p['name']); ?></div>
+                        <div class="tw-map-legend-item"><span class="tw-map-legend-pin td-badge-<?php echo htmlspecialchars($p['category']); ?>"><?php echo $categoryIcons[$p['category']] ?? $statIcons['pin']; ?></span><?php echo htmlspecialchars($p['name']); ?></div>
                     <?php endforeach; ?>
                 </div>
                 <p class="tw-map-credit">Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
