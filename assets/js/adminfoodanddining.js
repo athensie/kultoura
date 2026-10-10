@@ -212,6 +212,28 @@ function searchAddress(prefix) {
     .catch(() => showToast('Could not reach the map search service. Try again.'));
 }
 
+// "Use My Location" — drops the pin at the admin's actual current
+// position (e.g. standing at the restaurant) instead of making them
+// search for or click it on the map.
+function useMyLocation(prefix) {
+  if (!navigator.geolocation) {
+    setMapHint(prefix, "Your browser doesn't support location access — search or click the map instead.");
+    return;
+  }
+  setMapHint(prefix, 'Finding your location…');
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      dropPin(prefix, pos.coords.latitude, pos.coords.longitude, true);
+    },
+    function (err) {
+      setMapHint(prefix, err.code === err.PERMISSION_DENIED
+        ? 'Location access was denied — search or click the map instead.'
+        : "Couldn't get your location — search or click the map instead.");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
 function reverseGeocodeLatLng(prefix, lat, lng) {
   const { addressInput } = getMapRefs(prefix);
   if (!addressInput) return;

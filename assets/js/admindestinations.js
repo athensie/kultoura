@@ -128,6 +128,29 @@ function ktSetupMapPicker(mapElId, inputElId, hiddenElId, statusElId) {
     reverseGeocode(e.latlng.lat, e.latlng.lng);
   });
 
+  // "Use My Location" — drops the pin at the admin's actual current
+  // position (e.g. standing at the destination) instead of making them
+  // search for or click it on the map.
+  function locate() {
+    if (!navigator.geolocation) {
+      setStatus("Your browser doesn't support location access — search or click the map instead.");
+      return;
+    }
+    setStatus('Finding your location…');
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        setPosition(pos.coords.latitude, pos.coords.longitude, 17);
+        reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+      },
+      function (err) {
+        setStatus(err.code === err.PERMISSION_DENIED
+          ? 'Location access was denied — search or click the map instead.'
+          : "Couldn't get your location — search or click the map instead.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }
+
   const suggestBox = document.createElement('div');
   suggestBox.className = 'kt-suggest-box';
   input.parentNode.appendChild(suggestBox);
@@ -167,7 +190,7 @@ function ktSetupMapPicker(mapElId, inputElId, hiddenElId, statusElId) {
     }, 200);
   });
 
-  return { map: map, marker: marker, setPosition: setPosition, setStatus: setStatus };
+  return { map: map, marker: marker, setPosition: setPosition, setStatus: setStatus, locate: locate };
 }
 
 // Lazily creates each picker the first time its modal opens, and just

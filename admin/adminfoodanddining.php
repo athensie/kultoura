@@ -593,6 +593,7 @@ sort($allCategories);
                 <div class="map-search-row">
                     <input class="form-input" type="text" id="addMapSearchInput" placeholder="Search an address, e.g. Town Proper, Malvar">
                     <button type="button" class="map-search-btn" onclick="searchAddress('add')">Find</button>
+                    <button type="button" class="map-search-btn" onclick="useMyLocation('add')" title="Use my current location"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i></button>
                 </div>
                 <div class="map-picker">
                     <div class="map-picker-canvas" id="addMapCanvas"></div>
@@ -687,6 +688,7 @@ sort($allCategories);
                 <div class="map-search-row">
                     <input class="form-input" type="text" id="editMapSearchInput" placeholder="Search an address…">
                     <button type="button" class="map-search-btn" onclick="searchAddress('edit')">Find</button>
+                    <button type="button" class="map-search-btn" onclick="useMyLocation('edit')" title="Use my current location"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i></button>
                 </div>
                 <div class="map-picker">
                     <div class="map-picker-canvas" id="editMapCanvas"></div>

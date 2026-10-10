@@ -401,6 +401,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <label class="form-label">Location</label>
                 <div class="map-picker">
                     <input class="form-input map-search" type="text" id="addMapSearch" placeholder="Search a place… or just click the map" onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapPlace('add');}">
+                    <button type="button" class="btn-ghost" style="margin:8px 0;padding:7px 14px;font-size:.78rem;" onclick="useMyLocation('add')"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i> Use My Location</button>
                     <div class="map-canvas" id="addMapCanvas"></div>
                     <div class="map-picked-label" id="addMapLabel">No location selected yet — click the map.</div>
                 </div>
@@ -452,6 +453,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <label class="form-label">Location</label>
                 <div class="map-picker">
                     <input class="form-input map-search" type="text" id="editMapSearch" placeholder="Search a place… or just click the map" onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapPlace('edit');}">
+                    <button type="button" class="btn-ghost" style="margin:8px 0;padding:7px 14px;font-size:.78rem;" onclick="useMyLocation('edit')"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i> Use My Location</button>
                     <div class="map-canvas" id="editMapCanvas"></div>
                     <div class="map-picked-label" id="editMapLabel">No location selected yet — click the map.</div>
                 </div>

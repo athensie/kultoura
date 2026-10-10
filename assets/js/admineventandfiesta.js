@@ -284,6 +284,35 @@ function reverseGeocode(prefix, lat, lng) {
     });
 }
 
+// "Use My Location" — drops the pin at the admin's actual current
+// position (e.g. standing at the fiesta/event venue) instead of
+// making them search for or click it on the map.
+function useMyLocation(prefix) {
+  const label = document.getElementById(prefix + 'MapLabel');
+  if (!navigator.geolocation) {
+    if (label) label.textContent = "Your browser doesn't support location access — search or click the map instead.";
+    return;
+  }
+  if (label) label.textContent = 'Finding your location…';
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const map = _maps[prefix];
+      if (map) map.setView([lat, lng], 17);
+      setMapMarker(prefix, lat, lng);
+      setLatLngInputs(prefix, lat, lng);
+      reverseGeocode(prefix, lat, lng);
+    },
+    function (err) {
+      if (label) label.textContent = err.code === err.PERMISSION_DENIED
+        ? 'Location access was denied — search or click the map instead.'
+        : "Couldn't get your location — search or click the map instead.";
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
 function searchMapPlace(prefix) {
   const searchInput = document.getElementById(prefix + 'MapSearch');
   const q = searchInput ? searchInput.value.trim() : '';

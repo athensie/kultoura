@@ -573,6 +573,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                     <input class="form-input" type="text" name="location" id="addLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off" required>
                 </div>
                 <input type="hidden" name="google_maps" id="addGoogleMaps" value="">
+                <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktAddMap && ktAddMap.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
                 <div id="addMapPicker" style="height:220px;border-radius:8px;margin-top:8px;background:rgba(255,255,255,.04);overflow:hidden;"></div>
                 <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
@@ -645,6 +646,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                     <input class="form-input" type="text" name="location" id="editDestinationLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off" required>
                 </div>
                 <input type="hidden" name="google_maps" id="editGoogleMaps" value="">
+                <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktEditMap && ktEditMap.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
                 <div id="editMapPicker" style="height:220px;border-radius:8px;margin-top:8px;background:rgba(255,255,255,.04);overflow:hidden;"></div>
                 <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
