@@ -27,8 +27,17 @@ if (!function_exists('kt_session_start')) {
             || (($_SERVER['SERVER_PORT'] ?? '') == 443)
             || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
 
+        // Without this, both default to PHP's stock 24 minutes — a
+        // logged-in user gets silently signed out after sitting idle
+        // for less than half an hour, which looks like a random bug
+        // rather than an intentional timeout. A week is generous enough
+        // that normal browsing never hits it, while still expiring
+        // genuinely abandoned sessions eventually.
+        $sessionLifetime = 7 * 24 * 60 * 60;
+        ini_set('session.gc_maxlifetime', (string) $sessionLifetime);
+
         session_set_cookie_params([
-            'lifetime' => 0,
+            'lifetime' => $sessionLifetime,
             'path'     => '/',
             'domain'   => '',
             'secure'   => $isHttps,

@@ -276,30 +276,49 @@
 }
 
 /* ── Journey / Wrapped-teaser card ── */
+/* Cork board: a speckled tan/brown texture (layered radial-gradient
+   dots at different sizes/positions — no image asset needed) inside a
+   thick "wood frame" border, with every stat pinned to it like an
+   index card. */
 .td-journey-card {
     position: relative;
     z-index: 1;
     flex: 1;
     max-width: 400px;
-    background: #fff;
-    border: 1px solid rgba(44, 26, 14, 0.09);
-    border-radius: 16px;
-    padding: 22px;
-    box-shadow: 0 10px 30px rgba(44, 26, 14, 0.06);
+    background:
+        radial-gradient(circle at 15% 25%, rgba(70, 42, 20, 0.22) 0, rgba(70, 42, 20, 0.22) 1.4px, transparent 1.4px),
+        radial-gradient(circle at 68% 55%, rgba(70, 42, 20, 0.18) 0, rgba(70, 42, 20, 0.18) 1.6px, transparent 1.6px),
+        radial-gradient(circle at 38% 82%, rgba(110, 72, 36, 0.2) 0, rgba(110, 72, 36, 0.2) 1.8px, transparent 1.8px),
+        radial-gradient(circle at 88% 18%, rgba(110, 72, 36, 0.16) 0, rgba(110, 72, 36, 0.16) 1.2px, transparent 1.2px),
+        radial-gradient(circle at 8% 68%, rgba(70, 42, 20, 0.15) 0, rgba(70, 42, 20, 0.15) 1.3px, transparent 1.3px),
+        radial-gradient(circle at 55% 12%, rgba(110, 72, 36, 0.14) 0, rgba(110, 72, 36, 0.14) 1px, transparent 1px),
+        linear-gradient(135deg, #cba877, #b58d5c);
+    background-size: 19px 19px, 23px 23px, 27px 27px, 17px 17px, 21px 21px, 15px 15px, 100% 100%;
+    border: 9px solid #8a6238;
+    border-radius: 8px;
+    padding: 26px 18px 22px;
+    box-shadow: 0 14px 34px rgba(44, 26, 14, 0.28), inset 0 0 26px rgba(60, 35, 15, 0.3);
 }
 
 .td-journey-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
+    gap: 10px;
 }
 
 .td-journey-title {
     font-family: Georgia, serif;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
     color: #2c1a0e;
+    background: #fff8ec;
+    padding: 5px 13px;
+    border-radius: 2px;
+    box-shadow: 0 3px 7px rgba(44, 26, 14, 0.25);
+    transform: rotate(-2deg);
+    white-space: nowrap;
 }
 
 .td-journey-viewall {
@@ -312,6 +331,8 @@
     text-decoration: none;
     white-space: nowrap;
     transition: background 0.2s;
+    box-shadow: 0 3px 7px rgba(44, 26, 14, 0.25);
+    transform: rotate(1deg);
 }
 
 .td-journey-viewall:hover {
@@ -321,15 +342,42 @@
 .td-journey-stats {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-bottom: 16px;
+    gap: 16px;
+    margin-bottom: 18px;
 }
 
 .td-journey-stat {
     display: flex;
     align-items: center;
     gap: 12px;
+    background: #fffdf7;
+    border-radius: 3px;
+    padding: 11px 13px;
+    position: relative;
+    box-shadow: 0 5px 12px rgba(44, 26, 14, 0.22);
 }
+
+.td-journey-stat::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    margin-left: -5.5px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #f07a63, #b5301c);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+.td-journey-stat:nth-child(1) { transform: rotate(-1.1deg); }
+.td-journey-stat:nth-child(2) { transform: rotate(0.9deg); }
+.td-journey-stat:nth-child(3) { transform: rotate(-0.8deg); }
+.td-journey-stat:nth-child(4) { transform: rotate(1deg); }
+
+.td-journey-stat:nth-child(2)::before { background: radial-gradient(circle at 35% 30%, #7fb8e8, #2c6fa8); }
+.td-journey-stat:nth-child(3)::before { background: radial-gradient(circle at 35% 30%, #8fc97d, #4c8a3c); }
+.td-journey-stat:nth-child(4)::before { background: radial-gradient(circle at 35% 30%, #f0c95f, #c99418); }
 
 .td-journey-icon {
     width: 34px;
@@ -382,14 +430,19 @@
 }
 
 .td-journey-link {
+    display: inline-block;
     font-size: 12.5px;
     font-weight: 700;
-    color: #5f7d4c;
+    color: #fff8ec;
     text-decoration: none;
+    background: rgba(44, 26, 14, 0.22);
+    padding: 7px 14px;
+    border-radius: 3px;
+    border: 1px dashed rgba(255, 248, 236, 0.5);
 }
 
 .td-journey-link:hover {
-    text-decoration: underline;
+    background: rgba(44, 26, 14, 0.32);
 }
 
 /* ── Travel Statistics ── */
@@ -2305,4 +2358,14 @@
     justify-content: center;
     gap: 10px;
     margin-top: 16px;
+}
+
+/* `.td-camera-video`/`.td-camera-actions` both declare their own
+   `display`, which beats the browser's default `[hidden] { display:
+   none }` rule at equal specificity — same issue fixed above for the
+   visit modal. Without these, the capture preview and live video (or
+   their action rows) would show at the same time. */
+.td-camera-video[hidden],
+.td-camera-actions[hidden] {
+    display: none;
 }

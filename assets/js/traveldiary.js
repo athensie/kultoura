@@ -267,17 +267,24 @@ function tdUploadPhotos(itemType, itemId, btn) {
 const tdCamera = (function () {
     const overlay = document.getElementById('tdCameraOverlay');
     const video = document.getElementById('tdCameraVideo');
+    const preview = document.getElementById('tdCameraPreview');
     const canvas = document.getElementById('tdCameraCanvas');
     const errorEl = document.getElementById('tdCameraError');
     const shootBtn = document.getElementById('tdCameraShoot');
     const cancelBtn = document.getElementById('tdCameraCancel');
     const closeBtn = document.getElementById('tdCameraClose');
     const flipBtn = document.getElementById('tdCameraFlip');
+    const shootActions = document.getElementById('tdCameraShootActions');
+    const previewActions = document.getElementById('tdCameraPreviewActions');
+    const retakeBtn = document.getElementById('tdCameraRetake');
+    const useBtn = document.getElementById('tdCameraUse');
     if (!overlay) return null;
 
     let stream = null;
     let pending = null; // { itemType, itemId, btn }
     let facingMode = 'environment'; // back camera by default — better for photographing a place
+    let capturedBlob = null;
+    let capturedUrl = null;
 
     function stop() {
         if (stream) stream.getTracks().forEach((t) => t.stop());
@@ -285,8 +292,33 @@ const tdCamera = (function () {
         video.srcObject = null;
     }
 
+    function showLive() {
+        if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
+        capturedBlob = null;
+        preview.hidden = true;
+        preview.src = '';
+        video.hidden = false;
+        if (flipBtn) flipBtn.hidden = false;
+        updateFlipAvailability();
+        previewActions.hidden = true;
+        shootActions.hidden = false;
+    }
+
+    function showPreview(blob) {
+        capturedBlob = blob;
+        capturedUrl = URL.createObjectURL(blob);
+        preview.src = capturedUrl;
+        preview.hidden = false;
+        video.hidden = true;
+        if (flipBtn) flipBtn.hidden = true;
+        shootActions.hidden = true;
+        previewActions.hidden = false;
+    }
+
     function close() {
         stop();
+        if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
+        capturedBlob = null;
         overlay.classList.remove('open');
         document.body.style.overflow = '';
         pending = null;
@@ -338,6 +370,13 @@ const tdCamera = (function () {
         facingMode = 'environment';
         errorEl.hidden = true;
         shootBtn.disabled = false;
+        if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
+        capturedBlob = null;
+        preview.hidden = true;
+        preview.src = '';
+        video.hidden = false;
+        shootActions.hidden = false;
+        previewActions.hidden = true;
         overlay.classList.add('open');
         document.body.style.overflow = 'hidden';
 
@@ -368,7 +407,6 @@ const tdCamera = (function () {
 
     shootBtn.addEventListener('click', () => {
         if (!pending || !stream || !video.videoWidth) return;
-        const { itemType, itemId, btn } = pending;
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -379,10 +417,18 @@ const tdCamera = (function () {
                 tdToast("Couldn't capture that photo. Please try again.");
                 return;
             }
-            const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            close();
-            tdUploadFiles([file], itemType, itemId, btn);
+            showPreview(blob);
         }, 'image/jpeg', 0.9);
+    });
+
+    retakeBtn.addEventListener('click', showLive);
+
+    useBtn.addEventListener('click', () => {
+        if (!pending || !capturedBlob) return;
+        const { itemType, itemId, btn } = pending;
+        const file = new File([capturedBlob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        close();
+        tdUploadFiles([file], itemType, itemId, btn);
     });
 
     cancelBtn.addEventListener('click', close);

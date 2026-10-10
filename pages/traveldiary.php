@@ -1222,12 +1222,17 @@ usort($checklist, function ($a, $b) {
         <h3 class="td-photo-choice-title">Take a Photo</h3>
         <div class="td-camera-video-wrap">
             <video id="tdCameraVideo" class="td-camera-video" autoplay playsinline muted></video>
+            <img id="tdCameraPreview" class="td-camera-video" alt="Captured photo" hidden>
             <button type="button" class="td-camera-flip" id="tdCameraFlip" aria-label="Switch camera" title="Switch camera" hidden>🔄</button>
         </div>
         <p class="td-camera-error" id="tdCameraError" hidden></p>
-        <div class="td-camera-actions">
+        <div class="td-camera-actions" id="tdCameraShootActions">
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraCancel">Cancel</button>
             <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraShoot">📷 Capture</button>
+        </div>
+        <div class="td-camera-actions" id="tdCameraPreviewActions" hidden>
+            <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraRetake">↺ Retake</button>
+            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraUse">✓ Use Photo</button>
         </div>
     </div>
 </div>

@@ -191,13 +191,6 @@ body {
     margin-left: auto;
 }
 
-/* Only ever shown inside the mobile hamburger dropdown (see the
-   max-width:768px block below) — on desktop, signing out already has
-   its own dedicated button outside the hamburger entirely. */
-.nav-signout-item {
-    display: none;
-}
-
 .nav-item {
     display: flex;
     flex-direction: column;
@@ -345,26 +338,12 @@ body {
     box-shadow: none;
 }
 
-/* Icon-only variant (e.g. Sign Out) — keeps the label for screen readers only */
+/* Sign Out used to render as its own small circular button here,
+   duplicating the "SIGN OUT" entry already in the nav links — removed
+   everywhere (not just on mobile) in favor of that single, clearly
+   labeled entry. */
 .sign-in-btn-icon-only {
-    width: 38px;
-    height: 38px;
-    padding: 0;
-    gap: 0;
-    justify-content: center;
-    border-radius: 50%;
-}
-.sign-in-btn-icon-only svg { width: 17px; height: 17px; }
-.sign-in-btn-icon-only span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    display: none;
 }
 
 /* ── Mobile hamburger toggle (hidden on desktop) ── */
@@ -1434,11 +1413,6 @@ body {
     .navbar-dots { display: none; }
     .sign-in-btn { order: 2; padding: 9px 16px; }
     .sign-in-btn span { display: none; }
-    /* Signing out now lives inside the hamburger dropdown instead
-       (see .nav-signout-item below) — this icon-only button next to
-       the hamburger would otherwise duplicate it. Signing IN keeps its
-       own icon here; only the logged-in state moves. */
-    .sign-in-btn-icon-only { display: none; }
 
     /* Nav links collapse into a dropdown panel toggled by the hamburger */
     .nav-links {
