@@ -2067,8 +2067,6 @@
 .tw-theme-weekly .tw-slide-8 { background: #fdecd9; }
 .tw-theme-weekly .tw-slide-9 { background: #fbe5d0; }
 .tw-theme-weekly .tw-slide-10 { background: #fdf1e3; }
-.tw-theme-weekly .tw-map-compass circle { fill: #c14a2b; }
-.tw-theme-weekly .tw-map-path { stroke: #c14a2b; }
 
 .tw-theme-monthly .tw-badge { background: #2f6690; }
 .tw-theme-monthly .tw-nav { background: rgba(47, 102, 144, 0.35); }
@@ -2086,8 +2084,6 @@
 .tw-theme-monthly .tw-slide-8 { background: #e0f0f2; }
 .tw-theme-monthly .tw-slide-9 { background: #d6ebee; }
 .tw-theme-monthly .tw-slide-10 { background: #eaf5f7; }
-.tw-theme-monthly .tw-map-compass circle { fill: #2f6690; }
-.tw-theme-monthly .tw-map-path { stroke: #2f6690; }
 
 .tw-sub {
     font-size: 13.5px;
@@ -2491,47 +2487,33 @@
 
 .tw-liked-heart svg { width: 100%; height: 100%; display: block; }
 
-/* Slide 7: travel map */
+/* Slide 7: travel map — a real (non-interactive) Leaflet + OpenStreetMap
+   map. Dragging/zooming/etc. are all disabled in JS so the map can't
+   fight the slideshow's own swipe-to-navigate; it's a snapshot view, not
+   a widget. Malvar's outline and the visit route are drawn with Leaflet's
+   own L.polygon/L.polyline (see traveldiary.js), not CSS. */
 .tw-map-wrap {
-    position: relative;
     width: 100%;
     max-width: 240px;
     margin: 0 auto 18px;
 }
 
-.tw-map-svg {
+.tw-map-leaflet {
     width: 100%;
-    height: auto;
-    overflow: visible;
-    display: block;
-}
-
-.tw-map-blob {
-    fill: rgba(95, 125, 76, 0.16);
-    stroke: rgba(95, 125, 76, 0.4);
-    stroke-width: 0.6;
-}
-
-.tw-map-path {
-    fill: none;
-    stroke: #8b2e1a;
-    stroke-width: 0.8;
-    stroke-dasharray: 2.4 2;
-    stroke-linecap: round;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    background: #e5dccb; /* shows while tiles are still loading */
 }
 
 /* Each visited place's marker is its own category icon (the fork-and-
    knife for a restaurant, the leaf for nature, …) in a colored circle —
    the same $categoryIcons + .td-badge-* colors used everywhere else on
-   the page — rather than a plain dot, so the map reads at a glance. An
-   HTML overlay (not native SVG) because it's just much easier to reuse
-   those existing icon/color classes this way than re-deriving them as
-   SVG sub-elements. */
+   the page — rather than a plain dot, so the map reads at a glance.
+   Positioning itself is handled entirely by Leaflet (iconAnchor), so
+   this only styles the badge's own look. */
 .tw-map-pin-marker {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2543,21 +2525,6 @@
 }
 
 .tw-map-pin-marker svg { width: 100%; height: 100%; display: block; }
-
-.tw-map-compass circle {
-    fill: rgba(44, 26, 14, 0.5);
-}
-
-.tw-map-compass path {
-    fill: #fff;
-}
-
-.tw-map-compass text {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 6px;
-    font-weight: 700;
-    fill: rgba(44, 26, 14, 0.5);
-}
 
 .tw-map-legend {
     display: flex;
@@ -2590,17 +2557,6 @@
 }
 
 .tw-map-legend-pin svg { width: 100%; height: 100%; display: block; }
-
-.tw-map-credit {
-    margin-top: 14px;
-    font-size: 9.5px;
-    color: rgba(44, 26, 14, 0.4);
-}
-
-.tw-map-credit a {
-    color: inherit;
-    text-decoration: underline;
-}
 
 /* Slide 8: a bigger version of slide 1's photo collage */
 .tw-collage-big {
@@ -2689,8 +2645,7 @@
     .tw-slide.tw-animate .tw-liked-card,
     .tw-slide.tw-animate .tw-collage-photo,
     .tw-slide.tw-animate .tw-scatter-photo,
-    .tw-slide.tw-animate .tw-sticky-note,
-    .tw-slide.tw-animate .tw-map-pin-marker {
+    .tw-slide.tw-animate .tw-sticky-note {
         animation: none !important;
     }
 }
@@ -2737,31 +2692,6 @@
 .tw-collage-photo:nth-child(3), .tw-scatter-photo:nth-child(3) { animation-delay: 0.5s; }
 .tw-collage-photo:nth-child(4) { animation-delay: 0.6s; }
 .tw-sticky-note { animation-delay: 0.65s; }
-
-/* Separate from .tw-pop-in because the marker's own resting transform
-   (translate(-50%, -50%), centering it on its x/y position) has to be
-   preserved through every animation frame — a plain scale() keyframe
-   would overwrite that centering and the pin would jump to its
-   top-left corner for the duration of the animation. */
-@keyframes tw-pin-pop-in {
-    from { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-.tw-slide.tw-animate .tw-map-pin-marker {
-    animation: tw-pin-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    animation-delay: calc(0.3s + (var(--pin-i, 0) * 0.12s));
-}
-
-.tw-slide.tw-animate .tw-map-path {
-    stroke-dasharray: 2.4 2;
-    stroke-dashoffset: 200;
-    animation: tw-map-draw 0.8s ease 0.4s both;
-}
-
-@keyframes tw-map-draw {
-    to { stroke-dashoffset: 0; }
-}
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {

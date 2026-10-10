@@ -561,24 +561,28 @@ const TD_MAP_SCALE    = 1144.5291506598528;
 const TD_MAP_OFFSET_X = 5.299841756408291;
 const TD_MAP_OFFSET_Y = 4;
 
-// Normalizes each place's lat/lng into a 0-100 x/y position on that same
-// projection. Places without coordinates (e.g. "person" entries) are left
-// out — there's nothing to plot. Points outside Malvar's own bounds
-// (shouldn't happen for real catalog data, but just in case) still land
-// at their true projected position rather than being clamped or hidden.
+// Every distinct place with coordinates (e.g. "person" entries have none
+// and are left out — there's nothing to plot for them).
 function td_wrapped_map_points(array $distinctPlaces): array
 {
-    $withCoords = array_values(array_filter($distinctPlaces, fn($p) => $p['lat'] !== null && $p['lng'] !== null));
-    if (empty($withCoords)) return [];
+    return array_values(array_filter($distinctPlaces, fn($p) => $p['lat'] !== null && $p['lng'] !== null));
+}
 
-    $points = [];
-    foreach ($withCoords as $p) {
-        $points[] = $p + [
-            'x' => TD_MAP_OFFSET_X + ($p['lng'] - TD_MAP_LNG_MIN) * TD_MAP_SCALE,
-            'y' => TD_MAP_OFFSET_Y + (TD_MAP_LAT_MAX - $p['lat']) * TD_MAP_SCALE, // north = up
+// Reverses TD_MAP_BOUNDARY_PATH's own projection to recover Malvar's
+// outline as real [lat, lng] pairs for the Leaflet polygon — one shape,
+// reused both ways, instead of storing the boundary twice.
+function td_wrapped_boundary_latlngs(): array
+{
+    $inner = substr(TD_MAP_BOUNDARY_PATH, 1, -1); // drop leading "M" and trailing "Z"
+    $latlngs = [];
+    foreach (explode('L', $inner) as $pair) {
+        [$x, $y] = array_map('floatval', explode(',', $pair));
+        $latlngs[] = [
+            TD_MAP_LAT_MAX - ($y - TD_MAP_OFFSET_Y) / TD_MAP_SCALE,
+            TD_MAP_LNG_MIN + ($x - TD_MAP_OFFSET_X) / TD_MAP_SCALE,
         ];
     }
-    return $points;
+    return $latlngs;
 }
 
 $tw = td_wrapped_stats($wrappedEntries, $catalog, $photosByEntry, $categoryLabels, $itemTypeVerbs);
@@ -702,6 +706,8 @@ usort($checklist, function ($a, $b) {
     <link rel="stylesheet" href="../assets/css/search.css">
     <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/traveldiary.css">
+    <!-- Travel Wrapped's "Your Travel Map" slide — same Leaflet + OpenStreetMap tiles as the admin map pickers. -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 
@@ -1320,29 +1326,13 @@ usort($checklist, function ($a, $b) {
                 <h2 class="tw-title-2">Your Travel<br>Map</h2>
                 <p class="tw-sub-2">A map of the places you visited in Malvar.</p>
                 <div class="tw-map-wrap">
-                    <svg class="tw-map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                        <path class="tw-map-blob" d="<?php echo TD_MAP_BOUNDARY_PATH; ?>"/>
-                        <?php if (count($twMapPoints) > 1): ?>
-                            <polyline class="tw-map-path" points="<?php echo implode(' ', array_map(fn($p) => round($p['x'], 1) . ',' . round($p['y'], 1), $twMapPoints)); ?>"/>
-                        <?php endif; ?>
-                        <g class="tw-map-compass" transform="translate(86,14)">
-                            <circle r="7"/>
-                            <path d="M0 -4.5 L1.4 0 L0 4.5 L-1.4 0 Z"/>
-                            <text y="-9.5" text-anchor="middle">N</text>
-                        </g>
-                    </svg>
-                    <?php foreach ($twMapPoints as $i => $p): ?>
-                        <div class="tw-map-pin-marker td-badge-<?php echo htmlspecialchars($p['category']); ?>" style="left: <?php echo round($p['x'], 1); ?>%; top: <?php echo round($p['y'], 1); ?>%; --pin-i: <?php echo $i; ?>" title="<?php echo htmlspecialchars($p['name']); ?>">
-                            <?php echo $categoryIcons[$p['category']] ?? $statIcons['pin']; ?>
-                        </div>
-                    <?php endforeach; ?>
+                    <div class="tw-map-leaflet" id="twMapLeaflet" data-points="<?php echo htmlspecialchars(json_encode($twMapPoints, JSON_UNESCAPED_UNICODE)); ?>" data-boundary="<?php echo htmlspecialchars(json_encode(td_wrapped_boundary_latlngs())); ?>"></div>
                 </div>
                 <div class="tw-map-legend">
                     <?php foreach ($twMapPoints as $p): ?>
                         <div class="tw-map-legend-item"><span class="tw-map-legend-pin td-badge-<?php echo htmlspecialchars($p['category']); ?>"><?php echo $categoryIcons[$p['category']] ?? $statIcons['pin']; ?></span><?php echo htmlspecialchars($p['name']); ?></div>
                     <?php endforeach; ?>
                 </div>
-                <p class="tw-map-credit">Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
             </div>
         </div>
         <?php endif; ?>
@@ -1493,6 +1483,7 @@ const TD_CATEGORY_ICONS = <?php echo $categoryIconsJson; ?>;
 </script>
 <!-- Renders a slide's DOM into a downloadable/shareable PNG (used by Save Photo / Share). -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/navbar-search.js"></script>
 <script src="../assets/js/traveldiary.js"></script>

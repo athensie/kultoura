@@ -638,7 +638,18 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         if (!slidesEl) return;
         slidesEl.style.transform = `translateX(-${current * 100}%)`;
         if (badge) badge.textContent = `${current + 1}/${slideCount}`;
-        playSlideAnimation(slidesEl.children[current]);
+        const activeSlide = slidesEl.children[current];
+        playSlideAnimation(activeSlide);
+
+        // "Your Travel Map" is identified by its fixed .tw-slide-7 class,
+        // not its position — conditional slides mean its actual position
+        // in the sequence varies from one Wrapped to the next. Leaflet
+        // also needs the container to already have real dimensions, which
+        // it won't until the overlay is open and this slide is showing,
+        // hence lazy-initializing it here rather than on page load.
+        if (activeSlide && activeSlide.classList.contains('tw-slide-7') && typeof tdWrappedMap !== 'undefined' && tdWrappedMap) {
+            tdWrappedMap.activate();
+        }
     }
 
     function goTo(index) {
@@ -778,6 +789,96 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
             shareBtn.disabled = false;
         });
     }
+})();
+
+/* ---------------- Travel Wrapped: "Your Travel Map" (Leaflet) ----------------
+   A real OpenStreetMap tile map (same library the admin map pickers use),
+   not an abstract shape — but entirely non-interactive (dragging/zoom/etc.
+   all disabled below), since a draggable map inside a horizontally-
+   swiped slideshow would fight the slideshow's own swipe-to-navigate.
+   It's a snapshot view, not a widget. */
+const tdWrappedMap = (function () {
+    const el = document.getElementById('twMapLeaflet');
+    if (!el || typeof L === 'undefined') return null;
+
+    let map = null;
+    let points = [];
+    let boundary = [];
+    try {
+        points = JSON.parse(el.dataset.points || '[]');
+        boundary = JSON.parse(el.dataset.boundary || '[]');
+    } catch (err) {
+        points = [];
+    }
+
+    function categoryIcon(category) {
+        const icons = (typeof TD_CATEGORY_ICONS !== 'undefined' && TD_CATEGORY_ICONS) || {};
+        return L.divIcon({
+            className: `tw-map-pin-marker td-badge-${category}`,
+            html: icons[category] || '',
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+        });
+    }
+
+    function activate() {
+        if (map) {
+            // Leaflet caches tile positions from whatever size the
+            // container was at init — re-measure every time this slide
+            // is revisited in case the panel itself was resized (e.g.
+            // rotating the device) since the last time it was shown.
+            map.invalidateSize();
+            return;
+        }
+        if (!points.length) return;
+
+        map = L.map(el, {
+            dragging: false,
+            touchZoom: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            zoomControl: false,
+            attributionControl: true,
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+        }).addTo(map);
+
+        if (boundary.length > 2) {
+            L.polygon(boundary, {
+                color: '#5f7d4c',
+                weight: 1.5,
+                fillColor: '#5f7d4c',
+                fillOpacity: 0.12,
+            }).addTo(map);
+        }
+
+        const latlngs = points.map((p) => [p.lat, p.lng]);
+        if (latlngs.length > 1) {
+            L.polyline(latlngs, {
+                color: '#8b2e1a',
+                weight: 2,
+                dashArray: '6, 6',
+            }).addTo(map);
+        }
+
+        points.forEach((p) => {
+            L.marker([p.lat, p.lng], { icon: categoryIcon(p.category) }).addTo(map);
+        });
+
+        map.fitBounds(L.latLngBounds(latlngs), { padding: [24, 24], maxZoom: 16 });
+
+        // The slide was still mid-transition (effectively zero width) the
+        // instant this ran, so Leaflet's own size measurement from just
+        // now can't be trusted — re-measure once that's settled.
+        setTimeout(() => map.invalidateSize(), 300);
+    }
+
+    return { activate };
 })();
 
 /* ---------------- Checklist: search + category filter ---------------- */
