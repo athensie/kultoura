@@ -627,6 +627,114 @@
     margin-top: 8px;
 }
 
+/* ── Place detail modal ── */
+.fy-detail-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(20, 14, 8, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.fy-detail-overlay.is-open {
+    display: flex;
+}
+
+.fy-detail-card {
+    position: relative;
+    width: min(560px, 100%);
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #fdfaf6;
+    border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+}
+
+.fy-detail-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.fy-detail-media {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    background: rgba(44, 26, 14, 0.08);
+}
+
+.fy-detail-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.fy-detail-media .fy-gcard-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+}
+
+.fy-detail-media-initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, serif;
+    font-size: 64px;
+    font-weight: 700;
+    color: rgba(44, 26, 14, 0.25);
+}
+
+.fy-detail-body {
+    padding: 24px 26px 28px;
+}
+
+.fy-detail-name {
+    font-family: Georgia, serif;
+    font-size: 24px;
+    color: #2c1a0e;
+    margin: 0 0 6px;
+}
+
+.fy-detail-meta {
+    font-size: 13px;
+    color: rgba(44, 26, 14, 0.5);
+    margin: 0 0 14px;
+}
+
+.fy-detail-desc {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: rgba(44, 26, 14, 0.75);
+    margin: 0 0 22px;
+}
+
+.fy-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fy-detail-fullpage {
+    margin-left: auto;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1100px) {
     .fy-hero { padding: 56px 48px 44px; gap: 32px; }

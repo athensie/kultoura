@@ -51,7 +51,7 @@ if (isset($_GET['track'])) {
 ============================================================ */
 // Upload subfolder per item type — same mapping used by favorites.php.
 $imageSubfolder = [
-    'product'       => 'products',
+    'product'       => 'food',
     'restaurant'    => 'food',
     'nature'        => 'destinations',
     'resort'        => 'destinations',
@@ -441,21 +441,30 @@ foreach ($itemHistory as $h) {
     $viewedItemKeys[$h['type'] . '-' . $h['id']] = true;
 }
 
+// Interest score for every place, not just the eventual top 6 — sent
+// down to the client (see $placesJson below) so foryou.js can blend in
+// a location-proximity boost once geolocation is available, instead of
+// the "Near You" section staying forever separate from "Because You
+// Explored". Same formula as before, just computed unconditionally.
+$interestScores = [];
+foreach ($places as $p) {
+    $contentScore = fy_cosine_similarity($profileVector, $placeVectors[$p['id']]);
+    $categoryScore = $maxFreq > 0 ? (($freq[$p['category']] ?? 0) / $maxFreq) : 0;
+    // Lean on content similarity once there's a real profile vector
+    // to compare against; otherwise (e.g. only page visits logged,
+    // no items opened yet) fall back to category affinity alone.
+    $interestScores[$p['id']] = $profileWeight > 0
+        ? (0.65 * $contentScore) + (0.35 * $categoryScore)
+        : $categoryScore;
+}
+
 $recommended = [];
 if ($hasHistory) {
     $scored = [];
     foreach ($places as $p) {
         $key = $p['itemType'] . '-' . $p['itemId'];
         if (isset($viewedItemKeys[$key])) continue;
-        $contentScore = fy_cosine_similarity($profileVector, $placeVectors[$p['id']]);
-        $categoryScore = $maxFreq > 0 ? (($freq[$p['category']] ?? 0) / $maxFreq) : 0;
-        // Lean on content similarity once there's a real profile vector
-        // to compare against; otherwise (e.g. only page visits logged,
-        // no items opened yet) fall back to category affinity alone.
-        $score = $profileWeight > 0
-            ? (0.65 * $contentScore) + (0.35 * $categoryScore)
-            : $categoryScore;
-        $scored[] = ['place' => $p, 'score' => $score];
+        $scored[] = ['place' => $p, 'score' => $interestScores[$p['id']]];
     }
     usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
     $recommended = array_column(array_slice($scored, 0, 6), 'place');
@@ -524,6 +533,15 @@ foreach ($heroSource as $p) {
         break;
     }
 }
+
+// Carry the interest score + already-viewed flag down to the client so
+// foryou.js can re-rank with a location boost (see applyLocationBoost)
+// using the same signal the server-rendered picks above are based on.
+foreach ($places as &$p) {
+    $p['interestScore'] = $interestScores[$p['id']] ?? 0;
+    $p['viewed'] = isset($viewedItemKeys[$p['itemType'] . '-' . $p['itemId']]);
+}
+unset($p);
 
 $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
 ?>
@@ -708,7 +726,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
 
         <div class="fy-grid" id="fyRecommendedGrid">
             <?php foreach ($recommended as $p): ?>
-                <div class="fy-card" data-group="<?php echo htmlspecialchars($p['group']); ?>" data-created="<?php echo (int) $p['createdAt']; ?>">
+                <div class="fy-card" data-group="<?php echo htmlspecialchars($p['group']); ?>" data-created="<?php echo (int) $p['createdAt']; ?>" data-item-type="<?php echo htmlspecialchars($p['itemType']); ?>" data-item-id="<?php echo (int) $p['itemId']; ?>">
                     <a class="fy-card-link" href="<?php echo htmlspecialchars($p['link']); ?>">
                         <div class="fy-gcard-media">
                             <span class="fy-gcard-badge fy-badge-<?php echo htmlspecialchars($p['category']); ?>"><?php echo htmlspecialchars($p['badgeText']); ?></span>
@@ -733,7 +751,9 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                                 onclick="fyToggleFavorite(this)">
                             <span class="fy-action-icon"><?php echo $p['favorited'] ? '&#9829;' : '&#9825;'; ?></span> Save
                         </button>
-                        <a class="fy-action-btn" href="<?php echo htmlspecialchars($p['link']); ?>">View</a>
+                        <a class="fy-action-btn fy-view-btn" href="<?php echo htmlspecialchars($p['link']); ?>"
+                           data-item-type="<?php echo htmlspecialchars($p['itemType']); ?>"
+                           data-item-id="<?php echo (int) $p['itemId']; ?>">View</a>
                         <button type="button" class="fy-action-btn" onclick="fyShare(this, '<?php echo htmlspecialchars($p['link'], ENT_QUOTES); ?>')">
                             <span class="fy-action-icon">↗</span> Share
                         </button>
@@ -767,6 +787,30 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
     <!-- /fy-page-layout, /fy-layout-wrap -->
 
 </main>
+
+<!-- ── Place detail modal — "View" opens this instead of navigating away ── -->
+<div class="fy-detail-overlay" id="fyDetailOverlay">
+    <div class="fy-detail-card">
+        <button type="button" class="fy-detail-close" id="fyDetailClose" aria-label="Close">&times;</button>
+        <div class="fy-detail-media" id="fyDetailMedia">
+            <span class="fy-gcard-badge" id="fyDetailBadge"></span>
+        </div>
+        <div class="fy-detail-body">
+            <h2 class="fy-detail-name" id="fyDetailName"></h2>
+            <p class="fy-detail-meta" id="fyDetailMeta"></p>
+            <p class="fy-detail-desc" id="fyDetailDesc"></p>
+            <div class="fy-detail-actions">
+                <button type="button" class="fy-action-btn fy-fav-btn" id="fyDetailFavBtn" onclick="fyToggleFavorite(this)">
+                    <span class="fy-action-icon">&#9825;</span> Save
+                </button>
+                <button type="button" class="fy-action-btn" id="fyDetailShareBtn">
+                    <span class="fy-action-icon">↗</span> Share
+                </button>
+                <a class="fy-action-btn fy-detail-fullpage" id="fyDetailFullLink" href="#">Open Full Page →</a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ── Footer ── -->
 <footer class="t-footer">
