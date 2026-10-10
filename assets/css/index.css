@@ -1,5 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&display=swap');
 
+/* Custom display font, used only for the "Mabuhay, ___" navbar greeting. */
+@font-face {
+    font-family: 'Barabara';
+    src: url('../fonts/barabara/barabara.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -174,6 +183,14 @@ body {
     font-weight: 700;
 }
 
+/* "Mabuhay, ___" text only — not the salakot icon beside it. */
+.navbar-greeting-text {
+    font-family: 'Barabara', 'Fraunces', Georgia, serif;
+    font-size: 21px;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+}
+
 .user-greeting-left:hover .navbar-logo-icon {
     transform: rotate(-12deg) scale(1.1);
 }
@@ -281,21 +298,6 @@ body {
     to   { transform: translateX(-50%) scaleX(1); }
 }
 
-.navbar-dots {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4px;
-    margin: 0 6px;
-    flex-shrink: 0;
-}
-
-.navbar-dots span {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: rgba(245, 239, 227, 0.3);
-}
-
 .sign-in-btn {
     display: inline-flex;
     align-items: center;
@@ -336,14 +338,6 @@ body {
 .sign-in-btn:active {
     transform: translateY(0);
     box-shadow: none;
-}
-
-/* Sign Out used to render as its own small circular button here,
-   duplicating the "SIGN OUT" entry already in the nav links — removed
-   everywhere (not just on mobile) in favor of that single, clearly
-   labeled entry. */
-.sign-in-btn-icon-only {
-    display: none;
 }
 
 /* ── Mobile hamburger toggle (hidden on desktop) ── */
@@ -1410,7 +1404,6 @@ body {
 
     .user-greeting-left { order: 1; }
 
-    .navbar-dots { display: none; }
     .sign-in-btn { order: 2; padding: 9px 16px; }
     .sign-in-btn span { display: none; }
 
