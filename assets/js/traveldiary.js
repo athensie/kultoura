@@ -866,11 +866,30 @@ const tdWrappedMap = (function () {
             }).addTo(map);
         }
 
-        points.forEach((p) => {
-            L.marker([p.lat, p.lng], { icon: categoryIcon(p.category) }).addTo(map);
+        // fitBounds first — a marker added before the map has a view set
+        // doesn't reliably get a real DOM element yet, so getElement()
+        // below would just silently return nothing and it'd never fade in.
+        map.fitBounds(L.latLngBounds(latlngs), { padding: [24, 24], maxZoom: 16 });
+
+        // Each pin fades in with a short stagger (see the matching
+        // opacity transition on .tw-map-pin-marker in the CSS) once the
+        // map itself has settled in, rather than all four appearing at
+        // once the moment tiles load.
+        points.forEach((p, i) => {
+            const marker = L.marker([p.lat, p.lng], { icon: categoryIcon(p.category) }).addTo(map);
+            const markerEl = marker.getElement();
+            if (markerEl) {
+                setTimeout(() => markerEl.classList.add('tw-marker-visible'), 500 + i * 150);
+            }
         });
 
-        map.fitBounds(L.latLngBounds(latlngs), { padding: [24, 24], maxZoom: 16 });
+        // Belt-and-suspenders: if getElement() ever came back empty for a
+        // marker above (so it missed its own staggered reveal), nothing
+        // should still be invisible once the whole map has clearly
+        // finished loading.
+        setTimeout(() => {
+            el.querySelectorAll('.tw-map-pin-marker').forEach((m) => m.classList.add('tw-marker-visible'));
+        }, 1500);
 
         // The slide was still mid-transition (effectively zero width) the
         // instant this ran, so Leaflet's own size measurement from just

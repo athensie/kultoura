@@ -2522,6 +2522,18 @@
     color: #fff;
     border: 1.5px solid #fff;
     box-shadow: 0 2px 6px rgba(44, 26, 14, 0.35);
+    /* Faded in with a staggered delay per marker (see tdWrappedMap in
+       traveldiary.js) once Leaflet actually places it. Plain opacity
+       only — unlike the rest of the page's pop-in effects, this can't
+       also animate transform: Leaflet uses transform on this exact
+       element to position it on the map, and a CSS animation touching
+       the same property would fight that every frame. */
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.tw-map-pin-marker.tw-marker-visible {
+    opacity: 1;
 }
 
 .tw-map-pin-marker svg { width: 100%; height: 100%; display: block; }
@@ -2645,8 +2657,15 @@
     .tw-slide.tw-animate .tw-liked-card,
     .tw-slide.tw-animate .tw-collage-photo,
     .tw-slide.tw-animate .tw-scatter-photo,
-    .tw-slide.tw-animate .tw-sticky-note {
+    .tw-slide.tw-animate .tw-sticky-note,
+    .tw-slide.tw-animate .tw-map-legend-item,
+    .tw-slide.tw-animate .tw-map-leaflet {
         animation: none !important;
+    }
+
+    .tw-map-pin-marker {
+        transition: none !important;
+        opacity: 1 !important;
     }
 }
 
@@ -2671,7 +2690,8 @@
 .tw-slide.tw-animate .tw-pick-row,
 .tw-slide.tw-animate .tw-mini-item,
 .tw-slide.tw-animate .tw-place-card,
-.tw-slide.tw-animate .tw-liked-card {
+.tw-slide.tw-animate .tw-liked-card,
+.tw-slide.tw-animate .tw-map-legend-item {
     animation: tw-fade-up 0.45s ease both;
 }
 
@@ -2681,10 +2701,10 @@
     animation: tw-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.tw-stat-row:nth-child(1), .tw-pick-row:nth-child(1), .tw-mini-item:nth-child(1), .tw-place-card:nth-child(1), .tw-liked-card:nth-child(1) { animation-delay: 0.3s; }
-.tw-stat-row:nth-child(2), .tw-pick-row:nth-child(2), .tw-mini-item:nth-child(2), .tw-place-card:nth-child(2), .tw-liked-card:nth-child(2) { animation-delay: 0.38s; }
-.tw-stat-row:nth-child(3), .tw-pick-row:nth-child(3), .tw-mini-item:nth-child(3), .tw-place-card:nth-child(3), .tw-liked-card:nth-child(3) { animation-delay: 0.46s; }
-.tw-stat-row:nth-child(4), .tw-pick-row:nth-child(4), .tw-mini-item:nth-child(4), .tw-place-card:nth-child(4), .tw-liked-card:nth-child(4) { animation-delay: 0.54s; }
+.tw-stat-row:nth-child(1), .tw-pick-row:nth-child(1), .tw-mini-item:nth-child(1), .tw-place-card:nth-child(1), .tw-liked-card:nth-child(1), .tw-map-legend-item:nth-child(1) { animation-delay: 0.3s; }
+.tw-stat-row:nth-child(2), .tw-pick-row:nth-child(2), .tw-mini-item:nth-child(2), .tw-place-card:nth-child(2), .tw-liked-card:nth-child(2), .tw-map-legend-item:nth-child(2) { animation-delay: 0.38s; }
+.tw-stat-row:nth-child(3), .tw-pick-row:nth-child(3), .tw-mini-item:nth-child(3), .tw-place-card:nth-child(3), .tw-liked-card:nth-child(3), .tw-map-legend-item:nth-child(3) { animation-delay: 0.46s; }
+.tw-stat-row:nth-child(4), .tw-pick-row:nth-child(4), .tw-mini-item:nth-child(4), .tw-place-card:nth-child(4), .tw-liked-card:nth-child(4), .tw-map-legend-item:nth-child(4) { animation-delay: 0.54s; }
 .tw-stat-row:nth-child(5), .tw-pick-row:nth-child(5), .tw-mini-item:nth-child(5) { animation-delay: 0.62s; }
 
 .tw-collage-photo:nth-child(1), .tw-scatter-photo:nth-child(1) { animation-delay: 0.3s; }
@@ -2692,6 +2712,20 @@
 .tw-collage-photo:nth-child(3), .tw-scatter-photo:nth-child(3) { animation-delay: 0.5s; }
 .tw-collage-photo:nth-child(4) { animation-delay: 0.6s; }
 .tw-sticky-note { animation-delay: 0.65s; }
+
+/* The map card gets its own little scale-in on top of .tw-map-wrap's
+   (its parent's) own fade-up — safe to animate transform here, since
+   unlike the pin markers inside it, Leaflet never touches this
+   container's own transform. */
+@keyframes tw-map-card-in {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.tw-slide.tw-animate .tw-map-leaflet {
+    animation: tw-map-card-in 0.5s ease both;
+    animation-delay: 0.25s;
+}
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {
