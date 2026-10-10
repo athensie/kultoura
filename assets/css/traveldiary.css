@@ -1989,7 +1989,10 @@
 .tw-slide-inner {
     min-height: 100%;
     box-sizing: border-box;
-    padding: 60px 30px 40px;
+    /* Extra bottom clearance so content pushed down by margin-top:auto
+       (e.g. the closing slide's quote) doesn't sit under the floating
+       Save Photo/Share/Facebook bar, which is pinned over the panel. */
+    padding: 60px 30px 68px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2000,7 +2003,12 @@
 .tw-slide-2 { background: #e9efe1; }
 .tw-slide-3 { background: #f2ddc1; }
 .tw-slide-4 { background: #e1eae8; }
-.tw-slide-5 { background: #f5efe3; }
+.tw-slide-5 { background: #efe3d0; }
+.tw-slide-6 { background: #f6e3df; }
+.tw-slide-7 { background: #dce8dc; }
+.tw-slide-8 { background: #f1e6d6; }
+.tw-slide-9 { background: #ece0cf; }
+.tw-slide-10 { background: #f5efe3; }
 
 .tw-brand {
     font-family: Georgia, serif;
@@ -2050,7 +2058,14 @@
 .tw-theme-weekly .tw-slide-2 { background: #fdeee0; }
 .tw-theme-weekly .tw-slide-3 { background: #fbdfc7; }
 .tw-theme-weekly .tw-slide-4 { background: #fcebd9; }
-.tw-theme-weekly .tw-slide-5 { background: #fdf1e3; }
+.tw-theme-weekly .tw-slide-5 { background: #fce3cc; }
+.tw-theme-weekly .tw-slide-6 { background: #fbe0d6; }
+.tw-theme-weekly .tw-slide-7 { background: #f6e6cf; }
+.tw-theme-weekly .tw-slide-8 { background: #fdecd9; }
+.tw-theme-weekly .tw-slide-9 { background: #fbe5d0; }
+.tw-theme-weekly .tw-slide-10 { background: #fdf1e3; }
+.tw-theme-weekly .tw-map-pin circle, .tw-theme-weekly .tw-map-compass circle { fill: #c14a2b; }
+.tw-theme-weekly .tw-map-path { stroke: #c14a2b; }
 
 .tw-theme-monthly .tw-badge { background: #2f6690; }
 .tw-theme-monthly .tw-nav { background: rgba(47, 102, 144, 0.35); }
@@ -2062,7 +2077,14 @@
 .tw-theme-monthly .tw-slide-2 { background: #e6f1f4; }
 .tw-theme-monthly .tw-slide-3 { background: #d7e9ee; }
 .tw-theme-monthly .tw-slide-4 { background: #e2eff1; }
-.tw-theme-monthly .tw-slide-5 { background: #eaf5f7; }
+.tw-theme-monthly .tw-slide-5 { background: #d9ecf0; }
+.tw-theme-monthly .tw-slide-6 { background: #e3eef2; }
+.tw-theme-monthly .tw-slide-7 { background: #cfe6e6; }
+.tw-theme-monthly .tw-slide-8 { background: #e0f0f2; }
+.tw-theme-monthly .tw-slide-9 { background: #d6ebee; }
+.tw-theme-monthly .tw-slide-10 { background: #eaf5f7; }
+.tw-theme-monthly .tw-map-pin circle, .tw-theme-monthly .tw-map-compass circle { fill: #2f6690; }
+.tw-theme-monthly .tw-map-path { stroke: #2f6690; }
 
 .tw-sub {
     font-size: 13.5px;
@@ -2363,8 +2385,335 @@
     margin-top: 2px;
 }
 
+/* Slide 5: places explored */
+.tw-places-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    width: 100%;
+}
+
+.tw-place-card:only-child {
+    grid-column: 1 / -1;
+}
+
+.tw-place-card {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    overflow: hidden;
+    padding-bottom: 10px;
+    text-align: left;
+}
+
+.tw-place-photo {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #fff;
+}
+
+.tw-place-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tw-place-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 10px 0;
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: #2c1a0e;
+}
+
+.tw-place-pin {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: #8b2e1a;
+}
+
+.tw-place-pin svg { width: 100%; height: 100%; display: block; }
+
+/* Slide 6: what you liked */
+.tw-liked-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.tw-liked-card {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    overflow: hidden;
+    padding-bottom: 12px;
+    text-align: left;
+}
+
+.tw-liked-photo {
+    width: 100%;
+    height: 150px;
+    background: #fff;
+}
+
+.tw-liked-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tw-liked-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 14px 0;
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #2c1a0e;
+}
+
+.tw-liked-heart {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: #b5567a;
+}
+
+.tw-liked-heart svg { width: 100%; height: 100%; display: block; }
+
+/* Slide 7: travel map */
+.tw-map-wrap {
+    width: 100%;
+    max-width: 240px;
+    margin: 0 auto 18px;
+}
+
+.tw-map-svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.tw-map-blob {
+    fill: rgba(95, 125, 76, 0.16);
+    stroke: rgba(95, 125, 76, 0.4);
+    stroke-width: 0.6;
+}
+
+.tw-map-path {
+    fill: none;
+    stroke: #8b2e1a;
+    stroke-width: 0.8;
+    stroke-dasharray: 2.4 2;
+    stroke-linecap: round;
+}
+
+.tw-map-pin circle {
+    fill: #8b2e1a;
+    stroke: #fff;
+    stroke-width: 1.2;
+    transform-origin: center;
+    transform-box: fill-box;
+}
+
+.tw-map-compass circle {
+    fill: rgba(44, 26, 14, 0.5);
+}
+
+.tw-map-compass path {
+    fill: #fff;
+}
+
+.tw-map-compass text {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 6px;
+    font-weight: 700;
+    fill: rgba(44, 26, 14, 0.5);
+}
+
+.tw-map-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.tw-map-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #2c1a0e;
+}
+
+.tw-map-legend-pin {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: #8b2e1a;
+}
+
+.tw-map-legend-pin svg { width: 100%; height: 100%; display: block; }
+
+/* Slide 8: a bigger version of slide 1's photo collage */
+.tw-collage-big {
+    max-width: 280px;
+    gap: 16px;
+}
+
+/* Slide 9: scattered scrapbook-style photos + a sticky note */
+.tw-scatter {
+    position: relative;
+    width: 100%;
+    max-width: 260px;
+    height: 240px;
+    margin: 0 auto 10px;
+}
+
+.tw-scatter-photo {
+    position: absolute;
+    width: 128px;
+    aspect-ratio: 1 / 1;
+    background: #fff;
+    padding: 6px 6px 14px;
+    border-radius: 4px;
+    box-shadow: 0 6px 16px rgba(44, 26, 14, 0.18);
+}
+
+.tw-scatter-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 2px;
+}
+
+.tw-scatter-0 { top: 0; left: 4px; transform: rotate(-6deg); z-index: 1; }
+.tw-scatter-1 { top: 18px; right: 0; transform: rotate(5deg); z-index: 2; }
+.tw-scatter-2 { bottom: 0; left: 36px; transform: rotate(-3deg); z-index: 3; }
+
+.tw-sticky-note {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 92px;
+    padding: 10px 10px 12px;
+    background: #fdf3c7;
+    box-shadow: 0 6px 16px rgba(44, 26, 14, 0.2);
+    transform: rotate(7deg);
+    font-family: 'Comic Sans MS', 'Segoe Print', cursive, sans-serif;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #5c4a1a;
+    z-index: 4;
+}
+
 @media (max-width: 480px) {
     .tw-panel { width: 100vw; height: 100vh; border-radius: 0; }
+}
+
+/* ============================================================
+   TRAVEL WRAPPED — entrance animation
+   ------------------------------------------------------------
+   JS toggles .tw-animate on the slide that just became active
+   (removing + re-adding it to force the keyframes to restart, since
+   simply re-adding an already-present class wouldn't replay a CSS
+   animation). Direct children of .tw-slide-inner cascade in first,
+   then each slide's own repeating list (stat rows, place cards,
+   photos, map pins...) cascades in right after, for a layered,
+   Spotify-Wrapped-style reveal instead of everything just appearing.
+============================================================ */
+@keyframes tw-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tw-pop-in {
+    from { opacity: 0; transform: scale(0.4); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tw-slide.tw-animate .tw-slide-inner > *,
+    .tw-slide.tw-animate .tw-stat-row,
+    .tw-slide.tw-animate .tw-pick-row,
+    .tw-slide.tw-animate .tw-mini-item,
+    .tw-slide.tw-animate .tw-place-card,
+    .tw-slide.tw-animate .tw-liked-card,
+    .tw-slide.tw-animate .tw-collage-photo,
+    .tw-slide.tw-animate .tw-scatter-photo,
+    .tw-slide.tw-animate .tw-sticky-note,
+    .tw-slide.tw-animate .tw-map-pin circle {
+        animation: none !important;
+    }
+}
+
+/* No base opacity:0 rule here on purpose — the keyframe's own `from`
+   state is what starts each element hidden while .tw-animate plays. If
+   JS ever fails to add that class, slides fall back to simply showing
+   their content immediately instead of staying permanently blank. */
+.tw-slide.tw-animate .tw-slide-inner > * {
+    animation: tw-fade-up 0.5s ease both;
+}
+
+.tw-slide-inner > *:nth-child(1) { animation-delay: 0.05s; }
+.tw-slide-inner > *:nth-child(2) { animation-delay: 0.12s; }
+.tw-slide-inner > *:nth-child(3) { animation-delay: 0.19s; }
+.tw-slide-inner > *:nth-child(4) { animation-delay: 0.26s; }
+.tw-slide-inner > *:nth-child(5) { animation-delay: 0.33s; }
+.tw-slide-inner > *:nth-child(6) { animation-delay: 0.4s; }
+
+/* Repeating list items get their own (faster, more tightly staggered)
+   cascade, layered on top of the parent container's own entrance. */
+.tw-slide.tw-animate .tw-stat-row,
+.tw-slide.tw-animate .tw-pick-row,
+.tw-slide.tw-animate .tw-mini-item,
+.tw-slide.tw-animate .tw-place-card,
+.tw-slide.tw-animate .tw-liked-card {
+    animation: tw-fade-up 0.45s ease both;
+}
+
+.tw-slide.tw-animate .tw-collage-photo,
+.tw-slide.tw-animate .tw-scatter-photo,
+.tw-slide.tw-animate .tw-sticky-note {
+    animation: tw-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.tw-stat-row:nth-child(1), .tw-pick-row:nth-child(1), .tw-mini-item:nth-child(1), .tw-place-card:nth-child(1), .tw-liked-card:nth-child(1) { animation-delay: 0.3s; }
+.tw-stat-row:nth-child(2), .tw-pick-row:nth-child(2), .tw-mini-item:nth-child(2), .tw-place-card:nth-child(2), .tw-liked-card:nth-child(2) { animation-delay: 0.38s; }
+.tw-stat-row:nth-child(3), .tw-pick-row:nth-child(3), .tw-mini-item:nth-child(3), .tw-place-card:nth-child(3), .tw-liked-card:nth-child(3) { animation-delay: 0.46s; }
+.tw-stat-row:nth-child(4), .tw-pick-row:nth-child(4), .tw-mini-item:nth-child(4), .tw-place-card:nth-child(4), .tw-liked-card:nth-child(4) { animation-delay: 0.54s; }
+.tw-stat-row:nth-child(5), .tw-pick-row:nth-child(5), .tw-mini-item:nth-child(5) { animation-delay: 0.62s; }
+
+.tw-collage-photo:nth-child(1), .tw-scatter-photo:nth-child(1) { animation-delay: 0.3s; }
+.tw-collage-photo:nth-child(2), .tw-scatter-photo:nth-child(2) { animation-delay: 0.4s; }
+.tw-collage-photo:nth-child(3), .tw-scatter-photo:nth-child(3) { animation-delay: 0.5s; }
+.tw-collage-photo:nth-child(4) { animation-delay: 0.6s; }
+.tw-sticky-note { animation-delay: 0.65s; }
+
+.tw-slide.tw-animate .tw-map-pin circle {
+    animation: tw-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(0.3s + (var(--pin-i, 0) * 0.12s));
+}
+
+.tw-slide.tw-animate .tw-map-path {
+    stroke-dasharray: 2.4 2;
+    stroke-dashoffset: 200;
+    animation: tw-map-draw 0.8s ease 0.4s both;
+}
+
+@keyframes tw-map-draw {
+    to { stroke-dashoffset: 0; }
 }
 
 /* ── Responsive ── */

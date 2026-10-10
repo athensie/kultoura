@@ -464,9 +464,39 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         $timeline[] = [
             'name'        => $item['name'],
             'category'    => $item['category'],
+            'badgeText'   => $item['badgeText'],
+            'itemType'    => $item['itemType'],
+            'itemId'      => $item['itemId'],
+            'image'       => $item['image'],
+            'lat'         => $item['lat'],
+            'lng'         => $item['lng'],
             'verb'        => $itemTypeVerbs[$item['itemType']] ?? 'Visited',
             'visitedDate' => $e['visited_date'],
             'photos'      => $photosByEntry[(int) $e['entry_id']] ?? [],
+        ];
+    }
+
+    // Every distinct place visited in the period, oldest visit first (one
+    // card per place, not one per visit) — $periodEntries is newest-first,
+    // so walk it backwards and keep the first (= earliest) occurrence of
+    // each place.
+    $distinctPlaces = [];
+    $seenPlaceKeys = [];
+    for ($i = count($periodEntries) - 1; $i >= 0; $i--) {
+        $e = $periodEntries[$i];
+        $key = $e['item_type'] . '-' . $e['item_id'];
+        if (isset($seenPlaceKeys[$key])) continue;
+        $seenPlaceKeys[$key] = true;
+        $item = $catalog[$key] ?? null;
+        if (!$item) continue;
+        $distinctPlaces[] = [
+            'name'        => $item['name'],
+            'category'    => $item['category'],
+            'badgeText'   => $item['badgeText'],
+            'image'       => $item['image'],
+            'lat'         => $item['lat'],
+            'lng'         => $item['lng'],
+            'visitedDate' => $e['visited_date'],
         ];
     }
 
@@ -497,23 +527,86 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         'firstPlaceVisited'     => $firstPlaceVisited,
         'longestStreak'         => $longestStreak,
         'timeline'              => $timeline,
+        'distinctPlaces'        => $distinctPlaces,
         'photoMemories'         => $photoMemories,
     ];
 }
 
+// Cycles through $items so a slide always has something to show even when
+// there are fewer photos than the slide wants (e.g. a 2-photo week still
+// fills a 4-up collage) instead of leaving blank grid cells.
+function td_wrapped_cycle(array $items, int $offset, int $count): array
+{
+    if (empty($items)) return [];
+    $out = [];
+    for ($i = 0; $i < $count; $i++) {
+        $out[] = $items[($offset + $i) % count($items)];
+    }
+    return $out;
+}
+
+// Normalizes each place's lat/lng into a 0-100 x/y position for the
+// Travel Map slide's SVG (viewBox 0 0 100 100), padded inward so pins
+// never sit flush against the blob's edge. Places without coordinates
+// (e.g. "person" entries) are left out — there's nothing to plot.
+function td_wrapped_map_points(array $distinctPlaces): array
+{
+    $withCoords = array_values(array_filter($distinctPlaces, fn($p) => $p['lat'] !== null && $p['lng'] !== null));
+    if (empty($withCoords)) return [];
+
+    $lats = array_column($withCoords, 'lat');
+    $lngs = array_column($withCoords, 'lng');
+    $latMin = min($lats); $latMax = max($lats);
+    $lngMin = min($lngs); $lngMax = max($lngs);
+    $latSpan = ($latMax - $latMin) ?: 1;
+    $lngSpan = ($lngMax - $lngMin) ?: 1;
+
+    $pad = 22; $range = 100 - ($pad * 2);
+    $points = [];
+    foreach ($withCoords as $p) {
+        $points[] = $p + [
+            'x' => $pad + (($p['lng'] - $lngMin) / $lngSpan) * $range,
+            'y' => $pad + $range - ((($p['lat'] - $latMin) / $latSpan) * $range), // north = up
+        ];
+    }
+    return $points;
+}
+
 $tw = td_wrapped_stats($wrappedEntries, $catalog, $photosByEntry, $categoryLabels, $itemTypeVerbs);
 
-// Favorites marked within the same window (favorites.created_at).
+// Favorites marked within the same window (favorites.created_at) — the
+// count feeds the "By the Numbers" stat, the actual items feed the
+// "What You Liked" slide.
 $twFavoritesCount = 0;
-if ($twFavStmt = $conn->prepare("SELECT COUNT(*) AS c FROM favorites WHERE user_id = ? AND created_at >= ? AND created_at < ?")) {
+$twFavoriteItems = [];
+if ($twFavStmt = $conn->prepare("SELECT item_type, item_id FROM favorites WHERE user_id = ? AND created_at >= ? AND created_at < ? ORDER BY created_at DESC")) {
     $twFavStmt->bind_param('iss', $userId, $wrappedRangeStartStr, $wrappedRangeEndStr);
     $twFavStmt->execute();
-    $twFavoritesCount = (int) $twFavStmt->get_result()->fetch_assoc()['c'];
+    $twFavRows = $twFavStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $twFavStmt->close();
+
+    $twFavoritesCount = count($twFavRows);
+    foreach ($twFavRows as $row) {
+        $item = $catalog[$row['item_type'] . '-' . $row['item_id']] ?? null;
+        if ($item && !empty($item['image'])) $twFavoriteItems[] = $item;
+        if (count($twFavoriteItems) >= 3) break;
+    }
 }
 
 // Enough logged visits in the chosen window to make a Wrapped worth generating.
 $canGenerateWrapped = count($wrappedEntries) > 0;
+
+$twMapPoints = td_wrapped_map_points($tw['distinctPlaces']);
+
+// Slides 1-4 and 10 always render; 5-9 are conditional on having that
+// kind of data. JS recomputes the real count from the DOM the instant
+// the overlay opens — this just keeps the very first paint from
+// flashing a stale "1/5".
+$twSlideTotal = 5
+    + (!empty($tw['distinctPlaces']) ? 1 : 0)
+    + (!empty($twFavoriteItems) ? 1 : 0)
+    + (!empty($twMapPoints) ? 1 : 0)
+    + (!empty($tw['photoMemories']) ? 2 : 0);
 
 /* ============================================================
    TIMELINE + PHOTO MEMORIES (enrich with catalog details)
@@ -1041,7 +1134,7 @@ usort($checklist, function ($a, $b) {
 
     <?php if ($canGenerateWrapped): ?>
     <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?>">
-    <span class="tw-badge" id="twBadge">1/5</span>
+    <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
 
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>
     <button type="button" class="tw-nav tw-nav-next" id="twNext" aria-label="Next slide">&#8250;</button>
@@ -1173,8 +1266,108 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
 
-        <!-- Slide 5: Thank You -->
+        <!-- Slide 5: Places You Explored -->
+        <?php if (!empty($tw['distinctPlaces'])): ?>
         <div class="tw-slide tw-slide-5">
+            <div class="tw-slide-inner">
+                <h2 class="tw-title-2">Places You<br>Explored</h2>
+                <p class="tw-sub-2">Here are the places you visited in Malvar.</p>
+                <div class="tw-places-grid">
+                    <?php foreach (array_slice($tw['distinctPlaces'], 0, 4) as $p): ?>
+                        <div class="tw-place-card">
+                            <?php if (!empty($p['image'])): ?>
+                                <div class="tw-place-photo"><img src="<?php echo htmlspecialchars($p['image']); ?>" alt=""></div>
+                            <?php endif; ?>
+                            <div class="tw-place-name"><span class="tw-place-pin"><?php echo $statIcons['pin']; ?></span><?php echo htmlspecialchars($p['name']); ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Slide 6: What You Liked -->
+        <?php if (!empty($twFavoriteItems)): ?>
+        <div class="tw-slide tw-slide-6">
+            <div class="tw-slide-inner">
+                <h2 class="tw-title-2">What You Liked</h2>
+                <p class="tw-sub-2">Your favorites say a lot about you!</p>
+                <div class="tw-liked-stack">
+                    <?php foreach ($twFavoriteItems as $f): ?>
+                        <div class="tw-liked-card">
+                            <div class="tw-liked-photo"><img src="<?php echo htmlspecialchars($f['image']); ?>" alt=""></div>
+                            <div class="tw-liked-name"><span class="tw-liked-heart"><?php echo $statIcons['favorites']; ?></span><?php echo htmlspecialchars($f['name']); ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Slide 7: Your Travel Map -->
+        <?php if (!empty($twMapPoints)): ?>
+        <div class="tw-slide tw-slide-7">
+            <div class="tw-slide-inner">
+                <h2 class="tw-title-2">Your Travel<br>Map</h2>
+                <p class="tw-sub-2">A map of the places you visited in Malvar.</p>
+                <div class="tw-map-wrap">
+                    <svg class="tw-map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                        <path class="tw-map-blob" d="M50 6 C74 4 92 22 94 46 C96 70 80 92 54 94 C30 96 8 82 6 56 C4 32 24 8 50 6 Z"/>
+                        <?php if (count($twMapPoints) > 1): ?>
+                            <polyline class="tw-map-path" points="<?php echo implode(' ', array_map(fn($p) => round($p['x'], 1) . ',' . round($p['y'], 1), $twMapPoints)); ?>"/>
+                        <?php endif; ?>
+                        <?php foreach ($twMapPoints as $i => $p): ?>
+                            <g class="tw-map-pin" style="--pin-i: <?php echo $i; ?>" transform="translate(<?php echo round($p['x'], 1); ?>,<?php echo round($p['y'], 1); ?>)"><circle r="3.4"/></g>
+                        <?php endforeach; ?>
+                        <g class="tw-map-compass" transform="translate(86,14)">
+                            <circle r="7"/>
+                            <path d="M0 -4.5 L1.4 0 L0 4.5 L-1.4 0 Z"/>
+                            <text y="-9.5" text-anchor="middle">N</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="tw-map-legend">
+                    <?php foreach ($twMapPoints as $p): ?>
+                        <div class="tw-map-legend-item"><span class="tw-map-legend-pin"><?php echo $statIcons['pin']; ?></span><?php echo htmlspecialchars($p['name']); ?></div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Slide 8: Your Photos -->
+        <?php if (!empty($tw['photoMemories'])): $twPhotosSlide = td_wrapped_cycle($tw['photoMemories'], 4, 4); ?>
+        <div class="tw-slide tw-slide-8">
+            <div class="tw-slide-inner">
+                <h2 class="tw-title-2">Your Photos</h2>
+                <p class="tw-sub-2">A glimpse of the moments you captured.</p>
+                <div class="tw-collage tw-collage-big">
+                    <?php foreach ($twPhotosSlide as $i => $m): ?>
+                        <div class="tw-collage-photo tw-tilt-<?php echo $i % 4; ?>"><img src="<?php echo htmlspecialchars($m['image']); ?>" alt=""></div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Slide 9: Memories at a Glance -->
+        <?php if (!empty($tw['photoMemories'])): $twScatterPhotos = td_wrapped_cycle($tw['photoMemories'], 1, 3); ?>
+        <div class="tw-slide tw-slide-9">
+            <div class="tw-slide-inner">
+                <h2 class="tw-title-2">Memories at<br>a Glance</h2>
+                <p class="tw-sub-2">Small moments. Big stories.</p>
+                <div class="tw-scatter">
+                    <?php foreach ($twScatterPhotos as $i => $m): ?>
+                        <div class="tw-scatter-photo tw-scatter-<?php echo $i % 3; ?>"><img src="<?php echo htmlspecialchars($m['image']); ?>" alt=""></div>
+                    <?php endforeach; ?>
+                    <div class="tw-sticky-note">Good food<br>Good places<br>Good company</div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Slide 10: Thank You -->
+        <div class="tw-slide tw-slide-10">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Here's to more <span class="tw-accent-green">adventures!</span></h2>
                 <p class="tw-thanks">Thank you for exploring Malvar with KULTOURA.<br>Let's make more memories together!</p>

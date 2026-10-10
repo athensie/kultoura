@@ -600,10 +600,45 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     const slideCount = slidesEl ? slidesEl.children.length : 0;
     let current = 0;
 
+    // Counts a stat number up from 0 to its real value instead of just
+    // appearing — small touch, but it's the one that makes "By the
+    // Numbers" actually feel like a reveal instead of a static list.
+    function playCountUp(slideEl) {
+        slideEl.querySelectorAll('.tw-stat-num').forEach((el) => {
+            const target = parseInt(el.dataset.twTarget || el.textContent, 10);
+            if (!Number.isFinite(target)) return;
+            el.dataset.twTarget = target;
+
+            const duration = 700;
+            const start = performance.now();
+            function tick(now) {
+                const progress = Math.min(1, (now - start) / duration);
+                const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+                el.textContent = Math.round(target * eased);
+                if (progress < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        });
+    }
+
+    // Re-triggers this slide's CSS entrance animation every time it
+    // becomes active (not just the first time) — removing the class,
+    // forcing a reflow, then re-adding it is what makes a CSS animation
+    // replay instead of silently no-opping because the class never
+    // actually changed.
+    function playSlideAnimation(slideEl) {
+        if (!slideEl) return;
+        slideEl.classList.remove('tw-animate');
+        void slideEl.offsetWidth; // force reflow
+        slideEl.classList.add('tw-animate');
+        playCountUp(slideEl);
+    }
+
     function render() {
         if (!slidesEl) return;
         slidesEl.style.transform = `translateX(-${current * 100}%)`;
         if (badge) badge.textContent = `${current + 1}/${slideCount}`;
+        playSlideAnimation(slidesEl.children[current]);
     }
 
     function goTo(index) {
