@@ -39,6 +39,28 @@
     color: #2c1a0e;
 }
 
+/* Mobile: the select doesn't shrink past its content width, so above
+   ~360px it was forcing .p-search-bar (and the whole page) to scroll
+   horizontally. Stack the input and select instead of squeezing them
+   onto one line. */
+@media (max-width: 640px) {
+    .p-search-bar {
+        flex-wrap: wrap;
+        border-radius: 20px;
+        padding: 10px;
+    }
+
+    .p-search-bar input[type="text"] {
+        flex: 1 1 100%;
+        padding: 8px 6px;
+    }
+
+    .p-category-select {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
 /* Shown when a live search/subcategory combo matches nothing */
 .p-search-empty {
     margin: 16px 4px 0;
