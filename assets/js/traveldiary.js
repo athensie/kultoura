@@ -333,18 +333,35 @@ const tdCamera = (function () {
         shootBtn.disabled = true;
     }
 
+    // Mirror the live viewfinder for a front/selfie camera — otherwise
+    // moving your hand right shows it moving left, which feels backwards
+    // (same reason every video-call app mirrors your own self-view). A
+    // phone's actual rear camera is left alone since you're framing a
+    // place, not yourself. Only the live preview is mirrored; the frame
+    // drawn to canvas on capture reads the unmirrored video data, so the
+    // saved photo itself is never flipped.
+    function updateMirror(cameraCount) {
+        const mirrored = facingMode === 'user' || cameraCount < 2;
+        video.classList.toggle('td-camera-mirrored', mirrored);
+    }
+
     // Only offer the flip button when the device actually has more than
     // one camera — otherwise it's a button that can't do anything.
     async function updateFlipAvailability() {
         if (flipBtn) flipBtn.hidden = true;
-        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            updateMirror(1);
+            return;
+        }
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const cameraCount = devices.filter((d) => d.kind === 'videoinput').length;
             if (flipBtn) flipBtn.hidden = cameraCount < 2;
+            updateMirror(cameraCount);
         } catch (err) {
             // Can't enumerate (older browser, permissions) — leave the
             // flip button hidden rather than offer something that may fail.
+            updateMirror(1);
         }
     }
 

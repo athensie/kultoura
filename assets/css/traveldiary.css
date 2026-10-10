@@ -2536,6 +2536,12 @@
     display: block;
 }
 
+/* Live viewfinder only (not the captured-photo review) — see the JS
+   comment on updateMirror() for why. */
+#tdCameraVideo.td-camera-mirrored {
+    transform: scaleX(-1);
+}
+
 .td-camera-flip {
     position: absolute;
     top: 10px;
