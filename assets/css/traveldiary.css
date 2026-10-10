@@ -2565,6 +2565,17 @@
 
 .tw-map-legend-pin svg { width: 100%; height: 100%; display: block; }
 
+.tw-map-credit {
+    margin-top: 14px;
+    font-size: 9.5px;
+    color: rgba(44, 26, 14, 0.4);
+}
+
+.tw-map-credit a {
+    color: inherit;
+    text-decoration: underline;
+}
+
 /* Slide 8: a bigger version of slide 1's photo collage */
 .tw-collage-big {
     max-width: 280px;

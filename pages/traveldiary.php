@@ -545,28 +545,37 @@ function td_wrapped_cycle(array $items, int $offset, int $count): array
     return $out;
 }
 
-// Normalizes each place's lat/lng into a 0-100 x/y position for the
-// Travel Map slide's SVG (viewBox 0 0 100 100), padded inward so pins
-// never sit flush against the blob's edge. Places without coordinates
-// (e.g. "person" entries) are left out — there's nothing to plot.
+// Malvar's real municipal boundary (OpenStreetMap relation 5947753, ODbL —
+// credited on the slide itself), simplified from ~918 points down to this
+// handful with Douglas-Peucker and pre-projected into the same 0-100 SVG
+// space used below, so it's one static path instead of a runtime API call.
+const TD_MAP_BOUNDARY_PATH = 'M5.3,40.07L8.31,45.8L7.1,46.01L6.8,47.28L9.67,51.63L10.87,56.96L13.21,55.83L13.84,54.31L17.24,53.51L20.12,55.07L23.59,54.94L28.51,60.39L35.97,62.72L37.72,65.68L40.59,66.74L42.51,69.05L42.43,72.6L44.09,74.1L44.27,76.8L46.58,78.82L45.57,81.53L48.55,83.92L49.02,89.47L53.63,96L64.86,91.09L64.03,88.3L65.42,86.78L65.41,85.01L67.77,84.41L67.5,83.23L78.22,76.62L90.94,70.96L85.05,63.65L85.23,61.38L94.39,54.57L94.7,53.22L94.08,51.49L90.41,49.76L89.59,45.01L90.44,42.42L89.14,38.7L90.32,35.49L89.55,34.16L83.51,31.89L81.56,28.04L82.5,26.11L81.82,23.05L80.82,22.02L80.2,22.83L80.13,21.76L77.9,22.15L76.53,20.04L75.57,20.48L74.35,19.21L73.25,16.26L73.93,15.8L72.09,13.88L70.65,13.88L71.63,13.48L70.5,12.16L71.75,8.38L67.16,4.21L66.16,4L66.13,6.47L68.18,8.37L67.69,12.71L62.42,19.87L62.68,21.36L46.22,27.71L33.02,34.58L30.04,35.47L27.81,34.6L23.98,36.47L20.79,35.47L14.42,35.76L12.72,36.99L7.3,37.85L6.67,39.6L5.3,40.07Z';
+
+// The exact lng/lat -> x/y projection used to build that path, re-applied
+// to each visited place below so its pin lands at its true position
+// inside the real outline (rather than auto-fit to just the pins' own
+// bounding box, which wouldn't line up with the shape at all).
+const TD_MAP_LNG_MIN  = 121.1060173;
+const TD_MAP_LAT_MAX  = 14.0740498;
+const TD_MAP_SCALE    = 1144.5291506598528;
+const TD_MAP_OFFSET_X = 5.299841756408291;
+const TD_MAP_OFFSET_Y = 4;
+
+// Normalizes each place's lat/lng into a 0-100 x/y position on that same
+// projection. Places without coordinates (e.g. "person" entries) are left
+// out — there's nothing to plot. Points outside Malvar's own bounds
+// (shouldn't happen for real catalog data, but just in case) still land
+// at their true projected position rather than being clamped or hidden.
 function td_wrapped_map_points(array $distinctPlaces): array
 {
     $withCoords = array_values(array_filter($distinctPlaces, fn($p) => $p['lat'] !== null && $p['lng'] !== null));
     if (empty($withCoords)) return [];
 
-    $lats = array_column($withCoords, 'lat');
-    $lngs = array_column($withCoords, 'lng');
-    $latMin = min($lats); $latMax = max($lats);
-    $lngMin = min($lngs); $lngMax = max($lngs);
-    $latSpan = ($latMax - $latMin) ?: 1;
-    $lngSpan = ($lngMax - $lngMin) ?: 1;
-
-    $pad = 22; $range = 100 - ($pad * 2);
     $points = [];
     foreach ($withCoords as $p) {
         $points[] = $p + [
-            'x' => $pad + (($p['lng'] - $lngMin) / $lngSpan) * $range,
-            'y' => $pad + $range - ((($p['lat'] - $latMin) / $latSpan) * $range), // north = up
+            'x' => TD_MAP_OFFSET_X + ($p['lng'] - TD_MAP_LNG_MIN) * TD_MAP_SCALE,
+            'y' => TD_MAP_OFFSET_Y + (TD_MAP_LAT_MAX - $p['lat']) * TD_MAP_SCALE, // north = up
         ];
     }
     return $points;
@@ -1312,7 +1321,7 @@ usort($checklist, function ($a, $b) {
                 <p class="tw-sub-2">A map of the places you visited in Malvar.</p>
                 <div class="tw-map-wrap">
                     <svg class="tw-map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                        <path class="tw-map-blob" d="M50 6 C74 4 92 22 94 46 C96 70 80 92 54 94 C30 96 8 82 6 56 C4 32 24 8 50 6 Z"/>
+                        <path class="tw-map-blob" d="<?php echo TD_MAP_BOUNDARY_PATH; ?>"/>
                         <?php if (count($twMapPoints) > 1): ?>
                             <polyline class="tw-map-path" points="<?php echo implode(' ', array_map(fn($p) => round($p['x'], 1) . ',' . round($p['y'], 1), $twMapPoints)); ?>"/>
                         <?php endif; ?>
@@ -1331,6 +1340,7 @@ usort($checklist, function ($a, $b) {
                         <div class="tw-map-legend-item"><span class="tw-map-legend-pin"><?php echo $statIcons['pin']; ?></span><?php echo htmlspecialchars($p['name']); ?></div>
                     <?php endforeach; ?>
                 </div>
+                <p class="tw-map-credit">Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
             </div>
         </div>
         <?php endif; ?>
