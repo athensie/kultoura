@@ -646,6 +646,19 @@
     color: #fff;
 }
 
+/* Icon glyph inside a text button (nearby/add-photo/camera buttons) —
+   sits inline with the label, sized off font-size so it matches whatever
+   button it's dropped into without a one-off rule per button. */
+.td-btn-icon {
+    display: inline-flex;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.15em;
+    margin-right: 5px;
+}
+
+.td-btn-icon svg { width: 100%; height: 100%; display: block; }
+
 .td-nearby-btn {
     display: inline-flex;
     align-items: center;
@@ -663,6 +676,8 @@
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 
+.td-nearby-btn .td-btn-icon { width: 14px; height: 14px; margin-right: 0; }
+
 .td-nearby-btn:hover {
     background: rgba(200, 169, 110, 0.12);
 }
@@ -679,7 +694,8 @@
 }
 
 .td-nearby-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.3px;
@@ -690,29 +706,68 @@
     flex-shrink: 0;
 }
 
+.td-nearby-badge .td-btn-icon { width: 10px; height: 10px; margin-right: 3px; }
+
 .td-check-row.td-is-nearby {
     border-color: rgba(63, 107, 63, 0.4);
     background: rgba(63, 107, 63, 0.04);
 }
 
-/* ── Recent Memories (horizontal scroll) ── */
-.td-memories-scroll {
+/* ── Recent Memories (tabbed, paginated grid) ── */
+.td-memory-tabs {
     display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.td-memory-tab {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(44, 26, 14, 0.14);
+    background: #fff;
+    color: rgba(44, 26, 14, 0.6);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.td-memory-tab:hover {
+    border-color: rgba(44, 26, 14, 0.3);
+}
+
+.td-memory-tab.is-active {
+    background: #2c1a0e;
+    border-color: #2c1a0e;
+    color: #fff;
+}
+
+/* Tile size shrinks a step per tab — Week > Month > Year — so "This
+   Year" can show a lot more at a glance without the page feeling huge. */
+.td-memory-grid {
+    display: grid;
     gap: 14px;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    padding-bottom: 6px;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+.td-memory-grid.is-month {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.td-memory-grid.is-year {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
 }
 
 .td-memory-card {
-    scroll-snap-align: start;
-    flex: 0 0 190px;
     background: #fff;
     border: 1px solid rgba(44, 26, 14, 0.09);
     border-radius: 12px;
     overflow: hidden;
-    padding-bottom: 12px;
+    padding-bottom: 10px;
 }
 
 .td-memory-photo {
@@ -720,13 +775,23 @@
     width: 100%;
     height: 130px;
     background: #e5dccb;
+    cursor: pointer;
 }
+
+.td-memory-photo:focus-visible {
+    outline: 2px solid #8a6a2f;
+    outline-offset: 2px;
+}
+
+.td-memory-grid.is-month .td-memory-photo { height: 105px; }
+.td-memory-grid.is-year .td-memory-photo { height: 85px; }
 
 .td-memory-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    cursor: pointer;
 }
 
 .td-memory-icon {
@@ -743,9 +808,27 @@
     justify-content: center;
     padding: 5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+}
+
+.td-memory-grid.is-month .td-memory-icon,
+.td-memory-grid.is-year .td-memory-icon {
+    width: 20px;
+    height: 20px;
+    padding: 4px;
 }
 
 .td-memory-icon svg { width: 100%; height: 100%; display: block; }
+
+.td-memory-card .td-photo-delete-btn {
+    top: 6px;
+    right: 6px;
+}
+
+.td-memory-photo:hover .td-photo-delete-btn,
+.td-memory-photo:focus-within .td-photo-delete-btn {
+    opacity: 1;
+}
 
 .td-memory-name {
     font-family: Georgia, serif;
@@ -755,10 +838,21 @@
     margin: 10px 12px 2px;
 }
 
+.td-memory-grid.is-month .td-memory-name,
+.td-memory-grid.is-year .td-memory-name {
+    font-size: 12px;
+    margin: 8px 10px 2px;
+}
+
 .td-memory-date {
     font-size: 11px;
     color: rgba(44, 26, 14, 0.5);
     margin: 0 12px 6px;
+}
+
+.td-memory-grid.is-month .td-memory-date,
+.td-memory-grid.is-year .td-memory-date {
+    margin: 0 10px 6px;
 }
 
 .td-memory-caption {
@@ -771,6 +865,49 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+.td-memory-grid.is-year .td-memory-caption { display: none; }
+
+.td-empty-inline {
+    text-align: center;
+    padding: 30px 10px;
+    color: rgba(44, 26, 14, 0.5);
+    font-size: 13px;
+}
+
+.td-memory-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 4px;
+}
+
+.td-memory-page-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(44, 26, 14, 0.14);
+    background: #fff;
+    color: #2c1a0e;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.td-memory-page-btn:hover {
+    border-color: rgba(44, 26, 14, 0.3);
+}
+
+.td-memory-page-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.td-memory-page-status {
+    font-size: 12px;
+    color: rgba(44, 26, 14, 0.55);
 }
 
 /* ── Visited Places Explorer (checklist) ── */
@@ -927,7 +1064,14 @@
     color: rgba(44, 26, 14, 0.5);
     cursor: pointer;
     font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px;
 }
+
+.td-check-toggle-note svg,
+.td-check-photo-btn svg { width: 100%; height: 100%; display: block; }
 
 .td-check-toggle-note:hover {
     color: #8b2e1a;
@@ -944,6 +1088,10 @@
     color: rgba(44, 26, 14, 0.5);
     cursor: pointer;
     font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px;
 }
 
 .td-check-photo-btn:hover {
@@ -1105,12 +1253,57 @@
     flex-wrap: wrap;
 }
 
-.td-timeline-photos img {
+.td-timeline-photo {
+    position: relative;
     width: 48px;
     height: 48px;
+}
+
+.td-timeline-photo img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     border-radius: 6px;
     border: 1px solid rgba(44, 26, 14, 0.09);
+    cursor: pointer;
+    display: block;
+}
+
+/* Delete button: invisible until the thumbnail is hovered/focused, so the
+   timeline doesn't read as cluttered with a trash icon on every photo. */
+.td-photo-delete-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: #8b2e1a;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.td-photo-delete-btn svg { width: 100%; height: 100%; display: block; }
+
+.td-timeline-photo:hover .td-photo-delete-btn,
+.td-photo-delete-btn:focus-visible {
+    opacity: 1;
+}
+
+.td-photo-delete-btn:hover {
+    background: #6e2213;
+}
+
+.td-photo-delete-btn:disabled {
+    opacity: 0.6 !important;
+    cursor: default;
 }
 
 .td-timeline-actions {
@@ -1155,11 +1348,26 @@
     background: #e5dccb;
 }
 
+.td-gallery-tile:focus-visible {
+    outline: 2px solid #8a6a2f;
+    outline-offset: 2px;
+}
+
 .td-gallery-tile img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+.td-gallery-tile .td-photo-delete-btn {
+    top: 6px;
+    right: 6px;
+}
+
+.td-gallery-tile:hover .td-photo-delete-btn,
+.td-gallery-tile:focus-within .td-photo-delete-btn {
+    opacity: 1;
 }
 
 .td-gallery-info {
@@ -1332,6 +1540,8 @@
     background: rgba(44, 26, 14, 0.08);
     color: #2c1a0e;
 }
+
+.td-visit-icon svg { width: 20px; height: 20px; display: block; }
 
 .td-visit-icon-ok {
     background: rgba(95, 125, 76, 0.16);
@@ -2260,9 +2470,14 @@
 .td-photo-choice-dot {
     flex: 0 0 auto;
     width: 32px;
-    text-align: center;
-    font-size: 18px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a6a2f;
 }
+
+.td-photo-choice-dot svg { width: 100%; height: 100%; display: block; }
 
 .td-photo-choice-copy {
     display: flex;
@@ -2338,6 +2553,8 @@
     justify-content: center;
     transition: background 0.15s;
 }
+
+.td-camera-flip svg { width: 100%; height: 100%; display: block; padding: 2px; }
 
 .td-camera-flip:hover {
     background: rgba(0, 0, 0, 0.65);

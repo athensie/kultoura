@@ -91,10 +91,12 @@ const tdVisitModal = (function () {
         confirmActions.hidden = true;
     }
 
+    const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
+
     function showConfirm(nearby) {
         spinner.hidden = true;
         iconEl.hidden = false;
-        iconEl.textContent = nearby ? '✓' : '';
+        iconEl.innerHTML = nearby ? CHECK_ICON : '';
         iconEl.className = nearby ? 'td-visit-icon td-visit-icon-ok' : 'td-visit-icon';
         titleEl.textContent = nearby ? `You're at ${current.placeName}!` : `When did you visit ${current.placeName}?`;
         subEl.textContent = nearby
@@ -221,7 +223,7 @@ async function tdUploadFiles(files, itemType, itemId, btn) {
     if (!files.length) return;
 
     btn.disabled = true;
-    const originalLabel = btn.textContent;
+    const originalLabel = btn.innerHTML; // innerHTML, not textContent — several of these buttons carry an icon <span>, not just text
     let uploaded = 0;
     let failed = 0;
 
@@ -249,7 +251,7 @@ async function tdUploadFiles(files, itemType, itemId, btn) {
 
     tdToast(failed === 1 ? 'Upload failed.' : `All ${failed} uploads failed.`);
     btn.disabled = false;
-    btn.textContent = originalLabel;
+    btn.innerHTML = originalLabel;
 }
 
 function tdUploadPhotos(itemType, itemId, btn) {
@@ -773,11 +775,14 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
    re-runs automatically so returning visitors don't have to click again. */
 (function () {
     const btn = document.getElementById('tdNearbyBtn');
+    const btnLabel = btn && btn.querySelector('.td-nearby-btn-label');
     const statusEl = document.getElementById('tdNearbyStatus');
     const checklist = document.getElementById('tdChecklist');
+    const expandBtn = document.getElementById('tdExpandChecklist');
     if (!btn || !checklist) return;
 
     const GEOFENCE_METERS = 1000;
+    const VISIBLE_COUNT = 6; // matches the server-rendered collapse (first 6 shown, rest behind "View All Places")
 
     function haversineMeters(lat1, lon1, lat2, lon2) {
         const R = 6371000;
@@ -788,37 +793,62 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
+    function setLabel(text) {
+        if (btnLabel) btnLabel.textContent = text;
+    }
+
+    // Sorts the WHOLE checklist by distance (closest first), not just the
+    // places within the 1km geofence — so "closest place at the top" is
+    // true for the full list, with the geofence only controlling the
+    // "Nearby" badge/highlight, not who gets to move up.
     function applyNearby(userLat, userLng) {
         const rows = Array.from(checklist.querySelectorAll('.td-check-row'));
-        const nearby = [];
+        const withDist = [];
+        const withoutCoords = [];
 
         rows.forEach((row) => {
             const lat = parseFloat(row.dataset.lat);
             const lng = parseFloat(row.dataset.lng);
-            const badge = row.querySelector('.td-nearby-badge');
-            if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-            const dist = haversineMeters(userLat, userLng, lat, lng);
-            if (dist <= GEOFENCE_METERS) {
-                row.classList.add('td-is-nearby');
-                row.classList.remove('td-hidden-extra'); // always visible, regardless of the collapsed state
-                if (badge) badge.hidden = false;
-                nearby.push({ row, dist });
+            if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                withoutCoords.push(row);
+                return;
             }
+            withDist.push({ row, dist: haversineMeters(userLat, userLng, lat, lng) });
         });
 
-        if (nearby.length === 0) {
-            statusEl.textContent = "Nothing on your list is within 1km of you right now.";
+        if (withDist.length === 0) {
+            statusEl.textContent = "None of your places have a location on file yet.";
             statusEl.hidden = false;
             return;
         }
 
-        nearby.sort((a, b) => a.dist - b.dist);
-        nearby.forEach(({ row }) => checklist.insertBefore(row, checklist.firstChild));
+        withDist.sort((a, b) => a.dist - b.dist);
 
-        statusEl.textContent = nearby.length === 1
-            ? '1 place near you is now at the top of the list.'
-            : `${nearby.length} places near you are now at the top of the list.`;
+        // Already expanded ("View All Places" was clicked)? Keep everything
+        // visible. Otherwise re-apply the same "first N visible" collapse,
+        // just against the new, distance-sorted order.
+        const stillCollapsed = !!expandBtn && document.body.contains(expandBtn);
+        let nearbyCount = 0;
+
+        const ordered = [...withDist.map((d) => d.row), ...withoutCoords];
+        ordered.forEach((row, i) => {
+            row.classList.toggle('td-hidden-extra', stillCollapsed && i >= VISIBLE_COUNT);
+            checklist.appendChild(row);
+        });
+
+        withDist.forEach(({ row, dist }) => {
+            const isNearby = dist <= GEOFENCE_METERS;
+            const badge = row.querySelector('.td-nearby-badge');
+            row.classList.toggle('td-is-nearby', isNearby);
+            if (badge) badge.hidden = !isNearby;
+            if (isNearby) nearbyCount++;
+        });
+
+        statusEl.textContent = nearbyCount === 0
+            ? 'Sorted by distance — closest places are now at the top.'
+            : (nearbyCount === 1
+                ? '1 place near you is now at the top of the list.'
+                : `${nearbyCount} places near you are now at the top of the list.`);
         statusEl.hidden = false;
     }
 
@@ -830,17 +860,17 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         }
 
         btn.disabled = true;
-        btn.textContent = '📍 Locating…';
+        setLabel('Locating…');
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 btn.disabled = false;
-                btn.textContent = '📍 Show places near me first';
+                setLabel('Show places near me first');
                 applyNearby(position.coords.latitude, position.coords.longitude);
             },
             (error) => {
                 btn.disabled = false;
-                btn.textContent = '📍 Show places near me first';
+                setLabel('Show places near me first');
                 statusEl.textContent = error.code === error.PERMISSION_DENIED
                     ? 'Location access was denied — you can enable it anytime in your browser settings.'
                     : "Couldn't get your location. Please try again.";
@@ -875,32 +905,204 @@ document.querySelectorAll('.td-timeline-delete').forEach((btn) => {
     });
 });
 
-/* ---------------- Photo Memories: lightbox ---------------- */
-(function () {
+/* ---------------- Photo lightbox ----------------
+   Delegated on document (not a one-time querySelectorAll) so it also
+   covers the Recent Memories grid, which renders its tiles client-side
+   after this script runs — a static binding would miss them entirely. */
+const tdLightbox = (function () {
     const lightbox = document.getElementById('tdLightbox');
     const lightboxImg = document.getElementById('tdLightboxImg');
     const lightboxCaption = document.getElementById('tdLightboxCaption');
     const closeBtn = document.getElementById('tdLightboxClose');
-    if (!lightbox) return;
+    if (!lightbox) return null;
 
-    document.querySelectorAll('.td-gallery-tile').forEach((tile) => {
-        tile.addEventListener('click', () => {
-            lightboxImg.src = tile.dataset.image;
-            lightboxCaption.textContent = tile.dataset.caption || '';
-            lightbox.classList.add('open');
-        });
-    });
+    function openLightbox(src, caption) {
+        lightboxImg.src = src;
+        lightboxCaption.textContent = caption || '';
+        lightbox.classList.add('open');
+    }
 
     function closeLightbox() {
         lightbox.classList.remove('open');
         lightboxImg.src = '';
     }
 
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.td-photo-delete-btn')) return; // delete icon, not the photo itself
+        const trigger = e.target.closest('.td-lightbox-trigger');
+        if (!trigger) return;
+        openLightbox(trigger.dataset.lightboxSrc, trigger.dataset.lightboxCaption);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { closeLightbox(); return; }
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const trigger = document.activeElement && document.activeElement.closest && document.activeElement.closest('.td-lightbox-trigger');
+        if (!trigger) return;
+        e.preventDefault();
+        openLightbox(trigger.dataset.lightboxSrc, trigger.dataset.lightboxCaption);
+    });
+
     closeBtn.addEventListener('click', closeLightbox);
     lightbox.addEventListener('click', (e) => {
         if (e.target === lightbox) closeLightbox();
     });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeLightbox();
+
+    return { open: openLightbox, close: closeLightbox };
+})();
+
+/* ---------------- Delete a single photo ----------------
+   One photo can appear in up to three places at once — the Timeline
+   (that visit's own photos), the static Photo Memories gallery (every
+   photo), and the client-rendered Recent Memories grid — since all three
+   read from the same diary_photos rows. A single delegated handler here
+   does the actual delete call once, then scrubs the Timeline/Gallery
+   copies directly and tells the Recent Memories grid (which keeps its
+   own in-memory list for pagination) via a custom event, so nothing goes
+   stale without a page reload. */
+function tdRemovePhotoFromStaticSections(photoId) {
+    document.querySelectorAll(`.td-photo-delete-btn[data-photo-id="${photoId}"]`).forEach((btn) => {
+        if (btn.closest('#tdMemoryGrid')) return; // the grid re-renders itself from its own array
+        const container = btn.closest('.td-timeline-photo, .td-gallery-tile');
+        if (container) container.remove();
     });
+}
+
+document.addEventListener('click', async (e) => {
+    const delBtn = e.target.closest('.td-photo-delete-btn');
+    if (!delBtn) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!window.confirm('Delete this photo?')) return;
+
+    const photoId = delBtn.dataset.photoId;
+    delBtn.disabled = true;
+
+    const res = await tdPost('delete_photo', { photo_id: photoId });
+    if (res.success) {
+        tdRemovePhotoFromStaticSections(photoId);
+        document.dispatchEvent(new CustomEvent('td:photo-deleted', { detail: { photoId: Number(photoId) } }));
+    } else {
+        delBtn.disabled = false;
+        tdToast(res.message || "Couldn't delete that photo.");
+    }
+});
+
+/* ---------------- Recent Memories: tabbed, paginated grid ----------------
+   Rendered entirely client-side from TD_PHOTO_MEMORIES so switching "This
+   Week/Month/Year" or flipping a page never reloads the page — a plain
+   CSS grid (wraps, no overflow) instead of the old horizontal scroller. */
+(function () {
+    const tabsEl = document.getElementById('tdMemoryTabs');
+    const gridEl = document.getElementById('tdMemoryGrid');
+    const emptyEl = document.getElementById('tdMemoryEmpty');
+    const pagerEl = document.getElementById('tdMemoryPager');
+    const prevBtn = document.getElementById('tdMemoryPrev');
+    const nextBtn = document.getElementById('tdMemoryNext');
+    const statusEl = document.getElementById('tdMemoryPageStatus');
+    if (!tabsEl || !gridEl) return;
+
+    const TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>';
+
+    const memories = (typeof TD_PHOTO_MEMORIES !== 'undefined' && Array.isArray(TD_PHOTO_MEMORIES)) ? TD_PHOTO_MEMORIES.slice() : [];
+    const categoryIcons = (typeof TD_CATEGORY_ICONS !== 'undefined' && TD_CATEGORY_ICONS) || {};
+
+    // Tiles get progressively smaller Week → Month → Year (CSS handles the
+    // sizing via the grid's modifier class); page sizes grow to match.
+    const PERIODS = {
+        week:  { days: 7,   perPage: 8,  sizeClass: '' },
+        month: { days: 30,  perPage: 12, sizeClass: 'is-month' },
+        year:  { days: 365, perPage: 18, sizeClass: 'is-year' },
+    };
+
+    let period = 'week';
+    let page = 0;
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function formatDate(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        if (Number.isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    function itemsForPeriod() {
+        const cutoff = Date.now() - PERIODS[period].days * 86400000;
+        return memories.filter((m) => {
+            const t = new Date(m.visitedDate + 'T00:00:00').getTime();
+            return !Number.isNaN(t) && t >= cutoff;
+        });
+    }
+
+    function render() {
+        const cfg = PERIODS[period];
+        const items = itemsForPeriod();
+        const totalPages = Math.max(1, Math.ceil(items.length / cfg.perPage));
+        if (page >= totalPages) page = totalPages - 1;
+        if (page < 0) page = 0;
+
+        gridEl.className = 'td-memory-grid' + (cfg.sizeClass ? ' ' + cfg.sizeClass : '');
+
+        if (items.length === 0) {
+            gridEl.innerHTML = '';
+            emptyEl.hidden = false;
+            pagerEl.hidden = true;
+            return;
+        }
+        emptyEl.hidden = true;
+
+        const pageItems = items.slice(page * cfg.perPage, (page + 1) * cfg.perPage);
+        gridEl.innerHTML = pageItems.map((m) => {
+            const dateText = formatDate(m.visitedDate);
+            const caption = m.caption ? `<p class="td-memory-caption">${escapeHtml(m.caption)}</p>` : '';
+            return `
+                <div class="td-memory-card">
+                    <div class="td-memory-photo td-lightbox-trigger" tabindex="0" role="button"
+                        data-lightbox-src="${escapeHtml(m.image)}"
+                        data-lightbox-caption="${escapeHtml(m.placeName)} · ${escapeHtml(dateText)}">
+                        <span class="td-memory-icon">${categoryIcons[m.category] || ''}</span>
+                        <img src="${escapeHtml(m.image)}" alt="" loading="lazy">
+                        <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="${m.photoId}">${TRASH_ICON}</button>
+                    </div>
+                    <h3 class="td-memory-name">${escapeHtml(m.placeName)}</h3>
+                    <p class="td-memory-date">${escapeHtml(dateText)}</p>
+                    ${caption}
+                </div>
+            `;
+        }).join('');
+
+        pagerEl.hidden = totalPages <= 1;
+        prevBtn.disabled = page === 0;
+        nextBtn.disabled = page >= totalPages - 1;
+        statusEl.textContent = `Page ${page + 1} of ${totalPages}`;
+    }
+
+    tabsEl.addEventListener('click', (e) => {
+        const tab = e.target.closest('.td-memory-tab');
+        if (!tab) return;
+        tabsEl.querySelectorAll('.td-memory-tab').forEach((t) => t.classList.toggle('is-active', t === tab));
+        period = tab.dataset.period;
+        page = 0;
+        render();
+    });
+
+    prevBtn.addEventListener('click', () => { page--; render(); });
+    nextBtn.addEventListener('click', () => { page++; render(); });
+
+    // The actual delete call/confirm is handled by the single delegated
+    // handler (it covers every section) — this just keeps this module's
+    // own copy of the data in sync so pagination/empty-state stay correct
+    // no matter which section the delete was actually clicked from.
+    document.addEventListener('td:photo-deleted', (e) => {
+        const idx = memories.findIndex((m) => m.photoId === e.detail.photoId);
+        if (idx !== -1) {
+            memories.splice(idx, 1);
+            render();
+        }
+    });
+
+    render();
 })();

@@ -104,6 +104,20 @@ $statIcons = [
     'clip'       => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V7a4 4 0 0 1 8 0v9a2.5 2.5 0 0 1-5 0V9"/></svg>',
 ];
 
+// Small UI-control icons (buttons, toggles, modal choices) — same
+// stroke style as $categoryIcons/$statIcons, replacing emoji that were
+// previously used as button glyphs.
+$uiIcons = [
+    'camera'  => $statIcons['photos'],
+    'library' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5-4 4-2-2-5 5"/></svg>',
+    'pencil'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    'undo'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>',
+    'flip'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M21 6H8a4 4 0 0 0-4 4v1"/><path d="M7 22l-4-4 4-4"/><path d="M3 18h13a4 4 0 0 0 4-4v-1"/></svg>',
+    'check'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
+    'trash'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>',
+    'pin'     => $statIcons['pin'],
+];
+
 // Coordinates power the "are you actually there?" geofence check on the
 // Explorer checklist — destination.google_maps stores "lat,lng" as one
 // string, the other tables have separate latitude/longitude columns.
@@ -547,6 +561,11 @@ foreach ($entries as $e) {
 // Newest photos first.
 usort($photoMemories, fn($a, $b) => strcmp($b['visitedDate'], $a['visitedDate']));
 
+// Exposed to JS for the client-side-rendered, tab-filtered, paginated
+// "Recent Memories" grid (switching tabs/pages shouldn't reload the page).
+$photoMemoriesJson = json_encode(array_values($photoMemories), JSON_UNESCAPED_UNICODE);
+$categoryIconsJson = json_encode($categoryIcons, JSON_UNESCAPED_SLASHES);
+
 // Checklist ("Visited Places Explorer"): every catalog item, with this
 // user's visit state attached.
 $checklist = [];
@@ -789,20 +808,17 @@ usort($checklist, function ($a, $b) {
                             <p>Upload a photo from the Explorer to start this feed.</p>
                         </div>
                     <?php else: ?>
-                    <div class="td-memories-scroll">
-                        <?php foreach (array_slice($photoMemories, 0, 8) as $m): ?>
-                            <div class="td-memory-card">
-                                <div class="td-memory-photo">
-                                    <span class="td-memory-icon"><?php echo $categoryIcons[$m['category']] ?? ''; ?></span>
-                                    <img src="<?php echo htmlspecialchars($m['image']); ?>" alt="" loading="lazy">
-                                </div>
-                                <h3 class="td-memory-name"><?php echo htmlspecialchars($m['placeName']); ?></h3>
-                                <p class="td-memory-date"><?php echo htmlspecialchars(date('F j, Y', strtotime($m['visitedDate']))); ?></p>
-                                <?php if (!empty($m['caption'])): ?>
-                                    <p class="td-memory-caption"><?php echo htmlspecialchars($m['caption']); ?></p>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
+                    <div class="td-memory-tabs" id="tdMemoryTabs">
+                        <button type="button" class="td-memory-tab is-active" data-period="week">This Week</button>
+                        <button type="button" class="td-memory-tab" data-period="month">This Month</button>
+                        <button type="button" class="td-memory-tab" data-period="year">This Year</button>
+                    </div>
+                    <div class="td-memory-grid" id="tdMemoryGrid"></div>
+                    <p class="td-empty-inline" id="tdMemoryEmpty" hidden>No photos in this period yet.</p>
+                    <div class="td-memory-pager" id="tdMemoryPager" hidden>
+                        <button type="button" class="td-memory-page-btn" id="tdMemoryPrev" aria-label="Previous page">‹</button>
+                        <span class="td-memory-page-status" id="tdMemoryPageStatus"></span>
+                        <button type="button" class="td-memory-page-btn" id="tdMemoryNext" aria-label="Next page">›</button>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -834,8 +850,14 @@ usort($checklist, function ($a, $b) {
                                     <?php endif; ?>
                                     <?php if (!empty($t['photos'])): ?>
                                         <div class="td-timeline-photos">
-                                            <?php foreach ($t['photos'] as $p): ?>
-                                                <img src="<?php echo htmlspecialchars('../assets/uploads/diary/' . basename($p['image'])); ?>" alt="">
+                                            <?php foreach ($t['photos'] as $p):
+                                                $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
+                                                $pCaption = htmlspecialchars($t['name'] . ' · ' . date('F j, Y', strtotime($t['visitedDate'])));
+                                            ?>
+                                                <div class="td-timeline-photo">
+                                                    <img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-caption="<?php echo $pCaption; ?>">
+                                                    <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
+                                                </div>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
@@ -848,7 +870,7 @@ usort($checklist, function ($a, $b) {
                                             data-lng="<?php echo $t['lng'] !== null ? $t['lng'] : ''; ?>">+ Log Another Visit</button>
                                         <button type="button" class="td-timeline-add-photo"
                                             data-item-type="<?php echo htmlspecialchars($t['itemType']); ?>"
-                                            data-item-id="<?php echo (int) $t['itemId']; ?>">📷 Add Photo</button>
+                                            data-item-id="<?php echo (int) $t['itemId']; ?>"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Add Photo</button>
                                         <button type="button" class="td-timeline-delete" data-entry-id="<?php echo (int) $t['entryId']; ?>">Remove</button>
                                     </div>
                                 </div>
@@ -878,7 +900,7 @@ usort($checklist, function ($a, $b) {
                         <button type="button" class="td-filter-pill" data-type="fiesta">Fiestas</button>
                         <button type="button" class="td-filter-pill" data-type="person">People</button>
                     </div>
-                    <button type="button" class="td-nearby-btn" id="tdNearbyBtn">📍 Show places near me first</button>
+                    <button type="button" class="td-nearby-btn" id="tdNearbyBtn"><span class="td-btn-icon"><?php echo $uiIcons['pin']; ?></span><span class="td-nearby-btn-label">Show places near me first</span></button>
                     <p class="td-nearby-status" id="tdNearbyStatus" hidden></p>
 
                     <div class="td-checklist" id="tdChecklist">
@@ -896,7 +918,7 @@ usort($checklist, function ($a, $b) {
                                     <div class="td-check-top">
                                         <span class="td-check-name"><?php echo htmlspecialchars($c['name']); ?></span>
                                         <span class="td-badge td-badge-<?php echo htmlspecialchars($c['category']); ?>"><?php echo htmlspecialchars($c['badgeText']); ?></span>
-                                        <span class="td-nearby-badge" hidden>📍 Nearby</span>
+                                        <span class="td-nearby-badge" hidden><span class="td-btn-icon"><?php echo $uiIcons['pin']; ?></span>Nearby</span>
                                     </div>
                                     <p class="td-check-status">
                                         <?php if ($c['visited']): ?>
@@ -917,9 +939,9 @@ usort($checklist, function ($a, $b) {
 
                                 <?php if ($c['visited']): ?>
                                     <button type="button" class="td-check-photo-btn" aria-label="Add photo" title="Add photo"
-                                        data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>">📷</button>
+                                        data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>"><?php echo $uiIcons['camera']; ?></button>
                                 <?php endif; ?>
-                                <button type="button" class="td-check-toggle-note" aria-label="Add note" title="Add note">✎</button>
+                                <button type="button" class="td-check-toggle-note" aria-label="Add note" title="Add note"><?php echo $uiIcons['pencil']; ?></button>
 
                                 <label class="td-check-box">
                                     <input type="checkbox" class="td-checkbox" data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>" <?php echo $c['visited'] ? 'checked' : ''; ?>>
@@ -948,13 +970,14 @@ usort($checklist, function ($a, $b) {
                     <?php else: ?>
                     <div class="td-gallery">
                         <?php foreach ($photoMemories as $i => $m): ?>
-                            <button type="button" class="td-gallery-tile<?php echo $i >= 6 ? ' td-hidden-extra' : ''; ?>" data-image="<?php echo htmlspecialchars($m['image']); ?>" data-caption="<?php echo htmlspecialchars($m['placeName'] . ' · ' . date('F j, Y', strtotime($m['visitedDate']))); ?>">
+                            <div class="td-gallery-tile td-lightbox-trigger<?php echo $i >= 6 ? ' td-hidden-extra' : ''; ?>" tabindex="0" role="button" data-lightbox-src="<?php echo htmlspecialchars($m['image']); ?>" data-lightbox-caption="<?php echo htmlspecialchars($m['placeName'] . ' · ' . date('F j, Y', strtotime($m['visitedDate']))); ?>">
                                 <img src="<?php echo htmlspecialchars($m['image']); ?>" alt="" loading="lazy">
+                                <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $m['photoId']; ?>"><?php echo $uiIcons['trash']; ?></button>
                                 <span class="td-gallery-info">
                                     <span class="td-gallery-name"><?php echo htmlspecialchars($m['placeName']); ?></span>
                                     <span class="td-gallery-date"><?php echo htmlspecialchars(date('M j, Y', strtotime($m['visitedDate']))); ?></span>
                                 </span>
-                            </button>
+                            </div>
                         <?php endforeach; ?>
                     </div>
                     <?php if (count($photoMemories) > 6): ?>
@@ -1201,14 +1224,14 @@ usort($checklist, function ($a, $b) {
         <h3 class="td-photo-choice-title">Add a Photo</h3>
         <div class="td-photo-choice-options">
             <button type="button" class="td-photo-choice-btn" id="tdPhotoChoiceCamera">
-                <span class="td-photo-choice-dot">📷</span>
+                <span class="td-photo-choice-dot"><?php echo $uiIcons['camera']; ?></span>
                 <span class="td-photo-choice-copy">
                     <span class="td-photo-choice-btn-title">Take Photo</span>
                     <span class="td-photo-choice-btn-sub">Use your camera</span>
                 </span>
             </button>
             <button type="button" class="td-photo-choice-btn" id="tdPhotoChoiceLibrary">
-                <span class="td-photo-choice-dot">🖼</span>
+                <span class="td-photo-choice-dot"><?php echo $uiIcons['library']; ?></span>
                 <span class="td-photo-choice-copy">
                     <span class="td-photo-choice-btn-title">Choose from Library</span>
                     <span class="td-photo-choice-btn-sub">Pick one or more existing photos</span>
@@ -1226,16 +1249,16 @@ usort($checklist, function ($a, $b) {
         <div class="td-camera-video-wrap">
             <video id="tdCameraVideo" class="td-camera-video" autoplay playsinline muted></video>
             <img id="tdCameraPreview" class="td-camera-video" alt="Captured photo" hidden>
-            <button type="button" class="td-camera-flip" id="tdCameraFlip" aria-label="Switch camera" title="Switch camera" hidden>🔄</button>
+            <button type="button" class="td-camera-flip" id="tdCameraFlip" aria-label="Switch camera" title="Switch camera" hidden><?php echo $uiIcons['flip']; ?></button>
         </div>
         <p class="td-camera-error" id="tdCameraError" hidden></p>
         <div class="td-camera-actions" id="tdCameraShootActions">
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraCancel">Cancel</button>
-            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraShoot">📷 Capture</button>
+            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraShoot"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Capture</button>
         </div>
         <div class="td-camera-actions" id="tdCameraPreviewActions" hidden>
-            <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraRetake">↺ Retake</button>
-            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraUse">✓ Use Photo</button>
+            <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraRetake"><span class="td-btn-icon"><?php echo $uiIcons['undo']; ?></span>Retake</button>
+            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraUse"><span class="td-btn-icon"><?php echo $uiIcons['check']; ?></span>Use Photo</button>
         </div>
     </div>
 </div>
@@ -1260,6 +1283,8 @@ usort($checklist, function ($a, $b) {
 const TD_CAN_WRAP = <?php echo $canGenerateWrapped ? 'true' : 'false'; ?>;
 const TD_WRAPPED_REQUESTED = <?php echo $wrappedRequested ? 'true' : 'false'; ?>;
 const TD_WRAPPED_PERIOD = <?php echo json_encode($wrappedPeriod); ?>;
+const TD_PHOTO_MEMORIES = <?php echo $photoMemoriesJson; ?>;
+const TD_CATEGORY_ICONS = <?php echo $categoryIconsJson; ?>;
 </script>
 <!-- Renders a slide's DOM into a downloadable/shareable PNG (used by Save Photo / Share). -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>

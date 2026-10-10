@@ -200,9 +200,14 @@ if ($action === 'upload_photo') {
         exit;
     }
 
-    // Find (or create) the most recent visit for this item.
+    // Find (or create) TODAY's visit for this item specifically — not
+    // just the most recent one ever, otherwise a photo added today
+    // silently lands on a visit from days ago instead of getting its
+    // own dated entry (each day you log a visit should read as its
+    // own entry with today's date, even for a place you've been to
+    // and photographed before).
     $findStmt = $conn->prepare(
-        "SELECT entry_id FROM diary_entries WHERE user_id = ? AND item_type = ? AND item_id = ? ORDER BY visited_date DESC, entry_id DESC LIMIT 1"
+        "SELECT entry_id FROM diary_entries WHERE user_id = ? AND item_type = ? AND item_id = ? AND visited_date = CURDATE() ORDER BY entry_id DESC LIMIT 1"
     );
     $findStmt->bind_param('isi', $userId, $itemType, $itemId);
     $findStmt->execute();
@@ -333,6 +338,50 @@ if ($action === 'delete_entry') {
     $delEntry->close();
 
     echo json_encode(['success' => true]);
+    exit;
+}
+
+/*
+ |--------------------------------------------------------------------
+ | ACTION: delete_photo
+ |--------------------------------------------------------------------
+ | Removes one photo (and its file on disk) without touching the rest
+ | of that visit — the entry itself, its note, and any other photos
+ | on it are left alone.
+ */
+if ($action === 'delete_photo') {
+    $photoId = (int) ($_POST['photo_id'] ?? 0);
+    if ($photoId <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid photo.']);
+        exit;
+    }
+
+    $ownStmt = $conn->prepare(
+        "SELECT p.photo_id, p.image, p.entry_id FROM diary_photos p
+         JOIN diary_entries e ON e.entry_id = p.entry_id
+         WHERE p.photo_id = ? AND e.user_id = ?"
+    );
+    $ownStmt->bind_param('ii', $photoId, $userId);
+    $ownStmt->execute();
+    $photo = $ownStmt->get_result()->fetch_assoc();
+    $ownStmt->close();
+
+    if (!$photo) {
+        echo json_encode(['success' => false, 'message' => 'Photo not found.']);
+        exit;
+    }
+
+    $path = __DIR__ . '/../assets/uploads/diary/' . basename($photo['image']);
+    if (is_file($path)) {
+        @unlink($path);
+    }
+
+    $delStmt = $conn->prepare("DELETE FROM diary_photos WHERE photo_id = ?");
+    $delStmt->bind_param('i', $photoId);
+    $delStmt->execute();
+    $delStmt->close();
+
+    echo json_encode(['success' => true, 'entryId' => (int) $photo['entry_id']]);
     exit;
 }
 
