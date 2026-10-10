@@ -6,6 +6,8 @@ kt_maintenance_gate($conn);
 include 'config/sitecontent.php';
 include 'config/analytics.php';
 include 'config/announcements.php';
+require_once __DIR__ . '/config/homepage_content.php';
+kt_homepage_content_ensure_schema($conn);
 analytics_track($conn, 'home');
 
 $siteName = "KULTOURA";
@@ -140,6 +142,29 @@ if ($result = $conn->query(
      LIMIT 3"
 )) {
     $homeNews = $result->fetch_all(MYSQLI_ASSOC);
+}
+
+// ── Our Partners (mirrors admin/adminhomepage.php) ──
+$homePartners = [];
+if ($result = $conn->query("SELECT name, logo, website_url FROM partners WHERE status = 'live' ORDER BY created_at DESC")) {
+    $homePartners = $result->fetch_all(MYSQLI_ASSOC);
+}
+
+// ── Event Gallery (mirrors admin/adminhomepage.php) ──
+$homeEventGallery = [];
+if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC LIMIT 18")) {
+    $homeEventGallery = $result->fetch_all(MYSQLI_ASSOC);
+}
+
+// ── Facebook Videos — "recent happenings in Malvar" (mirrors admin/adminhomepage.php) ──
+$homeFbVideos = [];
+if ($result = $conn->query("SELECT video_url, title FROM fb_videos WHERE status = 'live' ORDER BY created_at DESC LIMIT 4")) {
+    foreach ($result->fetch_all(MYSQLI_ASSOC) as $v) {
+        $embedUrl = kt_fb_video_embed_url($v['video_url']);
+        if ($embedUrl) {
+            $homeFbVideos[] = ['embed_url' => $embedUrl, 'title' => $v['title']];
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -431,6 +456,68 @@ if ($result = $conn->query(
     </div>
     <?php endif; ?>
 </section>
+
+<?php if (!empty($homePartners)): ?>
+<!-- ── Our Partners (mirrors admin/adminhomepage.php) ── -->
+<section class="home-partners">
+    <div class="home-partners-top reveal">
+        <p class="home-eyebrow home-eyebrow-gold">OUR PARTNERS</p>
+        <h2 class="home-heading">Together with Malvar</h2>
+        <p class="home-partners-desc">Together in the shared vision of a stronger, forward-looking tourism industry, our valued partners help bring Malvar closer to everyone who visits.</p>
+    </div>
+    <div class="home-partners-grid reveal">
+        <?php foreach ($homePartners as $p): ?>
+            <?php if (!empty($p['website_url'])): ?>
+                <a class="home-partner-card" href="<?php echo htmlspecialchars($p['website_url']); ?>" target="_blank" rel="noopener" title="<?php echo htmlspecialchars($p['name']); ?>">
+                    <img src="<?php echo htmlspecialchars($p['logo']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy">
+                </a>
+            <?php else: ?>
+                <div class="home-partner-card" title="<?php echo htmlspecialchars($p['name']); ?>">
+                    <img src="<?php echo htmlspecialchars($p['logo']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy">
+                </div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if (!empty($homeEventGallery)): ?>
+<!-- ── Event Gallery (mirrors admin/adminhomepage.php) ── -->
+<section class="home-gallery">
+    <div class="home-gallery-top reveal">
+        <p class="home-eyebrow home-eyebrow-rust">EVENTS IN MALVAR</p>
+        <h2 class="home-heading">Moments We've Shared</h2>
+    </div>
+    <div class="home-gallery-grid reveal">
+        <?php foreach ($homeEventGallery as $g): ?>
+            <div class="home-gallery-tile">
+                <img src="<?php echo htmlspecialchars($g['image']); ?>" alt="" loading="lazy">
+                <span class="home-gallery-caption"><?php echo htmlspecialchars($g['caption']); ?></span>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if (!empty($homeFbVideos)): ?>
+<!-- ── Facebook Videos — recent happenings in Malvar (mirrors admin/adminhomepage.php) ── -->
+<section class="home-videos">
+    <div class="home-videos-top reveal">
+        <p class="home-eyebrow home-eyebrow-gold">RECENT HAPPENINGS</p>
+        <h2 class="home-heading home-heading-light">Malvar, Live</h2>
+    </div>
+    <div class="home-videos-grid reveal">
+        <?php foreach ($homeFbVideos as $v): ?>
+            <div class="home-video-card">
+                <div class="home-video-frame">
+                    <iframe src="<?php echo htmlspecialchars($v['embed_url']); ?>" width="100%" height="100%" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" loading="lazy"></iframe>
+                </div>
+                <?php if (!empty($v['title'])): ?><p class="home-video-title"><?php echo htmlspecialchars($v['title']); ?></p><?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
 
 <!-- ── Footer ── -->
 <footer class="home-footer">

@@ -86,6 +86,9 @@ if (!function_exists('kt_entity_meta')) {
             'person'        => ['table' => 'people',          'idCol' => 'person_id',      'page' => 'adminpeople.php',         'label' => 'Person of Malvar'],
             'announcement'  => ['table' => 'announcements',   'idCol' => 'id',             'page' => 'adminannouncements.php',  'label' => 'Announcement'],
             'about_section' => ['table' => 'about_sections',  'idCol' => 'section_id',     'page' => 'adminsitecontent.php',    'label' => 'About Section'],
+            'partner'       => ['table' => 'partners',        'idCol' => 'id',             'page' => 'adminhomepage.php',       'label' => 'Partner'],
+            'event_photo'   => ['table' => 'event_gallery',   'idCol' => 'id',             'page' => 'adminhomepage.php',       'label' => 'Event Gallery Photo'],
+            'fb_video'      => ['table' => 'fb_videos',       'idCol' => 'id',             'page' => 'adminhomepage.php',       'label' => 'Facebook Video'],
         ];
         return $map[$entityType] ?? null;
     }
@@ -327,6 +330,9 @@ if (!function_exists('kt_apply_entity_change')) {
             case 'person':           return kt_apply_person($conn, $action, $id, $data);
             case 'announcement':     return kt_apply_announcement($conn, $action, $id, $data);
             case 'about_section':    return kt_apply_about_section($conn, $action, $id, $data);
+            case 'partner':          return kt_apply_partner($conn, $action, $id, $data);
+            case 'event_photo':      return kt_apply_event_photo($conn, $action, $id, $data);
+            case 'fb_video':         return kt_apply_fb_video($conn, $action, $id, $data);
             default:
                 throw new InvalidArgumentException("Unknown entity type: $entityType");
         }
@@ -537,6 +543,92 @@ if (!function_exists('kt_apply_announcement')) {
                  WHERE id=?"
             );
             $stmt->bind_param('ssssssi', $title, $d['body'], $d['type'], $d['status'], $image, $d['status'], $id);
+        }
+        $stmt->execute();
+        $stmt->close();
+        return $title;
+    }
+}
+
+if (!function_exists('kt_apply_partner')) {
+    function kt_apply_partner(mysqli $conn, string $action, ?int $id, array $d): string
+    {
+        $name = (string) ($d['name'] ?? '');
+        if ($action === 'archive') {
+            $stmt = $conn->prepare("UPDATE partners SET status = 'archived' WHERE id = ?");
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            return $name;
+        }
+
+        $logo = $d['logo'] ?? null;
+        $websiteUrl = $d['website_url'] ?? null;
+
+        if ($action === 'create') {
+            $stmt = $conn->prepare("INSERT INTO partners (name, logo, website_url, status) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param('ssss', $name, $logo, $websiteUrl, $d['status']);
+        } elseif ($logo !== null) {
+            $stmt = $conn->prepare("UPDATE partners SET name=?, logo=?, website_url=?, status=? WHERE id=?");
+            $stmt->bind_param('ssssi', $name, $logo, $websiteUrl, $d['status'], $id);
+        } else {
+            $stmt = $conn->prepare("UPDATE partners SET name=?, website_url=?, status=? WHERE id=?");
+            $stmt->bind_param('sssi', $name, $websiteUrl, $d['status'], $id);
+        }
+        $stmt->execute();
+        $stmt->close();
+        return $name;
+    }
+}
+
+if (!function_exists('kt_apply_event_photo')) {
+    function kt_apply_event_photo(mysqli $conn, string $action, ?int $id, array $d): string
+    {
+        $caption = (string) ($d['caption'] ?? '');
+        if ($action === 'archive') {
+            $stmt = $conn->prepare("UPDATE event_gallery SET status = 'archived' WHERE id = ?");
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            return $caption;
+        }
+
+        $image = $d['image'] ?? null;
+
+        if ($action === 'create') {
+            $stmt = $conn->prepare("INSERT INTO event_gallery (image, caption, status) VALUES (?, ?, ?)");
+            $stmt->bind_param('sss', $image, $caption, $d['status']);
+        } elseif ($image !== null) {
+            $stmt = $conn->prepare("UPDATE event_gallery SET image=?, caption=?, status=? WHERE id=?");
+            $stmt->bind_param('sssi', $image, $caption, $d['status'], $id);
+        } else {
+            $stmt = $conn->prepare("UPDATE event_gallery SET caption=?, status=? WHERE id=?");
+            $stmt->bind_param('ssi', $caption, $d['status'], $id);
+        }
+        $stmt->execute();
+        $stmt->close();
+        return $caption;
+    }
+}
+
+if (!function_exists('kt_apply_fb_video')) {
+    function kt_apply_fb_video(mysqli $conn, string $action, ?int $id, array $d): string
+    {
+        $title = (string) ($d['title'] ?? '') ?: ($d['video_url'] ?? 'Video');
+        if ($action === 'archive') {
+            $stmt = $conn->prepare("UPDATE fb_videos SET status = 'archived' WHERE id = ?");
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            return $title;
+        }
+
+        if ($action === 'create') {
+            $stmt = $conn->prepare("INSERT INTO fb_videos (video_url, title, status) VALUES (?, ?, ?)");
+            $stmt->bind_param('sss', $d['video_url'], $d['title'], $d['status']);
+        } else {
+            $stmt = $conn->prepare("UPDATE fb_videos SET video_url=?, title=?, status=? WHERE id=?");
+            $stmt->bind_param('sssi', $d['video_url'], $d['title'], $d['status'], $id);
         }
         $stmt->execute();
         $stmt->close();
