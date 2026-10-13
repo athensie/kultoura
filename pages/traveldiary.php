@@ -705,7 +705,11 @@ usort($checklist, function ($a, $b) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css">
     <link rel="stylesheet" href="../assets/css/tourism.css">
-    <link rel="stylesheet" href="../assets/css/traveldiary.css">
+    <!-- ?v=<mtime> so browsers (mobile Chrome especially) actually fetch
+         a new copy after every deploy instead of serving a stale cached
+         one — this file has no Cache-Control/Expires header, so without
+         a change in the URL itself a "reload" can still show old CSS. -->
+    <link rel="stylesheet" href="../assets/css/traveldiary.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/traveldiary.css') ?: time(); ?>">
     <!-- Travel Wrapped's "Your Travel Map" slide — same Leaflet + OpenStreetMap tiles as the admin map pickers. -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
@@ -1486,7 +1490,7 @@ const TD_CATEGORY_ICONS = <?php echo $categoryIconsJson; ?>;
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/navbar-search.js"></script>
-<script src="../assets/js/traveldiary.js"></script>
+<script src="../assets/js/traveldiary.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/traveldiary.js') ?: time(); ?>"></script>
 
 </body>
 </html>
