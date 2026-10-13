@@ -929,6 +929,134 @@ body {
     margin: 24px 0 0;
 }
 
+/* ── Discover What's Next (upcoming fiestas/events) ── */
+.home-upcoming {
+    background: #fff;
+    padding: 90px 48px 100px;
+}
+
+.home-upcoming-top {
+    max-width: 1200px;
+    margin: 0 auto 36px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.home-upcoming-desc {
+    font-size: 14px;
+    color: rgba(44, 26, 14, 0.6);
+    margin: 0;
+}
+
+.home-upcoming-nav-group {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.home-upcoming-carousel {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 22px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+}
+.home-upcoming-carousel::-webkit-scrollbar { display: none; }
+
+.home-upcoming-card {
+    flex: 0 0 240px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.home-upcoming-media {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: #2c1a0e;
+}
+.home-upcoming-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+.home-upcoming-card:hover .home-upcoming-media img { transform: scale(1.06); }
+
+.home-upcoming-media-fallback {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, #5f7d4c 0%, #2c1a0e 100%);
+}
+
+.home-upcoming-date-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 10px 7px;
+    text-align: center;
+    line-height: 1.1;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+.home-upcoming-date-day {
+    display: block;
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 19px;
+    color: #8b2e1a;
+}
+.home-upcoming-date-mon {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: rgba(44, 26, 14, 0.6);
+    margin-top: 2px;
+}
+
+.home-upcoming-type {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #5f7d4c;
+    margin: 0 0 6px;
+}
+
+.home-upcoming-title {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #2c1a0e;
+    margin: 0 0 6px;
+    line-height: 1.3;
+}
+
+.home-upcoming-loc {
+    font-size: 12.5px;
+    color: rgba(44, 26, 14, 0.55);
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .home-upcoming-top { flex-direction: column; align-items: flex-start; }
+    .home-upcoming-card { flex-basis: 200px; }
+    .home-upcoming-media { height: 270px; }
+}
+
 /* ── News & Announcements ── */
 .home-news {
     background: #e9e2d0;

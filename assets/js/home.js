@@ -49,6 +49,23 @@
     if (nextBtn) nextBtn.addEventListener('click', () => scrollByCard(1));
 })();
 
+/* ---------------- Discover What's Next — upcoming events carousel ---------------- */
+(function () {
+    const carousel = document.getElementById('homeUpcomingCarousel');
+    const prevBtn = document.getElementById('homeUpcomingPrev');
+    const nextBtn = document.getElementById('homeUpcomingNext');
+    if (!carousel) return;
+
+    function scrollByCard(direction) {
+        const card = carousel.querySelector('.home-upcoming-card');
+        const step = card ? card.getBoundingClientRect().width + 22 : 260;
+        carousel.scrollBy({ left: step * direction, behavior: 'smooth' });
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', () => scrollByCard(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => scrollByCard(1));
+})();
+
 /* ---------------- Newsletter form (no backend yet — just a friendly ack) ---------------- */
 (function () {
     const form = document.getElementById('homeNewsletterForm');

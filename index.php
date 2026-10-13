@@ -147,6 +147,18 @@ if ($result = $conn->query(
     $homeNews = $result->fetch_all(MYSQLI_ASSOC);
 }
 
+// ── Discover What's Next — upcoming fiestas/events (mirrors pages/tourism/fiestas.php) ──
+$homeUpcoming = [];
+if ($result = $conn->query(
+    "SELECT fiesta_id, fiesta_name, type, celebration_date, location, image
+     FROM fiestas
+     WHERE status = 'active' AND celebration_date >= CURDATE()
+     ORDER BY celebration_date ASC
+     LIMIT 10"
+)) {
+    $homeUpcoming = $result->fetch_all(MYSQLI_ASSOC);
+}
+
 // ── Our Partners (mirrors admin/adminhomepage.php) ──
 $homePartners = [];
 if ($result = $conn->query("SELECT name, logo, website_url, description FROM partners WHERE status = 'live' ORDER BY created_at DESC")) {
@@ -366,6 +378,50 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     <p class="home-no-results" id="homeNoResults" hidden>Nothing in that category yet — check the full For You page for more.</p>
     <?php endif; ?>
 </section>
+
+<?php if (!empty($homeUpcoming)): ?>
+<!-- ── Discover What's Next — upcoming fiestas/events (mirrors pages/tourism/fiestas.php) ── -->
+<section class="home-upcoming">
+    <div class="home-upcoming-top reveal">
+        <div>
+            <p class="home-eyebrow home-eyebrow-rust">UPCOMING</p>
+            <h2 class="home-heading">Discover What's Next</h2>
+            <p class="home-upcoming-desc">Add more spice to your itinerary with these fiestas and events near you.</p>
+        </div>
+        <div class="home-upcoming-nav-group">
+            <button type="button" class="home-carousel-nav" id="homeUpcomingPrev" aria-label="Previous">&#8249;</button>
+            <button type="button" class="home-carousel-nav" id="homeUpcomingNext" aria-label="Next">&#8250;</button>
+        </div>
+    </div>
+    <div class="home-upcoming-carousel reveal" id="homeUpcomingCarousel">
+        <?php foreach ($homeUpcoming as $u):
+            $uImg = home_img('fiesta', $u['image'], $homeImageSubfolder);
+            $uDay = date('d', strtotime($u['celebration_date']));
+            $uMon = date('M', strtotime($u['celebration_date']));
+            $uYear = date('Y', strtotime($u['celebration_date']));
+        ?>
+            <a class="home-upcoming-card" href="pages/tourism/fiestas.php">
+                <div class="home-upcoming-media">
+                    <?php if ($uImg): ?>
+                        <img src="<?php echo htmlspecialchars($uImg); ?>" alt="" loading="lazy">
+                    <?php else: ?>
+                        <span class="home-upcoming-media-fallback"></span>
+                    <?php endif; ?>
+                    <span class="home-upcoming-date-badge">
+                        <span class="home-upcoming-date-day"><?php echo htmlspecialchars($uDay); ?></span>
+                        <span class="home-upcoming-date-mon"><?php echo htmlspecialchars(strtoupper($uMon)); ?><br><?php echo htmlspecialchars($uYear); ?></span>
+                    </span>
+                </div>
+                <div class="home-upcoming-body">
+                    <p class="home-upcoming-type"><?php echo htmlspecialchars(strtoupper($u['type'])); ?></p>
+                    <h3 class="home-upcoming-title"><?php echo htmlspecialchars($u['fiesta_name']); ?></h3>
+                    <p class="home-upcoming-loc"><?php echo htmlspecialchars($u['location']); ?></p>
+                </div>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
 
 <?php if (!empty($homeNews)): ?>
 <!-- ── News & Announcements (mirrors admin/adminannouncements.php) ── -->
