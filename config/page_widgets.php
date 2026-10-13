@@ -74,6 +74,31 @@ if (!function_exists('kt_page_widget_pages')) {
     }
 }
 
+// The banner's headline/description always come from here, not an
+// admin-typed field — same title + blurb already shown in that page's own
+// hero section (<h1 class="t-page-title">, <p class="t-page-sub">), kept
+// as a single source of truth so the widget can't drift out of sync with
+// the page it's on.
+if (!function_exists('kt_page_widget_page_meta')) {
+    function kt_page_widget_page_meta(): array
+    {
+        return [
+            'tourism'       => ['title' => 'Tourism', 'description' => "Everything Malvar has to offer — food, nature, culture, and people — all in one place."],
+            'accommodation' => ['title' => 'Accommodation', 'description' => 'Hotels, inns, and homestays for travelers looking to stay a little longer in Malvar.'],
+            'banks'         => ['title' => 'Banks', 'description' => 'Banks, ATMs, and remittance centers travelers rely on while in Malvar.'],
+            'churches'      => ['title' => 'Churches', 'description' => "Parishes, chapels, and shrines that anchor Malvar's faith and community life."],
+            'fiestas'       => ['title' => 'Fiestas', 'description' => "Barangay fiestas, patron saint celebrations, and the vibrant street culture of Malvar."],
+            'industry'      => ['title' => 'Industry Zone', 'description' => 'Discover the commercial and industrial districts that drive Malvar forward.'],
+            'nature'        => ['title' => 'Nature', 'description' => "Parks, trails, and scenic views that showcase Malvar's natural beauty."],
+            'people'        => ['title' => 'People of Malvar', 'description' => 'Artists, leaders, farmers, and community pillars who define the Malvareño spirit.'],
+            'products'      => ['title' => 'Products', 'description' => "Locally made goods, native delicacies, and fresh produce from Malvar's markets."],
+            'resort'        => ['title' => 'Resorts', 'description' => "Poolside relaxation and weekend getaways — Malvar's best leisure destinations."],
+            'restaurants'   => ['title' => 'Restaurants', 'description' => 'From roadside eateries to family restaurants — find your next favorite meal.'],
+            'services'      => ['title' => 'Other Services', 'description' => 'Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.'],
+        ];
+    }
+}
+
 // Shared by every image field on the widget — same validation/storage
 // pattern as config/homepage_content.php's kt_homepage_handle_image_upload().
 if (!function_exists('kt_page_widget_handle_image_upload')) {
@@ -128,6 +153,7 @@ if (!function_exists('kt_page_widget_render')) {
     {
         $w = kt_page_widget_get($conn, $pageSlug);
         if (!$w) return;
+        $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['title' => $pageSlug, 'description' => ''];
         ?>
         <section class="pw-widget" style="background:<?php echo htmlspecialchars($w['bg_color']); ?>">
             <div class="pw-banner">
@@ -137,9 +163,9 @@ if (!function_exists('kt_page_widget_render')) {
                     </div>
                 <?php endif; ?>
                 <div class="pw-banner-main">
-                    <h2 class="pw-banner-headline"><?php echo htmlspecialchars($w['headline']); ?></h2>
-                    <?php if (!empty($w['subtext'])): ?>
-                        <p class="pw-banner-subtext"><?php echo htmlspecialchars($w['subtext']); ?></p>
+                    <h2 class="pw-banner-headline"><?php echo htmlspecialchars($meta['title']); ?></h2>
+                    <?php if (!empty($meta['description'])): ?>
+                        <p class="pw-banner-subtext"><?php echo htmlspecialchars($meta['description']); ?></p>
                     <?php endif; ?>
                 </div>
                 <?php if (!empty($w['card1_title']) || !empty($w['card2_title'])): ?>

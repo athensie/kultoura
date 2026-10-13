@@ -17,8 +17,6 @@ function openEditWidget(id) {
     document.getElementById('editWidgetPageSlug').value = w.page_slug;
     document.getElementById('editWidgetPageLabel').textContent = (window.pageWidgetLabels || {})[w.page_slug] || w.page_slug;
     document.getElementById('editWidgetBgColor').value = w.bg_color || '#8b2e1a';
-    document.getElementById('editWidgetHeadline').value = w.headline || '';
-    document.getElementById('editWidgetSubtext').value = w.subtext || '';
     document.getElementById('editWidgetCard1Title').value = w.card1_title || '';
     document.getElementById('editWidgetCard1Text').value = w.card1_text || '';
     document.getElementById('editWidgetCard2Title').value = w.card2_title || '';

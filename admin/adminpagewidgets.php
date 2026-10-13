@@ -83,12 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             header("Location: adminpagewidgets.php");
             exit;
         }
-        $headline = trim($_POST['headline'] ?? '');
-        if ($headline === '') {
-            $_SESSION['admin_flash'] = 'Please enter a headline.';
-            header("Location: adminpagewidgets.php");
-            exit;
-        }
 
         // Re-adding a widget for a page that already has a (possibly
         // archived) row updates that row instead of hitting the
@@ -105,11 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             }
         }
 
+        // Headline/subtext are no longer admin-typed — the banner always
+        // shows that page's own title/description (kt_page_widget_page_meta()),
+        // these columns are just kept populated to satisfy the NOT NULL
+        // schema without a migration.
+        $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['title' => $pageSlug, 'description' => ''];
+
         $data = [
             'page_slug'          => $pageSlug,
             'bg_color'           => trim($_POST['bg_color'] ?? '') ?: '#8b2e1a',
-            'headline'           => $headline,
-            'subtext'            => trim($_POST['subtext'] ?? '') ?: null,
+            'headline'           => $meta['title'],
+            'subtext'            => $meta['description'] ?: null,
             'card1_title'        => trim($_POST['card1_title'] ?? '') ?: null,
             'card1_text'         => trim($_POST['card1_text'] ?? '') ?: null,
             'card2_title'        => trim($_POST['card2_title'] ?? '') ?: null,
@@ -282,7 +282,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                     <div class="pw-admin-row-body">
                         <div class="pw-admin-row-title"><?php echo htmlspecialchars($label); ?></div>
                         <?php if ($w): ?>
-                            <div class="pw-admin-row-sub"><?php echo htmlspecialchars($w['headline']); ?></div>
+                            <div class="pw-admin-row-sub">Live on this page<?php echo !empty($w['card1_title']) || !empty($w['card2_title']) ? ' · ' . htmlspecialchars($w['card1_title'] ?: $w['card2_title']) : ''; ?></div>
                         <?php else: ?>
                             <div class="pw-admin-row-sub pw-admin-row-empty">Not set up yet</div>
                         <?php endif; ?>
@@ -323,7 +323,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <div class="modal-card pw-modal-card">
         <button class="modal-close" onclick="closeModal('addWidgetModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add Widget — <span id="addWidgetPageLabel"></span></div>
-        <div class="modal-sub">Shown near the top of that page, below the hero.</div>
+        <div class="modal-sub">Shown near the top of that page, below the hero. Headline/description are that page's own title and blurb — not editable here.</div>
         <form method="POST" action="adminpagewidgets.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="add_page_widget">
             <input type="hidden" name="page_slug" id="addWidgetPageSlug">
@@ -337,14 +337,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <div class="form-group">
                 <label class="form-label">Photo</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Headline</label>
-                <input class="form-input" type="text" name="headline" maxlength="150" placeholder="e.g. More To See, More To Do" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Subtext (optional)</label>
-                <textarea class="form-input" name="subtext" rows="2" maxlength="300"></textarea>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -414,6 +406,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <div class="modal-card pw-modal-card">
         <button class="modal-close" onclick="closeModal('editWidgetModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Widget — <span id="editWidgetPageLabel"></span></div>
+        <div class="modal-sub">Headline/description are that page's own title and blurb — not editable here.</div>
         <form method="POST" action="adminpagewidgets.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="edit_page_widget">
             <input type="hidden" name="id" id="editWidgetId">
@@ -429,14 +422,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <label class="form-label">Replace Photo</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current photo.</p>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Headline</label>
-                <input class="form-input" type="text" name="headline" id="editWidgetHeadline" maxlength="150" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Subtext (optional)</label>
-                <textarea class="form-input" name="subtext" id="editWidgetSubtext" rows="2" maxlength="300"></textarea>
             </div>
             <div class="form-row">
                 <div class="form-group">
