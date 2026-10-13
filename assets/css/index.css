@@ -1240,30 +1240,70 @@ a.home-partner-card { text-decoration: none; }
     gap: 24px;
 }
 
-.home-video-frame {
-    width: 100%;
-    height: 360px;
+/* A link-out card, not an embed — Facebook's video plugin needs a
+   registered Facebook app to reliably accept otherwise-public videos,
+   and without one it was intermittently refusing to embed genuinely
+   public ones ("Video Unavailable"). A plain link to the real video on
+   Facebook always works, so that's what this is. */
+.home-video-card {
+    display: block;
+    text-decoration: none;
     border-radius: 14px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.05);
+    transition: transform 0.25s ease, background 0.25s ease;
+}
+.home-video-card:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.08);
 }
 
-.home-video-frame iframe {
+.home-video-frame {
+    position: relative;
     width: 100%;
-    height: 100%;
-    display: block;
+    height: 200px;
+    background: linear-gradient(145deg, #1877f2 0%, #0d5bc4 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.home-video-play {
+    width: 56px;
+    height: 56px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.home-video-fb-badge {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    width: 22px;
+    height: 22px;
+    color: #fff;
+}
+
+.home-video-body {
+    padding: 16px 18px 20px;
 }
 
 .home-video-title {
-    margin-top: 12px;
     font-family: Georgia, serif;
     font-weight: 700;
     font-size: 14.5px;
     color: var(--cream);
+    margin: 0 0 8px;
+}
+
+.home-video-cta {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--sage);
 }
 
 @media (max-width: 700px) {
-    .home-video-frame { height: 280px; }
+    .home-video-frame { height: 170px; }
 }
 
 /* ── Footer ── */

@@ -414,19 +414,11 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                         <div class="chart-empty-sub">Facebook videos added here show up on the homepage.</div>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($fbVideos as $v): $embedUrl = kt_fb_video_embed_url($v['video_url']); ?>
+                    <?php foreach ($fbVideos as $v): ?>
                         <div class="grid-card">
-                            <div class="grid-card-media video-media">
-                                <?php if ($embedUrl): ?>
-                                    <!-- Same embed URL the homepage itself uses — if Facebook is
-                                         going to reject this video ("Video Unavailable"), it shows
-                                         up right here instead of only being discovered on the live
-                                         homepage. -->
-                                    <iframe src="<?php echo htmlspecialchars($embedUrl); ?>" width="100%" height="100%" style="border:none;overflow:hidden" scrolling="no" frameborder="0" loading="lazy"></iframe>
-                                <?php else: ?>
-                                    <i data-lucide="facebook" class="lucide"></i>
-                                <?php endif; ?>
-                            </div>
+                            <a class="grid-card-media video-media" href="<?php echo htmlspecialchars($v['video_url']); ?>" target="_blank" rel="noopener" title="Open on Facebook">
+                                <i data-lucide="facebook" class="lucide"></i>
+                            </a>
                             <div class="grid-card-body">
                                 <div class="grid-card-title"><?php echo htmlspecialchars($v['title'] ?: 'Untitled video'); ?></div>
                                 <div class="grid-card-sub" style="word-break:break-all;"><?php echo htmlspecialchars($v['video_url']); ?></div>
@@ -442,16 +434,16 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <?php if (!empty($pendingFbVideos)): ?>
                 <h3 class="pending-heading">Pending Super Admin Approval</h3>
                 <div class="grid-view-panel">
-                    <?php foreach ($pendingFbVideos as $req): $d = $req['payload']; $embedUrl = !empty($d['video_url']) ? kt_fb_video_embed_url($d['video_url']) : null; ?>
+                    <?php foreach ($pendingFbVideos as $req): $d = $req['payload']; ?>
                         <div class="grid-card pending-card">
                             <span class="pending-badge"><?php echo htmlspecialchars(ucfirst($req['action'])); ?> pending</span>
-                            <div class="grid-card-media video-media">
-                                <?php if ($embedUrl): ?>
-                                    <iframe src="<?php echo htmlspecialchars($embedUrl); ?>" width="100%" height="100%" style="border:none;overflow:hidden" scrolling="no" frameborder="0" loading="lazy"></iframe>
-                                <?php else: ?>
+                            <?php if (!empty($d['video_url'])): ?>
+                                <a class="grid-card-media video-media" href="<?php echo htmlspecialchars($d['video_url']); ?>" target="_blank" rel="noopener" title="Open on Facebook">
                                     <i data-lucide="facebook" class="lucide"></i>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php else: ?>
+                                <div class="grid-card-media video-media"><i data-lucide="facebook" class="lucide"></i></div>
+                            <?php endif; ?>
                             <div class="grid-card-body">
                                 <div class="grid-card-title"><?php echo htmlspecialchars($d['title'] ?? $req['entity_label']); ?></div>
                                 <div class="grid-card-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?></div>

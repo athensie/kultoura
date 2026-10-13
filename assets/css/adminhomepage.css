@@ -131,17 +131,20 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .partner-media { background: #fff; }
 .partner-media img { object-fit: contain !important; padding: 18px; }
 
-/* Facebook videos preview via the same embeddable iframe the homepage
-   itself uses, so a video Facebook won't actually serve ("Video
-   Unavailable") shows that right here instead of only surfacing once
-   it's already live. Falls back to a brand-colored placeholder only
-   when the pasted link isn't a facebook.com URL at all. */
+/* Facebook video cards link out rather than embed — Facebook's video
+   plugin needs a registered Facebook app to reliably accept otherwise-
+   public videos, and without one it was intermittently refusing to
+   embed genuinely public ones ("Video Unavailable"). A plain link to
+   the real video on Facebook always works. */
 .video-media {
   display: flex; align-items: center; justify-content: center;
   background: rgba(24,119,242,.12);
   color: #1877f2;
   overflow: hidden;
+  cursor: pointer;
+  transition: background .2s;
 }
+.video-media:hover { background: rgba(24,119,242,.2); }
 .video-media .lucide { width: 2.2rem; height: 2.2rem; opacity: .8; }
 
 /* PENDING SUPER ADMIN APPROVAL */

@@ -157,12 +157,16 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
 }
 
 // ── Facebook Videos — "recent happenings in Malvar" (mirrors admin/adminhomepage.php) ──
+// Linked out to, not embedded: Facebook's video plugin iframe needs a
+// registered Facebook app to reliably accept otherwise-public videos —
+// without one it intermittently refuses to embed even videos that are
+// genuinely public, which showed up as "Video Unavailable" on real
+// posts. A plain link-out card is the one approach that always works.
 $homeFbVideos = [];
 if ($result = $conn->query("SELECT video_url, title FROM fb_videos WHERE status = 'live' ORDER BY created_at DESC LIMIT 4")) {
     foreach ($result->fetch_all(MYSQLI_ASSOC) as $v) {
-        $embedUrl = kt_fb_video_embed_url($v['video_url']);
-        if ($embedUrl) {
-            $homeFbVideos[] = ['embed_url' => $embedUrl, 'title' => $v['title']];
+        if (kt_fb_video_embed_url($v['video_url'])) { // still just the "is this really facebook.com" check
+            $homeFbVideos[] = ['video_url' => $v['video_url'], 'title' => $v['title']];
         }
     }
 }
@@ -508,12 +512,16 @@ if ($result = $conn->query("SELECT video_url, title FROM fb_videos WHERE status 
     </div>
     <div class="home-videos-grid reveal">
         <?php foreach ($homeFbVideos as $v): ?>
-            <div class="home-video-card">
+            <a class="home-video-card" href="<?php echo htmlspecialchars($v['video_url']); ?>" target="_blank" rel="noopener">
                 <div class="home-video-frame">
-                    <iframe src="<?php echo htmlspecialchars($v['embed_url']); ?>" width="100%" height="100%" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" loading="lazy"></iframe>
+                    <svg class="home-video-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4V8z" fill="currentColor" stroke="none"/></svg>
+                    <svg class="home-video-fb-badge" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8.4h2.8l.4-3.3h-3.2V8.1c0-.9.3-1.6 1.7-1.6h1.7V3.5C16.6 3.4 15.5 3.3 14.3 3.3c-2.6 0-4.3 1.6-4.3 4.4v2.6H7.2v3.3h2.8V22h3.5z"/></svg>
                 </div>
-                <?php if (!empty($v['title'])): ?><p class="home-video-title"><?php echo htmlspecialchars($v['title']); ?></p><?php endif; ?>
-            </div>
+                <div class="home-video-body">
+                    <?php if (!empty($v['title'])): ?><p class="home-video-title"><?php echo htmlspecialchars($v['title']); ?></p><?php endif; ?>
+                    <span class="home-video-cta">Watch on Facebook →</span>
+                </div>
+            </a>
         <?php endforeach; ?>
     </div>
 </section>
