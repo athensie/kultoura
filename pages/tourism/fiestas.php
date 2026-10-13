@@ -236,6 +236,18 @@ if (isset($_GET['ajax_calendar'])) {
                 </form>
             </section>
 
+            <?php if (!empty($fiestas)): ?>
+            <section class="p-month-filter">
+                <p class="p-month-filter-label">When to visit</p>
+                <div class="p-month-pills" id="pMonthPills">
+                    <?php foreach (range(1, 12) as $m): ?>
+                        <button type="button" class="p-month-pill" data-month="<?= $m ?>"><?= date('F', mktime(0, 0, 0, $m, 1)) ?></button>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="p-month-clear" id="pMonthClear" hidden>Clear All Filters</button>
+            </section>
+            <?php endif; ?>
+
             <section class="t-category" id="fiestas">
                 <div class="t-category-header">
                     <div>
@@ -251,12 +263,17 @@ if (isset($_GET['ajax_calendar'])) {
                     <p>Once the admin adds listings, they'll show up here as cards.</p>
                 </div>
                 <?php else: ?>
-                <div class="p-card-grid">
+                <div class="p-empty-state" id="pMonthEmptyState" hidden>
+                    <h3>No fiestas in the selected month(s)</h3>
+                    <p>Try a different month, or clear the filter to see everything upcoming.</p>
+                </div>
+                <div class="p-card-grid" id="pFiestaGrid">
                     <?php foreach ($fiestas as $item):
                         $fid   = (int) $item['fiesta_id'];
                         $isFav = in_array((string) $fid, $favoritedFiestaIds, true);
+                        $fMonth = !empty($item['celebration_date']) ? (int) date('n', strtotime($item['celebration_date'])) : '';
                     ?>
-                    <article class="p-card" onclick="openViewDetails(<?= $fid ?>)">
+                    <article class="p-card" data-month="<?= $fMonth ?>" onclick="openViewDetails(<?= $fid ?>)">
                         <div class="p-card-body">
                             <div class="p-card-top-row">
                                 <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
@@ -344,6 +361,49 @@ function findFiesta(id) {
 
 function openPModal(id) { document.getElementById(id).classList.add('open'); }
 function closePModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── Month filter — multi-select pills, client-side (mirrors the
+// category-pill filter pattern used on the homepage's "For You" preview) ──
+(function () {
+    const pillBar = document.getElementById('pMonthPills');
+    const clearBtn = document.getElementById('pMonthClear');
+    const grid = document.getElementById('pFiestaGrid');
+    const emptyState = document.getElementById('pMonthEmptyState');
+    if (!pillBar || !grid) return;
+
+    const activeMonths = new Set();
+
+    function applyFilter() {
+        clearBtn.hidden = activeMonths.size === 0;
+        let visibleCount = 0;
+        grid.querySelectorAll('.p-card').forEach((card) => {
+            const show = activeMonths.size === 0 || activeMonths.has(card.dataset.month);
+            card.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+        if (emptyState) emptyState.hidden = visibleCount !== 0;
+    }
+
+    pillBar.addEventListener('click', (e) => {
+        const pill = e.target.closest('.p-month-pill');
+        if (!pill) return;
+        const month = pill.dataset.month;
+        if (activeMonths.has(month)) {
+            activeMonths.delete(month);
+            pill.classList.remove('is-active');
+        } else {
+            activeMonths.add(month);
+            pill.classList.add('is-active');
+        }
+        applyFilter();
+    });
+
+    clearBtn.addEventListener('click', () => {
+        activeMonths.clear();
+        pillBar.querySelectorAll('.p-month-pill').forEach((p) => p.classList.remove('is-active'));
+        applyFilter();
+    });
+})();
 
 // ── Calendar month navigation (no page reload) ──
 async function loadCalendarMonth(month) {
