@@ -132,6 +132,9 @@ if ($result = $conn->query("SELECT restaurant_name AS name, image, description F
 // drafts and not-yet-due scheduled posts never reach this query.
 // config/announcements.php (included above) already promotes any
 // scheduled post whose time has passed, so 'live' is enough here.
+// Most recent item runs as a large featured banner, the rest as a grid
+// below it — makes the section read as a real news hub rather than 3
+// identical small cards.
 $homeNews = [];
 $homeNewsTypeMeta = announcements_type_meta();
 if ($result = $conn->query(
@@ -139,7 +142,7 @@ if ($result = $conn->query(
      FROM announcements
      WHERE status = 'live'
      ORDER BY COALESCE(published_at, created_at) DESC
-     LIMIT 3"
+     LIMIT 5"
 )) {
     $homeNews = $result->fetch_all(MYSQLI_ASSOC);
 }
@@ -372,8 +375,32 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
         <h2 class="home-heading">News &amp; Announcements</h2>
     </div>
 
+    <?php
+        $homeNewsFeatured = $homeNews[0];
+        $homeNewsRest = array_slice($homeNews, 1);
+        $fMeta = $homeNewsTypeMeta[$homeNewsFeatured['type']] ?? ['label' => ucfirst($homeNewsFeatured['type']), 'color' => '#8a8a5c'];
+    ?>
+    <div class="home-news-featured reveal">
+        <div class="home-news-featured-media">
+            <?php if (!empty($homeNewsFeatured['image'])): ?>
+                <img src="<?php echo htmlspecialchars($homeNewsFeatured['image']); ?>" alt="" loading="lazy">
+            <?php else: ?>
+                <span class="home-news-photo-fallback" style="background:<?php echo htmlspecialchars($fMeta['color']); ?>1a;color:<?php echo htmlspecialchars($fMeta['color']); ?>;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M7 14v5a2 2 0 0 0 2 2h1"/></svg>
+                </span>
+            <?php endif; ?>
+            <span class="home-news-badge" style="background:<?php echo htmlspecialchars($fMeta['color']); ?>"><?php echo htmlspecialchars($fMeta['label']); ?></span>
+        </div>
+        <div class="home-news-featured-body">
+            <p class="home-news-date"><?php echo htmlspecialchars(date('F j, Y', strtotime($homeNewsFeatured['published_at'] ?? $homeNewsFeatured['created_at']))); ?></p>
+            <h3 class="home-news-featured-title"><?php echo htmlspecialchars($homeNewsFeatured['title']); ?></h3>
+            <p class="home-news-excerpt"><?php echo htmlspecialchars(mb_strimwidth(trim((string) $homeNewsFeatured['body']), 0, 220, '…')); ?></p>
+        </div>
+    </div>
+
+    <?php if (!empty($homeNewsRest)): ?>
     <div class="home-news-grid reveal">
-        <?php foreach ($homeNews as $n): ?>
+        <?php foreach ($homeNewsRest as $n): ?>
             <?php $meta = $homeNewsTypeMeta[$n['type']] ?? ['label' => ucfirst($n['type']), 'color' => '#8a8a5c']; ?>
             <article class="home-news-card">
                 <div class="home-news-photo">
@@ -394,6 +421,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
             </article>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 </section>
 <?php endif; ?>
 

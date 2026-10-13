@@ -940,11 +940,62 @@ body {
     margin: 0 auto 40px;
 }
 
+/* The most recent announcement, run large — makes the section read as a
+   real news hub at a glance instead of three identical small cards. */
+.home-news-featured {
+    max-width: 1200px;
+    margin: 0 auto 28px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 14px 40px rgba(44, 26, 14, 0.1);
+}
+
+.home-news-featured-media {
+    position: relative;
+    min-height: 360px;
+}
+.home-news-featured-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    position: absolute;
+    inset: 0;
+}
+.home-news-featured-media .home-news-photo-fallback {
+    width: 100%;
+    height: 100%;
+}
+
+.home-news-featured-body {
+    padding: 40px 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+}
+
+.home-news-featured-title {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 1.25;
+    color: #2c1a0e;
+    margin: 0;
+}
+
+.home-news-featured .home-news-excerpt {
+    font-size: 14.5px;
+}
+
 .home-news-grid {
     max-width: 1200px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 24px;
 }
 
@@ -1028,6 +1079,10 @@ body {
 
 @media (max-width: 900px) {
     .home-news-grid { grid-template-columns: 1fr; }
+    .home-news-featured { grid-template-columns: 1fr; }
+    .home-news-featured-media { min-height: 220px; }
+    .home-news-featured-body { padding: 28px 24px; }
+    .home-news-featured-title { font-size: 22px; }
 }
 
 /* ── About Malvar preview ── */
