@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config/maintenance.php';
 kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
+require_once __DIR__ . '/../../config/page_widgets.php';
 analytics_track($conn, 'nature');
 
 $natureHeroPhoto = sitecontent_get_photo($conn, 'nature_hero');
@@ -60,6 +61,7 @@ $stmt->close();
     <link rel="stylesheet" href="../../assets/css/index.css">
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
+    <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/nature.css">
 </head>
 <body>
@@ -149,6 +151,8 @@ $stmt->close();
         </p>
     </div>
 </section>
+
+<?php kt_page_widget_render($conn, 'nature'); ?>
 
 <!-- ── Nature Grid ── -->
 <main class="t-main">

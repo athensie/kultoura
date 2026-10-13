@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config/maintenance.php';
 kt_maintenance_gate($conn);
 require_once '../../config/analytics.php';
 include '../../config/sitecontent.php';
+require_once __DIR__ . '/../../config/page_widgets.php';
 analytics_track($conn, 'products');
 
 $productsHeroPhoto = sitecontent_get_photo($conn, 'products_hero');
@@ -81,6 +82,7 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/index.css">
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
+    <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/product.css">
     <!-- View Details / Navigate modal styles are shared: .p-modal-*, .p-nav-* in tourism.css -->
 </head>
@@ -171,6 +173,8 @@ foreach ($rows as $r) {
         </p>
     </div>
 </section>
+
+<?php kt_page_widget_render($conn, 'products'); ?>
 
 <!-- ── Products Grid ── -->
 <main class="t-main">

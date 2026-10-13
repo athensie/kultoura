@@ -1,0 +1,60 @@
+/* KulToura Admin — Page Widgets
+   Supplements adminhomepage.css (reused here for the base form/modal/
+   button/pending-badge styles already shared across the admin area). */
+
+.pw-admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.pw-admin-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(var(--overlay-rgb), .03);
+    border: 1px solid rgba(var(--overlay-rgb), .08);
+    border-radius: 12px;
+    padding: 14px 18px;
+    position: relative;
+}
+
+.pw-admin-swatch {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.pw-admin-swatch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.pw-admin-row-body { flex: 1; min-width: 0; }
+.pw-admin-row-title { font-weight: 600; color: var(--cream); font-size: .88rem; }
+.pw-admin-row-sub { font-size: .78rem; color: rgba(var(--cream-rgb), .5); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-admin-row-empty { font-style: italic; color: rgba(var(--cream-rgb), .3); }
+
+.pw-admin-row-actions { flex-shrink: 0; display: flex; gap: 8px; }
+
+.pw-admin-list .pending-card { padding-top: 32px; }
+
+.pw-modal-card { max-width: 640px; }
+
+.pw-form-section {
+    font-size: .68rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--gold, #C8A96E);
+    margin: 22px 0 10px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(var(--overlay-rgb), .08);
+}
+.pw-form-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+@media (max-width: 560px) {
+    .form-row { grid-template-columns: 1fr; }
+}

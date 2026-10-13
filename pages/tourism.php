@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/maintenance.php';
 kt_maintenance_gate($conn);
 include '../config/analytics.php';
 include '../config/sitecontent.php';
+require_once __DIR__ . '/../config/page_widgets.php';
 analytics_track($conn, 'tourism');
 
 $tourismHeroPhoto = sitecontent_get_photo($conn, 'tourism_hero');
@@ -90,6 +91,7 @@ foreach ($hubImages as $key => $value) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css">
     <link rel="stylesheet" href="../assets/css/tourism.css">
+    <link rel="stylesheet" href="../assets/css/pagewidget.css">
 </head>
 <body>
 
@@ -177,6 +179,8 @@ foreach ($hubImages as $key => $value) {
         </p>
     </div>
 </section>
+
+<?php kt_page_widget_render($conn, 'tourism'); ?>
 
 <!-- ── Category Hub ── -->
 <main class="t-main">

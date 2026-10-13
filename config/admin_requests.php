@@ -89,6 +89,7 @@ if (!function_exists('kt_entity_meta')) {
             'partner'       => ['table' => 'partners',        'idCol' => 'id',             'page' => 'adminhomepage.php',       'label' => 'Partner'],
             'event_photo'   => ['table' => 'event_gallery',   'idCol' => 'id',             'page' => 'adminhomepage.php',       'label' => 'Event Gallery Photo'],
             'fb_video'      => ['table' => 'fb_videos',       'idCol' => 'id',             'page' => 'adminhomepage.php',       'label' => 'Facebook Video'],
+            'page_widget'   => ['table' => 'page_widgets',    'idCol' => 'id',             'page' => 'adminpagewidgets.php',    'label' => 'Page Widget'],
         ];
         return $map[$entityType] ?? null;
     }
@@ -333,6 +334,7 @@ if (!function_exists('kt_apply_entity_change')) {
             case 'partner':          return kt_apply_partner($conn, $action, $id, $data);
             case 'event_photo':      return kt_apply_event_photo($conn, $action, $id, $data);
             case 'fb_video':         return kt_apply_fb_video($conn, $action, $id, $data);
+            case 'page_widget':      return kt_apply_page_widget($conn, $action, $id, $data);
             default:
                 throw new InvalidArgumentException("Unknown entity type: $entityType");
         }
@@ -636,6 +638,70 @@ if (!function_exists('kt_apply_fb_video')) {
         $stmt->execute();
         $stmt->close();
         return $title;
+    }
+}
+
+if (!function_exists('kt_apply_page_widget')) {
+    function kt_apply_page_widget(mysqli $conn, string $action, ?int $id, array $d): string
+    {
+        // Label is just the page slug, not its friendly name — keeps this
+        // function self-contained (no dependency on page_widgets.php's
+        // kt_page_widget_pages(), which isn't loaded on every page that
+        // can apply a request, e.g. admin/adminrequests.php).
+        $slug = (string) ($d['page_slug'] ?? '');
+        $label = $slug;
+
+        if ($action === 'archive') {
+            $stmt = $conn->prepare("UPDATE page_widgets SET status = 'archived' WHERE id = ?");
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $stmt->close();
+            return $label;
+        }
+
+        // Text fields are always (re)written; image fields are only
+        // overwritten when a new upload came through — same "keep existing
+        // unless replaced" pattern as kt_apply_partner's logo handling.
+        $textFields = ['bg_color', 'headline', 'subtext', 'card1_title', 'card1_text', 'card2_title', 'card2_text', 'gallery_heading', 'gallery_text'];
+        $imageFields = ['main_image', 'gallery_main_image', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3', 'gallery_image_4'];
+
+        if ($action === 'create') {
+            $cols = array_merge(['page_slug'], $textFields, $imageFields, ['status']);
+            $values = array_merge(
+                [$slug],
+                array_map(fn($f) => $d[$f] ?? null, $textFields),
+                array_map(fn($f) => $d[$f] ?? null, $imageFields),
+                [$d['status']]
+            );
+            $placeholders = implode(',', array_fill(0, count($cols), '?'));
+            $stmt = $conn->prepare("INSERT INTO page_widgets (" . implode(',', $cols) . ") VALUES ($placeholders)");
+            $stmt->bind_param(str_repeat('s', count($values)), ...$values);
+            $stmt->execute();
+            $stmt->close();
+            return $label;
+        }
+
+        // update
+        $setParts = [];
+        $values = [];
+        foreach ($textFields as $f) {
+            $setParts[] = "$f = ?";
+            $values[] = $d[$f] ?? null;
+        }
+        foreach ($imageFields as $f) {
+            if (!empty($d[$f])) {
+                $setParts[] = "$f = ?";
+                $values[] = $d[$f];
+            }
+        }
+        $setParts[] = "status = ?";
+        $values[] = $d['status'];
+        $values[] = $id;
+        $stmt = $conn->prepare("UPDATE page_widgets SET " . implode(', ', $setParts) . " WHERE id = ?");
+        $stmt->bind_param(str_repeat('s', count($values) - 1) . 'i', ...$values);
+        $stmt->execute();
+        $stmt->close();
+        return $label;
     }
 }
 

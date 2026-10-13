@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config/maintenance.php';
 kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
+require_once __DIR__ . '/../../config/page_widgets.php';
 analytics_track($conn, 'fiestas');
 
 $fiestasHeroPhoto = sitecontent_get_photo($conn, 'fiestas_hero');
@@ -120,6 +121,7 @@ if (isset($_GET['ajax_calendar'])) {
     <link rel="stylesheet" href="../../assets/css/index.css">
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
+    <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/fiestas.css">
 </head>
 <body>
@@ -209,6 +211,8 @@ if (isset($_GET['ajax_calendar'])) {
         </p>
     </div>
 </section>
+
+<?php kt_page_widget_render($conn, 'fiestas'); ?>
 
 <!-- ── Fiestas Grid ── -->
 <main class="t-main">

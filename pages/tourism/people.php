@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config/maintenance.php';
 kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
+require_once __DIR__ . '/../../config/page_widgets.php';
 analytics_track($conn, 'people');
 
 $peopleHeroPhoto = sitecontent_get_photo($conn, 'people_hero');
@@ -32,6 +33,7 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
     <link rel="stylesheet" href="../../assets/css/index.css">
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
+    <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/people.css">
 </head>
 <body>
@@ -121,6 +123,8 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
         </p>
     </div>
 </section>
+
+<?php kt_page_widget_render($conn, 'people'); ?>
 
 <!-- ── People Grid ── -->
 <main class="t-main">
