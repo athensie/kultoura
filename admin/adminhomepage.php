@@ -46,6 +46,18 @@ $pendingRequestCount = kt_requests_pending_count($conn);
  | applies immediately. "Archive" (never a real delete) just flips
  | status to 'archived', matching every other content type on the site.
  */
+
+// The inside of a .video-media box: the admin's own thumbnail if they
+// uploaded one, otherwise the plain Facebook-icon placeholder. Shared
+// by the live grid and the pending-request grid below.
+function kt_video_media_inner(?string $thumbnail): string
+{
+    if (!empty($thumbnail)) {
+        return '<img src="' . htmlspecialchars($thumbnail) . '" alt="">';
+    }
+    return '<i data-lucide="facebook" class="lucide"></i>';
+}
+
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
 
@@ -128,9 +140,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             header("Location: adminhomepage.php");
             exit;
         }
+        // Optional — Facebook won't hand over a real thumbnail without a
+        // registered app (same reason the video itself isn't embedded
+        // anymore), so this is the admin's own picture for the card
+        // instead of the plain color placeholder.
+        $thumbnail = kt_homepage_handle_image_upload('thumbnail_file', 'videos', 'video')
+            ?? ($verb === 'update' ? trim($_POST['existing_thumbnail'] ?? '') : null);
         $data = [
             'video_url' => $videoUrl,
             'title'     => trim($_POST['title'] ?? '') ?: null,
+            'thumbnail' => $thumbnail ?: null,
             'status'    => 'live',
         ];
         $label = $data['title'] ?? $videoUrl;
@@ -417,7 +436,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                     <?php foreach ($fbVideos as $v): ?>
                         <div class="grid-card">
                             <a class="grid-card-media video-media" href="<?php echo htmlspecialchars($v['video_url']); ?>" target="_blank" rel="noopener" title="Open on Facebook">
-                                <i data-lucide="facebook" class="lucide"></i>
+                                <?php echo kt_video_media_inner($v['thumbnail'] ?? null); ?>
                             </a>
                             <div class="grid-card-body">
                                 <div class="grid-card-title"><?php echo htmlspecialchars($v['title'] ?: 'Untitled video'); ?></div>
@@ -439,10 +458,10 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                             <span class="pending-badge"><?php echo htmlspecialchars(ucfirst($req['action'])); ?> pending</span>
                             <?php if (!empty($d['video_url'])): ?>
                                 <a class="grid-card-media video-media" href="<?php echo htmlspecialchars($d['video_url']); ?>" target="_blank" rel="noopener" title="Open on Facebook">
-                                    <i data-lucide="facebook" class="lucide"></i>
+                                    <?php echo kt_video_media_inner($d['thumbnail'] ?? null); ?>
                                 </a>
                             <?php else: ?>
-                                <div class="grid-card-media video-media"><i data-lucide="facebook" class="lucide"></i></div>
+                                <div class="grid-card-media video-media"><?php echo kt_video_media_inner($d['thumbnail'] ?? null); ?></div>
                             <?php endif; ?>
                             <div class="grid-card-body">
                                 <div class="grid-card-title"><?php echo htmlspecialchars($d['title'] ?? $req['entity_label']); ?></div>
@@ -575,7 +594,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <button class="modal-close" onclick="closeModal('addFbVideoModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add Facebook Video</div>
         <div class="modal-sub">Paste the link from a public Facebook video, reel, or watch post — e.g. from <a href="https://www.facebook.com/MalvarBatangasOfficial" target="_blank" rel="noopener" style="color:var(--gold,#C8A96E);">Malvar's official Facebook Page</a>.</div>
-        <form method="POST" action="adminhomepage.php">
+        <form method="POST" action="adminhomepage.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="add_fb_video">
             <?php echo csrf_field(); ?>
             <div class="form-group">
@@ -585,6 +604,11 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <div class="form-group">
                 <label class="form-label">Title (optional)</label>
                 <input class="form-input" type="text" name="title" placeholder="e.g. Malvar Town Fiesta Highlights">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Thumbnail Image (optional)</label>
+                <input class="form-input" type="file" name="thumbnail_file" accept="image/*">
+                <p class="image-current-hint">Facebook won't hand over a real thumbnail without a registered app, so without one the card just shows a plain blue placeholder — add a screenshot or photo here for a nicer card.</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Video</button>
@@ -599,10 +623,11 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editFbVideoModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Facebook Video</div>
-        <form method="POST" action="adminhomepage.php">
+        <form method="POST" action="adminhomepage.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="edit_fb_video">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="editFbVideoId">
+            <input type="hidden" name="existing_thumbnail" id="editFbVideoExistingThumbnail">
             <div class="form-group">
                 <label class="form-label">Facebook Video Link</label>
                 <input class="form-input" type="text" name="video_url" id="editFbVideoUrl" required>
@@ -610,6 +635,11 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <div class="form-group">
                 <label class="form-label">Title (optional)</label>
                 <input class="form-input" type="text" name="title" id="editFbVideoTitle">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Replace Thumbnail Image</label>
+                <input class="form-input" type="file" name="thumbnail_file" accept="image/*">
+                <p class="image-current-hint">Leave empty to keep the current thumbnail (if any).</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Save Changes</button>

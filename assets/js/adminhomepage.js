@@ -58,6 +58,7 @@ function openEditFbVideo(id) {
     document.getElementById('editFbVideoId').value = v.id;
     document.getElementById('editFbVideoUrl').value = v.video_url || '';
     document.getElementById('editFbVideoTitle').value = v.title || '';
+    document.getElementById('editFbVideoExistingThumbnail').value = v.thumbnail || '';
     openModal('editFbVideoModal');
 }
 

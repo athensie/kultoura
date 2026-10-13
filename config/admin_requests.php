@@ -623,12 +623,14 @@ if (!function_exists('kt_apply_fb_video')) {
             return $title;
         }
 
+        $thumbnail = $d['thumbnail'] ?? null;
+
         if ($action === 'create') {
-            $stmt = $conn->prepare("INSERT INTO fb_videos (video_url, title, status) VALUES (?, ?, ?)");
-            $stmt->bind_param('sss', $d['video_url'], $d['title'], $d['status']);
+            $stmt = $conn->prepare("INSERT INTO fb_videos (video_url, title, thumbnail, status) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param('ssss', $d['video_url'], $d['title'], $thumbnail, $d['status']);
         } else {
-            $stmt = $conn->prepare("UPDATE fb_videos SET video_url=?, title=?, status=? WHERE id=?");
-            $stmt->bind_param('sssi', $d['video_url'], $d['title'], $d['status'], $id);
+            $stmt = $conn->prepare("UPDATE fb_videos SET video_url=?, title=?, thumbnail=?, status=? WHERE id=?");
+            $stmt->bind_param('ssssi', $d['video_url'], $d['title'], $thumbnail, $d['status'], $id);
         }
         $stmt->execute();
         $stmt->close();

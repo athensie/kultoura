@@ -50,10 +50,19 @@ if (!function_exists('kt_homepage_content_ensure_schema')) {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 video_url VARCHAR(500) NOT NULL,
                 title VARCHAR(150) NULL,
+                thumbnail VARCHAR(255) NULL,
                 status ENUM('live','archived') NOT NULL DEFAULT 'live',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
+
+        // Already-deployed installs had fb_videos before `thumbnail` existed —
+        // CREATE TABLE IF NOT EXISTS above is a no-op for them, so add it here.
+        try {
+            $conn->query("ALTER TABLE fb_videos ADD COLUMN thumbnail VARCHAR(255) NULL AFTER title");
+        } catch (mysqli_sql_exception $e) {
+            if ($e->getCode() !== 1060) { throw $e; } // 1060 = column already exists
+        }
     }
 }
 
