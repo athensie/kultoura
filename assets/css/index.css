@@ -1271,7 +1271,9 @@ a.home-partner-card { text-decoration: none; }
     transition: background 0.2s, transform 0.2s;
 }
 .home-footer-social a svg { width: 16px; height: 16px; }
-.home-footer-social a:hover { background: var(--sage); color: var(--deep); transform: translateY(-2px); }
+.home-footer-social a:hover { color: #fff; transform: translateY(-2px); }
+.home-footer-social a[aria-label="Facebook"]:hover { background: #1877f2; }
+.home-footer-social a[aria-label="Location"]:hover { background: #ea4335; }
 
 .home-footer-col h4 {
     font-size: 12px;
@@ -1345,7 +1347,7 @@ a.home-partner-card { text-decoration: none; }
     padding: 22px 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
 }
 .home-footer-bottom p {
     font-size: 12px;
@@ -1353,21 +1355,42 @@ a.home-partner-card { text-decoration: none; }
     margin: 0;
 }
 
+/* Floating — fixed to the viewport, not the footer, so it's reachable from
+   anywhere on the page; fades in once there's actually somewhere to scroll
+   back up from. */
 .home-scroll-top {
-    width: 40px;
-    height: 40px;
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 40;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 1px solid rgba(240, 235, 216, 0.15);
-    background: rgba(240, 235, 216, 0.05);
+    background: var(--deep);
     color: var(--cream);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, transform 0.2s;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: background 0.2s, opacity 0.25s, visibility 0.25s, transform 0.25s;
 }
-.home-scroll-top svg { width: 17px; height: 17px; }
+.home-scroll-top.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.home-scroll-top svg { width: 18px; height: 18px; }
 .home-scroll-top:hover { background: var(--sage); color: var(--deep); transform: translateY(-3px); }
+.home-scroll-top.is-visible:hover { transform: translateY(-3px); }
+
+@media (max-width: 700px) {
+    .home-scroll-top { right: 16px; bottom: 16px; width: 40px; height: 40px; }
+}
 
 /* ── Mega Menu ── */
 .dropdown { position: relative; }

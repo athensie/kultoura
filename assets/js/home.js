@@ -68,13 +68,17 @@ function toggleFooterAccordion(heading) {
     if (col) col.classList.toggle('is-open');
 }
 
-/* ---------------- Scroll to top ---------------- */
+/* ---------------- Scroll to top — floating button, bottom-right ---------------- */
 (function () {
     const btn = document.getElementById('homeScrollTop');
     if (!btn) return;
     btn.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+
+    const toggleVisible = () => btn.classList.toggle('is-visible', window.scrollY > 400);
+    window.addEventListener('scroll', toggleVisible, { passive: true });
+    toggleVisible();
 })();
 
 /* ---------------- Scroll-hint jumps to the next section ---------------- */
