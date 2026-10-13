@@ -169,6 +169,29 @@ $fbVideos = [];
 if ($result = $conn->query("SELECT * FROM fb_videos WHERE status = 'live' ORDER BY created_at DESC")) {
     $fbVideos = $result->fetch_all(MYSQLI_ASSOC);
 }
+
+// Pending submissions — a plain Admin otherwise has no way to see what
+// they just submitted anywhere (adminrequests.php is Super Admin only),
+// so each tab also lists its own type's pending requests below the live
+// grid: every pending one for a Super Admin (same set adminrequests.php
+// shows), or just this Admin's own for anyone else. Shown read-only
+// (no edit/archive — there's no real row yet to act on) with a pending
+// badge, so "I added it" always has somewhere to see it.
+$pendingPartners = [];
+$pendingEventPhotos = [];
+$pendingFbVideos = [];
+foreach (kt_requests_list($conn, 'pending') as $req) {
+    if (!$isSuperAdmin && (int) $req['requested_by'] !== (int) $_SESSION['user_id']) {
+        continue;
+    }
+    if ($req['entity_type'] === 'partner') {
+        $pendingPartners[] = $req;
+    } elseif ($req['entity_type'] === 'event_photo') {
+        $pendingEventPhotos[] = $req;
+    } elseif ($req['entity_type'] === 'fb_video') {
+        $pendingFbVideos[] = $req;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -312,6 +335,21 @@ if ($result = $conn->query("SELECT * FROM fb_videos WHERE status = 'live' ORDER 
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+            <?php if (!empty($pendingPartners)): ?>
+                <h3 class="pending-heading">Pending Super Admin Approval</h3>
+                <div class="grid-view-panel">
+                    <?php foreach ($pendingPartners as $req): $d = $req['payload']; ?>
+                        <div class="grid-card partner-card pending-card">
+                            <span class="pending-badge"><?php echo htmlspecialchars(ucfirst($req['action'])); ?> pending</span>
+                            <div class="grid-card-media partner-media"><?php if (!empty($d['logo'])): ?><img src="<?php echo htmlspecialchars($d['logo']); ?>" alt=""><?php endif; ?></div>
+                            <div class="grid-card-body">
+                                <div class="grid-card-title"><?php echo htmlspecialchars($d['name'] ?? $req['entity_label']); ?></div>
+                                <div class="grid-card-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- EVENT GALLERY TAB -->
@@ -342,6 +380,21 @@ if ($result = $conn->query("SELECT * FROM fb_videos WHERE status = 'live' ORDER 
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+            <?php if (!empty($pendingEventPhotos)): ?>
+                <h3 class="pending-heading">Pending Super Admin Approval</h3>
+                <div class="grid-view-panel">
+                    <?php foreach ($pendingEventPhotos as $req): $d = $req['payload']; ?>
+                        <div class="grid-card pending-card">
+                            <span class="pending-badge"><?php echo htmlspecialchars(ucfirst($req['action'])); ?> pending</span>
+                            <div class="grid-card-media"><?php if (!empty($d['image'])): ?><img src="<?php echo htmlspecialchars($d['image']); ?>" alt=""><?php endif; ?></div>
+                            <div class="grid-card-body">
+                                <div class="grid-card-title"><?php echo htmlspecialchars($d['caption'] ?? $req['entity_label']); ?></div>
+                                <div class="grid-card-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- FACEBOOK VIDEOS TAB -->
@@ -358,9 +411,19 @@ if ($result = $conn->query("SELECT * FROM fb_videos WHERE status = 'live' ORDER 
                         <div class="chart-empty-sub">Facebook videos added here show up on the homepage.</div>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($fbVideos as $v): ?>
+                    <?php foreach ($fbVideos as $v): $embedUrl = kt_fb_video_embed_url($v['video_url']); ?>
                         <div class="grid-card">
-                            <div class="grid-card-media video-media"><i data-lucide="facebook" class="lucide"></i></div>
+                            <div class="grid-card-media video-media">
+                                <?php if ($embedUrl): ?>
+                                    <!-- Same embed URL the homepage itself uses — if Facebook is
+                                         going to reject this video ("Video Unavailable"), it shows
+                                         up right here instead of only being discovered on the live
+                                         homepage. -->
+                                    <iframe src="<?php echo htmlspecialchars($embedUrl); ?>" width="100%" height="100%" style="border:none;overflow:hidden" scrolling="no" frameborder="0" loading="lazy"></iframe>
+                                <?php else: ?>
+                                    <i data-lucide="facebook" class="lucide"></i>
+                                <?php endif; ?>
+                            </div>
                             <div class="grid-card-body">
                                 <div class="grid-card-title"><?php echo htmlspecialchars($v['title'] ?: 'Untitled video'); ?></div>
                                 <div class="grid-card-sub" style="word-break:break-all;"><?php echo htmlspecialchars($v['video_url']); ?></div>
@@ -373,6 +436,27 @@ if ($result = $conn->query("SELECT * FROM fb_videos WHERE status = 'live' ORDER 
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+            <?php if (!empty($pendingFbVideos)): ?>
+                <h3 class="pending-heading">Pending Super Admin Approval</h3>
+                <div class="grid-view-panel">
+                    <?php foreach ($pendingFbVideos as $req): $d = $req['payload']; $embedUrl = !empty($d['video_url']) ? kt_fb_video_embed_url($d['video_url']) : null; ?>
+                        <div class="grid-card pending-card">
+                            <span class="pending-badge"><?php echo htmlspecialchars(ucfirst($req['action'])); ?> pending</span>
+                            <div class="grid-card-media video-media">
+                                <?php if ($embedUrl): ?>
+                                    <iframe src="<?php echo htmlspecialchars($embedUrl); ?>" width="100%" height="100%" style="border:none;overflow:hidden" scrolling="no" frameborder="0" loading="lazy"></iframe>
+                                <?php else: ?>
+                                    <i data-lucide="facebook" class="lucide"></i>
+                                <?php endif; ?>
+                            </div>
+                            <div class="grid-card-body">
+                                <div class="grid-card-title"><?php echo htmlspecialchars($d['title'] ?? $req['entity_label']); ?></div>
+                                <div class="grid-card-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
 
     </div>
