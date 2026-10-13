@@ -564,16 +564,17 @@ if (!function_exists('kt_apply_partner')) {
 
         $logo = $d['logo'] ?? null;
         $websiteUrl = $d['website_url'] ?? null;
+        $description = $d['description'] ?? null;
 
         if ($action === 'create') {
-            $stmt = $conn->prepare("INSERT INTO partners (name, logo, website_url, status) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param('ssss', $name, $logo, $websiteUrl, $d['status']);
+            $stmt = $conn->prepare("INSERT INTO partners (name, logo, website_url, description, status) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param('sssss', $name, $logo, $websiteUrl, $description, $d['status']);
         } elseif ($logo !== null) {
-            $stmt = $conn->prepare("UPDATE partners SET name=?, logo=?, website_url=?, status=? WHERE id=?");
-            $stmt->bind_param('ssssi', $name, $logo, $websiteUrl, $d['status'], $id);
+            $stmt = $conn->prepare("UPDATE partners SET name=?, logo=?, website_url=?, description=?, status=? WHERE id=?");
+            $stmt->bind_param('sssssi', $name, $logo, $websiteUrl, $description, $d['status'], $id);
         } else {
-            $stmt = $conn->prepare("UPDATE partners SET name=?, website_url=?, status=? WHERE id=?");
-            $stmt->bind_param('sssi', $name, $websiteUrl, $d['status'], $id);
+            $stmt = $conn->prepare("UPDATE partners SET name=?, website_url=?, description=?, status=? WHERE id=?");
+            $stmt->bind_param('ssssi', $name, $websiteUrl, $description, $d['status'], $id);
         }
         $stmt->execute();
         $stmt->close();

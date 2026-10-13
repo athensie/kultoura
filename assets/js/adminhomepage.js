@@ -39,6 +39,7 @@ function openEditPartner(id) {
     document.getElementById('editPartnerId').value = p.id;
     document.getElementById('editPartnerName').value = p.name || '';
     document.getElementById('editPartnerWebsite').value = p.website_url || '';
+    document.getElementById('editPartnerDescription').value = p.description || '';
     document.getElementById('editPartnerExistingLogo').value = p.logo || '';
     openModal('editPartnerModal');
 }

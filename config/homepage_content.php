@@ -30,10 +30,19 @@ if (!function_exists('kt_homepage_content_ensure_schema')) {
                 name VARCHAR(150) NOT NULL,
                 logo VARCHAR(255) NOT NULL,
                 website_url VARCHAR(255) NULL,
+                description VARCHAR(300) NULL,
                 status ENUM('live','archived') NOT NULL DEFAULT 'live',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
+
+        // Already-deployed installs had partners before `description` existed —
+        // CREATE TABLE IF NOT EXISTS above is a no-op for them, so add it here.
+        try {
+            $conn->query("ALTER TABLE partners ADD COLUMN description VARCHAR(300) NULL AFTER website_url");
+        } catch (mysqli_sql_exception $e) {
+            if ($e->getCode() !== 1060) { throw $e; } // 1060 = column already exists
+        }
 
         $conn->query(
             "CREATE TABLE IF NOT EXISTS event_gallery (

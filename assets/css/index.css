@@ -1138,32 +1138,90 @@ body {
 }
 
 .home-partner-card {
+    display: block;
     aspect-ratio: 1 / 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: #faf7f2;
-    border: 1px solid rgba(44, 26, 14, 0.08);
+    perspective: 1200px;
     border-radius: 14px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease;
 }
 a.home-partner-card { text-decoration: none; }
 
-.home-partner-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(44, 26, 14, 0.1);
-    border-color: rgba(44, 26, 14, 0.15);
+.home-partner-card:hover { transform: translateY(-3px); }
+
+/* 3D flip — front shows the logo, back reveals the name/blurb/CTA added in
+   the admin. transform-style:preserve-3d keeps both faces positioned in
+   3D space instead of flattening, so rotateY actually looks like a flip. */
+.home-partner-flip-inner {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
+}
+.home-partner-card:hover .home-partner-flip-inner,
+.home-partner-card:focus-visible .home-partner-flip-inner {
+    transform: rotateY(180deg);
 }
 
-.home-partner-card img {
+.home-partner-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.home-partner-face-front {
+    padding: 20px;
+    background: #faf7f2;
+    border: 1px solid rgba(44, 26, 14, 0.08);
+}
+.home-partner-face-front img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
 }
 
+.home-partner-face-back {
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    text-align: center;
+    background: var(--deep);
+    transform: rotateY(180deg);
+}
+.home-partner-back-name {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--cream);
+    margin: 0;
+}
+.home-partner-back-desc {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: rgba(240, 235, 216, 0.75);
+    margin: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+}
+.home-partner-back-cta {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--sage);
+}
+
 @media (max-width: 700px) {
     .home-partners-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .home-partner-back-desc { display: none; }
+    .home-partner-back-name { font-size: 11.5px; }
 }
 
 /* ── Event Gallery ── */

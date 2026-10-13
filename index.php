@@ -146,7 +146,7 @@ if ($result = $conn->query(
 
 // ── Our Partners (mirrors admin/adminhomepage.php) ──
 $homePartners = [];
-if ($result = $conn->query("SELECT name, logo, website_url FROM partners WHERE status = 'live' ORDER BY created_at DESC")) {
+if ($result = $conn->query("SELECT name, logo, website_url, description FROM partners WHERE status = 'live' ORDER BY created_at DESC")) {
     $homePartners = $result->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -457,13 +457,24 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
     <div class="home-partners-grid reveal">
         <?php foreach ($homePartners as $p): ?>
+            <?php
+                $backInner = '<p class="home-partner-back-name">' . htmlspecialchars($p['name']) . '</p>'
+                    . (!empty($p['description']) ? '<p class="home-partner-back-desc">' . htmlspecialchars($p['description']) . '</p>' : '')
+                    . (!empty($p['website_url']) ? '<span class="home-partner-back-cta">Visit website →</span>' : '');
+            ?>
             <?php if (!empty($p['website_url'])): ?>
                 <a class="home-partner-card" href="<?php echo htmlspecialchars($p['website_url']); ?>" target="_blank" rel="noopener" title="<?php echo htmlspecialchars($p['name']); ?>">
-                    <img src="<?php echo htmlspecialchars($p['logo']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy">
+                    <span class="home-partner-flip-inner">
+                        <span class="home-partner-face home-partner-face-front"><img src="<?php echo htmlspecialchars($p['logo']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy"></span>
+                        <span class="home-partner-face home-partner-face-back"><?php echo $backInner; ?></span>
+                    </span>
                 </a>
             <?php else: ?>
                 <div class="home-partner-card" title="<?php echo htmlspecialchars($p['name']); ?>">
-                    <img src="<?php echo htmlspecialchars($p['logo']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy">
+                    <span class="home-partner-flip-inner">
+                        <span class="home-partner-face home-partner-face-front"><img src="<?php echo htmlspecialchars($p['logo']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy"></span>
+                        <span class="home-partner-face home-partner-face-back"><?php echo $backInner; ?></span>
+                    </span>
                 </div>
             <?php endif; ?>
         <?php endforeach; ?>

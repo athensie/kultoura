@@ -105,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'name'        => $name,
             'logo'        => $logo,
             'website_url' => trim($_POST['website_url'] ?? '') ?: null,
+            'description' => trim($_POST['description'] ?? '') ?: null,
             'status'      => 'live',
         ];
         $label = $name;
@@ -406,6 +407,10 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <input class="form-input" type="text" name="website_url" placeholder="https://…">
             </div>
             <div class="form-group">
+                <label class="form-label">Short description (optional)</label>
+                <textarea class="form-input" name="description" rows="3" maxlength="300" placeholder="Shown on the back of the card when it's hovered."></textarea>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Logo</label>
                 <input class="form-input" type="file" name="logo_file" accept="image/*" required>
             </div>
@@ -434,6 +439,10 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <div class="form-group">
                 <label class="form-label">Website (optional)</label>
                 <input class="form-input" type="text" name="website_url" id="editPartnerWebsite">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Short description (optional)</label>
+                <textarea class="form-input" name="description" id="editPartnerDescription" rows="3" maxlength="300" placeholder="Shown on the back of the card when it's hovered."></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">Replace Logo</label>
