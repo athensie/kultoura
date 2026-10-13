@@ -1861,7 +1861,14 @@
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
+    /* Dark circle + white X, same contrast trick as .tw-nav's arrows
+       (visible further down) — a near-transparent white background only
+       reads against the dark backdrop behind the panel on desktop; on
+       mobile the panel is full-screen, so this button sits directly on
+       top of each slide's own light background instead, where white-on-
+       near-white was essentially invisible. A dark circle shows up
+       against any slide color, light or dark. */
+    background: rgba(44, 26, 14, 0.4);
     border: none;
     color: #fff;
     font-size: 20px;
@@ -1871,7 +1878,7 @@
 }
 
 .tw-close:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(44, 26, 14, 0.6);
 }
 
 .tw-panel {
@@ -1886,7 +1893,11 @@
 .tw-badge {
     position: absolute;
     top: 18px;
-    right: 18px;
+    /* Left, not right — .tw-close sits in the top-right corner, and now
+       that it's a visible dark circle too (previously near-invisible,
+       see the comment on .tw-close) sharing that corner with the badge
+       made them visually collide. */
+    left: 18px;
     background: #2c1a0e;
     color: #fff;
     font-size: 11px;
