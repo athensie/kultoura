@@ -1992,14 +1992,24 @@
 .tw-slide-inner {
     min-height: 100%;
     box-sizing: border-box;
-    /* Extra bottom clearance so content pushed down by margin-top:auto
-       (e.g. the closing slide's quote) doesn't sit under the floating
+    /* Extra bottom clearance so content doesn't sit under the floating
        Save Photo/Share/Facebook bar, which is pinned over the panel. */
     padding: 60px 30px 68px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    /* Centers short slides as one balanced block instead of leaving them
+       pinned to the top with a single huge gap below — very noticeable
+       on tall phone screens, where the full-height mobile panel (see the
+       480px media query) leaves far more room than e.g. the title slide's
+       few lines of text actually need. `center` is the fallback for
+       browsers without `safe` support; `safe center` (the one that
+       actually applies everywhere modern) falls back to top-alignment
+       instead of centering if a slide's content ever overflows, so nothing
+       gets clipped off the top on a short/landscape viewport. */
+    justify-content: center;
+    justify-content: safe center;
 }
 
 .tw-slide-1 { background: #f3e6d3; }
@@ -2123,8 +2133,7 @@
 .tw-tilt-3 { transform: rotate(-3deg); }
 
 .tw-swipe-hint {
-    margin-top: auto;
-    padding-top: 24px;
+    margin-top: 24px;
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.5);
 }
@@ -2145,8 +2154,7 @@
 }
 
 .tw-footer-note {
-    margin-top: auto;
-    padding-top: 20px;
+    margin-top: 20px;
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.5);
 }
@@ -2363,7 +2371,7 @@
     background: rgba(255, 255, 255, 0.55);
     border-radius: 14px;
     padding: 20px 22px;
-    margin: 0 0 auto;
+    margin: 24px 0 0;
 }
 
 .tw-brand-footer {
@@ -2624,7 +2632,15 @@
 }
 
 @media (max-width: 480px) {
-    .tw-panel { width: 100vw; height: 100vh; border-radius: 0; }
+    /* 100vh on mobile Chrome/Safari is sized against the viewport with
+       the address bar collapsed — while it's actually showing (the
+       common case, especially right after the page loads), that makes
+       the panel taller than what's really visible, pushing the Save
+       Photo/Share/Facebook bar (pinned to the panel's own bottom edge)
+       down behind the browser chrome. 100dvh tracks the real visible
+       height instead; the 100vh line stays first as the fallback for
+       browsers that don't support dvh yet. */
+    .tw-panel { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; }
 }
 
 /* ============================================================
