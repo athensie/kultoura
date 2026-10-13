@@ -1,5 +1,5 @@
-// KulToura Admin — Homepage Content (Partners / Event Gallery / Facebook Videos)
-// partnersData / eventPhotosData / fbVideosData are injected server-side by
+// KulToura Admin — Homepage Content (Partners / Event Gallery)
+// partnersData / eventPhotosData are injected server-side by
 // adminhomepage.php via window.partnersData = <?php echo json_encode(...); ?>
 // — a top-level const/let would NOT become a window property in a classic
 // script, so these are assigned onto window explicitly (same gotcha fixed
@@ -52,17 +52,7 @@ function openEditEventPhoto(id) {
     openModal('editEventPhotoModal');
 }
 
-function openEditFbVideo(id) {
-    const v = (window.fbVideosData || []).find((row) => Number(row.id) === id);
-    if (!v) return;
-    document.getElementById('editFbVideoId').value = v.id;
-    document.getElementById('editFbVideoUrl').value = v.video_url || '';
-    document.getElementById('editFbVideoTitle').value = v.title || '';
-    document.getElementById('editFbVideoExistingThumbnail').value = v.thumbnail || '';
-    openModal('editFbVideoModal');
-}
-
-// ARCHIVE — one shared confirm modal/form for all 3 content types, its
+// ARCHIVE — one shared confirm modal/form for both content types, its
 // form_action set to match whichever type triggered it.
 function confirmArchive(entityType, id, label) {
     document.getElementById('archiveIdInput').value = id;

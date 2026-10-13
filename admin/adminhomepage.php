@@ -37,27 +37,22 @@ $pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
  |--------------------------------------------------------------------
- | HOMEPAGE CONTENT — Partners, Event Gallery, Facebook Videos
+ | HOMEPAGE CONTENT — Partners, Event Gallery
  |--------------------------------------------------------------------
- | Three small, independent content types that only ever appear on
- | index.php. Each goes through the same Admin/Super Admin approval
- | queue as the rest of the content tables (see config/admin_requests.php):
- | a plain Admin's submission is held for review, a Super Admin's
- | applies immediately. "Archive" (never a real delete) just flips
- | status to 'archived', matching every other content type on the site.
+ | Small, independent content types that only ever appear on index.php.
+ | Each goes through the same Admin/Super Admin approval queue as the
+ | rest of the content tables (see config/admin_requests.php): a plain
+ | Admin's submission is held for review, a Super Admin's applies
+ | immediately. "Archive" (never a real delete) just flips status to
+ | 'archived', matching every other content type on the site.
+ |
+ | A Facebook Videos type used to live here too — removed (not worth
+ | fighting Facebook's embed restrictions for). config/admin_requests.php
+ | and config/homepage_content.php still carry its backend pieces
+ | (kt_apply_fb_video(), the fb_videos table, kt_fb_video_embed_url())
+ | deliberately left in place and harmless, purely so approving any
+ | already-pending fb_video request from before removal doesn't error.
  */
-
-// The inside of a .video-media box: the admin's own thumbnail if they
-// uploaded one, otherwise the plain Facebook-icon placeholder. Shared
-// by the live grid and the pending-request grid below.
-function kt_video_media_inner(?string $thumbnail): string
-{
-    if (!empty($thumbnail)) {
-        return '<img src="' . htmlspecialchars($thumbnail) . '" alt="">';
-    }
-    return '<i data-lucide="facebook" class="lucide"></i>';
-}
-
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
 
@@ -66,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     $formAction = $_POST['form_action'];
 
     [$entityType, $verb] = (function () use ($formAction) {
-        foreach (['partner', 'event_photo', 'fb_video'] as $type) {
+        foreach (['partner', 'event_photo'] as $type) {
             foreach (['add' => 'create', 'edit' => 'update', 'delete' => 'archive'] as $prefix => $action) {
                 if ($formAction === "{$prefix}_{$type}") return [$type, $action];
             }
@@ -85,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     if ($verb === 'archive') {
         $data = [];
         $meta = kt_entity_meta($entityType);
-        $labelCol = $entityType === 'partner' ? 'name' : ($entityType === 'event_photo' ? 'caption' : 'title');
+        $labelCol = $entityType === 'partner' ? 'name' : 'caption';
         $stmt = $conn->prepare("SELECT `$labelCol` AS name FROM `{$meta['table']}` WHERE `{$meta['idCol']}` = ?");
         $stmt->bind_param('i', $id);
         $stmt->execute();
@@ -133,26 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'status'  => 'live',
         ];
         $label = $caption;
-    } else { // fb_video
-        $videoUrl = trim($_POST['video_url'] ?? '');
-        if ($videoUrl === '' || !kt_fb_video_embed_url($videoUrl)) {
-            $_SESSION['admin_flash'] = 'Please paste a valid facebook.com video link.';
-            header("Location: adminhomepage.php");
-            exit;
-        }
-        // Optional — Facebook won't hand over a real thumbnail without a
-        // registered app (same reason the video itself isn't embedded
-        // anymore), so this is the admin's own picture for the card
-        // instead of the plain color placeholder.
-        $thumbnail = kt_homepage_handle_image_upload('thumbnail_file', 'videos', 'video')
-            ?? ($verb === 'update' ? trim($_POST['existing_thumbnail'] ?? '') : null);
-        $data = [
-            'video_url' => $videoUrl,
-            'title'     => trim($_POST['title'] ?? '') ?: null,
-            'thumbnail' => $thumbnail ?: null,
-            'status'    => 'live',
-        ];
-        $label = $data['title'] ?? $videoUrl;
     }
 
     if ($isSuperAdmin) {
@@ -184,11 +159,6 @@ if ($result = $conn->query("SELECT * FROM event_gallery WHERE status = 'live' OR
     $eventPhotos = $result->fetch_all(MYSQLI_ASSOC);
 }
 
-$fbVideos = [];
-if ($result = $conn->query("SELECT * FROM fb_videos WHERE status = 'live' ORDER BY created_at DESC")) {
-    $fbVideos = $result->fetch_all(MYSQLI_ASSOC);
-}
-
 // Pending submissions — a plain Admin otherwise has no way to see what
 // they just submitted anywhere (adminrequests.php is Super Admin only),
 // so each tab also lists its own type's pending requests below the live
@@ -198,7 +168,6 @@ if ($result = $conn->query("SELECT * FROM fb_videos WHERE status = 'live' ORDER 
 // badge, so "I added it" always has somewhere to see it.
 $pendingPartners = [];
 $pendingEventPhotos = [];
-$pendingFbVideos = [];
 foreach (kt_requests_list($conn, 'pending') as $req) {
     if (!$isSuperAdmin && (int) $req['requested_by'] !== (int) $_SESSION['user_id']) {
         continue;
@@ -207,8 +176,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         $pendingPartners[] = $req;
     } elseif ($req['entity_type'] === 'event_photo') {
         $pendingEventPhotos[] = $req;
-    } elseif ($req['entity_type'] === 'fb_video') {
-        $pendingFbVideos[] = $req;
     }
 }
 ?>
@@ -303,7 +270,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <div>
                 <div class="section-label">Content Management</div>
                 <h1>Homepage <em>Content</em></h1>
-                <p>Partner logos, the event photo gallery, and Facebook videos shown on the homepage.</p>
+                <p>Partner logos and the event photo gallery shown on the homepage.</p>
             </div>
         </div>
 
@@ -323,7 +290,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <div class="admin-tabs animate">
             <button type="button" class="admin-tab-btn active" data-tab="partners" onclick="ktSwitchHomeTab('partners')"><i data-lucide="handshake" class="lucide" style="width:.85rem;height:.85rem;"></i> Partners</button>
             <button type="button" class="admin-tab-btn" data-tab="gallery" onclick="ktSwitchHomeTab('gallery')"><i data-lucide="images" class="lucide" style="width:.85rem;height:.85rem;"></i> Event Gallery</button>
-            <button type="button" class="admin-tab-btn" data-tab="videos" onclick="ktSwitchHomeTab('videos')"><i data-lucide="video" class="lucide" style="width:.85rem;height:.85rem;"></i> Facebook Videos</button>
         </div>
 
         <!-- PARTNERS TAB -->
@@ -411,60 +377,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                             <div class="grid-card-media"><?php if (!empty($d['image'])): ?><img src="<?php echo htmlspecialchars($d['image']); ?>" alt=""><?php endif; ?></div>
                             <div class="grid-card-body">
                                 <div class="grid-card-title"><?php echo htmlspecialchars($d['caption'] ?? $req['entity_label']); ?></div>
-                                <div class="grid-card-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?></div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- FACEBOOK VIDEOS TAB -->
-        <div class="admin-tab-panel animate" id="homeTab-videos" hidden>
-            <div class="header-actions-row">
-                <p class="tab-sub">Paste a link to a public Facebook video/reel — embedded on the homepage as "recent happenings in Malvar."</p>
-                <button type="button" class="btn-primary" onclick="openModal('addFbVideoModal')"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Video</button>
-            </div>
-            <div class="grid-view-panel">
-                <?php if (empty($fbVideos)): ?>
-                    <div class="chart-empty grid-empty">
-                        <i data-lucide="video" class="lucide"></i>
-                        <div class="chart-empty-title">No videos yet</div>
-                        <div class="chart-empty-sub">Facebook videos added here show up on the homepage.</div>
-                    </div>
-                <?php else: ?>
-                    <?php foreach ($fbVideos as $v): ?>
-                        <div class="grid-card">
-                            <a class="grid-card-media video-media" href="<?php echo htmlspecialchars($v['video_url']); ?>" target="_blank" rel="noopener" title="Open on Facebook">
-                                <?php echo kt_video_media_inner($v['thumbnail'] ?? null); ?>
-                            </a>
-                            <div class="grid-card-body">
-                                <div class="grid-card-title"><?php echo htmlspecialchars($v['title'] ?: 'Untitled video'); ?></div>
-                                <div class="grid-card-sub" style="word-break:break-all;"><?php echo htmlspecialchars($v['video_url']); ?></div>
-                            </div>
-                            <div class="grid-card-actions">
-                                <button type="button" class="tbl-btn edit" onclick="openEditFbVideo(<?php echo (int) $v['id']; ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                                <button type="button" class="tbl-btn delete" onclick="confirmArchive('fb_video', <?php echo (int) $v['id']; ?>, '<?php echo htmlspecialchars($v['title'] ?: $v['video_url'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
-            <?php if (!empty($pendingFbVideos)): ?>
-                <h3 class="pending-heading">Pending Super Admin Approval</h3>
-                <div class="grid-view-panel">
-                    <?php foreach ($pendingFbVideos as $req): $d = $req['payload']; ?>
-                        <div class="grid-card pending-card">
-                            <span class="pending-badge"><?php echo htmlspecialchars(ucfirst($req['action'])); ?> pending</span>
-                            <?php if (!empty($d['video_url'])): ?>
-                                <a class="grid-card-media video-media" href="<?php echo htmlspecialchars($d['video_url']); ?>" target="_blank" rel="noopener" title="Open on Facebook">
-                                    <?php echo kt_video_media_inner($d['thumbnail'] ?? null); ?>
-                                </a>
-                            <?php else: ?>
-                                <div class="grid-card-media video-media"><?php echo kt_video_media_inner($d['thumbnail'] ?? null); ?></div>
-                            <?php endif; ?>
-                            <div class="grid-card-body">
-                                <div class="grid-card-title"><?php echo htmlspecialchars($d['title'] ?? $req['entity_label']); ?></div>
                                 <div class="grid-card-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?></div>
                             </div>
                         </div>
@@ -588,68 +500,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     </div>
 </div>
 
-<!-- ADD FB VIDEO MODAL -->
-<div class="modal-overlay" id="addFbVideoModal" onclick="closeModalOutside(event, 'addFbVideoModal')">
-    <div class="modal-card">
-        <button class="modal-close" onclick="closeModal('addFbVideoModal')"><i data-lucide="x" class="lucide"></i></button>
-        <div class="modal-title">Add Facebook Video</div>
-        <div class="modal-sub">Paste the link from a public Facebook video, reel, or watch post — e.g. from <a href="https://www.facebook.com/MalvarBatangasOfficial" target="_blank" rel="noopener" style="color:var(--gold,#C8A96E);">Malvar's official Facebook Page</a>.</div>
-        <form method="POST" action="adminhomepage.php" enctype="multipart/form-data">
-            <input type="hidden" name="form_action" value="add_fb_video">
-            <?php echo csrf_field(); ?>
-            <div class="form-group">
-                <label class="form-label">Facebook Video Link</label>
-                <input class="form-input" type="text" name="video_url" placeholder="https://www.facebook.com/…/videos/…" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Title (optional)</label>
-                <input class="form-input" type="text" name="title" placeholder="e.g. Malvar Town Fiesta Highlights">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Thumbnail Image (optional)</label>
-                <input class="form-input" type="file" name="thumbnail_file" accept="image/*">
-                <p class="image-current-hint">Facebook won't hand over a real thumbnail without a registered app, so without one the card just shows a plain blue placeholder — add a screenshot or photo here for a nicer card.</p>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:8px;">
-                <button type="submit" class="btn-primary" style="flex:1">Add Video</button>
-                <button type="button" class="btn-ghost" onclick="closeModal('addFbVideoModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- EDIT FB VIDEO MODAL -->
-<div class="modal-overlay" id="editFbVideoModal" onclick="closeModalOutside(event, 'editFbVideoModal')">
-    <div class="modal-card">
-        <button class="modal-close" onclick="closeModal('editFbVideoModal')"><i data-lucide="x" class="lucide"></i></button>
-        <div class="modal-title">Edit Facebook Video</div>
-        <form method="POST" action="adminhomepage.php" enctype="multipart/form-data">
-            <input type="hidden" name="form_action" value="edit_fb_video">
-            <?php echo csrf_field(); ?>
-            <input type="hidden" name="id" id="editFbVideoId">
-            <input type="hidden" name="existing_thumbnail" id="editFbVideoExistingThumbnail">
-            <div class="form-group">
-                <label class="form-label">Facebook Video Link</label>
-                <input class="form-input" type="text" name="video_url" id="editFbVideoUrl" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Title (optional)</label>
-                <input class="form-input" type="text" name="title" id="editFbVideoTitle">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Replace Thumbnail Image</label>
-                <input class="form-input" type="file" name="thumbnail_file" accept="image/*">
-                <p class="image-current-hint">Leave empty to keep the current thumbnail (if any).</p>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:8px;">
-                <button type="submit" class="btn-primary" style="flex:1">Save Changes</button>
-                <button type="button" class="btn-ghost" onclick="closeModal('editFbVideoModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- ARCHIVE CONFIRM MODAL (shared by all 3 types) -->
+<!-- ARCHIVE CONFIRM MODAL (shared by both types) -->
 <div class="modal-overlay" id="archiveModal" onclick="closeModalOutside(event, 'archiveModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div class="modal-title" id="archiveTitle">Archive Item?</div>
@@ -672,7 +523,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
 <script>
     window.partnersData = <?php echo json_encode($partners, JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]'; ?>;
     window.eventPhotosData = <?php echo json_encode($eventPhotos, JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]'; ?>;
-    window.fbVideosData = <?php echo json_encode($fbVideos, JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]'; ?>;
     <?php if ($flashMessage): ?>
     window.__adminFlash = <?php echo json_encode($flashMessage, JSON_INVALID_UTF8_SUBSTITUTE) ?: 'null'; ?>;
     <?php endif; ?>
