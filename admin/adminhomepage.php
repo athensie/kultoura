@@ -213,7 +213,10 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 
-    <link rel="stylesheet" href="../assets/css/adminhomepage.css">
+    <!-- ?v=<mtime> so a deploy is never masked by a stale cached copy —
+         this file has no Cache-Control/Expires header, so without the
+         URL itself changing a reload can still show an old version. -->
+    <link rel="stylesheet" href="../assets/css/adminhomepage.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/adminhomepage.css') ?: time(); ?>">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
@@ -655,7 +658,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
-<script src="../assets/js/adminhomepage.js"></script>
+<script src="../assets/js/adminhomepage.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/adminhomepage.js') ?: time(); ?>"></script>
 <script>initSidebarCollapse();</script>
 
 </body>
