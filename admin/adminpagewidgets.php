@@ -282,12 +282,25 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <?php endif; ?>
 
         <div class="pw-admin-list">
-            <?php foreach ($pageChoices as $slug => $label): $w = $widgetsBySlug[$slug] ?? null; ?>
+            <?php foreach ($pageChoices as $slug => $label):
+                $w = $widgetsBySlug[$slug] ?? null;
+                $firstGridPhoto = $w ? (array_filter([$w['gallery_image_1'] ?? null, $w['gallery_main_image'] ?? null, $w['gallery_image_2'] ?? null, $w['gallery_image_3'] ?? null])[0] ?? null) : null;
+                $firstStripPhoto = $w ? (array_filter([$w['photo_1'] ?? null, $w['photo_2'] ?? null, $w['photo_3'] ?? null, $w['photo_4'] ?? null, $w['photo_5'] ?? null])[0] ?? null) : null;
+            ?>
                 <div class="pw-admin-row">
-                    <div class="pw-admin-swatch" style="background:<?php echo htmlspecialchars($w['bg_color'] ?? '#f0ebe3'); ?>">
-                        <?php if ($w && !empty($w['main_image'])): ?>
-                            <img src="<?php echo htmlspecialchars($w['main_image']); ?>" alt="">
-                        <?php endif; ?>
+                    <div class="pw-admin-swatch-group">
+                        <div class="pw-admin-swatch" style="background:<?php echo htmlspecialchars($w['bg_color'] ?? '#f0ebe3'); ?>" title="Main Picture">
+                            <?php if ($w && !empty($w['main_image'])): ?><img src="<?php echo htmlspecialchars($w['main_image']); ?>" alt=""><?php endif; ?>
+                            <span class="pw-admin-swatch-label">Main</span>
+                        </div>
+                        <div class="pw-admin-swatch" title="Grid Pictures">
+                            <?php if ($firstGridPhoto): ?><img src="<?php echo htmlspecialchars($firstGridPhoto); ?>" alt=""><?php endif; ?>
+                            <span class="pw-admin-swatch-label">Grid</span>
+                        </div>
+                        <div class="pw-admin-swatch" title="Photo Strip Pictures">
+                            <?php if ($firstStripPhoto): ?><img src="<?php echo htmlspecialchars($firstStripPhoto); ?>" alt=""><?php endif; ?>
+                            <span class="pw-admin-swatch-label">Strip</span>
+                        </div>
                     </div>
                     <div class="pw-admin-row-body">
                         <div class="pw-admin-row-title"><?php echo htmlspecialchars($label); ?></div>

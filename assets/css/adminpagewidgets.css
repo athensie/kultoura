@@ -19,14 +19,37 @@
     position: relative;
 }
 
+.pw-admin-swatch-group {
+    flex-shrink: 0;
+    display: flex;
+    gap: 6px;
+}
+
 .pw-admin-swatch {
+    position: relative;
     flex-shrink: 0;
     width: 56px;
     height: 56px;
     border-radius: 10px;
     overflow: hidden;
 }
+.pw-admin-swatch-group .pw-admin-swatch { width: 44px; height: 44px; }
 .pw-admin-swatch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.pw-admin-swatch-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 1px 0;
+    font-size: .52rem;
+    font-weight: 700;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    text-align: center;
+    color: rgba(255, 255, 255, .85);
+    background: rgba(0, 0, 0, .4);
+}
 
 .pw-admin-row-body { flex: 1; min-width: 0; }
 .pw-admin-row-title { font-weight: 600; color: var(--cream); font-size: .88rem; }
