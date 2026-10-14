@@ -286,7 +286,7 @@ if (!function_exists('kt_page_widget_render_from')) {
                     <div class="pw-gallery-main">
                         <img src="<?php echo htmlspecialchars($photos[1]['src']); ?>" alt="" loading="lazy">
                         <?php if (!empty($photos[1]['caption'])): ?>
-                            <span class="pw-strip-caption"><?php echo htmlspecialchars($photos[1]['caption']); ?></span>
+                            <div class="pw-strip-caption-wrap"><span class="pw-strip-caption"><?php echo htmlspecialchars($photos[1]['caption']); ?></span></div>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -294,7 +294,7 @@ if (!function_exists('kt_page_widget_render_from')) {
                     <div class="pw-gallery-strip">
                         <img src="<?php echo htmlspecialchars($photos[$n]['src']); ?>" alt="" loading="lazy">
                         <?php if (!empty($photos[$n]['caption'])): ?>
-                            <span class="pw-strip-caption"><?php echo htmlspecialchars($photos[$n]['caption']); ?></span>
+                            <div class="pw-strip-caption-wrap"><span class="pw-strip-caption"><?php echo htmlspecialchars($photos[$n]['caption']); ?></span></div>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
