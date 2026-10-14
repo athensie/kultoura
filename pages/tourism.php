@@ -163,6 +163,7 @@ foreach ($hubImages as $key => $value) {
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $tourismHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($tourismHeroPhoto): ?>
@@ -173,15 +174,14 @@ foreach ($hubImages as $key => $value) {
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Tourism</h1>
         <p class="t-page-sub">
             Everything Malvar has to offer — food, nature, culture, and people — all in one place.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'tourism'); ?>
 

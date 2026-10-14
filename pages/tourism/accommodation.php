@@ -134,6 +134,7 @@ $stmt->close();
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $accommodationHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($accommodationHeroPhoto): ?>
@@ -144,15 +145,14 @@ $stmt->close();
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">STAY IN MALVAR · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Accommodation</h1>
         <p class="t-page-sub">
             Hotels, inns, and homestays for travelers looking to stay a little longer in Malvar.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'accommodation'); ?>
 

@@ -165,6 +165,7 @@ foreach ($rows as $r) {
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $restaurantsHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($restaurantsHeroPhoto): ?>
@@ -175,15 +176,14 @@ foreach ($rows as $r) {
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Restaurants</h1>
         <p class="t-page-sub">
             From roadside eateries to family restaurants — find your next favorite meal.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'restaurants'); ?>
 

@@ -195,6 +195,7 @@ if (isset($_GET['ajax_calendar'])) {
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $fiestasHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($fiestasHeroPhoto): ?>
@@ -205,15 +206,14 @@ if (isset($_GET['ajax_calendar'])) {
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">CULTURE · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Fiestas</h1>
         <p class="t-page-sub">
             Barangay fiestas, patron saint celebrations, and the vibrant street culture of Malvar.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'fiestas'); ?>
 

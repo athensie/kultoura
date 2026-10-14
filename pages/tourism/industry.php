@@ -134,6 +134,7 @@ $stmt->close();
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $industryHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($industryHeroPhoto): ?>
@@ -144,15 +145,14 @@ $stmt->close();
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Industry Zone</h1>
         <p class="t-page-sub">
             Discover the commercial and industrial districts that drive Malvar forward.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'industry'); ?>
 

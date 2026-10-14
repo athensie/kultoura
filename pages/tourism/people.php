@@ -107,6 +107,7 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $peopleHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($peopleHeroPhoto): ?>
@@ -117,15 +118,14 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">CULTURE · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">People of Malvar</h1>
         <p class="t-page-sub">
             Artists, leaders, farmers, and community pillars who define the Malvareño spirit.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'people'); ?>
 

@@ -135,6 +135,7 @@ $stmt->close();
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $natureHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($natureHeroPhoto): ?>
@@ -145,15 +146,14 @@ $stmt->close();
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Nature</h1>
         <p class="t-page-sub">
             Parks, trails, and scenic views that showcase Malvar's natural beauty.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'nature'); ?>
 

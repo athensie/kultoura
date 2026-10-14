@@ -135,6 +135,7 @@ $stmt->close();
 
 </header>
 
+<?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $servicesHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($servicesHeroPhoto): ?>
@@ -145,15 +146,14 @@ $stmt->close();
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <?php if (!$pageWidget): ?>
         <p class="t-eyebrow">ESSENTIAL SERVICES · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Other Services</h1>
         <p class="t-page-sub">
             Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.
         </p>
-        <?php endif; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'services'); ?>
 
