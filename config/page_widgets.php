@@ -134,17 +134,11 @@ if (!function_exists('kt_page_widget_page_meta')) {
 
 // Shared by every image field on the widget — same validation/storage
 // pattern as config/homepage_content.php's kt_homepage_handle_image_upload().
-if (!function_exists('kt_page_widget_handle_image_upload')) {
-    function kt_page_widget_handle_image_upload(string $fieldName): ?string
+if (!function_exists('kt_page_widget_save_uploaded_image')) {
+    function kt_page_widget_save_uploaded_image(string $tmpName): ?string
     {
-        if (empty($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
-            return null;
-        }
-        if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
-            return null;
-        }
         $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'];
-        $mime = mime_content_type($_FILES[$fieldName]['tmp_name']);
+        $mime = mime_content_type($tmpName);
         if (!isset($allowed[$mime])) {
             return null;
         }
@@ -153,7 +147,7 @@ if (!function_exists('kt_page_widget_handle_image_upload')) {
             mkdir($dir, 0755, true);
         }
         $filename = 'widget_' . bin2hex(random_bytes(8)) . '.' . $allowed[$mime];
-        if (!move_uploaded_file($_FILES[$fieldName]['tmp_name'], $dir . '/' . $filename)) {
+        if (!move_uploaded_file($tmpName, $dir . '/' . $filename)) {
             return null;
         }
         // Absolute from site root (not relative) — this image gets rendered
@@ -163,6 +157,37 @@ if (!function_exists('kt_page_widget_handle_image_upload')) {
         // upload handler.
         $base = defined('BASE_URL') ? BASE_URL : '/kultoura';
         return $base . '/assets/uploads/pagewidgets/' . $filename;
+    }
+}
+
+if (!function_exists('kt_page_widget_handle_image_upload')) {
+    function kt_page_widget_handle_image_upload(string $fieldName): ?string
+    {
+        if (empty($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
+        return kt_page_widget_save_uploaded_image($_FILES[$fieldName]['tmp_name']);
+    }
+}
+
+// One <input type="file" name="$fieldName[]" multiple> picker, not five
+// separate single-file inputs — $index is which file the admin picked
+// into that slot (0-based). A skipped slot (fewer than 5 files chosen,
+// or the browser's multi-select just leaves it out) returns null, which
+// the caller treats as "keep whatever was there before."
+if (!function_exists('kt_page_widget_handle_multi_image_upload')) {
+    function kt_page_widget_handle_multi_image_upload(string $fieldName, int $index): ?string
+    {
+        if (empty($_FILES[$fieldName]['name'][$index])) {
+            return null;
+        }
+        if (($_FILES[$fieldName]['error'][$index] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return null;
+        }
+        return kt_page_widget_save_uploaded_image($_FILES[$fieldName]['tmp_name'][$index]);
     }
 }
 
