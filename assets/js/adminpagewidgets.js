@@ -18,6 +18,7 @@ function openEditWidget(id) {
     document.getElementById('editWidgetPageLabel').textContent = (window.pageWidgetLabels || {})[w.page_slug] || w.page_slug;
     document.getElementById('editWidgetBgColor').value = w.bg_color || '#1877f2';
     document.getElementById('editWidgetCard1Text').value = w.card1_text || '';
+    document.getElementById('editWidgetCard2Text').value = w.card2_text || '';
     for (let n = 1; n <= 5; n++) {
         const captionField = document.getElementById(`editWidgetPhoto${n}Caption`);
         if (captionField) captionField.value = w[`photo_${n}_caption`] || '';

@@ -111,7 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'headline'         => $meta['title'],
             'subtext'          => $meta['description'] ?: null,
             'card1_text'       => trim($_POST['card1_text'] ?? '') ?: null,
+            'card2_text'       => trim($_POST['card2_text'] ?? '') ?: null,
             'main_image'       => kt_page_widget_handle_image_upload('main_image_file'),
+            'gallery_image_1'    => kt_page_widget_handle_multi_image_upload('grid_photos', 0),
+            'gallery_main_image' => kt_page_widget_handle_multi_image_upload('grid_photos', 1),
+            'gallery_image_2'    => kt_page_widget_handle_multi_image_upload('grid_photos', 2),
+            'gallery_image_3'    => kt_page_widget_handle_multi_image_upload('grid_photos', 3),
             'photo_1'             => kt_page_widget_handle_multi_image_upload('photos', 0),
             'photo_1_caption'     => trim($_POST['photo_1_caption'] ?? '') ?: null,
             'photo_1_description' => trim($_POST['photo_1_description'] ?? '') ?: null,
@@ -350,8 +355,19 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
             </div>
 
-            <p class="pw-form-section">Additional Pictures (up to 5)</p>
-            <p class="pw-form-hint">Select up to 5 photos at once — they'll fill the grid above and the photo strip below it, in the order you picked them. Caption/description are optional.</p>
+            <p class="pw-form-section">Grid Pictures (up to 4)</p>
+            <p class="pw-form-hint">Select up to 4 photos at once — they fill the grid above (left-bottom, top-right, bottom-right, and the small bottom-right panel), separate from the photo strip below it.</p>
+            <div class="form-group">
+                <label class="form-label">Photos</label>
+                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Caption for the 4th photo (e.g. "Powered by KulToura")</label>
+                <input class="form-input" type="text" name="card2_text" maxlength="60">
+            </div>
+
+            <p class="pw-form-section">Photo Strip Pictures (up to 5)</p>
+            <p class="pw-form-hint">Select up to 5 different photos at once for the expanding strip below the grid, in the order you picked them. Caption/description are optional.</p>
             <div class="form-group">
                 <label class="form-label">Photos</label>
                 <input class="form-input" type="file" name="photos[]" accept="image/*" multiple>
@@ -406,8 +422,19 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <p class="image-current-hint">Leave empty to keep the current photo.</p>
             </div>
 
-            <p class="pw-form-section">Additional Pictures (up to 5)</p>
-            <p class="pw-form-hint">Select up to 5 photos at once to replace these, in order (Photo 1, Photo 2, …). Leave this empty to keep all 5 exactly as they are — selecting just 1 or 2 replaces only those positions.</p>
+            <p class="pw-form-section">Grid Pictures (up to 4)</p>
+            <p class="pw-form-hint">Select up to 4 photos at once to replace these (left-bottom, top-right, bottom-right, bottom-right panel), separate from the photo strip below. Leave empty to keep them as they are.</p>
+            <div class="form-group">
+                <label class="form-label">Photos</label>
+                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Caption for the 4th photo (e.g. "Powered by KulToura")</label>
+                <input class="form-input" type="text" name="card2_text" id="editWidgetCard2Text" maxlength="60">
+            </div>
+
+            <p class="pw-form-section">Photo Strip Pictures (up to 5)</p>
+            <p class="pw-form-hint">Select up to 5 different photos at once to replace these, in order (Photo 1, Photo 2, …). Leave this empty to keep all 5 exactly as they are — selecting just 1 or 2 replaces only those positions.</p>
             <div class="form-group">
                 <label class="form-label">Photos</label>
                 <input class="form-input" type="file" name="photos[]" accept="image/*" multiple>

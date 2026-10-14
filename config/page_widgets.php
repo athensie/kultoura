@@ -232,12 +232,12 @@ if (!function_exists('kt_page_widget_render_from')) {
     {
         if (!$w) return;
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['eyebrow' => '', 'title' => $pageSlug, 'description' => ''];
-        // One set of up to 5 admin-picked photos (+ optional caption each)
-        // feeds BOTH the bento grid's 4 remaining cells (left-bottom,
-        // top-right, bottom-right, logo) AND the expanding strip below
-        // (main + 4 narrow tiles) — same photos, no separate uploads for
-        // each. main_image is separate: the one photo the page's Title
-        // overlays.
+        // Grid photos (gallery_image_1/gallery_main_image/gallery_image_2/
+        // gallery_image_3, + card2_text for the logo cell's caption) and
+        // strip photos (photo_1-5, each with its own caption/description)
+        // are deliberately separate uploads — different pictures in the
+        // grid above vs. the expanding strip below. main_image is its own
+        // single photo too: the one the page's Title overlays.
         $photos = [
             1 => ['src' => $w['photo_1'] ?? null, 'caption' => $w['photo_1_caption'] ?? null, 'description' => $w['photo_1_description'] ?? null],
             2 => ['src' => $w['photo_2'] ?? null, 'caption' => $w['photo_2_caption'] ?? null, 'description' => $w['photo_2_description'] ?? null],
@@ -253,9 +253,9 @@ if (!function_exists('kt_page_widget_render_from')) {
                         <p><?php echo nl2br(htmlspecialchars($w['card1_text'])); ?></p>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($photos[1]['src'])): ?>
+                <?php if (!empty($w['gallery_image_1'])): ?>
                     <div class="pw-cell pw-cell-photo">
-                        <img src="<?php echo htmlspecialchars($photos[1]['src']); ?>" alt="" loading="lazy">
+                        <img src="<?php echo htmlspecialchars($w['gallery_image_1']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
                 <div class="pw-cell pw-cell-center">
@@ -270,20 +270,20 @@ if (!function_exists('kt_page_widget_render_from')) {
                         <h2 class="pw-center-headline"><?php echo htmlspecialchars($meta['title']); ?></h2>
                     </div>
                 </div>
-                <?php if (!empty($photos[2]['src'])): ?>
+                <?php if (!empty($w['gallery_main_image'])): ?>
                     <div class="pw-cell pw-cell-topright">
-                        <img src="<?php echo htmlspecialchars($photos[2]['src']); ?>" alt="" loading="lazy">
+                        <img src="<?php echo htmlspecialchars($w['gallery_main_image']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
-                <?php if (!empty($photos[3]['src'])): ?>
+                <?php if (!empty($w['gallery_image_2'])): ?>
                     <div class="pw-cell pw-cell-botleft">
-                        <img src="<?php echo htmlspecialchars($photos[3]['src']); ?>" alt="" loading="lazy">
+                        <img src="<?php echo htmlspecialchars($w['gallery_image_2']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
-                <?php if (!empty($photos[4]['src'])): ?>
+                <?php if (!empty($w['gallery_image_3'])): ?>
                     <div class="pw-cell pw-cell-logo">
-                        <?php if (!empty($photos[4]['caption'])): ?><span class="pw-logo-caption"><?php echo htmlspecialchars($photos[4]['caption']); ?></span><?php endif; ?>
-                        <img src="<?php echo htmlspecialchars($photos[4]['src']); ?>" alt="" loading="lazy">
+                        <?php if (!empty($w['card2_text'])): ?><span class="pw-logo-caption"><?php echo htmlspecialchars($w['card2_text']); ?></span><?php endif; ?>
+                        <img src="<?php echo htmlspecialchars($w['gallery_image_3']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
             </div>
