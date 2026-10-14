@@ -18,9 +18,10 @@ function openEditWidget(id) {
     document.getElementById('editWidgetPageLabel').textContent = (window.pageWidgetLabels || {})[w.page_slug] || w.page_slug;
     document.getElementById('editWidgetBgColor').value = w.bg_color || '#1877f2';
     document.getElementById('editWidgetCard1Text').value = w.card1_text || '';
-    document.getElementById('editWidgetCard2Text').value = w.card2_text || '';
-    document.getElementById('editWidgetGalleryHeading').value = w.gallery_heading || '';
-    document.getElementById('editWidgetGalleryText').value = w.gallery_text || '';
+    for (let n = 1; n <= 5; n++) {
+        const field = document.getElementById(`editWidgetPhoto${n}Caption`);
+        if (field) field.value = w[`photo_${n}_caption`] || '';
+    }
     openModal('editWidgetModal');
 }
 

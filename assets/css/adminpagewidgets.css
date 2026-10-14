@@ -50,6 +50,13 @@
 }
 .pw-form-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
 
+.pw-form-hint {
+    font-size: .74rem;
+    color: rgba(var(--cream-rgb), .45);
+    margin: -4px 0 14px;
+    line-height: 1.5;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -662,8 +662,8 @@ if (!function_exists('kt_apply_page_widget')) {
         // Text fields are always (re)written; image fields are only
         // overwritten when a new upload came through — same "keep existing
         // unless replaced" pattern as kt_apply_partner's logo handling.
-        $textFields = ['bg_color', 'headline', 'subtext', 'card1_title', 'card1_text', 'card2_title', 'card2_text', 'gallery_heading', 'gallery_text'];
-        $imageFields = ['main_image', 'gallery_main_image', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3', 'gallery_image_4', 'strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4'];
+        $textFields = ['bg_color', 'headline', 'subtext', 'card1_text', 'photo_1_caption', 'photo_2_caption', 'photo_3_caption', 'photo_4_caption', 'photo_5_caption'];
+        $imageFields = ['main_image', 'photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5'];
 
         if ($action === 'create') {
             $cols = array_merge(['page_slug'], $textFields, $imageFields, ['status']);

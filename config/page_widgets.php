@@ -50,19 +50,34 @@ if (!function_exists('kt_page_widgets_ensure_schema')) {
                 strip_image_2 VARCHAR(255) NULL,
                 strip_image_3 VARCHAR(255) NULL,
                 strip_image_4 VARCHAR(255) NULL,
+                photo_1 VARCHAR(255) NULL,
+                photo_1_caption VARCHAR(100) NULL,
+                photo_2 VARCHAR(255) NULL,
+                photo_2_caption VARCHAR(100) NULL,
+                photo_3 VARCHAR(255) NULL,
+                photo_3_caption VARCHAR(100) NULL,
+                photo_4 VARCHAR(255) NULL,
+                photo_4_caption VARCHAR(100) NULL,
+                photo_5 VARCHAR(255) NULL,
+                photo_5_caption VARCHAR(100) NULL,
                 status ENUM('live','archived') NOT NULL DEFAULT 'live',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
 
-        // Already-deployed installs had page_widgets before the expanding
-        // photo strip got its own dedicated image columns (it originally
-        // reused the bento grid's photo fields, before those were
-        // repurposed) — CREATE TABLE IF NOT EXISTS above is a no-op for
-        // them, so add the columns here.
-        foreach (['strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4'] as $col) {
+        // Already-deployed installs had page_widgets before a column
+        // existed — CREATE TABLE IF NOT EXISTS above is a no-op for them,
+        // so add any missing ones here. gallery_main_image/gallery_image_1-4/
+        // strip_*/gallery_heading/gallery_text/card2_title/card2_text are
+        // now unused (the single photo_1-5 + caption set below replaced
+        // them) but deliberately left in place, harmless.
+        foreach (['strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4',
+                  'photo_1', 'photo_1_caption', 'photo_2', 'photo_2_caption', 'photo_3', 'photo_3_caption',
+                  'photo_4', 'photo_4_caption', 'photo_5', 'photo_5_caption'] as $col) {
+            $isCaption = str_ends_with($col, '_caption');
+            $type = $isCaption ? 'VARCHAR(100)' : 'VARCHAR(255)';
             try {
-                $conn->query("ALTER TABLE page_widgets ADD COLUMN $col VARCHAR(255) NULL");
+                $conn->query("ALTER TABLE page_widgets ADD COLUMN $col $type NULL");
             } catch (mysqli_sql_exception $e) {
                 if ($e->getCode() !== 1060) { throw $e; } // 1060 = column already exists
             }
@@ -183,12 +198,19 @@ if (!function_exists('kt_page_widget_render_from')) {
     {
         if (!$w) return;
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['eyebrow' => '', 'title' => $pageSlug, 'description' => ''];
-        // Bento-grid layout — contained card (not full-bleed), reusing the
-        // same DB fields the old banner+gallery-strip layout used, just
-        // placed in different cells: card1_text -> left text panel,
-        // gallery_image_1 -> left-bottom photo, gallery_main_image ->
-        // top-right photo, gallery_image_2 -> bottom-right photo,
-        // gallery_image_3 -> small "powered by" logo, card2_text -> its caption.
+        // One set of up to 5 admin-picked photos (+ optional caption each)
+        // feeds BOTH the bento grid's 4 remaining cells (left-bottom,
+        // top-right, bottom-right, logo) AND the expanding strip below
+        // (main + 4 narrow tiles) — same photos, no separate uploads for
+        // each. main_image is separate: the one photo the page's Title
+        // overlays.
+        $photos = [
+            1 => ['src' => $w['photo_1'] ?? null, 'caption' => $w['photo_1_caption'] ?? null],
+            2 => ['src' => $w['photo_2'] ?? null, 'caption' => $w['photo_2_caption'] ?? null],
+            3 => ['src' => $w['photo_3'] ?? null, 'caption' => $w['photo_3_caption'] ?? null],
+            4 => ['src' => $w['photo_4'] ?? null, 'caption' => $w['photo_4_caption'] ?? null],
+            5 => ['src' => $w['photo_5'] ?? null, 'caption' => $w['photo_5_caption'] ?? null],
+        ];
         ?>
         <section class="pw-widget">
             <div class="pw-grid">
@@ -197,9 +219,9 @@ if (!function_exists('kt_page_widget_render_from')) {
                         <p><?php echo nl2br(htmlspecialchars($w['card1_text'])); ?></p>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($w['gallery_image_1'])): ?>
+                <?php if (!empty($photos[1]['src'])): ?>
                     <div class="pw-cell pw-cell-photo">
-                        <img src="<?php echo htmlspecialchars($w['gallery_image_1']); ?>" alt="" loading="lazy">
+                        <img src="<?php echo htmlspecialchars($photos[1]['src']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
                 <div class="pw-cell pw-cell-center">
@@ -214,43 +236,41 @@ if (!function_exists('kt_page_widget_render_from')) {
                         <h2 class="pw-center-headline"><?php echo htmlspecialchars($meta['title']); ?></h2>
                     </div>
                 </div>
-                <?php if (!empty($w['gallery_main_image'])): ?>
+                <?php if (!empty($photos[2]['src'])): ?>
                     <div class="pw-cell pw-cell-topright">
-                        <img src="<?php echo htmlspecialchars($w['gallery_main_image']); ?>" alt="" loading="lazy">
+                        <img src="<?php echo htmlspecialchars($photos[2]['src']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
-                <?php if (!empty($w['gallery_image_2'])): ?>
+                <?php if (!empty($photos[3]['src'])): ?>
                     <div class="pw-cell pw-cell-botleft">
-                        <img src="<?php echo htmlspecialchars($w['gallery_image_2']); ?>" alt="" loading="lazy">
+                        <img src="<?php echo htmlspecialchars($photos[3]['src']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
-                <?php if (!empty($w['gallery_image_3']) || !empty($w['card2_text'])): ?>
+                <?php if (!empty($photos[4]['src'])): ?>
                     <div class="pw-cell pw-cell-logo">
-                        <?php if (!empty($w['card2_text'])): ?><span class="pw-logo-caption"><?php echo htmlspecialchars($w['card2_text']); ?></span><?php endif; ?>
-                        <?php if (!empty($w['gallery_image_3'])): ?><img src="<?php echo htmlspecialchars($w['gallery_image_3']); ?>" alt="" loading="lazy"><?php endif; ?>
+                        <?php if (!empty($photos[4]['caption'])): ?><span class="pw-logo-caption"><?php echo htmlspecialchars($photos[4]['caption']); ?></span><?php endif; ?>
+                        <img src="<?php echo htmlspecialchars($photos[4]['src']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
             </div>
 
-            <?php
-                $stripImages = array_filter([$w['strip_image_1'] ?? null, $w['strip_image_2'] ?? null, $w['strip_image_3'] ?? null, $w['strip_image_4'] ?? null]);
-            ?>
-            <?php if (!empty($w['strip_main_image']) || !empty($stripImages)): ?>
+            <?php $hasAnyPhoto = array_filter($photos, fn($p) => !empty($p['src'])); ?>
+            <?php if (!empty($hasAnyPhoto)): ?>
             <div class="pw-gallery">
-                <?php if (!empty($w['strip_main_image'])): ?>
+                <?php if (!empty($photos[1]['src'])): ?>
                     <div class="pw-gallery-main">
-                        <img src="<?php echo htmlspecialchars($w['strip_main_image']); ?>" alt="" loading="lazy">
-                        <?php if (!empty($w['gallery_heading']) || !empty($w['gallery_text'])): ?>
-                            <div class="pw-gallery-main-text">
-                                <?php if (!empty($w['gallery_heading'])): ?><h3><?php echo htmlspecialchars($w['gallery_heading']); ?></h3><?php endif; ?>
-                                <?php if (!empty($w['gallery_text'])): ?><p><?php echo htmlspecialchars($w['gallery_text']); ?></p><?php endif; ?>
-                            </div>
+                        <img src="<?php echo htmlspecialchars($photos[1]['src']); ?>" alt="" loading="lazy">
+                        <?php if (!empty($photos[1]['caption'])): ?>
+                            <span class="pw-strip-caption pw-strip-caption-main"><?php echo htmlspecialchars($photos[1]['caption']); ?></span>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
-                <?php foreach ($stripImages as $sImg): ?>
+                <?php foreach ([2, 3, 4, 5] as $n): if (empty($photos[$n]['src'])) continue; ?>
                     <div class="pw-gallery-strip">
-                        <img src="<?php echo htmlspecialchars($sImg); ?>" alt="" loading="lazy">
+                        <img src="<?php echo htmlspecialchars($photos[$n]['src']); ?>" alt="" loading="lazy">
+                        <?php if (!empty($photos[$n]['caption'])): ?>
+                            <span class="pw-strip-caption"><?php echo htmlspecialchars($photos[$n]['caption']); ?></span>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>

@@ -106,28 +106,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['title' => $pageSlug, 'description' => ''];
 
         $data = [
-            'page_slug'          => $pageSlug,
-            'bg_color'           => trim($_POST['bg_color'] ?? '') ?: '#8b2e1a',
-            'headline'           => $meta['title'],
-            'subtext'            => $meta['description'] ?: null,
-            'card1_title'        => trim($_POST['card1_title'] ?? '') ?: null,
-            'card1_text'         => trim($_POST['card1_text'] ?? '') ?: null,
-            'card2_title'        => trim($_POST['card2_title'] ?? '') ?: null,
-            'card2_text'         => trim($_POST['card2_text'] ?? '') ?: null,
-            'gallery_heading'    => trim($_POST['gallery_heading'] ?? '') ?: null,
-            'gallery_text'       => trim($_POST['gallery_text'] ?? '') ?: null,
-            'main_image'         => kt_page_widget_handle_image_upload('main_image_file'),
-            'gallery_main_image' => kt_page_widget_handle_image_upload('gallery_main_image_file'),
-            'gallery_image_1'    => kt_page_widget_handle_image_upload('gallery_image_1_file'),
-            'gallery_image_2'    => kt_page_widget_handle_image_upload('gallery_image_2_file'),
-            'gallery_image_3'    => kt_page_widget_handle_image_upload('gallery_image_3_file'),
-            'gallery_image_4'    => kt_page_widget_handle_image_upload('gallery_image_4_file'),
-            'strip_main_image'   => kt_page_widget_handle_image_upload('strip_main_image_file'),
-            'strip_image_1'      => kt_page_widget_handle_image_upload('strip_image_1_file'),
-            'strip_image_2'      => kt_page_widget_handle_image_upload('strip_image_2_file'),
-            'strip_image_3'      => kt_page_widget_handle_image_upload('strip_image_3_file'),
-            'strip_image_4'      => kt_page_widget_handle_image_upload('strip_image_4_file'),
-            'status'             => 'live',
+            'page_slug'        => $pageSlug,
+            'bg_color'         => trim($_POST['bg_color'] ?? '') ?: '#8b2e1a',
+            'headline'         => $meta['title'],
+            'subtext'          => $meta['description'] ?: null,
+            'card1_text'       => trim($_POST['card1_text'] ?? '') ?: null,
+            'main_image'       => kt_page_widget_handle_image_upload('main_image_file'),
+            'photo_1'          => kt_page_widget_handle_image_upload('photo_1_file'),
+            'photo_1_caption'  => trim($_POST['photo_1_caption'] ?? '') ?: null,
+            'photo_2'          => kt_page_widget_handle_image_upload('photo_2_file'),
+            'photo_2_caption'  => trim($_POST['photo_2_caption'] ?? '') ?: null,
+            'photo_3'          => kt_page_widget_handle_image_upload('photo_3_file'),
+            'photo_3_caption'  => trim($_POST['photo_3_caption'] ?? '') ?: null,
+            'photo_4'          => kt_page_widget_handle_image_upload('photo_4_file'),
+            'photo_4_caption'  => trim($_POST['photo_4_caption'] ?? '') ?: null,
+            'photo_5'          => kt_page_widget_handle_image_upload('photo_5_file'),
+            'photo_5_caption'  => trim($_POST['photo_5_caption'] ?? '') ?: null,
+            'status'           => 'live',
         ];
         $label = $pageChoices[$pageSlug];
     }
@@ -344,69 +339,26 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <textarea class="form-input" name="card1_text" rows="2" maxlength="300" placeholder="e.g. Curated picks from Malvar's local favorites."></textarea>
             </div>
 
-            <p class="pw-form-section">Photos</p>
+            <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
-                <label class="form-label">Center Photo</label>
+                <label class="form-label">This is where the page's title appears</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Left-Bottom Photo</label>
-                    <input class="form-input" type="file" name="gallery_image_1_file" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Top-Right Photo</label>
-                    <input class="form-input" type="file" name="gallery_main_image_file" accept="image/*">
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Bottom-Right Photo</label>
-                <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
-            </div>
 
-            <p class="pw-form-section">Bottom-Right Panel (optional)</p>
-            <div class="form-group">
-                <label class="form-label">Photo</label>
-                <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Caption (e.g. "Powered by KulToura")</label>
-                <input class="form-input" type="text" name="card2_text" maxlength="60">
-            </div>
-
-            <p class="pw-form-section">Photo Strip Below (optional — expands on hover)</p>
-            <div class="form-group">
-                <label class="form-label">Main Photo</label>
-                <input class="form-input" type="file" name="strip_main_image_file" accept="image/*">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Heading over that photo</label>
-                <input class="form-input" type="text" name="gallery_heading" maxlength="150">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Text under that heading</label>
-                <textarea class="form-input" name="gallery_text" rows="2" maxlength="300"></textarea>
-            </div>
+            <p class="pw-form-section">Additional Pictures (up to 5)</p>
+            <p class="pw-form-hint">Each one fills a spot in the grid above and shows again in the photo strip below it — pick them in the order you want them to appear. A caption is optional.</p>
+            <?php for ($n = 1; $n <= 5; $n++): ?>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Strip Photo 1</label>
-                    <input class="form-input" type="file" name="strip_image_1_file" accept="image/*">
+                    <label class="form-label">Photo <?php echo $n; ?></label>
+                    <input class="form-input" type="file" name="photo_<?php echo $n; ?>_file" accept="image/*">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Strip Photo 2</label>
-                    <input class="form-input" type="file" name="strip_image_2_file" accept="image/*">
+                    <label class="form-label">Caption (optional)</label>
+                    <input class="form-input" type="text" name="photo_<?php echo $n; ?>_caption" maxlength="100">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Strip Photo 3</label>
-                    <input class="form-input" type="file" name="strip_image_3_file" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Strip Photo 4</label>
-                    <input class="form-input" type="file" name="strip_image_4_file" accept="image/*">
-                </div>
-            </div>
+            <?php endfor; ?>
 
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Widget</button>
@@ -438,71 +390,27 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <textarea class="form-input" name="card1_text" id="editWidgetCard1Text" rows="2" maxlength="300"></textarea>
             </div>
 
-            <p class="pw-form-section">Photos</p>
+            <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
-                <label class="form-label">Replace Center Photo</label>
+                <label class="form-label">Replace (where the page's title appears)</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current photo.</p>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Replace Left-Bottom Photo</label>
-                    <input class="form-input" type="file" name="gallery_image_1_file" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Replace Top-Right Photo</label>
-                    <input class="form-input" type="file" name="gallery_main_image_file" accept="image/*">
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Replace Bottom-Right Photo</label>
-                <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
-            </div>
 
-            <p class="pw-form-section">Bottom-Right Panel (optional)</p>
-            <div class="form-group">
-                <label class="form-label">Replace Photo</label>
-                <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Caption (e.g. "Powered by KulToura")</label>
-                <input class="form-input" type="text" name="card2_text" id="editWidgetCard2Text" maxlength="60">
-            </div>
-
-            <p class="pw-form-section">Photo Strip Below (optional — expands on hover)</p>
-            <div class="form-group">
-                <label class="form-label">Replace Main Photo</label>
-                <input class="form-input" type="file" name="strip_main_image_file" accept="image/*">
-                <p class="image-current-hint">Leave empty to keep the current photo.</p>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Heading over that photo</label>
-                <input class="form-input" type="text" name="gallery_heading" id="editWidgetGalleryHeading" maxlength="150">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Text under that heading</label>
-                <textarea class="form-input" name="gallery_text" id="editWidgetGalleryText" rows="2" maxlength="300"></textarea>
-            </div>
+            <p class="pw-form-section">Additional Pictures (up to 5)</p>
+            <p class="pw-form-hint">Each one fills a spot in the grid above and shows again in the photo strip below it. Leave a file empty to keep that photo's current picture.</p>
+            <?php for ($n = 1; $n <= 5; $n++): ?>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 1</label>
-                    <input class="form-input" type="file" name="strip_image_1_file" accept="image/*">
+                    <label class="form-label">Photo <?php echo $n; ?></label>
+                    <input class="form-input" type="file" name="photo_<?php echo $n; ?>_file" accept="image/*">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 2</label>
-                    <input class="form-input" type="file" name="strip_image_2_file" accept="image/*">
+                    <label class="form-label">Caption (optional)</label>
+                    <input class="form-input" type="text" name="photo_<?php echo $n; ?>_caption" id="editWidgetPhoto<?php echo $n; ?>Caption" maxlength="100">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 3</label>
-                    <input class="form-input" type="file" name="strip_image_3_file" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 4</label>
-                    <input class="form-input" type="file" name="strip_image_4_file" accept="image/*">
-                </div>
-            </div>
+            <?php endfor; ?>
 
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Save Changes</button>
