@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
 /* KulToura — Page Widget (admin-customizable bento-style photo grid)
    Shared across every tourism subpage via config/page_widgets.php's
    kt_page_widget_render(). A contained card (not full-bleed) with an
@@ -173,12 +175,8 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
 }
 .pw-strip-caption {
-    /* 'Barabara' only defines uppercase glyphs — lowercase letters in
-       whatever the admin types will silently fall back to Playfair
-       Display, so mixed-case captions render with a mixed look. Kept
-       per explicit request (no forced text-transform this time). */
     display: block;
-    font-family: 'Barabara', 'Playfair Display', Georgia, serif;
+    font-family: 'Montserrat', 'DM Sans', sans-serif;
     font-weight: 700;
     font-size: 17px;
     line-height: 1.25;
