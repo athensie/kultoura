@@ -122,6 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'gallery_image_2'    => kt_page_widget_handle_image_upload('gallery_image_2_file'),
             'gallery_image_3'    => kt_page_widget_handle_image_upload('gallery_image_3_file'),
             'gallery_image_4'    => kt_page_widget_handle_image_upload('gallery_image_4_file'),
+            'strip_main_image'   => kt_page_widget_handle_image_upload('strip_main_image_file'),
+            'strip_image_1'      => kt_page_widget_handle_image_upload('strip_image_1_file'),
+            'strip_image_2'      => kt_page_widget_handle_image_upload('strip_image_2_file'),
+            'strip_image_3'      => kt_page_widget_handle_image_upload('strip_image_3_file'),
+            'strip_image_4'      => kt_page_widget_handle_image_upload('strip_image_4_file'),
             'status'             => 'live',
         ];
         $label = $pageChoices[$pageSlug];
@@ -359,14 +364,48 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
             </div>
 
-            <p class="pw-form-section">"Powered By" Panel (optional)</p>
+            <p class="pw-form-section">Bottom-Right Panel (optional)</p>
             <div class="form-group">
-                <label class="form-label">Small Logo Image</label>
+                <label class="form-label">Photo</label>
                 <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
             </div>
             <div class="form-group">
                 <label class="form-label">Caption (e.g. "Powered by KulToura")</label>
                 <input class="form-input" type="text" name="card2_text" maxlength="60">
+            </div>
+
+            <p class="pw-form-section">Photo Strip Below (optional — expands on hover)</p>
+            <div class="form-group">
+                <label class="form-label">Main Photo</label>
+                <input class="form-input" type="file" name="strip_main_image_file" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Heading over that photo</label>
+                <input class="form-input" type="text" name="gallery_heading" maxlength="150">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Text under that heading</label>
+                <textarea class="form-input" name="gallery_text" rows="2" maxlength="300"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Strip Photo 1</label>
+                    <input class="form-input" type="file" name="strip_image_1_file" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Strip Photo 2</label>
+                    <input class="form-input" type="file" name="strip_image_2_file" accept="image/*">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Strip Photo 3</label>
+                    <input class="form-input" type="file" name="strip_image_3_file" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Strip Photo 4</label>
+                    <input class="form-input" type="file" name="strip_image_4_file" accept="image/*">
+                </div>
             </div>
 
             <div style="display:flex; gap:10px; margin-top:8px;">
@@ -420,14 +459,49 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
             </div>
 
-            <p class="pw-form-section">"Powered By" Panel (optional)</p>
+            <p class="pw-form-section">Bottom-Right Panel (optional)</p>
             <div class="form-group">
-                <label class="form-label">Replace Small Logo Image</label>
+                <label class="form-label">Replace Photo</label>
                 <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
             </div>
             <div class="form-group">
                 <label class="form-label">Caption (e.g. "Powered by KulToura")</label>
                 <input class="form-input" type="text" name="card2_text" id="editWidgetCard2Text" maxlength="60">
+            </div>
+
+            <p class="pw-form-section">Photo Strip Below (optional — expands on hover)</p>
+            <div class="form-group">
+                <label class="form-label">Replace Main Photo</label>
+                <input class="form-input" type="file" name="strip_main_image_file" accept="image/*">
+                <p class="image-current-hint">Leave empty to keep the current photo.</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Heading over that photo</label>
+                <input class="form-input" type="text" name="gallery_heading" id="editWidgetGalleryHeading" maxlength="150">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Text under that heading</label>
+                <textarea class="form-input" name="gallery_text" id="editWidgetGalleryText" rows="2" maxlength="300"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Replace Strip Photo 1</label>
+                    <input class="form-input" type="file" name="strip_image_1_file" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Replace Strip Photo 2</label>
+                    <input class="form-input" type="file" name="strip_image_2_file" accept="image/*">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Replace Strip Photo 3</label>
+                    <input class="form-input" type="file" name="strip_image_3_file" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Replace Strip Photo 4</label>
+                    <input class="form-input" type="file" name="strip_image_4_file" accept="image/*">
+                </div>
             </div>
 
             <div style="display:flex; gap:10px; margin-top:8px;">

@@ -663,7 +663,7 @@ if (!function_exists('kt_apply_page_widget')) {
         // overwritten when a new upload came through — same "keep existing
         // unless replaced" pattern as kt_apply_partner's logo handling.
         $textFields = ['bg_color', 'headline', 'subtext', 'card1_title', 'card1_text', 'card2_title', 'card2_text', 'gallery_heading', 'gallery_text'];
-        $imageFields = ['main_image', 'gallery_main_image', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3', 'gallery_image_4'];
+        $imageFields = ['main_image', 'gallery_main_image', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3', 'gallery_image_4', 'strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4'];
 
         if ($action === 'create') {
             $cols = array_merge(['page_slug'], $textFields, $imageFields, ['status']);

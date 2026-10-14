@@ -19,6 +19,8 @@ function openEditWidget(id) {
     document.getElementById('editWidgetBgColor').value = w.bg_color || '#1877f2';
     document.getElementById('editWidgetCard1Text').value = w.card1_text || '';
     document.getElementById('editWidgetCard2Text').value = w.card2_text || '';
+    document.getElementById('editWidgetGalleryHeading').value = w.gallery_heading || '';
+    document.getElementById('editWidgetGalleryText').value = w.gallery_text || '';
     openModal('editWidgetModal');
 }
 

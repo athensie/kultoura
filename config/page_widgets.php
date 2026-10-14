@@ -45,10 +45,28 @@ if (!function_exists('kt_page_widgets_ensure_schema')) {
                 gallery_image_2 VARCHAR(255) NULL,
                 gallery_image_3 VARCHAR(255) NULL,
                 gallery_image_4 VARCHAR(255) NULL,
+                strip_main_image VARCHAR(255) NULL,
+                strip_image_1 VARCHAR(255) NULL,
+                strip_image_2 VARCHAR(255) NULL,
+                strip_image_3 VARCHAR(255) NULL,
+                strip_image_4 VARCHAR(255) NULL,
                 status ENUM('live','archived') NOT NULL DEFAULT 'live',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
+
+        // Already-deployed installs had page_widgets before the expanding
+        // photo strip got its own dedicated image columns (it originally
+        // reused the bento grid's photo fields, before those were
+        // repurposed) — CREATE TABLE IF NOT EXISTS above is a no-op for
+        // them, so add the columns here.
+        foreach (['strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4'] as $col) {
+            try {
+                $conn->query("ALTER TABLE page_widgets ADD COLUMN $col VARCHAR(255) NULL");
+            } catch (mysqli_sql_exception $e) {
+                if ($e->getCode() !== 1060) { throw $e; } // 1060 = column already exists
+            }
+        }
     }
 }
 
@@ -213,6 +231,30 @@ if (!function_exists('kt_page_widget_render_from')) {
                     </div>
                 <?php endif; ?>
             </div>
+
+            <?php
+                $stripImages = array_filter([$w['strip_image_1'] ?? null, $w['strip_image_2'] ?? null, $w['strip_image_3'] ?? null, $w['strip_image_4'] ?? null]);
+            ?>
+            <?php if (!empty($w['strip_main_image']) || !empty($stripImages)): ?>
+            <div class="pw-gallery">
+                <?php if (!empty($w['strip_main_image'])): ?>
+                    <div class="pw-gallery-main">
+                        <img src="<?php echo htmlspecialchars($w['strip_main_image']); ?>" alt="" loading="lazy">
+                        <?php if (!empty($w['gallery_heading']) || !empty($w['gallery_text'])): ?>
+                            <div class="pw-gallery-main-text">
+                                <?php if (!empty($w['gallery_heading'])): ?><h3><?php echo htmlspecialchars($w['gallery_heading']); ?></h3><?php endif; ?>
+                                <?php if (!empty($w['gallery_text'])): ?><p><?php echo htmlspecialchars($w['gallery_text']); ?></p><?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                <?php foreach ($stripImages as $sImg): ?>
+                    <div class="pw-gallery-strip">
+                        <img src="<?php echo htmlspecialchars($sImg); ?>" alt="" loading="lazy">
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </section>
         <?php
     }
