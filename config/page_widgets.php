@@ -74,27 +74,27 @@ if (!function_exists('kt_page_widget_pages')) {
     }
 }
 
-// The banner's headline/description always come from here, not an
-// admin-typed field — same title + blurb already shown in that page's own
-// hero section (<h1 class="t-page-title">, <p class="t-page-sub">), kept
-// as a single source of truth so the widget can't drift out of sync with
-// the page it's on.
+// The banner's eyebrow/headline/description always come from here, not an
+// admin-typed field — same text already shown in that page's own hero
+// section (<p class="t-eyebrow">, <h1 class="t-page-title">,
+// <p class="t-page-sub">), kept as a single source of truth so the widget
+// can't drift out of sync with the page it's on.
 if (!function_exists('kt_page_widget_page_meta')) {
     function kt_page_widget_page_meta(): array
     {
         return [
-            'tourism'       => ['title' => 'Tourism', 'description' => "Everything Malvar has to offer — food, nature, culture, and people — all in one place."],
-            'accommodation' => ['title' => 'Accommodation', 'description' => 'Hotels, inns, and homestays for travelers looking to stay a little longer in Malvar.'],
-            'banks'         => ['title' => 'Banks', 'description' => 'Banks, ATMs, and remittance centers travelers rely on while in Malvar.'],
-            'churches'      => ['title' => 'Churches', 'description' => "Parishes, chapels, and shrines that anchor Malvar's faith and community life."],
-            'fiestas'       => ['title' => 'Fiestas', 'description' => "Barangay fiestas, patron saint celebrations, and the vibrant street culture of Malvar."],
-            'industry'      => ['title' => 'Industry Zone', 'description' => 'Discover the commercial and industrial districts that drive Malvar forward.'],
-            'nature'        => ['title' => 'Nature', 'description' => "Parks, trails, and scenic views that showcase Malvar's natural beauty."],
-            'people'        => ['title' => 'People of Malvar', 'description' => 'Artists, leaders, farmers, and community pillars who define the Malvareño spirit.'],
-            'products'      => ['title' => 'Products', 'description' => "Locally made goods, native delicacies, and fresh produce from Malvar's markets."],
-            'resort'        => ['title' => 'Resorts', 'description' => "Poolside relaxation and weekend getaways — Malvar's best leisure destinations."],
-            'restaurants'   => ['title' => 'Restaurants', 'description' => 'From roadside eateries to family restaurants — find your next favorite meal.'],
-            'services'      => ['title' => 'Other Services', 'description' => 'Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.'],
+            'tourism'       => ['eyebrow' => 'MALVAR, BATANGAS', 'title' => 'Tourism', 'description' => "Everything Malvar has to offer — food, nature, culture, and people — all in one place."],
+            'accommodation' => ['eyebrow' => 'STAY IN MALVAR · MALVAR, BATANGAS', 'title' => 'Accommodation', 'description' => 'Hotels, inns, and homestays for travelers looking to stay a little longer in Malvar.'],
+            'banks'         => ['eyebrow' => 'MONEY & FINANCE · MALVAR, BATANGAS', 'title' => 'Banks', 'description' => 'Banks, ATMs, and remittance centers travelers rely on while in Malvar.'],
+            'churches'      => ['eyebrow' => 'SACRED SITES · MALVAR, BATANGAS', 'title' => 'Churches', 'description' => "Parishes, chapels, and shrines that anchor Malvar's faith and community life."],
+            'fiestas'       => ['eyebrow' => 'CULTURE · MALVAR, BATANGAS', 'title' => 'Fiestas', 'description' => "Barangay fiestas, patron saint celebrations, and the vibrant street culture of Malvar."],
+            'industry'      => ['eyebrow' => 'LOCAL DESTINATIONS · MALVAR, BATANGAS', 'title' => 'Industry Zone', 'description' => 'Discover the commercial and industrial districts that drive Malvar forward.'],
+            'nature'        => ['eyebrow' => 'LOCAL DESTINATIONS · MALVAR, BATANGAS', 'title' => 'Nature', 'description' => "Parks, trails, and scenic views that showcase Malvar's natural beauty."],
+            'people'        => ['eyebrow' => 'CULTURE · MALVAR, BATANGAS', 'title' => 'People of Malvar', 'description' => 'Artists, leaders, farmers, and community pillars who define the Malvareño spirit.'],
+            'products'      => ['eyebrow' => 'FOOD · MALVAR, BATANGAS', 'title' => 'Products', 'description' => "Locally made goods, native delicacies, and fresh produce from Malvar's markets."],
+            'resort'        => ['eyebrow' => 'LOCAL DESTINATIONS · MALVAR, BATANGAS', 'title' => 'Resorts', 'description' => "Poolside relaxation and weekend getaways — Malvar's best leisure destinations."],
+            'restaurants'   => ['eyebrow' => 'FOOD · MALVAR, BATANGAS', 'title' => 'Restaurants', 'description' => 'From roadside eateries to family restaurants — find your next favorite meal.'],
+            'services'      => ['eyebrow' => 'ESSENTIAL SERVICES · MALVAR, BATANGAS', 'title' => 'Other Services', 'description' => 'Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.'],
         ];
     }
 }
@@ -164,7 +164,7 @@ if (!function_exists('kt_page_widget_render_from')) {
     function kt_page_widget_render_from(?array $w, string $pageSlug): void
     {
         if (!$w) return;
-        $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['title' => $pageSlug, 'description' => ''];
+        $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['eyebrow' => '', 'title' => $pageSlug, 'description' => ''];
         ?>
         <section class="pw-widget" style="background:<?php echo htmlspecialchars($w['bg_color']); ?>">
             <div class="pw-banner">
@@ -175,6 +175,9 @@ if (!function_exists('kt_page_widget_render_from')) {
                 <?php endif; ?>
                 <div class="pw-banner-main">
                     <h2 class="pw-banner-headline"><?php echo htmlspecialchars($meta['title']); ?></h2>
+                    <?php if (!empty($meta['eyebrow'])): ?>
+                        <p class="pw-banner-eyebrow"><?php echo htmlspecialchars($meta['eyebrow']); ?></p>
+                    <?php endif; ?>
                     <?php if (!empty($meta['description'])): ?>
                         <p class="pw-banner-subtext"><?php echo htmlspecialchars($meta['description']); ?></p>
                     <?php endif; ?>

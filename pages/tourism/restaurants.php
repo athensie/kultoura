@@ -175,8 +175,8 @@ foreach ($rows as $r) {
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
         <?php if (!$pageWidget): ?>
+        <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Restaurants</h1>
         <p class="t-page-sub">
             From roadside eateries to family restaurants — find your next favorite meal.

@@ -145,8 +145,8 @@ $stmt->close();
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">ESSENTIAL SERVICES · MALVAR, BATANGAS</p>
         <?php if (!$pageWidget): ?>
+        <p class="t-eyebrow">ESSENTIAL SERVICES · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Other Services</h1>
         <p class="t-page-sub">
             Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.

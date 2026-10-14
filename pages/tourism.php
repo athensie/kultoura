@@ -173,8 +173,8 @@ foreach ($hubImages as $key => $value) {
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">MALVAR, BATANGAS</p>
         <?php if (!$pageWidget): ?>
+        <p class="t-eyebrow">MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Tourism</h1>
         <p class="t-page-sub">
             Everything Malvar has to offer — food, nature, culture, and people — all in one place.

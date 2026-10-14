@@ -145,8 +145,8 @@ $stmt->close();
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">SACRED SITES · MALVAR, BATANGAS</p>
         <?php if (!$pageWidget): ?>
+        <p class="t-eyebrow">SACRED SITES · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Churches</h1>
         <p class="t-page-sub">
             Parishes, chapels, and shrines that anchor Malvar's faith and community life.

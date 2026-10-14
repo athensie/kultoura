@@ -144,8 +144,8 @@ $stmt->close();
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
         <?php if (!$pageWidget): ?>
+        <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Industry Zone</h1>
         <p class="t-page-sub">
             Discover the commercial and industrial districts that drive Malvar forward.

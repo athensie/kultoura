@@ -167,8 +167,8 @@ foreach ($rows as $r) {
         <div class="t-hero-orb t-orb-2"></div>
     <?php endif; ?>
     <div class="t-hero-inner">
-        <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
         <?php if (!$pageWidget): ?>
+        <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Products</h1>
         <p class="t-page-sub">
             Locally made goods, native delicacies, and fresh produce from Malvar's markets.
