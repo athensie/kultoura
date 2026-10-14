@@ -125,9 +125,9 @@
     border-radius: 6px;
 }
 
-/* Expanding photo strip, shown below the bento grid — a big photo plus
-   up to four narrow ones that "grow" on hover via flex-grow (no JS:
-   the hovered tile grows, the rest shrink back). */
+/* Expanding photo strip, shown below the bento grid — up to five equal-
+   width tiles that "grow" on hover via flex-grow (no JS: the hovered
+   tile grows, the rest shrink back to make room). */
 .pw-gallery {
     max-width: 1300px;
     margin: 20px auto 32px;
@@ -146,8 +146,6 @@
     transition: flex-grow 0.45s cubic-bezier(0.4, 0.1, 0.2, 1);
     cursor: pointer;
 }
-.pw-gallery-main { flex-grow: 3; }
-.pw-gallery-strip { flex-grow: 0.7; }
 
 .pw-gallery-main img,
 .pw-gallery-strip img {
@@ -160,7 +158,7 @@
 
 .pw-gallery-main:hover,
 .pw-gallery-strip:hover {
-    flex-grow: 3.2;
+    flex-grow: 2.4;
 }
 
 /* Small per-photo caption badge — same treatment on every strip tile,
@@ -183,13 +181,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.pw-strip-caption-main {
-    left: 20px;
-    bottom: 20px;
-    font-size: 14px;
-    padding: 7px 12px;
-}
-
 @media (max-width: 900px) {
     .pw-widget { padding: 24px 20px 4px; }
     .pw-grid {
@@ -218,10 +209,10 @@
     .pw-gallery-main,
     .pw-gallery-strip {
         flex: 0 0 auto;
+        width: 160px;
+        height: 220px;
         transition: none;
     }
-    .pw-gallery-main { width: 240px; height: 220px; }
-    .pw-gallery-strip { width: 120px; height: 220px; }
     .pw-gallery-main:hover,
     .pw-gallery-strip:hover { flex-grow: 0; }
 }

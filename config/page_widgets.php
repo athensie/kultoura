@@ -286,7 +286,7 @@ if (!function_exists('kt_page_widget_render_from')) {
                     <div class="pw-gallery-main">
                         <img src="<?php echo htmlspecialchars($photos[1]['src']); ?>" alt="" loading="lazy">
                         <?php if (!empty($photos[1]['caption'])): ?>
-                            <span class="pw-strip-caption pw-strip-caption-main"><?php echo htmlspecialchars($photos[1]['caption']); ?></span>
+                            <span class="pw-strip-caption"><?php echo htmlspecialchars($photos[1]['caption']); ?></span>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
