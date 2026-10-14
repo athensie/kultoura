@@ -173,13 +173,12 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
 }
 .pw-strip-caption {
-    /* 'Barabara' is declared in index.css (loaded before this file on
-       every tourism page) and only defines uppercase letters — lowercase
-       would silently fall back to the next font, so this is uppercased. */
+    /* Not 'Barabara' here — it only defines uppercase glyphs, so without
+       forcing the whole caption to caps, mixed-case text would render
+       with some letters silently falling back to a different font
+       mid-word. Playfair Display keeps natural case looking right. */
     display: block;
-    font-family: 'Barabara', 'Playfair Display', Georgia, serif;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+    font-family: 'Playfair Display', Georgia, serif;
     font-weight: 700;
     font-size: 17px;
     line-height: 1.25;
