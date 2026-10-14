@@ -173,12 +173,12 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);
 }
 .pw-strip-caption {
-    /* Not 'Barabara' here — it only defines uppercase glyphs, so without
-       forcing the whole caption to caps, mixed-case text would render
-       with some letters silently falling back to a different font
-       mid-word. Playfair Display keeps natural case looking right. */
+    /* 'Barabara' only defines uppercase glyphs — lowercase letters in
+       whatever the admin types will silently fall back to Playfair
+       Display, so mixed-case captions render with a mixed look. Kept
+       per explicit request (no forced text-transform this time). */
     display: block;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Barabara', 'Playfair Display', Georgia, serif;
     font-weight: 700;
     font-size: 17px;
     line-height: 1.25;
