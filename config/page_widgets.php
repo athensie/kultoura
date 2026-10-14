@@ -52,14 +52,19 @@ if (!function_exists('kt_page_widgets_ensure_schema')) {
                 strip_image_4 VARCHAR(255) NULL,
                 photo_1 VARCHAR(255) NULL,
                 photo_1_caption VARCHAR(100) NULL,
+                photo_1_description VARCHAR(300) NULL,
                 photo_2 VARCHAR(255) NULL,
                 photo_2_caption VARCHAR(100) NULL,
+                photo_2_description VARCHAR(300) NULL,
                 photo_3 VARCHAR(255) NULL,
                 photo_3_caption VARCHAR(100) NULL,
+                photo_3_description VARCHAR(300) NULL,
                 photo_4 VARCHAR(255) NULL,
                 photo_4_caption VARCHAR(100) NULL,
+                photo_4_description VARCHAR(300) NULL,
                 photo_5 VARCHAR(255) NULL,
                 photo_5_caption VARCHAR(100) NULL,
+                photo_5_description VARCHAR(300) NULL,
                 status ENUM('live','archived') NOT NULL DEFAULT 'live',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
@@ -69,13 +74,17 @@ if (!function_exists('kt_page_widgets_ensure_schema')) {
         // existed — CREATE TABLE IF NOT EXISTS above is a no-op for them,
         // so add any missing ones here. gallery_main_image/gallery_image_1-4/
         // strip_*/gallery_heading/gallery_text/card2_title/card2_text are
-        // now unused (the single photo_1-5 + caption set below replaced
-        // them) but deliberately left in place, harmless.
+        // now unused (the single photo_1-5 + caption/description set below
+        // replaced them) but deliberately left in place, harmless.
         foreach (['strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4',
-                  'photo_1', 'photo_1_caption', 'photo_2', 'photo_2_caption', 'photo_3', 'photo_3_caption',
-                  'photo_4', 'photo_4_caption', 'photo_5', 'photo_5_caption'] as $col) {
+                  'photo_1', 'photo_1_caption', 'photo_1_description',
+                  'photo_2', 'photo_2_caption', 'photo_2_description',
+                  'photo_3', 'photo_3_caption', 'photo_3_description',
+                  'photo_4', 'photo_4_caption', 'photo_4_description',
+                  'photo_5', 'photo_5_caption', 'photo_5_description'] as $col) {
             $isCaption = str_ends_with($col, '_caption');
-            $type = $isCaption ? 'VARCHAR(100)' : 'VARCHAR(255)';
+            $isDescription = str_ends_with($col, '_description');
+            $type = $isCaption ? 'VARCHAR(100)' : ($isDescription ? 'VARCHAR(300)' : 'VARCHAR(255)');
             try {
                 $conn->query("ALTER TABLE page_widgets ADD COLUMN $col $type NULL");
             } catch (mysqli_sql_exception $e) {
@@ -230,11 +239,11 @@ if (!function_exists('kt_page_widget_render_from')) {
         // each. main_image is separate: the one photo the page's Title
         // overlays.
         $photos = [
-            1 => ['src' => $w['photo_1'] ?? null, 'caption' => $w['photo_1_caption'] ?? null],
-            2 => ['src' => $w['photo_2'] ?? null, 'caption' => $w['photo_2_caption'] ?? null],
-            3 => ['src' => $w['photo_3'] ?? null, 'caption' => $w['photo_3_caption'] ?? null],
-            4 => ['src' => $w['photo_4'] ?? null, 'caption' => $w['photo_4_caption'] ?? null],
-            5 => ['src' => $w['photo_5'] ?? null, 'caption' => $w['photo_5_caption'] ?? null],
+            1 => ['src' => $w['photo_1'] ?? null, 'caption' => $w['photo_1_caption'] ?? null, 'description' => $w['photo_1_description'] ?? null],
+            2 => ['src' => $w['photo_2'] ?? null, 'caption' => $w['photo_2_caption'] ?? null, 'description' => $w['photo_2_description'] ?? null],
+            3 => ['src' => $w['photo_3'] ?? null, 'caption' => $w['photo_3_caption'] ?? null, 'description' => $w['photo_3_description'] ?? null],
+            4 => ['src' => $w['photo_4'] ?? null, 'caption' => $w['photo_4_caption'] ?? null, 'description' => $w['photo_4_description'] ?? null],
+            5 => ['src' => $w['photo_5'] ?? null, 'caption' => $w['photo_5_caption'] ?? null, 'description' => $w['photo_5_description'] ?? null],
         ];
         ?>
         <section class="pw-widget">
@@ -285,16 +294,22 @@ if (!function_exists('kt_page_widget_render_from')) {
                 <?php if (!empty($photos[1]['src'])): ?>
                     <div class="pw-gallery-main">
                         <img src="<?php echo htmlspecialchars($photos[1]['src']); ?>" alt="" loading="lazy">
-                        <?php if (!empty($photos[1]['caption'])): ?>
-                            <div class="pw-strip-caption-wrap"><span class="pw-strip-caption"><?php echo htmlspecialchars($photos[1]['caption']); ?></span></div>
+                        <?php if (!empty($photos[1]['caption']) || !empty($photos[1]['description'])): ?>
+                            <div class="pw-strip-caption-wrap">
+                                <?php if (!empty($photos[1]['caption'])): ?><span class="pw-strip-caption"><?php echo htmlspecialchars($photos[1]['caption']); ?></span><?php endif; ?>
+                                <?php if (!empty($photos[1]['description'])): ?><p class="pw-strip-description"><?php echo htmlspecialchars($photos[1]['description']); ?></p><?php endif; ?>
+                            </div>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
                 <?php foreach ([2, 3, 4, 5] as $n): if (empty($photos[$n]['src'])) continue; ?>
                     <div class="pw-gallery-strip">
                         <img src="<?php echo htmlspecialchars($photos[$n]['src']); ?>" alt="" loading="lazy">
-                        <?php if (!empty($photos[$n]['caption'])): ?>
-                            <div class="pw-strip-caption-wrap"><span class="pw-strip-caption"><?php echo htmlspecialchars($photos[$n]['caption']); ?></span></div>
+                        <?php if (!empty($photos[$n]['caption']) || !empty($photos[$n]['description'])): ?>
+                            <div class="pw-strip-caption-wrap">
+                                <?php if (!empty($photos[$n]['caption'])): ?><span class="pw-strip-caption"><?php echo htmlspecialchars($photos[$n]['caption']); ?></span><?php endif; ?>
+                                <?php if (!empty($photos[$n]['description'])): ?><p class="pw-strip-description"><?php echo htmlspecialchars($photos[$n]['description']); ?></p><?php endif; ?>
+                            </div>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>

@@ -112,17 +112,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'subtext'          => $meta['description'] ?: null,
             'card1_text'       => trim($_POST['card1_text'] ?? '') ?: null,
             'main_image'       => kt_page_widget_handle_image_upload('main_image_file'),
-            'photo_1'          => kt_page_widget_handle_multi_image_upload('photos', 0),
-            'photo_1_caption'  => trim($_POST['photo_1_caption'] ?? '') ?: null,
-            'photo_2'          => kt_page_widget_handle_multi_image_upload('photos', 1),
-            'photo_2_caption'  => trim($_POST['photo_2_caption'] ?? '') ?: null,
-            'photo_3'          => kt_page_widget_handle_multi_image_upload('photos', 2),
-            'photo_3_caption'  => trim($_POST['photo_3_caption'] ?? '') ?: null,
-            'photo_4'          => kt_page_widget_handle_multi_image_upload('photos', 3),
-            'photo_4_caption'  => trim($_POST['photo_4_caption'] ?? '') ?: null,
-            'photo_5'          => kt_page_widget_handle_multi_image_upload('photos', 4),
-            'photo_5_caption'  => trim($_POST['photo_5_caption'] ?? '') ?: null,
-            'status'           => 'live',
+            'photo_1'             => kt_page_widget_handle_multi_image_upload('photos', 0),
+            'photo_1_caption'     => trim($_POST['photo_1_caption'] ?? '') ?: null,
+            'photo_1_description' => trim($_POST['photo_1_description'] ?? '') ?: null,
+            'photo_2'             => kt_page_widget_handle_multi_image_upload('photos', 1),
+            'photo_2_caption'     => trim($_POST['photo_2_caption'] ?? '') ?: null,
+            'photo_2_description' => trim($_POST['photo_2_description'] ?? '') ?: null,
+            'photo_3'             => kt_page_widget_handle_multi_image_upload('photos', 2),
+            'photo_3_caption'     => trim($_POST['photo_3_caption'] ?? '') ?: null,
+            'photo_3_description' => trim($_POST['photo_3_description'] ?? '') ?: null,
+            'photo_4'             => kt_page_widget_handle_multi_image_upload('photos', 3),
+            'photo_4_caption'     => trim($_POST['photo_4_caption'] ?? '') ?: null,
+            'photo_4_description' => trim($_POST['photo_4_description'] ?? '') ?: null,
+            'photo_5'             => kt_page_widget_handle_multi_image_upload('photos', 4),
+            'photo_5_caption'     => trim($_POST['photo_5_caption'] ?? '') ?: null,
+            'photo_5_description' => trim($_POST['photo_5_description'] ?? '') ?: null,
+            'status'              => 'live',
         ];
         $label = $pageChoices[$pageSlug];
     }
@@ -346,35 +351,23 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             </div>
 
             <p class="pw-form-section">Additional Pictures (up to 5)</p>
-            <p class="pw-form-hint">Select up to 5 photos at once — they'll fill the grid above and the photo strip below it, in the order you picked them. Captions are optional.</p>
+            <p class="pw-form-hint">Select up to 5 photos at once — they'll fill the grid above and the photo strip below it, in the order you picked them. Caption/description are optional.</p>
             <div class="form-group">
                 <label class="form-label">Photos</label>
                 <input class="form-input" type="file" name="photos[]" accept="image/*" multiple>
             </div>
+            <?php for ($n = 1; $n <= 5; $n++): ?>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Caption for Photo 1</label>
-                    <input class="form-input" type="text" name="photo_1_caption" maxlength="100">
+                    <label class="form-label">Caption for Photo <?php echo $n; ?></label>
+                    <input class="form-input" type="text" name="photo_<?php echo $n; ?>_caption" maxlength="100">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Caption for Photo 2</label>
-                    <input class="form-input" type="text" name="photo_2_caption" maxlength="100">
+                    <label class="form-label">Description for Photo <?php echo $n; ?></label>
+                    <input class="form-input" type="text" name="photo_<?php echo $n; ?>_description" maxlength="300">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Caption for Photo 3</label>
-                    <input class="form-input" type="text" name="photo_3_caption" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Caption for Photo 4</label>
-                    <input class="form-input" type="text" name="photo_4_caption" maxlength="100">
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Caption for Photo 5</label>
-                <input class="form-input" type="text" name="photo_5_caption" maxlength="100">
-            </div>
+            <?php endfor; ?>
 
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Widget</button>
@@ -419,30 +412,18 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <label class="form-label">Photos</label>
                 <input class="form-input" type="file" name="photos[]" accept="image/*" multiple>
             </div>
+            <?php for ($n = 1; $n <= 5; $n++): ?>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Caption for Photo 1</label>
-                    <input class="form-input" type="text" name="photo_1_caption" id="editWidgetPhoto1Caption" maxlength="100">
+                    <label class="form-label">Caption for Photo <?php echo $n; ?></label>
+                    <input class="form-input" type="text" name="photo_<?php echo $n; ?>_caption" id="editWidgetPhoto<?php echo $n; ?>Caption" maxlength="100">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Caption for Photo 2</label>
-                    <input class="form-input" type="text" name="photo_2_caption" id="editWidgetPhoto2Caption" maxlength="100">
+                    <label class="form-label">Description for Photo <?php echo $n; ?></label>
+                    <input class="form-input" type="text" name="photo_<?php echo $n; ?>_description" id="editWidgetPhoto<?php echo $n; ?>Description" maxlength="300">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Caption for Photo 3</label>
-                    <input class="form-input" type="text" name="photo_3_caption" id="editWidgetPhoto3Caption" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Caption for Photo 4</label>
-                    <input class="form-input" type="text" name="photo_4_caption" id="editWidgetPhoto4Caption" maxlength="100">
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Caption for Photo 5</label>
-                <input class="form-input" type="text" name="photo_5_caption" id="editWidgetPhoto5Caption" maxlength="100">
-            </div>
+            <?php endfor; ?>
 
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Save Changes</button>

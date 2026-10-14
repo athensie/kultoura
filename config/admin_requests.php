@@ -662,7 +662,10 @@ if (!function_exists('kt_apply_page_widget')) {
         // Text fields are always (re)written; image fields are only
         // overwritten when a new upload came through — same "keep existing
         // unless replaced" pattern as kt_apply_partner's logo handling.
-        $textFields = ['bg_color', 'headline', 'subtext', 'card1_text', 'photo_1_caption', 'photo_2_caption', 'photo_3_caption', 'photo_4_caption', 'photo_5_caption'];
+        $textFields = ['bg_color', 'headline', 'subtext', 'card1_text',
+            'photo_1_caption', 'photo_1_description', 'photo_2_caption', 'photo_2_description',
+            'photo_3_caption', 'photo_3_description', 'photo_4_caption', 'photo_4_description',
+            'photo_5_caption', 'photo_5_description'];
         $imageFields = ['main_image', 'photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5'];
 
         if ($action === 'create') {

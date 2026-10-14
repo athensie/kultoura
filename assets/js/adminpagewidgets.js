@@ -19,8 +19,10 @@ function openEditWidget(id) {
     document.getElementById('editWidgetBgColor').value = w.bg_color || '#1877f2';
     document.getElementById('editWidgetCard1Text').value = w.card1_text || '';
     for (let n = 1; n <= 5; n++) {
-        const field = document.getElementById(`editWidgetPhoto${n}Caption`);
-        if (field) field.value = w[`photo_${n}_caption`] || '';
+        const captionField = document.getElementById(`editWidgetPhoto${n}Caption`);
+        if (captionField) captionField.value = w[`photo_${n}_caption`] || '';
+        const descField = document.getElementById(`editWidgetPhoto${n}Description`);
+        if (descField) descField.value = w[`photo_${n}_description`] || '';
     }
     openModal('editWidgetModal');
 }
