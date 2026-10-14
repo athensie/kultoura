@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'services');
 analytics_track($conn, 'services');
 
 $servicesHeroPhoto = sitecontent_get_photo($conn, 'services_hero');
@@ -145,14 +146,16 @@ $stmt->close();
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">ESSENTIAL SERVICES · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Other Services</h1>
         <p class="t-page-sub">
             Hospitals, terminals, and everyday essentials to help a tourist get around Malvar with ease.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'services'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'services'); ?>
 
 <!-- ── Other Services Grid ── -->
 <main class="t-main">

@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../config/analytics.php';
 include '../config/sitecontent.php';
 require_once __DIR__ . '/../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'tourism');
 analytics_track($conn, 'tourism');
 
 $tourismHeroPhoto = sitecontent_get_photo($conn, 'tourism_hero');
@@ -173,14 +174,16 @@ foreach ($hubImages as $key => $value) {
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Tourism</h1>
         <p class="t-page-sub">
             Everything Malvar has to offer — food, nature, culture, and people — all in one place.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'tourism'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'tourism'); ?>
 
 <!-- ── Category Hub ── -->
 <main class="t-main">

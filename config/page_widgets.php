@@ -151,7 +151,18 @@ if (!function_exists('kt_page_widget_get')) {
 if (!function_exists('kt_page_widget_render')) {
     function kt_page_widget_render(mysqli $conn, string $pageSlug): void
     {
-        $w = kt_page_widget_get($conn, $pageSlug);
+        kt_page_widget_render_from(kt_page_widget_get($conn, $pageSlug), $pageSlug);
+    }
+}
+
+// Same rendering, but takes an already-fetched row (or null) instead of
+// querying again — lets a page call kt_page_widget_get() once up top,
+// decide whether to show its own hero title (skipped when a widget will
+// show the same title/description below it), and pass that same result
+// in here instead of hitting the DB twice.
+if (!function_exists('kt_page_widget_render_from')) {
+    function kt_page_widget_render_from(?array $w, string $pageSlug): void
+    {
         if (!$w) return;
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['title' => $pageSlug, 'description' => ''];
         ?>

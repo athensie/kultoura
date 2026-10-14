@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'resort');
 analytics_track($conn, 'resort');
 
 $resortHeroPhoto = sitecontent_get_photo($conn, 'resort_hero');
@@ -144,14 +145,16 @@ $stmt->close();
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Resorts</h1>
         <p class="t-page-sub">
             Poolside relaxation and weekend getaways — Malvar's best leisure destinations.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'resort'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'resort'); ?>
 
 <!-- ── Resorts Grid ── -->
 <main class="t-main">

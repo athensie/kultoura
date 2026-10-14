@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'nature');
 analytics_track($conn, 'nature');
 
 $natureHeroPhoto = sitecontent_get_photo($conn, 'nature_hero');
@@ -145,14 +146,16 @@ $stmt->close();
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Nature</h1>
         <p class="t-page-sub">
             Parks, trails, and scenic views that showcase Malvar's natural beauty.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'nature'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'nature'); ?>
 
 <!-- ── Nature Grid ── -->
 <main class="t-main">

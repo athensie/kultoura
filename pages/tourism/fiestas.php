@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'fiestas');
 analytics_track($conn, 'fiestas');
 
 $fiestasHeroPhoto = sitecontent_get_photo($conn, 'fiestas_hero');
@@ -205,14 +206,16 @@ if (isset($_GET['ajax_calendar'])) {
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">CULTURE · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Fiestas</h1>
         <p class="t-page-sub">
             Barangay fiestas, patron saint celebrations, and the vibrant street culture of Malvar.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'fiestas'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'fiestas'); ?>
 
 <!-- ── Fiestas Grid ── -->
 <main class="t-main">

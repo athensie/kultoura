@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'restaurants');
 analytics_track($conn, 'restaurants');
 
 $restaurantsHeroPhoto = sitecontent_get_photo($conn, 'restaurants_hero');
@@ -175,14 +176,16 @@ foreach ($rows as $r) {
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Restaurants</h1>
         <p class="t-page-sub">
             From roadside eateries to family restaurants — find your next favorite meal.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'restaurants'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'restaurants'); ?>
 
 <!-- ── Restaurants Grid ── -->
 <main class="t-main">

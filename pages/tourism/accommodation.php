@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'accommodation');
 analytics_track($conn, 'accommodation');
 
 $accommodationHeroPhoto = sitecontent_get_photo($conn, 'accommodation_hero');
@@ -144,14 +145,16 @@ $stmt->close();
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">STAY IN MALVAR · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Accommodation</h1>
         <p class="t-page-sub">
             Hotels, inns, and homestays for travelers looking to stay a little longer in Malvar.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'accommodation'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'accommodation'); ?>
 
 <!-- ── Accommodation Grid ── -->
 <main class="t-main">

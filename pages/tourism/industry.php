@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'industry');
 analytics_track($conn, 'industry');
 
 $industryHeroPhoto = sitecontent_get_photo($conn, 'industry_hero');
@@ -144,14 +145,16 @@ $stmt->close();
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">LOCAL DESTINATIONS · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Industry Zone</h1>
         <p class="t-page-sub">
             Discover the commercial and industrial districts that drive Malvar forward.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'industry'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'industry'); ?>
 
 <!-- ── Industry Zone Grid ── -->
 <main class="t-main">

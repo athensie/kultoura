@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 require_once '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'products');
 analytics_track($conn, 'products');
 
 $productsHeroPhoto = sitecontent_get_photo($conn, 'products_hero');
@@ -167,14 +168,16 @@ foreach ($rows as $r) {
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Products</h1>
         <p class="t-page-sub">
             Locally made goods, native delicacies, and fresh produce from Malvar's markets.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'products'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'products'); ?>
 
 <!-- ── Products Grid ── -->
 <main class="t-main">

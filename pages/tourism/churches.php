@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'churches');
 analytics_track($conn, 'churches');
 
 $churchesHeroPhoto = sitecontent_get_photo($conn, 'churches_hero');
@@ -145,14 +146,16 @@ $stmt->close();
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">SACRED SITES · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Churches</h1>
         <p class="t-page-sub">
             Parishes, chapels, and shrines that anchor Malvar's faith and community life.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'churches'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'churches'); ?>
 
 <!-- ── Churches Grid ── -->
 <main class="t-main">

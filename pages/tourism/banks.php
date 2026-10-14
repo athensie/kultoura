@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'banks');
 analytics_track($conn, 'banks');
 
 $banksHeroPhoto = sitecontent_get_photo($conn, 'banks_hero');
@@ -144,14 +145,16 @@ $stmt->close();
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">MONEY &amp; FINANCE · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">Banks</h1>
         <p class="t-page-sub">
             Banks, ATMs, and remittance centers travelers rely on while in Malvar.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'banks'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'banks'); ?>
 
 <!-- ── Banks Grid ── -->
 <main class="t-main">

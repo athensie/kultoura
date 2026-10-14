@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 include '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+$pageWidget = kt_page_widget_get($conn, 'people');
 analytics_track($conn, 'people');
 
 $peopleHeroPhoto = sitecontent_get_photo($conn, 'people_hero');
@@ -117,14 +118,16 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">CULTURE · MALVAR, BATANGAS</p>
+        <?php if (!$pageWidget): ?>
         <h1 class="t-page-title">People of Malvar</h1>
         <p class="t-page-sub">
             Artists, leaders, farmers, and community pillars who define the Malvareño spirit.
         </p>
+        <?php endif; ?>
     </div>
 </section>
 
-<?php kt_page_widget_render($conn, 'people'); ?>
+<?php kt_page_widget_render_from($pageWidget, 'people'); ?>
 
 <!-- ── People Grid ── -->
 <main class="t-main">
