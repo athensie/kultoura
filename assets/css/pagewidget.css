@@ -107,26 +107,22 @@
     grid-area: logo;
     background: #fff;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px;
+    align-items: flex-end;
 }
-.pw-cell-logo img {
-    position: static;
-    width: auto;
-    max-width: 85%;
-    height: auto;
-    max-height: 40px;
-    object-fit: contain;
-}
+/* Full photo like the other grid cells (not a shrunk-down logo mark) —
+   .pw-cell's base rule already covers position/object-fit for the <img>. */
 .pw-logo-caption {
-    font-size: 10.5px;
+    position: relative;
+    z-index: 1;
+    margin: 10px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    color: rgba(44, 26, 14, 0.45);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 5px 9px;
+    border-radius: 6px;
 }
 
 @media (max-width: 900px) {
