@@ -165,64 +165,54 @@ if (!function_exists('kt_page_widget_render_from')) {
     {
         if (!$w) return;
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['eyebrow' => '', 'title' => $pageSlug, 'description' => ''];
+        // Bento-grid layout — contained card (not full-bleed), reusing the
+        // same DB fields the old banner+gallery-strip layout used, just
+        // placed in different cells: card1_text -> left text panel,
+        // gallery_image_1 -> left-bottom photo, gallery_main_image ->
+        // top-right photo, gallery_image_2 -> bottom-right photo,
+        // gallery_image_3 -> small "powered by" logo, card2_text -> its caption.
         ?>
-        <section class="pw-widget" style="background:<?php echo htmlspecialchars($w['bg_color']); ?>">
-            <div class="pw-banner">
-                <?php if (!empty($w['main_image'])): ?>
-                    <div class="pw-banner-photo">
+        <section class="pw-widget">
+            <div class="pw-grid">
+                <div class="pw-cell pw-cell-panel" style="background:<?php echo htmlspecialchars($w['bg_color']); ?>">
+                    <?php if (!empty($w['card1_text'])): ?>
+                        <p><?php echo nl2br(htmlspecialchars($w['card1_text'])); ?></p>
+                    <?php endif; ?>
+                </div>
+                <?php if (!empty($w['gallery_image_1'])): ?>
+                    <div class="pw-cell pw-cell-photo">
+                        <img src="<?php echo htmlspecialchars($w['gallery_image_1']); ?>" alt="" loading="lazy">
+                    </div>
+                <?php endif; ?>
+                <div class="pw-cell pw-cell-center">
+                    <?php if (!empty($w['main_image'])): ?>
                         <img src="<?php echo htmlspecialchars($w['main_image']); ?>" alt="" loading="lazy">
-                    </div>
-                <?php endif; ?>
-                <div class="pw-banner-main">
-                    <h2 class="pw-banner-headline"><?php echo htmlspecialchars($meta['title']); ?></h2>
-                    <?php if (!empty($meta['eyebrow'])): ?>
-                        <p class="pw-banner-eyebrow"><?php echo htmlspecialchars($meta['eyebrow']); ?></p>
                     <?php endif; ?>
-                    <?php if (!empty($meta['description'])): ?>
-                        <p class="pw-banner-subtext"><?php echo htmlspecialchars($meta['description']); ?></p>
-                    <?php endif; ?>
-                </div>
-                <?php if (!empty($w['card1_title']) || !empty($w['card2_title'])): ?>
-                <div class="pw-banner-cards">
-                    <?php if (!empty($w['card1_title'])): ?>
-                        <div class="pw-banner-card">
-                            <h3><?php echo htmlspecialchars($w['card1_title']); ?></h3>
-                            <?php if (!empty($w['card1_text'])): ?><p><?php echo htmlspecialchars($w['card1_text']); ?></p><?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($w['card2_title'])): ?>
-                        <div class="pw-banner-card">
-                            <h3><?php echo htmlspecialchars($w['card2_title']); ?></h3>
-                            <?php if (!empty($w['card2_text'])): ?><p><?php echo htmlspecialchars($w['card2_text']); ?></p><?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>
-            </div>
-
-            <?php
-                $galleryImages = array_filter([$w['gallery_image_1'] ?? null, $w['gallery_image_2'] ?? null, $w['gallery_image_3'] ?? null, $w['gallery_image_4'] ?? null]);
-            ?>
-            <?php if (!empty($w['gallery_main_image']) || !empty($galleryImages)): ?>
-            <div class="pw-gallery">
-                <?php if (!empty($w['gallery_main_image'])): ?>
-                    <div class="pw-gallery-main">
-                        <img src="<?php echo htmlspecialchars($w['gallery_main_image']); ?>" alt="" loading="lazy">
-                        <?php if (!empty($w['gallery_heading']) || !empty($w['gallery_text'])): ?>
-                            <div class="pw-gallery-main-text">
-                                <?php if (!empty($w['gallery_heading'])): ?><h3><?php echo htmlspecialchars($w['gallery_heading']); ?></h3><?php endif; ?>
-                                <?php if (!empty($w['gallery_text'])): ?><p><?php echo htmlspecialchars($w['gallery_text']); ?></p><?php endif; ?>
-                            </div>
+                    <div class="pw-center-scrim"></div>
+                    <div class="pw-center-text">
+                        <?php if (!empty($meta['eyebrow'])): ?>
+                            <p class="pw-center-eyebrow"><?php echo htmlspecialchars($meta['eyebrow']); ?></p>
                         <?php endif; ?>
+                        <h2 class="pw-center-headline"><?php echo htmlspecialchars($meta['title']); ?></h2>
+                    </div>
+                </div>
+                <?php if (!empty($w['gallery_main_image'])): ?>
+                    <div class="pw-cell pw-cell-topright">
+                        <img src="<?php echo htmlspecialchars($w['gallery_main_image']); ?>" alt="" loading="lazy">
                     </div>
                 <?php endif; ?>
-                <?php foreach ($galleryImages as $gImg): ?>
-                    <div class="pw-gallery-strip">
-                        <img src="<?php echo htmlspecialchars($gImg); ?>" alt="" loading="lazy">
+                <?php if (!empty($w['gallery_image_2'])): ?>
+                    <div class="pw-cell pw-cell-botleft">
+                        <img src="<?php echo htmlspecialchars($w['gallery_image_2']); ?>" alt="" loading="lazy">
                     </div>
-                <?php endforeach; ?>
+                <?php endif; ?>
+                <?php if (!empty($w['gallery_image_3']) || !empty($w['card2_text'])): ?>
+                    <div class="pw-cell pw-cell-logo">
+                        <?php if (!empty($w['card2_text'])): ?><span class="pw-logo-caption"><?php echo htmlspecialchars($w['card2_text']); ?></span><?php endif; ?>
+                        <?php if (!empty($w['gallery_image_3'])): ?><img src="<?php echo htmlspecialchars($w['gallery_image_3']); ?>" alt="" loading="lazy"><?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
         </section>
         <?php
     }

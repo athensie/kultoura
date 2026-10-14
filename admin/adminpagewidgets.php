@@ -282,7 +282,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                     <div class="pw-admin-row-body">
                         <div class="pw-admin-row-title"><?php echo htmlspecialchars($label); ?></div>
                         <?php if ($w): ?>
-                            <div class="pw-admin-row-sub">Live on this page<?php echo !empty($w['card1_title']) || !empty($w['card2_title']) ? ' · ' . htmlspecialchars($w['card1_title'] ?: $w['card2_title']) : ''; ?></div>
+                            <div class="pw-admin-row-sub">Live on this page<?php echo !empty($w['card1_text']) ? ' · ' . htmlspecialchars(mb_strimwidth($w['card1_text'], 0, 40, '…')) : ''; ?></div>
                         <?php else: ?>
                             <div class="pw-admin-row-sub pw-admin-row-empty">Not set up yet</div>
                         <?php endif; ?>
@@ -323,74 +323,50 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <div class="modal-card pw-modal-card">
         <button class="modal-close" onclick="closeModal('addWidgetModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add Widget — <span id="addWidgetPageLabel"></span></div>
-        <div class="modal-sub">Shown near the top of that page, below the hero. Headline/description are that page's own title and blurb — not editable here.</div>
+        <div class="modal-sub">A photo grid shown near the top of that page, below the hero. The center photo's title/location come from the page itself — not editable here.</div>
         <form method="POST" action="adminpagewidgets.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="add_page_widget">
             <input type="hidden" name="page_slug" id="addWidgetPageSlug">
             <?php echo csrf_field(); ?>
 
-            <p class="pw-form-section">Banner</p>
+            <p class="pw-form-section">Left Text Panel</p>
             <div class="form-group">
-                <label class="form-label">Background Color</label>
-                <input class="form-input" type="color" name="bg_color" value="#8b2e1a" style="height:44px;padding:4px;">
+                <label class="form-label">Panel Background Color</label>
+                <input class="form-input" type="color" name="bg_color" value="#1877f2" style="height:44px;padding:4px;">
             </div>
             <div class="form-group">
-                <label class="form-label">Photo</label>
+                <label class="form-label">Panel Text</label>
+                <textarea class="form-input" name="card1_text" rows="2" maxlength="300" placeholder="e.g. Curated picks from Malvar's local favorites."></textarea>
+            </div>
+
+            <p class="pw-form-section">Photos</p>
+            <div class="form-group">
+                <label class="form-label">Center Photo</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Card 1 Title (optional)</label>
-                    <input class="form-input" type="text" name="card1_title" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Card 1 Text (optional)</label>
-                    <input class="form-input" type="text" name="card1_text" maxlength="300">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Card 2 Title (optional)</label>
-                    <input class="form-input" type="text" name="card2_title" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Card 2 Text (optional)</label>
-                    <input class="form-input" type="text" name="card2_text" maxlength="300">
-                </div>
-            </div>
-
-            <p class="pw-form-section">Photo Strip (optional — expands on hover)</p>
-            <div class="form-group">
-                <label class="form-label">Main Photo</label>
-                <input class="form-input" type="file" name="gallery_main_image_file" accept="image/*">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Heading over that photo</label>
-                <input class="form-input" type="text" name="gallery_heading" maxlength="150">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Text under that heading</label>
-                <textarea class="form-input" name="gallery_text" rows="2" maxlength="300"></textarea>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Strip Photo 1</label>
+                    <label class="form-label">Left-Bottom Photo</label>
                     <input class="form-input" type="file" name="gallery_image_1_file" accept="image/*">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Strip Photo 2</label>
-                    <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
+                    <label class="form-label">Top-Right Photo</label>
+                    <input class="form-input" type="file" name="gallery_main_image_file" accept="image/*">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Strip Photo 3</label>
-                    <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Strip Photo 4</label>
-                    <input class="form-input" type="file" name="gallery_image_4_file" accept="image/*">
-                </div>
+            <div class="form-group">
+                <label class="form-label">Bottom-Right Photo</label>
+                <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
+            </div>
+
+            <p class="pw-form-section">"Powered By" Panel (optional)</p>
+            <div class="form-group">
+                <label class="form-label">Small Logo Image</label>
+                <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Caption (e.g. "Powered by KulToura")</label>
+                <input class="form-input" type="text" name="card2_text" maxlength="60">
             </div>
 
             <div style="display:flex; gap:10px; margin-top:8px;">
@@ -406,77 +382,52 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <div class="modal-card pw-modal-card">
         <button class="modal-close" onclick="closeModal('editWidgetModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Widget — <span id="editWidgetPageLabel"></span></div>
-        <div class="modal-sub">Headline/description are that page's own title and blurb — not editable here.</div>
+        <div class="modal-sub">The center photo's title/location come from the page itself — not editable here.</div>
         <form method="POST" action="adminpagewidgets.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="edit_page_widget">
             <input type="hidden" name="id" id="editWidgetId">
             <input type="hidden" name="page_slug" id="editWidgetPageSlug">
             <?php echo csrf_field(); ?>
 
-            <p class="pw-form-section">Banner</p>
+            <p class="pw-form-section">Left Text Panel</p>
             <div class="form-group">
-                <label class="form-label">Background Color</label>
+                <label class="form-label">Panel Background Color</label>
                 <input class="form-input" type="color" name="bg_color" id="editWidgetBgColor" style="height:44px;padding:4px;">
             </div>
             <div class="form-group">
-                <label class="form-label">Replace Photo</label>
+                <label class="form-label">Panel Text</label>
+                <textarea class="form-input" name="card1_text" id="editWidgetCard1Text" rows="2" maxlength="300"></textarea>
+            </div>
+
+            <p class="pw-form-section">Photos</p>
+            <div class="form-group">
+                <label class="form-label">Replace Center Photo</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current photo.</p>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Card 1 Title (optional)</label>
-                    <input class="form-input" type="text" name="card1_title" id="editWidgetCard1Title" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Card 1 Text (optional)</label>
-                    <input class="form-input" type="text" name="card1_text" id="editWidgetCard1Text" maxlength="300">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Card 2 Title (optional)</label>
-                    <input class="form-input" type="text" name="card2_title" id="editWidgetCard2Title" maxlength="100">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Card 2 Text (optional)</label>
-                    <input class="form-input" type="text" name="card2_text" id="editWidgetCard2Text" maxlength="300">
-                </div>
-            </div>
-
-            <p class="pw-form-section">Photo Strip (optional — expands on hover)</p>
-            <div class="form-group">
-                <label class="form-label">Replace Main Photo</label>
-                <input class="form-input" type="file" name="gallery_main_image_file" accept="image/*">
-                <p class="image-current-hint">Leave empty to keep the current photo.</p>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Heading over that photo</label>
-                <input class="form-input" type="text" name="gallery_heading" id="editWidgetGalleryHeading" maxlength="150">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Text under that heading</label>
-                <textarea class="form-input" name="gallery_text" id="editWidgetGalleryText" rows="2" maxlength="300"></textarea>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 1</label>
+                    <label class="form-label">Replace Left-Bottom Photo</label>
                     <input class="form-input" type="file" name="gallery_image_1_file" accept="image/*">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 2</label>
-                    <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
+                    <label class="form-label">Replace Top-Right Photo</label>
+                    <input class="form-input" type="file" name="gallery_main_image_file" accept="image/*">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 3</label>
-                    <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Replace Strip Photo 4</label>
-                    <input class="form-input" type="file" name="gallery_image_4_file" accept="image/*">
-                </div>
+            <div class="form-group">
+                <label class="form-label">Replace Bottom-Right Photo</label>
+                <input class="form-input" type="file" name="gallery_image_2_file" accept="image/*">
+            </div>
+
+            <p class="pw-form-section">"Powered By" Panel (optional)</p>
+            <div class="form-group">
+                <label class="form-label">Replace Small Logo Image</label>
+                <input class="form-input" type="file" name="gallery_image_3_file" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Caption (e.g. "Powered by KulToura")</label>
+                <input class="form-input" type="text" name="card2_text" id="editWidgetCard2Text" maxlength="60">
             </div>
 
             <div style="display:flex; gap:10px; margin-top:8px;">

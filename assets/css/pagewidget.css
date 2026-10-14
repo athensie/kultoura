@@ -1,29 +1,39 @@
-/* KulToura — Page Widget (admin-customizable promo banner + photo strip)
+/* KulToura — Page Widget (admin-customizable bento-style photo grid)
    Shared across every tourism subpage via config/page_widgets.php's
-   kt_page_widget_render(). Background color is set inline per-widget
-   (admin-picked), everything else here is layout/typography. */
+   kt_page_widget_render(). A contained card (not full-bleed) with an
+   asymmetric photo grid: a colored text panel, a center photo carrying
+   the page's title, two supporting photos, and a small "powered by"
+   style panel. */
 
 .pw-widget {
-    padding: 56px 48px 64px;
+    padding: 32px 48px 8px;
 }
 
-.pw-banner {
-    max-width: 1200px;
+.pw-grid {
+    max-width: 1300px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1fr 1.4fr;
-    grid-auto-rows: min-content;
-    gap: 16px;
+    grid-template-columns: 1.1fr 2.1fr 0.95fr 0.95fr;
+    grid-template-rows: 1fr 1fr;
+    grid-template-areas:
+        "panel  center topright topright"
+        "photo  center botleft  logo";
+    gap: 12px;
+    height: 560px;
+    padding: 14px;
+    background: #f4f1ea;
+    border: 1px solid rgba(44, 26, 14, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(44, 26, 14, 0.08);
 }
 
-.pw-banner-photo {
-    grid-row: 1 / 3;
+.pw-cell {
     position: relative;
-    min-height: 280px;
-    border-radius: 18px;
+    border-radius: 14px;
     overflow: hidden;
+    background: #e5ded1;
 }
-.pw-banner-photo img {
+.pw-cell img {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -31,16 +41,54 @@
     object-fit: cover;
 }
 
-.pw-banner-main {
-    background: #fff;
-    border-radius: 18px;
-    padding: 36px 40px;
+.pw-cell-panel {
+    grid-area: panel;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: flex-start;
+    padding: 22px;
+}
+.pw-cell-panel p {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.4;
+    color: #fff;
+    margin: 0;
 }
 
-.pw-banner-headline {
+.pw-cell-photo { grid-area: photo; }
+.pw-cell-topright { grid-area: topright; }
+.pw-cell-botleft { grid-area: botleft; }
+
+.pw-cell-center {
+    grid-area: center;
+    background: #2c1a0e;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.pw-center-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 45%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.pw-center-text {
+    position: relative;
+    padding: 24px 26px;
+}
+
+.pw-center-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 8px;
+}
+
+.pw-center-headline {
     /* 'Barabara' is declared in index.css (loaded before this file on
        every tourism page) and only defines uppercase letters — lowercase
        would silently fall back to the next font, so this is uppercased. */
@@ -48,133 +96,53 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 700;
-    font-size: clamp(24px, 2.8vw, 34px);
-    line-height: 1.25;
-    color: #1a1a1a;
-    margin: 0 0 6px;
-}
-
-.pw-banner-eyebrow {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #8b2e1a;
-    margin: 0 0 12px;
-}
-
-.pw-banner-subtext {
-    font-size: 14px;
-    line-height: 1.6;
-    color: rgba(0, 0, 0, 0.6);
-    margin: 0;
-}
-
-.pw-banner-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-
-.pw-banner-card {
-    background: #fff;
-    border-radius: 18px;
-    padding: 22px 24px;
-}
-.pw-banner-card h3 {
-    font-family: Georgia, serif;
-    font-weight: 700;
-    font-size: 15.5px;
-    color: #1a1a1a;
-    margin: 0 0 8px;
-}
-.pw-banner-card p {
-    font-size: 12.5px;
-    line-height: 1.6;
-    color: rgba(0, 0, 0, 0.6);
-    margin: 0;
-}
-
-/* Photo strip — a big photo plus up to four narrow ones that "expand" on
-   hover via flex-grow (no JS needed: the hovered tile and the one under
-   the pointer both grow, the rest shrink back). */
-.pw-gallery {
-    max-width: 1200px;
-    margin: 28px auto 0;
-    display: flex;
-    gap: 10px;
-    height: 340px;
-}
-
-.pw-gallery-main,
-.pw-gallery-strip {
-    position: relative;
-    border-radius: 18px;
-    overflow: hidden;
-    flex: 1 1 0;
-    transition: flex-grow 0.45s cubic-bezier(0.4, 0.1, 0.2, 1);
-    cursor: pointer;
-}
-.pw-gallery-main { flex-grow: 3; }
-.pw-gallery-strip { flex-grow: 0.7; }
-
-.pw-gallery-main img,
-.pw-gallery-strip img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.pw-gallery-main:hover,
-.pw-gallery-strip:hover {
-    flex-grow: 3.2;
-}
-
-.pw-gallery-main-text {
-    position: absolute;
-    left: 26px;
-    bottom: 26px;
-    right: 26px;
+    font-size: clamp(28px, 3.4vw, 44px);
+    line-height: 1.1;
     color: #fff;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-}
-.pw-gallery-main-text h3 {
-    font-family: Georgia, serif;
-    font-weight: 700;
-    font-size: clamp(18px, 2.2vw, 24px);
-    margin: 0 0 6px;
-}
-.pw-gallery-main-text p {
-    font-size: 13px;
-    line-height: 1.5;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
     margin: 0;
-    opacity: 0.9;
-    max-width: 420px;
+}
+
+.pw-cell-logo {
+    grid-area: logo;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+}
+.pw-cell-logo img {
+    position: static;
+    width: auto;
+    max-width: 85%;
+    height: auto;
+    max-height: 40px;
+    object-fit: contain;
+}
+.pw-logo-caption {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: rgba(44, 26, 14, 0.45);
 }
 
 @media (max-width: 900px) {
-    .pw-widget { padding: 40px 24px 48px; }
-    .pw-banner { grid-template-columns: 1fr; }
-    .pw-banner-photo { grid-row: auto; min-height: 220px; }
-    .pw-banner-main { padding: 28px; }
-    .pw-banner-cards { grid-template-columns: 1fr; }
-
-    .pw-gallery {
+    .pw-widget { padding: 24px 20px 4px; }
+    .pw-grid {
         height: auto;
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        scrollbar-width: none;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto;
+        grid-template-areas:
+            "center  center"
+            "panel   photo"
+            "topright topright"
+            "botleft logo";
     }
-    .pw-gallery::-webkit-scrollbar { display: none; }
-    .pw-gallery-main,
-    .pw-gallery-strip {
-        flex: 0 0 auto;
-        transition: none;
+    .pw-cell-panel, .pw-cell-photo, .pw-cell-topright, .pw-cell-botleft, .pw-cell-logo {
+        min-height: 150px;
     }
-    .pw-gallery-main { width: 240px; height: 220px; }
-    .pw-gallery-strip { width: 120px; height: 220px; }
-    .pw-gallery-main:hover,
-    .pw-gallery-strip:hover { flex-grow: 0; }
+    .pw-cell-center { min-height: 280px; }
 }
