@@ -285,14 +285,17 @@ if (isset($_GET['ajax_calendar'])) {
                         $searchBlob = mb_strtolower(trim(($item['fiesta_name'] ?? '') . ' ' . ($item['location'] ?? '') . ' ' . ($item['description'] ?? '')));
                     ?>
                     <article class="p-card" data-month="<?= $fMonth ?>" data-category="<?= htmlspecialchars($item['type'] ?? '') ?>" data-search="<?= htmlspecialchars($searchBlob) ?>" onclick="openViewDetails(<?= $fid ?>)">
+                        <div class="p-card-media">
+                            <?php if (!empty($item['image'])): ?>
+                                <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['fiesta_name']) ?>" class="p-card-img">
+                            <?php endif; ?>
+                            <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
+                                    data-fiesta-id="<?= $fid ?>"
+                                    onclick="event.stopPropagation(); toggleFavoriteRequest(<?= $fid ?>)"
+                                    aria-label="Save to favorites"><?= $isFav ? '&#9829;' : '&#9825;' ?></button>
+                            <?php if (!empty($item['type'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['type']) ?></span><?php endif; ?>
+                        </div>
                         <div class="p-card-body">
-                            <div class="p-card-top-row">
-                                <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
-                                        data-fiesta-id="<?= $fid ?>"
-                                        onclick="event.stopPropagation(); toggleFavoriteRequest(<?= $fid ?>)"
-                                        aria-label="Save to favorites"><?= $isFav ? '&#9829;' : '&#9825;' ?></button>
-                                <?php if (!empty($item['type'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['type']) ?></span><?php else: ?><span></span><?php endif; ?>
-                            </div>
                             <?php if (!empty($item['celebration_date'])): ?><p class="p-card-category"><?= htmlspecialchars(date('F j, Y', strtotime($item['celebration_date']))) ?></p><?php endif; ?>
                             <h3 class="p-card-title"><?= htmlspecialchars($item['fiesta_name']) ?></h3>
                             <p class="p-card-desc"><?= htmlspecialchars($item['description'] ?? '') ?></p>

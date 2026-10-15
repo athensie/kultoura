@@ -322,20 +322,32 @@
     box-shadow: 0 6px 20px rgba(139, 46, 26, 0.1);
 }
 
-.p-card-top-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
+.p-card-media {
+    position: relative;
+    height: 150px;
+    background: #ded6c6;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.p-card-media img,
+.p-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .p-fav-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
     width: 32px;
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: #f0ebe3;
-    color: #8b2e1a;
+    background: rgba(44, 26, 14, 0.55);
+    color: #fff;
     font-size: 15px;
     cursor: pointer;
     display: flex;
@@ -346,7 +358,7 @@
 }
 
 .p-fav-btn:hover {
-    background: #e5dccb;
+    background: rgba(44, 26, 14, 0.75);
 }
 
 .p-fav-btn.is-favorited {
@@ -355,8 +367,11 @@
 }
 
 .p-tag-pill {
-    background: rgba(139, 46, 26, 0.1);
-    color: #8b2e1a;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(44, 26, 14, 0.75);
+    color: #fff;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 11px;
     font-weight: 700;
