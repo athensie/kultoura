@@ -571,7 +571,11 @@ $upcomingCount = count(array_filter($events, function ($e) {
 <div class="toast" id="toast"></div>
 
 <script>
-    const eventsData = <?php echo json_encode($events); ?>;
+    // A top-level const in a classic script does NOT become window.eventsData
+    // — it stays in the script's own lexical scope, invisible to functions
+    // in admineventandfiesta.js that read window.eventsData. That silently
+    // broke View/Edit (they'd just find nothing and return early, no error).
+    window.eventsData = <?php echo json_encode($events); ?>;
 </script>
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>

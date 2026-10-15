@@ -499,7 +499,11 @@ $addedThisMonth = count(array_filter($people, function ($p) {
 <div class="toast" id="toast"></div>
 
 <script>
-    const peopleData = <?php echo json_encode($people); ?>;
+    // A top-level const in a classic script does NOT become window.peopleData
+    // — it stays in the script's own lexical scope, invisible to functions
+    // in adminpeople.js that read window.peopleData. That silently broke
+    // View/Edit (they'd just find nothing and return early, no error).
+    window.peopleData = <?php echo json_encode($people); ?>;
 </script>
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
