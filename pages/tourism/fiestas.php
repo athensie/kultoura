@@ -124,7 +124,7 @@ if (isset($_GET['ajax_calendar'])) {
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261015b">
+    <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261015c">
 </head>
 <body>
 
