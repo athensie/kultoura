@@ -193,36 +193,15 @@ function ai_get_place_embedding(mysqli $conn, string $itemType, int $itemId, str
  | least-squares trend line is the fallback when this returns null,
  | same pattern as embeddings falling back to TF-IDF.
  */
-function ai_forecast_pageviews(mysqli $conn, array $monthlySeries): ?array
+// Shared low-level call: one prompt in, one parsed JSON object out (or
+// null on any failure — bad key, network error, non-200, malformed
+// JSON). Every AI-generated analytics feature below is built on this
+// so there's exactly one place that talks to the generateContent API.
+function ai_generate_json(string $prompt): ?array
 {
-    if (!ai_configured() || empty($monthlySeries)) {
+    if (!ai_configured()) {
         return null;
     }
-
-    $series = array_map(fn($m) => ['month' => $m['label'], 'views' => (int) $m['value']], $monthlySeries);
-    $inputHash = md5(json_encode($series));
-    $forecastKey = 'pageviews_' . GEMINI_TEXT_MODEL;
-
-    $stmt = $conn->prepare("SELECT input_hash, result FROM analytics_forecasts WHERE forecast_key = ?");
-    $stmt->bind_param('s', $forecastKey);
-    $stmt->execute();
-    $cached = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if ($cached && $cached['input_hash'] === $inputHash) {
-        $decoded = json_decode($cached['result'], true);
-        if (is_array($decoded)) {
-            return $decoded;
-        }
-    }
-
-    $prompt = "You are a web analytics forecaster for a small-town tourism website. "
-        . "Here is the real monthly page view total for the last " . count($series) . " months, oldest first:\n"
-        . json_encode($series) . "\n\n"
-        . "Project next month's total page views. Consider the trend direction, recent momentum, "
-        . "and that small absolute numbers can swing wildly in percentage terms — don't let noise dominate. "
-        . "Respond with ONLY this JSON shape, no other text: "
-        . '{"projected_next_month": <integer>, "growth_pct": <integer, vs. the latest month>, '
-        . '"insight": "<one short plain-English sentence explaining the projection>"}';
 
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . GEMINI_TEXT_MODEL . ':generateContent';
     $ch = curl_init($url);
@@ -256,27 +235,94 @@ function ai_forecast_pageviews(mysqli $conn, array $monthlySeries): ?array
         return null;
     }
     $parsed = json_decode($text, true);
-    if (!is_array($parsed) || !isset($parsed['projected_next_month'], $parsed['growth_pct'], $parsed['insight'])) {
+    return is_array($parsed) ? $parsed : null;
+}
+
+// Reads/writes the shared analytics_forecasts cache by an arbitrary key
+// (one row per distinct AI-generated analytics feature) so a whole
+// day of admin dashboard visits costs at most one live call per
+// feature, not one per page load.
+function ai_cached_or_generate(mysqli $conn, string $cacheKey, array $inputForHash, string $prompt): ?array
+{
+    $inputHash = md5(json_encode($inputForHash));
+
+    $stmt = $conn->prepare("SELECT input_hash, result FROM analytics_forecasts WHERE forecast_key = ?");
+    $stmt->bind_param('s', $cacheKey);
+    $stmt->execute();
+    $cached = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if ($cached && $cached['input_hash'] === $inputHash) {
+        $decoded = json_decode($cached['result'], true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+    }
+
+    $parsed = ai_generate_json($prompt);
+    if ($parsed === null) {
         return null;
     }
 
-    $result = [
+    $json = json_encode($parsed);
+    $stmt = $conn->prepare(
+        "INSERT INTO analytics_forecasts (forecast_key, input_hash, result)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE input_hash = VALUES(input_hash), result = VALUES(result), created_at = CURRENT_TIMESTAMP"
+    );
+    $stmt->bind_param('sss', $cacheKey, $inputHash, $json);
+    $stmt->execute();
+    $stmt->close();
+
+    return $parsed;
+}
+
+function ai_forecast_pageviews(mysqli $conn, array $monthlySeries): ?array
+{
+    if (empty($monthlySeries)) {
+        return null;
+    }
+
+    $series = array_map(fn($m) => ['month' => $m['label'], 'views' => (int) $m['value']], $monthlySeries);
+
+    $prompt = "You are a web analytics forecaster for a small-town tourism website. "
+        . "Here is the real monthly page view total for the last " . count($series) . " months, oldest first:\n"
+        . json_encode($series) . "\n\n"
+        . "Project next month's total page views. Consider the trend direction, recent momentum, "
+        . "and that small absolute numbers can swing wildly in percentage terms — don't let noise dominate. "
+        . "Respond with ONLY this JSON shape, no other text: "
+        . '{"projected_next_month": <integer>, "growth_pct": <integer, vs. the latest month>, '
+        . '"insight": "<one short plain-English sentence explaining the projection>"}';
+
+    $parsed = ai_cached_or_generate($conn, 'pageviews_' . GEMINI_TEXT_MODEL, $series, $prompt);
+    if ($parsed === null || !isset($parsed['projected_next_month'], $parsed['growth_pct'], $parsed['insight'])) {
+        return null;
+    }
+
+    return [
         'projected_next_month' => max(0, (int) $parsed['projected_next_month']),
         // Same clamp as the trend-line fallback — a model shouldn't be
         // able to headline a wilder swing than the deterministic math does.
         'growth_pct'           => max(-90, min(200, (int) $parsed['growth_pct'])),
         'insight'              => mb_substr((string) $parsed['insight'], 0, 200),
     ];
+}
 
-    $json = json_encode($result);
-    $stmt = $conn->prepare(
-        "INSERT INTO analytics_forecasts (forecast_key, input_hash, result)
-         VALUES (?, ?, ?)
-         ON DUPLICATE KEY UPDATE input_hash = VALUES(input_hash), result = VALUES(result), created_at = CURRENT_TIMESTAMP"
-    );
-    $stmt->bind_param('sss', $forecastKey, $inputHash, $json);
-    $stmt->execute();
-    $stmt->close();
+// A short "here's what happened this month and why" narrative for the
+// top of the dashboard — descriptive, not predictive (it explains the
+// real numbers already on the page, it doesn't project anything new).
+function ai_monthly_summary(mysqli $conn, array $stats): ?string
+{
+    $prompt = "You are writing a one-paragraph monthly summary for the admin of a small-town tourism website "
+        . "(Malvar, Batangas, Philippines). Here are this month's real stats:\n"
+        . json_encode($stats) . "\n\n"
+        . "Write 2-3 plain-English sentences a busy admin can read in 5 seconds: what happened, what stood out "
+        . "(best performer, notable shift), and one thing worth paying attention to. No greeting, no sign-off, "
+        . "no markdown. Respond with ONLY this JSON shape, no other text: "
+        . '{"summary": "<2-3 sentence paragraph>"}';
 
-    return $result;
+    $parsed = ai_cached_or_generate($conn, 'monthly_summary_' . GEMINI_TEXT_MODEL, $stats, $prompt);
+    if ($parsed === null || !isset($parsed['summary']) || !is_string($parsed['summary'])) {
+        return null;
+    }
+    return mb_substr(trim($parsed['summary']), 0, 500);
 }

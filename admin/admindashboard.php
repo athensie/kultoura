@@ -144,6 +144,15 @@ unset($tp);
 $itemTypeLabels = ['nature' => 'Nature', 'resort' => 'Resort', 'industry' => 'Industry', 'product' => 'Product', 'restaurant' => 'Restaurant', 'fiesta' => 'Fiesta', 'person' => 'Person'];
 $topItems = analytics_top_items($conn, 6, $periodStartSql);
 
+// Favorites & Travel Diary Conversion — how many of a place's viewers
+// actually favorited it or logged a real visit, not just looked.
+$conversionItems = analytics_conversion_top_items($conn, 8, 3);
+
+// Search Insights — what visitors type into the search bar, and what
+// comes back with nothing (a direct signal of a catalog gap).
+$topSearches = analytics_top_searches($conn, 6);
+$zeroResultSearches = analytics_zero_result_searches($conn, 6);
+
 // Recently Added — genuinely period-aware, since created_at exists on
 // all four content tables. Pulls the newest listings across
 // Destinations, Products, Restaurants, and Fiestas within the
@@ -299,6 +308,22 @@ if ($projectedNextMonth !== null) {
         $forecastIsAI = true;
     }
 }
+
+// AI Monthly Summary — a short "what happened and why" narrative built
+// from the real stats already computed above. Descriptive (explains
+// numbers already on the page), not predictive — kept separate from
+// the forecast above. Returns null (section just doesn't render)
+// whenever AI isn't configured or the call fails.
+$monthlySummary = ai_monthly_summary($conn, [
+    'total_page_views'        => $totalPageViews,
+    'active_users_now'        => $activeUsers,
+    'listed_destinations'     => $listedDestinations,
+    'top_category'            => $topCategory,
+    'top_viewed_places'       => array_map(fn($i) => $i['name'] . ' (' . $i['views'] . ' views)', array_slice($topItems, 0, 3)),
+    'best_converting_place'   => !empty($conversionItems) ? $conversionItems[0]['name'] . ' (' . $conversionItems[0]['favoritePct'] . '% of viewers favorited it)' : null,
+    'projected_next_month_growth_pct' => $projectedGrowthPct,
+    'top_searches'            => array_map(fn($s) => $s['query'], array_slice($topSearches, 0, 3)),
+]);
 
 // Pages gaining momentum: this week's views vs last week's, per page.
 $trendingPages = [];
@@ -481,7 +506,16 @@ if (empty($recommendations)) {
             </div>
         </div>
 
+        <!-- ANALYTICS TYPE FILTER -->
+        <div class="analytics-filter-bar" id="analyticsFilterBar">
+            <button type="button" class="analytics-filter-pill is-active" data-filter="all">All</button>
+            <button type="button" class="analytics-filter-pill" data-filter="descriptive">Descriptive</button>
+            <button type="button" class="analytics-filter-pill" data-filter="predictive">Predictive</button>
+            <button type="button" class="analytics-filter-pill" data-filter="prescriptive">Prescriptive</button>
+        </div>
+
         <!-- 1. TRENDING & HIGHLY VISITED DESTINATIONS -->
+        <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Trending &amp; Highly Visited Destinations <span class="analytics-tag">Descriptive</span></div>
 
         <div class="kpi-grid animate">
@@ -581,8 +615,112 @@ if (empty($recommendations)) {
                 </div>
             <?php endif; ?>
         </div>
+        </div>
+
+        <?php if ($monthlySummary): ?>
+        <!-- AI MONTHLY SUMMARY -->
+        <div class="analytics-section" data-category="descriptive">
+        <div class="alabel-desc">
+            AI Monthly Summary
+            <span class="analytics-tag">Descriptive</span>
+            <span class="analytics-tag tag-ai">AI-Powered</span>
+        </div>
+        <div class="ai-summary-box animate">
+            <i data-lucide="sparkles" class="lucide"></i>
+            <p><?php echo htmlspecialchars($monthlySummary); ?></p>
+        </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- FAVORITES & TRAVEL DIARY CONVERSION -->
+        <div class="analytics-section" data-category="descriptive">
+        <div class="alabel-desc">Favorites &amp; Travel Diary Conversion <span class="analytics-tag">Descriptive</span></div>
+        <div class="chart-box chart-box-full animate">
+            <h4>How Views Turn Into Favorites &amp; Diary Visits</h4>
+            <?php if (empty($conversionItems)): ?>
+                <div class="chart-empty">
+                    <i data-lucide="heart" class="lucide"></i>
+                    <div class="chart-empty-title">Not enough view data yet</div>
+                    <div class="chart-empty-sub">Once a few listings have at least 3 views, their favorite/diary conversion rate will show up here.</div>
+                </div>
+            <?php else: ?>
+                <div class="conversion-list">
+                    <?php foreach ($conversionItems as $ci): ?>
+                        <div class="conversion-row">
+                            <div class="trending-info">
+                                <div class="trending-name"><?php echo htmlspecialchars($ci['name']); ?></div>
+                                <div class="trending-sub"><?php echo htmlspecialchars($itemTypeLabels[$ci['type']] ?? ucfirst($ci['type'])); ?> &middot; <?php echo (int) $ci['views']; ?> views</div>
+                            </div>
+                            <div class="conversion-stats">
+                                <div class="conversion-stat">
+                                    <span class="conversion-stat-num"><?php echo (int) $ci['favoritePct']; ?>%</span>
+                                    <span class="conversion-stat-label">Favorited</span>
+                                </div>
+                                <div class="conversion-stat">
+                                    <span class="conversion-stat-num"><?php echo (int) $ci['diaryPct']; ?>%</span>
+                                    <span class="conversion-stat-label">Logged</span>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        </div>
+
+        <!-- SEARCH INSIGHTS -->
+        <div class="analytics-section" data-category="descriptive">
+        <div class="alabel-desc">Search Insights <span class="analytics-tag">Descriptive</span></div>
+        <div class="charts-2col animate">
+            <div class="chart-box">
+                <h4>Top Searches</h4>
+                <?php if (empty($topSearches)): ?>
+                    <div class="chart-empty">
+                        <i data-lucide="search" class="lucide"></i>
+                        <div class="chart-empty-title">No searches logged yet</div>
+                        <div class="chart-empty-sub">What visitors search for will show up here.</div>
+                    </div>
+                <?php else: ?>
+                    <div class="trending-list">
+                        <?php foreach ($topSearches as $i => $s): ?>
+                            <div class="trending-row">
+                                <div class="trending-rank">#<?php echo $i + 1; ?></div>
+                                <div class="trending-info">
+                                    <div class="trending-name">&ldquo;<?php echo htmlspecialchars($s['query']); ?>&rdquo;</div>
+                                </div>
+                                <div class="trending-visits"><?php echo (int) $s['count']; ?>&times;</div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="chart-box">
+                <h4>Zero-Result Searches <span class="chart-sub">&mdash; catalog gaps</span></h4>
+                <?php if (empty($zeroResultSearches)): ?>
+                    <div class="chart-empty">
+                        <i data-lucide="search-x" class="lucide"></i>
+                        <div class="chart-empty-title">No gaps found</div>
+                        <div class="chart-empty-sub">Searches that return nothing will show up here, once there are enough searches logged.</div>
+                    </div>
+                <?php else: ?>
+                    <div class="trending-list">
+                        <?php foreach ($zeroResultSearches as $i => $s): ?>
+                            <div class="trending-row">
+                                <div class="trending-rank">#<?php echo $i + 1; ?></div>
+                                <div class="trending-info">
+                                    <div class="trending-name">&ldquo;<?php echo htmlspecialchars($s['query']); ?>&rdquo;</div>
+                                </div>
+                                <div class="trending-visits"><?php echo (int) $s['count']; ?>&times;</div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        </div>
 
         <!-- 2. TOURIST ENGAGEMENT & INTERACTIONS -->
+        <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Tourist Engagement &amp; Content Interactions <span class="analytics-tag">Descriptive</span></div>
 
         <div class="charts-2col animate">
@@ -633,8 +771,10 @@ if (empty($recommendations)) {
                 <?php endif; ?>
             </div>
         </div>
+        </div>
 
         <!-- 3. VISUAL REPORTS -->
+        <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Visual Reports &amp; Tourism Insights <span class="analytics-tag">Descriptive</span></div>
 
         <div class="charts-2col animate">
@@ -685,8 +825,10 @@ if (empty($recommendations)) {
                 <?php endif; ?>
             </div>
         </div>
+        </div>
 
         <!-- 4. PREDICTIVE ANALYTICS -->
+        <div class="analytics-section" data-category="predictive">
         <div class="alabel-desc">
             Forecasts &amp; Momentum
             <span class="analytics-tag tag-predictive">Predictive</span>
@@ -741,8 +883,10 @@ if (empty($recommendations)) {
                 <?php endif; ?>
             </div>
         </div>
+        </div>
 
         <!-- 5. PRESCRIPTIVE ANALYTICS -->
+        <div class="analytics-section" data-category="prescriptive">
         <div class="alabel-desc">Recommended Actions <span class="analytics-tag tag-prescriptive">Prescriptive</span></div>
 
         <div class="rec-list animate">
@@ -752,6 +896,7 @@ if (empty($recommendations)) {
                     <div class="rec-text"><?php echo htmlspecialchars($rec['text']); ?></div>
                 </div>
             <?php endforeach; ?>
+        </div>
         </div>
 
     </div>

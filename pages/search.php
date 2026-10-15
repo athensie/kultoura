@@ -12,6 +12,9 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?
 
 $query   = trim($_GET['q'] ?? '');
 $results = $query !== '' ? kt_search_all($conn, $query, 20) : [];
+if ($query !== '') {
+    analytics_track_search($conn, $query, count($results));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

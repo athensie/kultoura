@@ -42,6 +42,20 @@ $conn->query(
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
 
+// One row per explicit search submission (pages/search.php, not every
+// navbar-dropdown keystroke) — powers "Search Insights" on the admin
+// dashboard: what visitors look for, and what turns up nothing so a gap
+// in the catalog can actually be noticed.
+$conn->query(
+    "CREATE TABLE IF NOT EXISTS search_log (
+        search_id     INT AUTO_INCREMENT PRIMARY KEY,
+        query         VARCHAR(150) NOT NULL,
+        result_count  INT NOT NULL,
+        searched_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX (searched_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+);
+
 // Human-readable labels for the "page" slugs passed to analytics_track(),
 // reused wherever the admin dashboard needs to display them.
 function analytics_page_labels(): array
@@ -290,4 +304,121 @@ function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = n
     }
     usort($results, fn($a, $b) => $b['views'] <=> $a['views']);
     return array_slice($results, 0, $limit);
+}
+
+/*
+ |--------------------------------------------------------------------
+ | FAVORITES & TRAVEL DIARY CONVERSION
+ |--------------------------------------------------------------------
+ | How many of the people who *viewed* a place went on to favorite it
+ | or log an actual visit in their Travel Diary — a much stronger
+ | interest signal than the raw view count alone.
+ */
+
+// item_views' item_type is split by destination sub-category
+// (nature/resort/industry/accommodation/bank/service/church), but
+// favorites and diary_entries only know the broader 'destination'
+// type (same ids, same `destination` table) — same grouping foryou.php
+// already uses for its filter pills. product/restaurant/fiesta/person
+// already match 1:1 and pass through unchanged.
+function analytics_type_group_map(): array
+{
+    return [
+        'nature' => 'destination', 'resort' => 'destination', 'industry' => 'destination',
+        'accommodation' => 'destination', 'bank' => 'destination', 'service' => 'destination', 'church' => 'destination',
+    ];
+}
+
+// Top-viewed places (same pool as analytics_top_items) with their
+// favorite count, diary-log count, and conversion % of each — gated by
+// a minimum view count so a single view + single favorite can't read
+// as a misleading "100%".
+function analytics_conversion_top_items(mysqli $conn, int $limit = 8, int $minViews = 3): array
+{
+    $viewItems = analytics_top_items($conn, 100);
+    $viewItems = array_values(array_filter($viewItems, fn($i) => $i['views'] >= $minViews));
+    if (empty($viewItems)) {
+        return [];
+    }
+
+    $favCounts = [];
+    if ($res = $conn->query("SELECT item_type, item_id, COUNT(*) c FROM favorites GROUP BY item_type, item_id")) {
+        foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
+            $favCounts[$r['item_type'] . '-' . $r['item_id']] = (int) $r['c'];
+        }
+    }
+    $diaryCounts = [];
+    if ($res = $conn->query("SELECT item_type, item_id, COUNT(*) c FROM diary_entries GROUP BY item_type, item_id")) {
+        foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
+            $diaryCounts[$r['item_type'] . '-' . $r['item_id']] = (int) $r['c'];
+        }
+    }
+
+    $groupMap = analytics_type_group_map();
+    $out = [];
+    foreach ($viewItems as $item) {
+        $favType = $groupMap[$item['type']] ?? $item['type'];
+        $key = $favType . '-' . $item['id'];
+        $favorited = $favCounts[$key] ?? 0;
+        $logged = $diaryCounts[$key] ?? 0;
+        $out[] = [
+            'type'        => $item['type'],
+            'id'          => $item['id'],
+            'name'        => $item['name'],
+            'views'       => $item['views'],
+            'favorites'   => $favorited,
+            'diaryLogs'   => $logged,
+            'favoritePct' => (int) round($favorited / $item['views'] * 100),
+            'diaryPct'    => (int) round($logged / $item['views'] * 100),
+        ];
+    }
+    usort($out, fn($a, $b) => $b['views'] <=> $a['views']);
+    return array_slice($out, 0, $limit);
+}
+
+/*
+ |--------------------------------------------------------------------
+ | SEARCH INSIGHTS
+ |--------------------------------------------------------------------
+ */
+
+function analytics_track_search(mysqli $conn, string $query, int $resultCount): void
+{
+    $query = trim($query);
+    if ($query === '' || mb_strlen($query) > 150) {
+        return;
+    }
+    $stmt = $conn->prepare("INSERT INTO search_log (query, result_count) VALUES (?, ?)");
+    if ($stmt) {
+        $stmt->bind_param('si', $query, $resultCount);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+// Most-searched terms (case-insensitive grouping), most frequent first.
+function analytics_top_searches(mysqli $conn, int $limit = 8): array
+{
+    $stmt = $conn->prepare(
+        "SELECT LOWER(query) AS q, COUNT(*) c FROM search_log GROUP BY LOWER(query) ORDER BY c DESC LIMIT ?"
+    );
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return array_map(fn($r) => ['query' => $r['q'], 'count' => (int) $r['c']], $rows);
+}
+
+// Searches that came back empty — a direct signal of a catalog gap
+// (e.g. visitors searching "waterfalls" with nothing tagged that way).
+function analytics_zero_result_searches(mysqli $conn, int $limit = 8): array
+{
+    $stmt = $conn->prepare(
+        "SELECT LOWER(query) AS q, COUNT(*) c FROM search_log WHERE result_count = 0 GROUP BY LOWER(query) ORDER BY c DESC LIMIT ?"
+    );
+    $stmt->bind_param('i', $limit);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return array_map(fn($r) => ['query' => $r['q'], 'count' => (int) $r['c']], $rows);
 }
