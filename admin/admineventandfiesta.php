@@ -122,7 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = $row['name'] ?? ('Event #' . $id);
         } else {
             $name = trim($_POST['name'] ?? '');
-            $image = kt_fiesta_handle_image_upload() ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
+            $uploadedImage = kt_fiesta_handle_image_upload();
+            $photoAttemptFailed = $uploadedImage === null
+                && !empty($_FILES['image_file']['name'])
+                && ($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+            $image = $uploadedImage ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
             $data = [
                 'fiesta_name'      => $name,
                 'type'             => ($_POST['type'] ?? '') === 'Event' ? 'Event' : 'Fiesta',
@@ -147,6 +151,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             kt_requests_create($conn, 'fiesta', $entityAction, $id > 0 ? $id : null, $data, $name, (int) $_SESSION['user_id'], $adminName);
             $_SESSION['flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $name . '" was submitted for Super Admin approval.';
+        }
+
+        if (!empty($photoAttemptFailed)) {
+            $_SESSION['flash'] .= ' Note: the photo didn\'t upload (file too large or not a supported image type) — everything else was saved.';
         }
 
         header('Location: admineventandfiesta.php');

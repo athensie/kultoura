@@ -9,6 +9,16 @@ RUN docker-php-ext-install mysqli pdo pdo_mysql \
     && grep -rl FOREGROUND /etc/apache2/ || true \
     && apache2ctl -D FOREGROUND -t
 
+# The base image ships PHP's stock 2MB upload_max_filesize / 8MB
+# post_max_size — small enough that a modern phone photo gets silently
+# rejected (admin upload forms across the site swallow that failure and
+# just keep the old/empty image with no error shown). Raising it here
+# covers every upload form at once.
+RUN { \
+        echo 'upload_max_filesize = 20M'; \
+        echo 'post_max_size = 25M'; \
+    } > /usr/local/etc/php/conf.d/uploads.ini
+
 # The base image's default vhost has AllowOverride None, which would
 # silently ignore assets/uploads/.htaccess (the block-script-execution
 # defense-in-depth for uploaded files) on Railway even though it works

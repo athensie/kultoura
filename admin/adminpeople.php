@@ -105,7 +105,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fullname = $row['name'] ?? ('Profile #' . $id);
         } else {
             $fullname = trim($_POST['fullname'] ?? '');
-            $image = kt_person_handle_image_upload() ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
+            $uploadedImage = kt_person_handle_image_upload();
+            $photoAttemptFailed = $uploadedImage === null
+                && !empty($_FILES['image_file']['name'])
+                && ($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+            $image = $uploadedImage ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
             $data = [
                 'fullname'    => $fullname,
                 'title'       => trim($_POST['title'] ?? ''),
@@ -127,6 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             kt_requests_create($conn, 'person', $entityAction, $id > 0 ? $id : null, $data, $fullname, (int) $_SESSION['user_id'], $adminName);
             $_SESSION['flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $fullname . '" was submitted for Super Admin approval.';
+        }
+
+        if (!empty($photoAttemptFailed)) {
+            $_SESSION['flash'] .= ' Note: the photo didn\'t upload (file too large or not a supported image type) — everything else was saved.';
         }
 
         header('Location: adminpeople.php');
