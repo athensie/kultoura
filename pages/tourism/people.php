@@ -162,9 +162,9 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
         <?php else: ?>
         <div class="p-card-grid">
             <?php foreach ($people as $item): ?>
-            <article class="p-card">
+            <article class="p-card" onclick="openViewDetails(<?= (int) $item['person_id'] ?>)">
                 <div class="p-card-media" <?= !empty($item['image']) ? 'style="background-image:url(\'' . htmlspecialchars($item['image']) . '\')"' : '' ?>>
-                    <button class="p-fav-btn" type="button" aria-label="Save to favorites">&#9825;</button>
+                    <button class="p-fav-btn" type="button" aria-label="Save to favorites" onclick="event.stopPropagation();">&#9825;</button>
                     <?php if (!empty($item['title'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['title']) ?></span><?php endif; ?>
                 </div>
                 <div class="p-card-body">
@@ -172,7 +172,7 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
                     <h3 class="p-card-title"><?= htmlspecialchars($item['fullname']) ?></h3>
                     <p class="p-card-desc"><?= htmlspecialchars($item['description'] ?? '') ?></p>
                     <div class="p-card-actions">
-                        <a href="view-details.php?item=<?= urlencode($item['fullname']) ?>" class="p-btn p-btn-primary" onclick="ktTrackItemView('person', <?= (int) $item['person_id'] ?>)">View Details</a>
+                        <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= (int) $item['person_id'] ?>)">View Details</button>
                     </div>
                 </div>
             </article>
@@ -183,12 +183,53 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
 
 </main>
 
+<!-- ── View Details Modal ── -->
+<div class="p-modal-overlay" id="pViewModal" onclick="if(event.target===this) closePModal('pViewModal')">
+    <div class="p-modal-card">
+        <button class="p-modal-close" onclick="closePModal('pViewModal')" aria-label="Close">&times;</button>
+        <div class="p-modal-media" id="pvMedia"></div>
+        <p class="p-modal-eyebrow" id="pvType">Person</p>
+        <h3 class="p-modal-title" id="pvName">—</h3>
+        <p class="p-modal-desc" id="pvDesc">—</p>
+        <div class="p-modal-facts" id="pvFacts"></div>
+    </div>
+</div>
+
 <!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · <a href="index.php">Back to Home</a></p>
 </footer>
 
 <script>
+const peopleData = <?php echo json_encode($people); ?>;
+
+function findPerson(id) {
+    return peopleData.find(p => String(p.person_id) === String(id));
+}
+
+function openPModal(id) { document.getElementById(id).classList.add('open'); }
+function closePModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openViewDetails(id) {
+    const p = findPerson(id);
+    if (!p) return;
+
+    ktTrackItemView('person', id);
+
+    const media = document.getElementById('pvMedia');
+    media.style.backgroundImage = p.image ? `url('${p.image}')` : '';
+
+    document.getElementById('pvType').textContent = p.title || 'Person';
+    document.getElementById('pvName').textContent = p.fullname;
+    document.getElementById('pvDesc').textContent = p.description || 'No description available yet.';
+
+    let facts = '';
+    if (p.achievement) facts += `<div><p class="p-fact-label">Known For</p><p class="p-fact-value">${p.achievement}</p></div>`;
+    document.getElementById('pvFacts').innerHTML = facts;
+
+    openPModal('pViewModal');
+}
+
 function ktTrackItemView(type, id) {
     if (!id) return;
     const body = new URLSearchParams({ item_type: type, item_id: id }).toString();
