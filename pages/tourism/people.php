@@ -23,6 +23,28 @@ $people = [];
 if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER BY fullname ASC")) {
     $people = $result->fetch_all(MYSQLI_ASSOC);
 }
+
+// A readable ?person=slug URL (instead of just an id) when a card is
+// expanded — e.g. ?person=cj-panganiban. Appended with the id since
+// names aren't guaranteed unique.
+function kt_person_slug(array $item): string
+{
+    $base = strtolower(trim((string) ($item['fullname'] ?? '')));
+    $base = preg_replace('/[^a-z0-9]+/', '-', $base);
+    $base = trim($base, '-');
+    return ($base !== '' ? $base . '-' : '') . (int) $item['person_id'];
+}
+
+$openPersonSlug = isset($_GET['person']) ? trim((string) $_GET['person']) : '';
+$openPersonId = null;
+if ($openPersonSlug !== '') {
+    foreach ($people as $p) {
+        if (kt_person_slug($p) === $openPersonSlug) {
+            $openPersonId = (int) $p['person_id'];
+            break;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -161,8 +183,11 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
         </div>
         <?php else: ?>
         <div class="p-card-grid">
-            <?php foreach ($people as $item): ?>
-            <article class="p-card" id="person-card-<?= (int) $item['person_id'] ?>" onclick="togglePersonDetails(<?= (int) $item['person_id'] ?>)">
+            <?php foreach ($people as $item):
+                $slug = kt_person_slug($item);
+                $isOpen = $openPersonSlug !== '' && $openPersonSlug === $slug;
+            ?>
+            <article class="p-card<?= $isOpen ? ' is-expanded' : '' ?>" id="person-card-<?= (int) $item['person_id'] ?>" data-slug="<?= htmlspecialchars($slug) ?>" onclick="togglePersonDetails(<?= (int) $item['person_id'] ?>, '<?= htmlspecialchars($slug, ENT_QUOTES) ?>')">
                 <div class="p-card-media" <?= !empty($item['image']) ? 'style="background-image:url(\'' . htmlspecialchars($item['image']) . '\')"' : '' ?>>
                     <button class="p-fav-btn" type="button" aria-label="Save to favorites" onclick="event.stopPropagation();">&#9825;</button>
                     <?php if (!empty($item['title'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['title']) ?></span><?php endif; ?>
@@ -180,7 +205,7 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
                     </div>
                     <?php endif; ?>
                     <div class="p-card-actions">
-                        <button type="button" class="p-btn p-btn-primary" id="person-toggle-<?= (int) $item['person_id'] ?>" onclick="event.stopPropagation(); togglePersonDetails(<?= (int) $item['person_id'] ?>)">View Details</button>
+                        <button type="button" class="p-btn p-btn-primary" id="person-toggle-<?= (int) $item['person_id'] ?>" onclick="event.stopPropagation(); togglePersonDetails(<?= (int) $item['person_id'] ?>, '<?= htmlspecialchars($slug, ENT_QUOTES) ?>')"><?= $isOpen ? 'Hide Details' : 'View Details' ?></button>
                     </div>
                 </div>
             </article>
@@ -197,25 +222,34 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
 </footer>
 
 <script>
-let expandedPersonId = null;
+let expandedPersonId = <?php echo $openPersonId !== null ? $openPersonId : 'null'; ?>;
 
-function togglePersonDetails(id) {
+function setExpanded(id, slug, isOpening, updateUrl) {
     const card = document.getElementById('person-card-' + id);
     const btn = document.getElementById('person-toggle-' + id);
     if (!card || !btn) return;
+
+    card.classList.toggle('is-expanded', isOpening);
+    btn.textContent = isOpening ? 'Hide Details' : 'View Details';
+
+    if (updateUrl) {
+        const url = isOpening ? ('?person=' + encodeURIComponent(slug)) : window.location.pathname;
+        history.pushState({ person: isOpening ? slug : null }, '', url);
+    }
+}
+
+function togglePersonDetails(id, slug) {
+    const card = document.getElementById('person-card-' + id);
+    if (!card) return;
 
     const isOpening = !card.classList.contains('is-expanded');
 
     // Only one card expanded at a time — collapse whatever else was open.
     if (expandedPersonId !== null && expandedPersonId !== id) {
-        const prevCard = document.getElementById('person-card-' + expandedPersonId);
-        const prevBtn = document.getElementById('person-toggle-' + expandedPersonId);
-        if (prevCard) prevCard.classList.remove('is-expanded');
-        if (prevBtn) prevBtn.textContent = 'View Details';
+        setExpanded(expandedPersonId, null, false, false);
     }
 
-    card.classList.toggle('is-expanded', isOpening);
-    btn.textContent = isOpening ? 'Hide Details' : 'View Details';
+    setExpanded(id, slug, isOpening, true);
     expandedPersonId = isOpening ? id : null;
 
     if (isOpening) {
@@ -223,6 +257,30 @@ function togglePersonDetails(id) {
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
+
+// Browser back/forward: re-sync which card is expanded from the URL.
+window.addEventListener('popstate', () => {
+    const slug = new URLSearchParams(window.location.search).get('person');
+    if (expandedPersonId !== null) {
+        setExpanded(expandedPersonId, null, false, false);
+        expandedPersonId = null;
+    }
+    if (slug) {
+        const card = document.querySelector('.p-card[data-slug="' + CSS.escape(slug) + '"]');
+        if (card) {
+            const id = parseInt(card.id.replace('person-card-', ''), 10);
+            setExpanded(id, slug, true, false);
+            expandedPersonId = id;
+        }
+    }
+});
+
+<?php if ($openPersonId !== null): ?>
+document.addEventListener('DOMContentLoaded', () => {
+    const card = document.getElementById('person-card-<?php echo $openPersonId; ?>');
+    if (card) card.scrollIntoView({ behavior: 'instant', block: 'start' });
+});
+<?php endif; ?>
 
 function ktTrackItemView(type, id) {
     if (!id) return;
