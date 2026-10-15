@@ -129,6 +129,7 @@ if ($openPersonSlug !== '') {
 
 </header>
 
+<?php if ($openPerson === null): ?>
 <?php if (!$pageWidget): ?>
 <!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $peopleHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
@@ -150,6 +151,7 @@ if ($openPersonSlug !== '') {
 <?php endif; ?>
 
 <?php kt_page_widget_render_from($pageWidget, 'people'); ?>
+<?php endif; ?>
 
 <!-- ── People Grid ── -->
 <main class="t-main">
@@ -159,7 +161,6 @@ if ($openPersonSlug !== '') {
     <section class="t-category" id="people">
         <a class="p-detail-back" href="people.php">&larr; Back to People of Malvar</a>
         <div class="p-detail-wrap">
-            <div class="p-detail-media" <?= !empty($openPerson['image']) ? 'style="background-image:url(\'' . htmlspecialchars($openPerson['image']) . '\')"' : '' ?>></div>
             <div class="p-detail-body">
                 <?php if (!empty($openPerson['title'])): ?><p class="p-modal-eyebrow"><?= htmlspecialchars($openPerson['title']) ?></p><?php endif; ?>
                 <h1 class="p-detail-title"><?= htmlspecialchars($openPerson['fullname']) ?></h1>
@@ -173,6 +174,7 @@ if ($openPersonSlug !== '') {
                 </div>
                 <?php endif; ?>
             </div>
+            <div class="p-detail-media" <?= !empty($openPerson['image']) ? 'style="background-image:url(\'' . htmlspecialchars($openPerson['image']) . '\')"' : '' ?>></div>
         </div>
     </section>
     <?php else: ?>
