@@ -159,7 +159,15 @@ if ($openPersonSlug !== '') {
     <?php if ($openPerson !== null): ?>
     <!-- ── Full-page profile view ── -->
     <section class="t-category" id="people">
-        <a class="p-detail-back" href="people.php">&larr; Back to People of Malvar</a>
+        <nav class="p-breadcrumb" aria-label="Breadcrumb">
+            <a href="../../index.php">Home</a>
+            <span>&rsaquo;</span>
+            <a href="../tourism.php">Explore Malvar</a>
+            <span>&rsaquo;</span>
+            <a href="people.php">People of Malvar</a>
+            <span>&rsaquo;</span>
+            <span class="p-breadcrumb-current"><?= htmlspecialchars($openPerson['fullname']) ?></span>
+        </nav>
         <div class="p-detail-wrap">
             <div class="p-detail-body">
                 <?php if (!empty($openPerson['title'])): ?><p class="p-modal-eyebrow"><?= htmlspecialchars($openPerson['title']) ?></p><?php endif; ?>

@@ -199,62 +199,78 @@
 }
 
 /* ── Full-page profile view (instead of a card/modal) ── */
-.p-detail-back {
-    display: inline-block;
+.p-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
-    font-weight: 700;
-    color: #8b2e1a;
-    text-decoration: none;
-    margin-bottom: 20px;
+    color: rgba(44, 26, 14, 0.45);
+    margin-bottom: 36px;
 }
 
-.p-detail-back:hover {
+.p-breadcrumb a {
+    color: rgba(44, 26, 14, 0.5);
+    text-decoration: none;
+}
+
+.p-breadcrumb a:hover {
+    color: #8b2e1a;
     text-decoration: underline;
+}
+
+.p-breadcrumb-current {
+    color: #2c1a0e;
+    font-weight: 600;
 }
 
 .p-detail-wrap {
     display: flex;
-    gap: 36px;
-    background: #faf7f2;
-    border: 1px solid rgba(44, 26, 14, 0.1);
-    border-radius: 16px;
-    padding: 32px;
-    box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
+    align-items: flex-start;
+    gap: 56px;
 }
 
 .p-detail-media {
-    width: 320px;
+    width: 420px;
     flex-shrink: 0;
-    aspect-ratio: 1 / 1;
-    border-radius: 12px;
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
     background: #ded6c6 center/cover no-repeat;
+    box-shadow: 0 8px 28px rgba(44, 26, 14, 0.14);
 }
 
 .p-detail-body {
     flex: 1;
     min-width: 0;
+    padding-top: 8px;
 }
 
 .p-detail-title {
     font-family: Georgia, serif;
-    font-size: 32px;
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 1.1;
     color: #2c1a0e;
-    margin: 0 0 16px;
+    margin: 0 0 22px;
 }
 
 .p-detail-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.7;
+    font-size: 16px;
+    line-height: 1.75;
     color: rgba(44, 26, 14, 0.75);
-    margin: 0 0 20px;
+    margin: 0 0 24px;
+    max-width: 52ch;
 }
 
 @media (max-width: 768px) {
+    .p-detail-title {
+        font-size: 34px;
+    }
     .p-detail-wrap {
         flex-direction: column;
-        padding: 20px;
+        gap: 24px;
     }
     .p-detail-media {
         width: 100%;
