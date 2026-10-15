@@ -109,6 +109,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .setting-label { font-size: .83rem; color: var(--cream); }
 .setting-label.danger-label { color: var(--text-danger); }
 .setting-desc { font-size: .7rem; color: rgba(var(--cream-rgb),.3); margin-top: 3px; }
+.setting-model { display: inline-block; font-family: 'Courier New', monospace; font-size: .64rem; background: rgba(var(--overlay-rgb),.08); color: rgba(var(--cream-rgb),.55); padding: 2px 8px; border-radius: 6px; margin-top: 6px; }
 
 .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 600; padding: 5px 12px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
 .status-pill-dot { width: 7px; height: 7px; border-radius: 50%; }

@@ -100,6 +100,13 @@ $aiTextActive = ai_text_configured();
 $aiTextProvider = ai_configured() && groq_configured()
     ? 'Gemini, with Groq as a fallback'
     : (ai_configured() ? 'Gemini' : (groq_configured() ? 'Groq' : null));
+
+// The actual model ids in use, for a precise "what's really running"
+// answer rather than just a provider name.
+$aiEmbeddingModel = defined('GEMINI_EMBEDDING_MODEL') ? GEMINI_EMBEDDING_MODEL : null;
+$aiTextModel = ai_configured() && groq_configured()
+    ? GEMINI_TEXT_MODEL . ' (falls back to ' . GROQ_MODEL . ')'
+    : (ai_configured() ? GEMINI_TEXT_MODEL : (groq_configured() ? GROQ_MODEL : null));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -209,6 +216,7 @@ $aiTextProvider = ai_configured() && groq_configured()
                             <?php else: ?>
                                 No GEMINI_API_KEY found — using the local TF-IDF fallback (still works, just not AI-based).
                             <?php endif; ?>
+                            <?php if ($aiEmbeddingModel): ?><code class="setting-model"><?php echo htmlspecialchars($aiEmbeddingModel); ?></code><?php endif; ?>
                         </div>
                     </div>
                     <span class="status-pill <?php echo $aiActive ? 'status-pill-on' : 'status-pill-off'; ?>">
@@ -226,6 +234,7 @@ $aiTextProvider = ai_configured() && groq_configured()
                             <?php else: ?>
                                 No GEMINI_API_KEY or GROQ_API_KEY found — using the local trend-line/rule-based fallback (still works, just not AI-based).
                             <?php endif; ?>
+                            <?php if ($aiTextModel): ?><code class="setting-model"><?php echo htmlspecialchars($aiTextModel); ?></code><?php endif; ?>
                         </div>
                     </div>
                     <span class="status-pill <?php echo $aiTextActive ? 'status-pill-on' : 'status-pill-off'; ?>">
