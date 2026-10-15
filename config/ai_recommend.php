@@ -326,3 +326,42 @@ function ai_monthly_summary(mysqli $conn, array $stats): ?string
     }
     return mb_substr(trim($parsed['summary']), 0, 500);
 }
+
+// Prescriptive: AI-reasoned "what to actually do about it" actions,
+// replacing admindashboard.php's rule-based $recommendations list when
+// available. Returns the same [{icon, level, text}] shape that list
+// already uses, so it drops straight into the existing rec-list
+// markup — the rule-based version is still what renders whenever AI
+// isn't configured or the call fails, same fallback pattern as the
+// forecast.
+function ai_recommended_actions(mysqli $conn, array $stats): ?array
+{
+    $prompt = "You are a data analyst advising the admin of a small-town tourism website "
+        . "(Malvar, Batangas, Philippines). Here are this month's real stats:\n"
+        . json_encode($stats) . "\n\n"
+        . "Write 3-5 prioritized, specific, actionable recommendations based ONLY on patterns actually visible "
+        . "in this data — never invent a number that isn't given. Each is one concise sentence a busy admin "
+        . "can act on today. Respond with ONLY this JSON shape, no other text: "
+        . '{"actions": [{"level": "good|info|warn", '
+        . '"icon": "<one of: trending-up, megaphone, map-pin, utensils, pie-chart, users, eye-off, search, heart, alert-triangle, check-circle>", '
+        . '"text": "<one sentence>"}]}';
+
+    $parsed = ai_cached_or_generate($conn, 'recommended_actions_' . GEMINI_TEXT_MODEL, $stats, $prompt);
+    if ($parsed === null || !isset($parsed['actions']) || !is_array($parsed['actions'])) {
+        return null;
+    }
+
+    $allowedIcons = ['trending-up', 'megaphone', 'map-pin', 'utensils', 'pie-chart', 'users', 'eye-off', 'search', 'heart', 'alert-triangle', 'check-circle'];
+    $out = [];
+    foreach ($parsed['actions'] as $a) {
+        if (!is_array($a) || !isset($a['level'], $a['icon'], $a['text'])) {
+            continue;
+        }
+        $out[] = [
+            'icon'  => in_array($a['icon'], $allowedIcons, true) ? $a['icon'] : 'sparkles',
+            'level' => in_array($a['level'], ['good', 'info', 'warn'], true) ? $a['level'] : 'info',
+            'text'  => mb_substr((string) $a['text'], 0, 240),
+        ];
+    }
+    return !empty($out) ? array_slice($out, 0, 5) : null;
+}

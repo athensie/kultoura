@@ -406,6 +406,31 @@ if (empty($recommendations)) {
     $recommendations[] = ['icon' => 'check-circle', 'level' => 'good',
         'text' => 'No urgent issues detected right now — content mix and traffic look healthy for the current data.'];
 }
+
+// Prefer a real AI-reasoned action list over the rule-based one above
+// when Gemini is configured — it can connect patterns across stats
+// (e.g. a zero-result search matching a low-conversion listing) that
+// fixed if/then rules can't. The rule-based list never goes away: it's
+// still what renders whenever AI isn't configured or the call fails.
+$recommendationsAreAI = false;
+$aiActions = ai_recommended_actions($conn, [
+    'active_users_now'      => $activeUsers,
+    'total_page_views'      => $totalPageViews,
+    'listed_destinations'   => $listedDestinations,
+    'top_category'          => $topCategory,
+    'top_category_count'    => $topCategoryCount,
+    'category_share'        => $categoryShare,
+    'lowest_viewed_page'    => !empty($topPages) ? end($topPages) : null,
+    'trending_pages'        => $trendingPages,
+    'top_viewed_places'     => array_map(fn($i) => ['name' => $i['name'], 'views' => $i['views']], array_slice($topItems, 0, 5)),
+    'conversion_leaders'    => array_map(fn($c) => ['name' => $c['name'], 'views' => $c['views'], 'favorite_pct' => $c['favoritePct'], 'diary_pct' => $c['diaryPct']], array_slice($conversionItems, 0, 5)),
+    'zero_result_searches'  => array_map(fn($s) => $s['query'], $zeroResultSearches),
+    'projected_next_month_growth_pct' => $projectedGrowthPct,
+]);
+if ($aiActions !== null) {
+    $recommendations = $aiActions;
+    $recommendationsAreAI = true;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -887,7 +912,11 @@ if (empty($recommendations)) {
 
         <!-- 5. PRESCRIPTIVE ANALYTICS -->
         <div class="analytics-section" data-category="prescriptive">
-        <div class="alabel-desc">Recommended Actions <span class="analytics-tag tag-prescriptive">Prescriptive</span></div>
+        <div class="alabel-desc">
+            Recommended Actions
+            <span class="analytics-tag tag-prescriptive">Prescriptive</span>
+            <?php if ($recommendationsAreAI): ?><span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?>
+        </div>
 
         <div class="rec-list animate">
             <?php foreach ($recommendations as $rec): ?>
