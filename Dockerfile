@@ -1,6 +1,13 @@
 FROM php:8.2-apache
 
-RUN docker-php-ext-install mysqli pdo pdo_mysql \
+# libcurl4-openssl-dev is needed to compile the curl extension — the
+# base image doesn't ship it enabled, so config/ai_recommend.php's
+# curl_init() calls (Gemini embedding API) silently never ran, and
+# ai_configured() always reported false regardless of GEMINI_API_KEY.
+RUN apt-get update && apt-get install -y --no-install-recommends libcurl4-openssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install mysqli pdo pdo_mysql curl \
     && rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf \
              /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf \
              /etc/apache2/mods-enabled/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.conf \
