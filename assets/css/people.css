@@ -181,7 +181,8 @@
     font-family: Georgia, serif;
     font-size: 18px;
     color: #2c1a0e;
-    margin-bottom: 8px;
+    margin: 0 0 18px;
+    flex: 1;
 }
 
 .p-card-desc {
@@ -236,7 +237,7 @@
     flex-shrink: 0;
     aspect-ratio: 4 / 3;
     border-radius: 14px;
-    background: #ded6c6 center/cover no-repeat;
+    background: #ded6c6 center/contain no-repeat;
     box-shadow: 0 8px 28px rgba(44, 26, 14, 0.14);
 }
 
@@ -253,6 +254,20 @@
     line-height: 1.1;
     color: #2c1a0e;
     margin: 0 0 22px;
+}
+
+.p-fact-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.p-fact-list li.p-fact-value::before {
+    content: '• ';
+    color: #8b2e1a;
 }
 
 .p-detail-desc {

@@ -73,10 +73,27 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
     exit;
 }
 
+/*
+ |--------------------------------------------------------------------
+ | SCHEMA — widen `achievement` to TEXT
+ |--------------------------------------------------------------------
+ | It started as VARCHAR(255) (one line). Widened so an admin can list
+ | several achievements (one per line). Guarded with a static flag,
+ | same pattern as kt_page_widgets_ensure_schema().
+ */
+function kt_people_ensure_schema(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $conn->query("ALTER TABLE people MODIFY achievement TEXT NULL");
+}
+
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
+kt_people_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
@@ -324,11 +341,15 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($people as $p): ?>
+                        <?php foreach ($people as $p):
+                            $achLines = array_values(array_filter(array_map('trim', explode("\n", (string) ($p['achievement'] ?? '')))));
+                            $achPreview = $achLines[0] ?? '—';
+                            if (count($achLines) > 1) $achPreview .= ' (+' . (count($achLines) - 1) . ' more)';
+                        ?>
                             <tr data-id="<?php echo htmlspecialchars((string) $p['person_id']); ?>" data-name="<?php echo htmlspecialchars($p['fullname']); ?>">
                                 <td><?php echo htmlspecialchars($p['fullname']); ?></td>
                                 <td><?php echo htmlspecialchars($p['title'] ?: '—'); ?></td>
-                                <td><?php echo htmlspecialchars($p['achievement'] ?: '—'); ?></td>
+                                <td><?php echo htmlspecialchars($achPreview); ?></td>
                                 <td><?php echo (int) ($peopleViews[(int) $p['person_id']] ?? 0); ?></td>
                                 <td>
                                     <div class="table-actions">
@@ -353,7 +374,11 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                     <div class="chart-empty-sub">Profiles you add will show up here, and on the public People of Malvar page.</div>
                 </div>
             <?php else: ?>
-                <?php foreach ($people as $p): ?>
+                <?php foreach ($people as $p):
+                    $achLines = array_values(array_filter(array_map('trim', explode("\n", (string) ($p['achievement'] ?? '')))));
+                    $achPreview = $achLines[0] ?? '—';
+                    if (count($achLines) > 1) $achPreview .= ' (+' . (count($achLines) - 1) . ' more)';
+                ?>
                     <div class="grid-card" data-id="<?php echo htmlspecialchars((string) $p['person_id']); ?>" data-name="<?php echo htmlspecialchars($p['fullname']); ?>">
                         <div class="grid-card-media">
                             <?php if (!empty($p['image'])): ?>
@@ -366,7 +391,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                             <div class="grid-card-title"><?php echo htmlspecialchars($p['fullname']); ?></div>
                             <div class="grid-card-sub"><?php echo htmlspecialchars($p['title'] ?: '—'); ?></div>
                             <div class="grid-card-meta">
-                                <span><?php echo htmlspecialchars($p['achievement'] ?: '—'); ?></span>
+                                <span><?php echo htmlspecialchars($achPreview); ?></span>
                                 <span><i data-lucide="eye" class="lucide"></i> <?php echo (int) ($peopleViews[(int) $p['person_id']] ?? 0); ?></span>
                             </div>
                         </div>
@@ -402,15 +427,14 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <label class="form-label">Photo</label>
                 <input class="form-input" type="file" name="image_file" accept="image/*">
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Title</label>
-                    <input class="form-input" type="text" name="title" placeholder="e.g. Local Leader, Artist, Farmer">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Achievement</label>
-                    <input class="form-input" type="text" name="achievement" placeholder="e.g. Barangay Captain since 2018">
-                </div>
+            <div class="form-group">
+                <label class="form-label">Title</label>
+                <input class="form-input" type="text" name="title" placeholder="e.g. Local Leader, Artist, Farmer">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Achievements</label>
+                <textarea class="form-textarea" name="achievement" rows="3" placeholder="One per line, e.g.&#10;Barangay Captain since 2018&#10;Led the road improvement project"></textarea>
+                <p class="image-current-hint">One achievement per line.</p>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>
@@ -444,15 +468,14 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <input class="form-input" type="file" name="image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current photo.</p>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Title</label>
-                    <input class="form-input" type="text" name="title" id="editTitleInput" placeholder="Title">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Achievement</label>
-                    <input class="form-input" type="text" name="achievement" id="editAchievementInput" placeholder="Achievement">
-                </div>
+            <div class="form-group">
+                <label class="form-label">Title</label>
+                <input class="form-input" type="text" name="title" id="editTitleInput" placeholder="Title">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Achievements</label>
+                <textarea class="form-textarea" name="achievement" id="editAchievementInput" rows="3" placeholder="One per line"></textarea>
+                <p class="image-current-hint">One achievement per line.</p>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>

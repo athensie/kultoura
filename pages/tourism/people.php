@@ -173,11 +173,18 @@ if ($openPersonSlug !== '') {
                 <?php if (!empty($openPerson['title'])): ?><p class="p-modal-eyebrow"><?= htmlspecialchars($openPerson['title']) ?></p><?php endif; ?>
                 <h1 class="p-detail-title"><?= htmlspecialchars($openPerson['fullname']) ?></h1>
                 <p class="p-detail-desc"><?= nl2br(htmlspecialchars($openPerson['description'] ?? '')) ?></p>
-                <?php if (!empty($openPerson['achievement'])): ?>
+                <?php
+                    $detailAchievements = array_values(array_filter(array_map('trim', explode("\n", (string) ($openPerson['achievement'] ?? '')))));
+                ?>
+                <?php if (!empty($detailAchievements)): ?>
                 <div class="p-modal-facts">
                     <div>
                         <p class="p-fact-label">Known For</p>
-                        <p class="p-fact-value"><?= htmlspecialchars($openPerson['achievement']) ?></p>
+                        <ul class="p-fact-list">
+                            <?php foreach ($detailAchievements as $ach): ?>
+                                <li class="p-fact-value"><?= htmlspecialchars($ach) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -218,6 +225,8 @@ if ($openPersonSlug !== '') {
         <div class="p-card-grid">
             <?php foreach ($people as $item):
                 $slug = kt_person_slug($item);
+                $achLines = array_values(array_filter(array_map('trim', explode("\n", (string) ($item['achievement'] ?? '')))));
+                $achPreview = $achLines[0] ?? '';
             ?>
             <article class="p-card">
                 <div class="p-card-media" <?= !empty($item['image']) ? 'style="background-image:url(\'' . htmlspecialchars($item['image']) . '\')"' : '' ?>>
@@ -225,9 +234,8 @@ if ($openPersonSlug !== '') {
                     <?php if (!empty($item['title'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['title']) ?></span><?php endif; ?>
                 </div>
                 <div class="p-card-body">
-                    <?php if (!empty($item['achievement'])): ?><p class="p-card-category"><?= htmlspecialchars($item['achievement']) ?></p><?php endif; ?>
+                    <?php if ($achPreview !== ''): ?><p class="p-card-category"><?= htmlspecialchars($achPreview) ?><?= count($achLines) > 1 ? ' +' . (count($achLines) - 1) : '' ?></p><?php endif; ?>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['fullname']) ?></h3>
-                    <p class="p-card-desc"><?= htmlspecialchars($item['description'] ?? '') ?></p>
                     <div class="p-card-actions">
                         <a class="p-btn p-btn-primary" href="?person=<?= urlencode($slug) ?>">View Details</a>
                     </div>
