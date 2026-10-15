@@ -21,6 +21,9 @@ composer.lock
 # Secrets (real API keys — copy config/gemini.example.php to config/gemini.php and fill it in)
 config/gemini.php
 
+# Secrets (real API keys — copy config/groq.example.php to config/groq.php and fill it in)
+config/groq.php
+
 # One-time admin bootstrap script — reads credentials from env vars,
 # never hardcode real ones here (see config/createadmin.php's header)
 config/createadmin.php

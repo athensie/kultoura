@@ -38,6 +38,18 @@ if (!defined('GEMINI_API_KEY')) {
     }
 }
 
+// Same two-source pattern for Groq — see config/groq.example.php. Text-
+// generation only (no embeddings endpoint), so this only ever backs
+// ai_generate_json()'s fallback, never the embeddings path above.
+if (!defined('GROQ_API_KEY')) {
+    if (file_exists(__DIR__ . '/groq.php')) {
+        include __DIR__ . '/groq.php';
+    } elseif (getenv('GROQ_API_KEY') !== false) {
+        define('GROQ_API_KEY', getenv('GROQ_API_KEY'));
+        define('GROQ_MODEL', getenv('GROQ_MODEL') ?: 'openai/gpt-oss-120b');
+    }
+}
+
 $conn->query(
     "CREATE TABLE IF NOT EXISTS place_embeddings (
         item_type    VARCHAR(20) NOT NULL,
@@ -70,6 +82,21 @@ if (!defined('GEMINI_TEXT_MODEL')) {
 function ai_configured(): bool
 {
     return defined('GEMINI_API_KEY') && GEMINI_API_KEY !== '' && function_exists('curl_init');
+}
+
+function groq_configured(): bool
+{
+    return defined('GROQ_API_KEY') && GROQ_API_KEY !== '' && function_exists('curl_init');
+}
+
+// Whether ai_generate_json() has anywhere to go — Gemini, Groq, or
+// both. Embeddings are Gemini-only (see ai_configured() above), so
+// this is deliberately a separate check used only by the text-
+// generation features (forecast, summary, recommended actions, chart
+// insights), not by the recommendation engine's embedding calls.
+function ai_text_configured(): bool
+{
+    return ai_configured() || groq_configured();
 }
 
 // Raw call to Gemini's embedContent endpoint. Never throws — any
@@ -193,11 +220,7 @@ function ai_get_place_embedding(mysqli $conn, string $itemType, int $itemId, str
  | least-squares trend line is the fallback when this returns null,
  | same pattern as embeddings falling back to TF-IDF.
  */
-// Shared low-level call: one prompt in, one parsed JSON object out (or
-// null on any failure — bad key, network error, non-200, malformed
-// JSON). Every AI-generated analytics feature below is built on this
-// so there's exactly one place that talks to the generateContent API.
-function ai_generate_json(string $prompt): ?array
+function ai_generate_json_gemini(string $prompt): ?array
 {
     if (!ai_configured()) {
         return null;
@@ -236,6 +259,63 @@ function ai_generate_json(string $prompt): ?array
     }
     $parsed = json_decode($text, true);
     return is_array($parsed) ? $parsed : null;
+}
+
+// Groq's OpenAI-compatible chat completions endpoint — same "one
+// prompt in, one parsed JSON object out, null on any failure" contract
+// as the Gemini call above, just a different request/response shape.
+function ai_generate_json_groq(string $prompt): ?array
+{
+    if (!groq_configured()) {
+        return null;
+    }
+
+    $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_TIMEOUT        => 12,
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . GROQ_API_KEY,
+        ],
+        CURLOPT_POSTFIELDS => json_encode([
+            'model'           => GROQ_MODEL,
+            'messages'        => [['role' => 'user', 'content' => $prompt]],
+            'temperature'     => 0.2,
+            'response_format' => ['type' => 'json_object'],
+        ]),
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+
+    if ($response === false || $curlError || $httpCode !== 200) {
+        return null;
+    }
+
+    $data = json_decode($response, true);
+    $text = $data['choices'][0]['message']['content'] ?? null;
+    if (!is_string($text)) {
+        return null;
+    }
+    $parsed = json_decode($text, true);
+    return is_array($parsed) ? $parsed : null;
+}
+
+// Shared low-level call: one prompt in, one parsed JSON object out (or
+// null if neither provider could answer). Tries Gemini first, and
+// only on failure — bad/missing key, network error, non-200 (including
+// a quota 429), malformed JSON — retries the exact same prompt against
+// Groq. Every AI-generated analytics feature below is built on this,
+// so there's exactly one place that owns the provider fallback order.
+function ai_generate_json(string $prompt): ?array
+{
+    $result = ai_generate_json_gemini($prompt);
+    if ($result !== null) {
+        return $result;
+    }
+    return ai_generate_json_groq($prompt);
 }
 
 // Reads/writes the shared analytics_forecasts cache by an arbitrary key

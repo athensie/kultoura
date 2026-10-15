@@ -90,6 +90,16 @@ $settings = site_settings_get_all($conn, [
 // — there's no key input field, since GEMINI_API_KEY is a secret and
 // belongs in an env var, not a value typed into the admin panel.
 $aiActive = ai_configured();
+
+// Forecasting/summary/recommended-actions/chart-insights try Gemini
+// first and fall back to Groq (config/groq.php or GROQ_API_KEY) before
+// giving up on AI entirely — so "Active" here means either provider is
+// usable, not just Gemini. Embeddings above stay Gemini-only since
+// Groq has no embeddings endpoint.
+$aiTextActive = ai_text_configured();
+$aiTextProvider = ai_configured() && groq_configured()
+    ? 'Gemini, with Groq as a fallback'
+    : (ai_configured() ? 'Gemini' : (groq_configured() ? 'Groq' : null));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -207,18 +217,19 @@ $aiActive = ai_configured();
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <div class="setting-label">AI Forecasting</div>
+                        <div class="setting-label">AI Text Generation</div>
                         <div class="setting-desc">
-                            Powers the "Forecasts &amp; Momentum" prediction on the Analytics dashboard.
-                            <?php if ($aiActive): ?>
-                                Running on real Gemini reasoning over your page view history.
+                            Powers the Analytics dashboard's forecast, monthly summary, recommended actions, and
+                            per-chart insights.
+                            <?php if ($aiTextActive): ?>
+                                Running on <?php echo htmlspecialchars($aiTextProvider); ?>.
                             <?php else: ?>
-                                No GEMINI_API_KEY found — using the local trend-line fallback (still works, just not AI-based).
+                                No GEMINI_API_KEY or GROQ_API_KEY found — using the local trend-line/rule-based fallback (still works, just not AI-based).
                             <?php endif; ?>
                         </div>
                     </div>
-                    <span class="status-pill <?php echo $aiActive ? 'status-pill-on' : 'status-pill-off'; ?>">
-                        <span class="status-pill-dot"></span><?php echo $aiActive ? 'Active' : 'Inactive'; ?>
+                    <span class="status-pill <?php echo $aiTextActive ? 'status-pill-on' : 'status-pill-off'; ?>">
+                        <span class="status-pill-dot"></span><?php echo $aiTextActive ? 'Active' : 'Inactive'; ?>
                     </span>
                 </div>
             </div>
