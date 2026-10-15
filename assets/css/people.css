@@ -198,46 +198,66 @@
     gap: 10px;
 }
 
-/* ── Expand-in-place "View Details" (instead of a popup modal) ── */
-.p-card-expand-extra {
-    display: none;
-    margin: 0 0 18px;
+/* ── Full-page profile view (instead of a card/modal) ── */
+.p-detail-back {
+    display: inline-block;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #8b2e1a;
+    text-decoration: none;
+    margin-bottom: 20px;
 }
 
-.p-card.is-expanded .p-card-expand-extra {
-    display: block;
+.p-detail-back:hover {
+    text-decoration: underline;
 }
 
-.p-card-fact {
-    background: #f7f2ea;
-    border: 1px solid rgba(44, 26, 14, 0.08);
-    border-radius: 10px;
-    padding: 14px 16px;
+.p-detail-wrap {
+    display: flex;
+    gap: 36px;
+    background: #faf7f2;
+    border: 1px solid rgba(44, 26, 14, 0.1);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
 
-.p-card.is-expanded {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    cursor: default;
-}
-
-.p-card.is-expanded .p-card-media {
-    width: 280px;
-    height: auto;
+.p-detail-media {
+    width: 320px;
     flex-shrink: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    background: #ded6c6 center/cover no-repeat;
 }
 
-.p-card.is-expanded .p-card-body {
+.p-detail-body {
     flex: 1;
+    min-width: 0;
 }
 
-@media (max-width: 640px) {
-    .p-card.is-expanded {
+.p-detail-title {
+    font-family: Georgia, serif;
+    font-size: 32px;
+    color: #2c1a0e;
+    margin: 0 0 16px;
+}
+
+.p-detail-desc {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(44, 26, 14, 0.75);
+    margin: 0 0 20px;
+}
+
+@media (max-width: 768px) {
+    .p-detail-wrap {
         flex-direction: column;
+        padding: 20px;
     }
-    .p-card.is-expanded .p-card-media {
+    .p-detail-media {
         width: 100%;
-        height: 200px;
     }
 }
 
