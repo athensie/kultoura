@@ -365,3 +365,45 @@ function ai_recommended_actions(mysqli $conn, array $stats): ?array
     }
     return !empty($out) ? array_slice($out, 0, 5) : null;
 }
+
+// Per-chart "what this means / what to do about it" — one Gemini call
+// covering every Descriptive chart at once (not one call per chart:
+// that would mean ~10 sequential network round-trips on a cold cache).
+// $charts is [chart_key => ['title' => ..., 'data' => [...]]]. Returns
+// [chart_key => ['interpretation' => ..., 'solution' => ...]] — a key
+// is simply absent if the model skipped it or returned something
+// malformed, so callers just check isset() per chart.
+function ai_chart_insights(mysqli $conn, array $charts): array
+{
+    if (empty($charts)) {
+        return [];
+    }
+
+    $payload = array_map(fn($c) => ['title' => $c['title'], 'data' => $c['data']], $charts);
+
+    $prompt = "You are analyzing several charts on a small-town tourism website's admin analytics dashboard "
+        . "(Malvar, Batangas, Philippines). Each key below is a chart id with its title and real data:\n"
+        . json_encode($payload) . "\n\n"
+        . "For EVERY chart key present above, give a one-sentence interpretation (what the data actually shows) "
+        . "and a one-sentence solution (one specific, actionable next step for the admin). Base this only on the "
+        . "real data given — never invent numbers. If a chart has no meaningful data yet, say so plainly instead "
+        . "of guessing. Respond with ONLY this JSON shape, no other text, one entry per chart key: "
+        . '{"<chart_key>": {"interpretation": "<one sentence>", "solution": "<one sentence>"}}';
+
+    $parsed = ai_cached_or_generate($conn, 'chart_insights_' . GEMINI_TEXT_MODEL, $payload, $prompt);
+    if ($parsed === null) {
+        return [];
+    }
+
+    $out = [];
+    foreach ($charts as $key => $meta) {
+        $entry = $parsed[$key] ?? null;
+        if (is_array($entry) && isset($entry['interpretation'], $entry['solution'])) {
+            $out[$key] = [
+                'interpretation' => mb_substr((string) $entry['interpretation'], 0, 200),
+                'solution'       => mb_substr((string) $entry['solution'], 0, 200),
+            ];
+        }
+    }
+    return $out;
+}

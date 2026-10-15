@@ -431,6 +431,38 @@ if ($aiActions !== null) {
     $recommendations = $aiActions;
     $recommendationsAreAI = true;
 }
+
+// Per-chart "AI Interpretation & Solution" for every Descriptive chart
+// — one combined Gemini call (see ai_chart_insights()), not one call
+// per chart. A chart simply shows no insight box if AI isn't
+// configured, the call fails, or that key comes back missing.
+$chartInsights = ai_chart_insights($conn, [
+    'most_viewed_pages' => ['title' => 'Most Viewed Pages', 'data' => $topPages],
+    'recently_added' => ['title' => 'Recently Added', 'data' => array_map(fn($t) => ['name' => $t['name'], 'sub' => $t['sub']], $trending)],
+    'most_viewed_places' => ['title' => 'Most Viewed Places', 'data' => array_map(fn($i) => ['name' => $i['name'], 'type' => $i['type'], 'views' => $i['views']], $topItems)],
+    'conversion' => ['title' => 'Favorites & Travel Diary Conversion', 'data' => array_map(fn($c) => ['name' => $c['name'], 'views' => $c['views'], 'favorite_pct' => $c['favoritePct'], 'diary_pct' => $c['diaryPct']], $conversionItems)],
+    'top_searches' => ['title' => 'Top Searches', 'data' => $topSearches],
+    'zero_result_searches' => ['title' => 'Zero-Result Searches', 'data' => $zeroResultSearches],
+    'category_engagement' => ['title' => 'Content Engagement by Category', 'data' => $categoryShare],
+    'traffic_sources' => ['title' => 'Traffic Sources', 'data' => $trafficSources],
+    'monthly_trend' => ['title' => 'Monthly Visitor Trend', 'data' => array_map(fn($m) => ['month' => $m['label'], 'views' => $m['value']], $monthlyVisitors)],
+    'user_activity' => ['title' => 'User Activity Summary', 'data' => ['new_signups' => $newSignups, 'admin_logins' => $adminLogins, 'active_now' => $activeUsers]],
+]);
+$chartInsightsAreAI = !empty($chartInsights);
+
+function kt_render_chart_insight(array $chartInsights, string $key): void
+{
+    if (!isset($chartInsights[$key])) {
+        return;
+    }
+    $insight = $chartInsights[$key];
+    ?>
+    <div class="chart-ai-insight">
+        <div class="chart-ai-row"><i data-lucide="sparkles" class="lucide"></i><span><strong>Interpretation:</strong> <?php echo htmlspecialchars($insight['interpretation']); ?></span></div>
+        <div class="chart-ai-row"><i data-lucide="wrench" class="lucide"></i><span><strong>Solution:</strong> <?php echo htmlspecialchars($insight['solution']); ?></span></div>
+    </div>
+    <?php
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -541,7 +573,7 @@ if ($aiActions !== null) {
 
         <!-- 1. TRENDING & HIGHLY VISITED DESTINATIONS -->
         <div class="analytics-section" data-category="descriptive">
-        <div class="alabel-desc">Trending &amp; Highly Visited Destinations <span class="analytics-tag">Descriptive</span></div>
+        <div class="alabel-desc">Trending &amp; Highly Visited Destinations <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
 
         <div class="kpi-grid animate">
             <div class="kpi-card accent-clay">
@@ -589,6 +621,7 @@ if ($aiActions !== null) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'most_viewed_pages'); ?>
                 <?php endif; ?>
             </div>
 
@@ -613,6 +646,7 @@ if ($aiActions !== null) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'recently_added'); ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -638,6 +672,7 @@ if ($aiActions !== null) {
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?php kt_render_chart_insight($chartInsights, 'most_viewed_places'); ?>
             <?php endif; ?>
         </div>
         </div>
@@ -659,7 +694,7 @@ if ($aiActions !== null) {
 
         <!-- FAVORITES & TRAVEL DIARY CONVERSION -->
         <div class="analytics-section" data-category="descriptive">
-        <div class="alabel-desc">Favorites &amp; Travel Diary Conversion <span class="analytics-tag">Descriptive</span></div>
+        <div class="alabel-desc">Favorites &amp; Travel Diary Conversion <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
         <div class="chart-box chart-box-full animate">
             <h4>How Views Turn Into Favorites &amp; Diary Visits</h4>
             <?php if (empty($conversionItems)): ?>
@@ -689,13 +724,14 @@ if ($aiActions !== null) {
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?php kt_render_chart_insight($chartInsights, 'conversion'); ?>
             <?php endif; ?>
         </div>
         </div>
 
         <!-- SEARCH INSIGHTS -->
         <div class="analytics-section" data-category="descriptive">
-        <div class="alabel-desc">Search Insights <span class="analytics-tag">Descriptive</span></div>
+        <div class="alabel-desc">Search Insights <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
         <div class="charts-2col animate">
             <div class="chart-box">
                 <h4>Top Searches</h4>
@@ -717,6 +753,7 @@ if ($aiActions !== null) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'top_searches'); ?>
                 <?php endif; ?>
             </div>
             <div class="chart-box">
@@ -739,6 +776,7 @@ if ($aiActions !== null) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'zero_result_searches'); ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -746,7 +784,7 @@ if ($aiActions !== null) {
 
         <!-- 2. TOURIST ENGAGEMENT & INTERACTIONS -->
         <div class="analytics-section" data-category="descriptive">
-        <div class="alabel-desc">Tourist Engagement &amp; Content Interactions <span class="analytics-tag">Descriptive</span></div>
+        <div class="alabel-desc">Tourist Engagement &amp; Content Interactions <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
 
         <div class="charts-2col animate">
             <div class="chart-box">
@@ -770,6 +808,7 @@ if ($aiActions !== null) {
                             <?php endforeach; ?>
                         </div>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'category_engagement'); ?>
                 <?php endif; ?>
             </div>
 
@@ -793,6 +832,7 @@ if ($aiActions !== null) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'traffic_sources'); ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -800,7 +840,7 @@ if ($aiActions !== null) {
 
         <!-- 3. VISUAL REPORTS -->
         <div class="analytics-section" data-category="descriptive">
-        <div class="alabel-desc">Visual Reports &amp; Tourism Insights <span class="analytics-tag">Descriptive</span></div>
+        <div class="alabel-desc">Visual Reports &amp; Tourism Insights <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
 
         <div class="charts-2col animate">
             <div class="chart-box">
@@ -821,6 +861,7 @@ if ($aiActions !== null) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'monthly_trend'); ?>
                 <?php endif; ?>
             </div>
 
@@ -847,6 +888,7 @@ if ($aiActions !== null) {
                             <div><div class="activity-num"><?php echo (int) $activeUsers; ?></div><div class="activity-label">Online Right Now</div></div>
                         </div>
                     </div>
+                    <?php kt_render_chart_insight($chartInsights, 'user_activity'); ?>
                 <?php endif; ?>
             </div>
         </div>

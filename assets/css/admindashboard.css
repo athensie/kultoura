@@ -197,6 +197,12 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .ai-summary-box .lucide { width: 20px; height: 20px; color: #a78bfa; flex-shrink: 0; margin-top: 2px; }
 .ai-summary-box p { font-size: .88rem; line-height: 1.65; color: rgba(var(--cream-rgb),.8); margin: 0; }
 
+/* ---------- PER-CHART AI INTERPRETATION & SOLUTION ---------- */
+.chart-ai-insight { margin-top: 18px; padding-top: 16px; border-top: 1px dashed rgba(139,92,246,.2); display: flex; flex-direction: column; gap: 8px; }
+.chart-ai-row { display: flex; align-items: flex-start; gap: 8px; font-size: .74rem; line-height: 1.6; color: rgba(var(--cream-rgb),.65); }
+.chart-ai-row .lucide { width: 13px; height: 13px; color: #a78bfa; flex-shrink: 0; margin-top: 3px; }
+.chart-ai-row strong { color: #a78bfa; font-weight: 600; }
+
 /* ---------- FAVORITES & DIARY CONVERSION ---------- */
 .conversion-list { display: flex; flex-direction: column; gap: 4px; }
 .conversion-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 10px; border-radius: 10px; transition: background .2s; }
