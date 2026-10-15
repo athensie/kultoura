@@ -95,6 +95,76 @@ if (!function_exists('kt_entity_meta')) {
     }
 }
 
+/*
+ |--------------------------------------------------------------------
+ | ARCHIVE BROWSER — every content type that can be archived, with
+ | enough extra detail (which column is its name/thumbnail, and what
+ | "not archived" is actually called in that table — 'active' vs
+ | 'live') to list and restore archived rows generically in
+ | admin/adminrequests.php's Archive section. fb_video is deliberately
+ | left out — that whole feature was removed (see admin/adminhomepage.php).
+ |--------------------------------------------------------------------
+ */
+if (!function_exists('kt_archive_types')) {
+    function kt_archive_types(): array
+    {
+        return [
+            'destination'   => ['table' => 'destination',   'idCol' => 'destination_id', 'nameCol' => 'destination_name', 'imageCol' => 'image', 'activeStatus' => 'active', 'page' => 'admindestinations.php',   'label' => 'Destinations'],
+            'product'       => ['table' => 'products',       'idCol' => 'product_id',     'nameCol' => 'product_name',     'imageCol' => 'image', 'activeStatus' => 'active', 'page' => 'adminfoodanddining.php',  'label' => 'Products'],
+            'restaurant'    => ['table' => 'restaurants',     'idCol' => 'restaurant_id',  'nameCol' => 'restaurant_name',  'imageCol' => 'image', 'activeStatus' => 'active', 'page' => 'adminfoodanddining.php',  'label' => 'Restaurants'],
+            'fiesta'        => ['table' => 'fiestas',         'idCol' => 'fiesta_id',      'nameCol' => 'fiesta_name',      'imageCol' => 'image', 'activeStatus' => 'active', 'page' => 'admineventandfiesta.php', 'label' => 'Events & Fiestas'],
+            'person'        => ['table' => 'people',          'idCol' => 'person_id',      'nameCol' => 'fullname',         'imageCol' => 'image', 'activeStatus' => 'active', 'page' => 'adminpeople.php',         'label' => 'People of Malvar'],
+            'announcement'  => ['table' => 'announcements',   'idCol' => 'id',             'nameCol' => 'title',            'imageCol' => 'image', 'activeStatus' => 'live',   'page' => 'adminannouncements.php',  'label' => 'Announcements'],
+            'about_section' => ['table' => 'about_sections',  'idCol' => 'section_id',     'nameCol' => 'title',            'imageCol' => 'image', 'activeStatus' => 'active', 'page' => 'adminsitecontent.php',    'label' => 'About Sections'],
+            'partner'       => ['table' => 'partners',        'idCol' => 'id',             'nameCol' => 'name',             'imageCol' => 'logo',  'activeStatus' => 'live',   'page' => 'adminhomepage.php',       'label' => 'Partners'],
+            'event_photo'   => ['table' => 'event_gallery',   'idCol' => 'id',             'nameCol' => 'caption',          'imageCol' => 'image', 'activeStatus' => 'live',   'page' => 'adminhomepage.php',       'label' => 'Event Gallery'],
+            'page_widget'   => ['table' => 'page_widgets',    'idCol' => 'id',             'nameCol' => 'page_slug',        'imageCol' => 'main_image', 'activeStatus' => 'live', 'page' => 'adminpagewidgets.php',   'label' => 'Page Widgets'],
+        ];
+    }
+}
+
+// All archived rows, grouped by type — only types that actually have at
+// least one archived row are included, so the Archive section doesn't
+// list a dozen empty categories.
+if (!function_exists('kt_archived_items_grouped')) {
+    function kt_archived_items_grouped(mysqli $conn): array
+    {
+        $grouped = [];
+        foreach (kt_archive_types() as $type => $meta) {
+            $sql = "SELECT `{$meta['idCol']}` AS id, `{$meta['nameCol']}` AS name, `{$meta['imageCol']}` AS image, created_at
+                     FROM `{$meta['table']}` WHERE status = 'archived' ORDER BY created_at DESC";
+            $result = $conn->query($sql);
+            if (!$result || $result->num_rows === 0) {
+                continue;
+            }
+            $grouped[$type] = [
+                'label' => $meta['label'],
+                'page'  => $meta['page'],
+                'items' => $result->fetch_all(MYSQLI_ASSOC),
+            ];
+        }
+        return $grouped;
+    }
+}
+
+// Flips one archived row back to its "live" status. Generic across every
+// type in kt_archive_types() since they all archive the same way (a
+// plain status UPDATE, never a real delete) — restoring is just that
+// same flip, run in the opposite direction.
+if (!function_exists('kt_archive_restore')) {
+    function kt_archive_restore(mysqli $conn, string $entityType, int $id): bool
+    {
+        $meta = kt_archive_types()[$entityType] ?? null;
+        if (!$meta) return false;
+
+        $stmt = $conn->prepare("UPDATE `{$meta['table']}` SET status = ? WHERE `{$meta['idCol']}` = ?");
+        $stmt->bind_param('si', $meta['activeStatus'], $id);
+        $ok = $stmt->execute();
+        $stmt->close();
+        return $ok;
+    }
+}
+
 // The live row an 'update' or 'archive' request is based on, keyed the
 // same way as the request's payload — so the review queue can show
 // "current value -> proposed value" per field instead of just the new
