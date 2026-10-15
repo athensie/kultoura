@@ -52,12 +52,15 @@ function openEditPerson(id) {
   document.getElementById('editTitleInput').value = p.title || '';
   document.getElementById('editAchievementInput').value = p.achievement || '';
   document.getElementById('editDescInput').value = p.description || '';
+  document.getElementById('editExistingImage').value = p.image || '';
   openModal('editPersonModal');
 }
 
 function confirmDelete(id, name) {
   document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
-  document.getElementById('deleteDesc').textContent = 'This will permanently remove this profile from KulToura.';
+  // deleteDesc's real text is server-rendered (PHP) based on role — it
+  // already says the right thing (archived, not permanently deleted, or
+  // submitted for approval), so it's deliberately left untouched here.
   document.getElementById('deletePersonId').value = id;
   openModal('deleteModal');
 }

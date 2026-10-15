@@ -20,6 +20,48 @@ define('BASE_URL', '/kultoura');
 
 /*
  |--------------------------------------------------------------------
+ | IMAGE UPLOAD
+ |--------------------------------------------------------------------
+ | Same validation/storage pattern as adminfoodanddining.php's
+ | kt_handle_image_upload(). Returns null if no file was uploaded, so
+ | the caller can fall back to keeping the existing image on edit.
+ */
+function kt_fiesta_handle_image_upload(string $fieldName = 'image_file'): ?string
+{
+    if (empty($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    $originalName = $_FILES[$fieldName]['name'];
+    $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExt, true)) {
+        return null;
+    }
+    if (@getimagesize($_FILES[$fieldName]['tmp_name']) === false) {
+        return null;
+    }
+
+    $uploadDir = __DIR__ . '/../assets/uploads/fiestas/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $safeName = preg_replace('/[^a-z0-9_-]/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
+    $filename = uniqid('fiesta_', true) . '_' . $safeName . '.' . $ext;
+
+    if (move_uploaded_file($_FILES[$fieldName]['tmp_name'], $uploadDir . $filename)) {
+        return BASE_URL . '/assets/uploads/fiestas/' . $filename;
+    }
+
+    return null;
+}
+
+/*
+ |--------------------------------------------------------------------
  | ACCESS CONTROL
  |--------------------------------------------------------------------
  | Only logged-in users with the "admin" or "super admin" role may
@@ -80,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = $row['name'] ?? ('Event #' . $id);
         } else {
             $name = trim($_POST['name'] ?? '');
+            $image = kt_fiesta_handle_image_upload() ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
             $data = [
                 'fiesta_name'      => $name,
                 'type'             => ($_POST['type'] ?? '') === 'Event' ? 'Event' : 'Fiesta',
@@ -88,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'latitude'         => $_POST['latitude'] ?? '',
                 'longitude'        => $_POST['longitude'] ?? '',
                 'description'      => trim($_POST['desc'] ?? ''),
+                'image'            => $image ?: null,
             ];
 
             if ($name === '') {
@@ -121,7 +165,7 @@ unset($_SESSION['flash']);
 $eventTypes = ['Fiesta', 'Event'];
 
 $events = [];
-if ($result = $conn->query("SELECT * FROM fiestas ORDER BY celebration_date ASC")) {
+if ($result = $conn->query("SELECT * FROM fiestas WHERE status = 'active' ORDER BY celebration_date ASC")) {
     $events = $result->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -378,12 +422,16 @@ $upcomingCount = count(array_filter($events, function ($e) {
         <button class="modal-close" onclick="closeModal('addEventModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add New Event</div>
         <div class="modal-sub">Fill in the details to add a new fiesta or community event.</div>
-        <form id="addEventForm" method="POST" action="admineventandfiesta.php">
+        <form id="addEventForm" method="POST" action="admineventandfiesta.php" enctype="multipart/form-data">
             <input type="hidden" name="action" value="add">
             <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label class="form-label">Event Name</label>
                 <input class="form-input" type="text" name="name" placeholder="e.g. Pista ng Malvar" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Photo</label>
+                <input class="form-input" type="file" name="image_file" accept="image/*">
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -429,13 +477,19 @@ $upcomingCount = count(array_filter($events, function ($e) {
         <button class="modal-close" onclick="closeModal('editEventModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Event</div>
         <div class="modal-sub" id="editEventName">Editing: —</div>
-        <form id="editEventForm" method="POST" action="admineventandfiesta.php">
+        <form id="editEventForm" method="POST" action="admineventandfiesta.php" enctype="multipart/form-data">
             <input type="hidden" name="action" value="edit">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="fiesta_id" id="editFiestaId">
+            <input type="hidden" name="existing_image" id="editExistingImage">
             <div class="form-group">
                 <label class="form-label">Event Name</label>
                 <input class="form-input" type="text" name="name" id="editNameInput" placeholder="Event name" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Replace Photo</label>
+                <input class="form-input" type="file" name="image_file" accept="image/*">
+                <p class="image-current-hint">Leave empty to keep the current photo.</p>
             </div>
             <div class="form-row">
                 <div class="form-group">

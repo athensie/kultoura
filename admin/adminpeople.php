@@ -16,6 +16,48 @@ define('BASE_URL', '/kultoura');
 
 /*
  |--------------------------------------------------------------------
+ | IMAGE UPLOAD
+ |--------------------------------------------------------------------
+ | Same validation/storage pattern as adminfoodanddining.php's
+ | kt_handle_image_upload(). Returns null if no file was uploaded, so
+ | the caller can fall back to keeping the existing image on edit.
+ */
+function kt_person_handle_image_upload(string $fieldName = 'image_file'): ?string
+{
+    if (empty($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    $originalName = $_FILES[$fieldName]['name'];
+    $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExt, true)) {
+        return null;
+    }
+    if (@getimagesize($_FILES[$fieldName]['tmp_name']) === false) {
+        return null;
+    }
+
+    $uploadDir = __DIR__ . '/../assets/uploads/people/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $safeName = preg_replace('/[^a-z0-9_-]/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
+    $filename = uniqid('person_', true) . '_' . $safeName . '.' . $ext;
+
+    if (move_uploaded_file($_FILES[$fieldName]['tmp_name'], $uploadDir . $filename)) {
+        return BASE_URL . '/assets/uploads/people/' . $filename;
+    }
+
+    return null;
+}
+
+/*
+ |--------------------------------------------------------------------
  | ACCESS CONTROL
  |--------------------------------------------------------------------
  */
@@ -63,11 +105,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fullname = $row['name'] ?? ('Profile #' . $id);
         } else {
             $fullname = trim($_POST['fullname'] ?? '');
+            $image = kt_person_handle_image_upload() ?? ($entityAction === 'update' ? trim($_POST['existing_image'] ?? '') : '');
             $data = [
                 'fullname'    => $fullname,
                 'title'       => trim($_POST['title'] ?? ''),
                 'achievement' => trim($_POST['achievement'] ?? ''),
                 'description' => trim($_POST['desc'] ?? ''),
+                'image'       => $image ?: null,
             ];
 
             if ($fullname === '') {
@@ -99,7 +143,7 @@ unset($_SESSION['flash']);
  |--------------------------------------------------------------------
  */
 $people = [];
-if ($result = $conn->query("SELECT * FROM people ORDER BY fullname ASC")) {
+if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER BY fullname ASC")) {
     $people = $result->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -339,12 +383,16 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         <button class="modal-close" onclick="closeModal('addPersonModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add New Profile</div>
         <div class="modal-sub">Fill in the details to add a person of Malvar.</div>
-        <form id="addPersonForm" method="POST" action="adminpeople.php">
+        <form id="addPersonForm" method="POST" action="adminpeople.php" enctype="multipart/form-data">
             <input type="hidden" name="action" value="add">
             <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label class="form-label">Full Name</label>
                 <input class="form-input" type="text" name="fullname" placeholder="e.g. Juan Dela Cruz" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Photo</label>
+                <input class="form-input" type="file" name="image_file" accept="image/*">
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -374,13 +422,19 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         <button class="modal-close" onclick="closeModal('editPersonModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Profile</div>
         <div class="modal-sub" id="editPersonName">Editing: —</div>
-        <form id="editPersonForm" method="POST" action="adminpeople.php">
+        <form id="editPersonForm" method="POST" action="adminpeople.php" enctype="multipart/form-data">
             <input type="hidden" name="action" value="edit">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="person_id" id="editPersonId">
+            <input type="hidden" name="existing_image" id="editExistingImage">
             <div class="form-group">
                 <label class="form-label">Full Name</label>
                 <input class="form-input" type="text" name="fullname" id="editFullnameInput" placeholder="Full name" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Replace Photo</label>
+                <input class="form-input" type="file" name="image_file" accept="image/*">
+                <p class="image-current-hint">Leave empty to keep the current photo.</p>
             </div>
             <div class="form-row">
                 <div class="form-group">

@@ -64,6 +64,7 @@ function openEditEvent(id) {
   if (typeSel) [...typeSel.options].forEach(o => { o.selected = o.value === e.type; });
   document.getElementById('editDateInput').value = e.celebration_date || '';
   document.getElementById('editDescInput').value = e.description || '';
+  document.getElementById('editExistingImage').value = e.image || '';
   document.getElementById('editLocationInput').value = e.location || '';
   const label = document.getElementById('editMapLabel');
   if (label) label.textContent = e.location || 'No location selected yet — search or click the map.';
@@ -84,7 +85,9 @@ function openEditEvent(id) {
 
 function confirmDelete(id, name) {
   document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
-  document.getElementById('deleteDesc').textContent = 'This will permanently remove this event from KulToura.';
+  // deleteDesc's real text is server-rendered (PHP) based on role — it
+  // already says the right thing (archived, not permanently deleted, or
+  // submitted for approval), so it's deliberately left untouched here.
   document.getElementById('deleteFiestaId').value = id;
   openModal('deleteModal');
 }

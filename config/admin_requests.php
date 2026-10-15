@@ -468,18 +468,19 @@ if (!function_exists('kt_apply_fiesta')) {
 
         $lat = $d['latitude'] !== null && $d['latitude'] !== '' ? (float) $d['latitude'] : null;
         $lng = $d['longitude'] !== null && $d['longitude'] !== '' ? (float) $d['longitude'] : null;
+        $image = $d['image'] ?? null;
 
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO fiestas (fiesta_name, type, celebration_date, location, latitude, longitude, description, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW())"
+                "INSERT INTO fiestas (fiesta_name, type, celebration_date, location, latitude, longitude, description, image, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())"
             );
-            $stmt->bind_param('ssssdds', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description']);
+            $stmt->bind_param('ssssddss', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description'], $image);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE fiestas SET fiesta_name=?, type=?, celebration_date=?, location=?, latitude=?, longitude=?, description=? WHERE fiesta_id=?"
+                "UPDATE fiestas SET fiesta_name=?, type=?, celebration_date=?, location=?, latitude=?, longitude=?, description=?, image=? WHERE fiesta_id=?"
             );
-            $stmt->bind_param('ssssddsi', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description'], $id);
+            $stmt->bind_param('ssssddssi', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description'], $image, $id);
         }
         $stmt->execute();
         $stmt->close();
@@ -499,16 +500,18 @@ if (!function_exists('kt_apply_person')) {
             return $name;
         }
 
+        $image = $d['image'] ?? null;
+
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO people (fullname, title, achievement, description, created_at) VALUES (?, ?, ?, ?, NOW())"
+                "INSERT INTO people (fullname, title, achievement, description, image, created_at) VALUES (?, ?, ?, ?, ?, NOW())"
             );
-            $stmt->bind_param('ssss', $name, $d['title'], $d['achievement'], $d['description']);
+            $stmt->bind_param('sssss', $name, $d['title'], $d['achievement'], $d['description'], $image);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE people SET fullname=?, title=?, achievement=?, description=? WHERE person_id=?"
+                "UPDATE people SET fullname=?, title=?, achievement=?, description=?, image=? WHERE person_id=?"
             );
-            $stmt->bind_param('ssssi', $name, $d['title'], $d['achievement'], $d['description'], $id);
+            $stmt->bind_param('sssssi', $name, $d['title'], $d['achievement'], $d['description'], $image, $id);
         }
         $stmt->execute();
         $stmt->close();
