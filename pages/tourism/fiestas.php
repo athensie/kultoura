@@ -234,12 +234,12 @@ if (isset($_GET['ajax_calendar'])) {
         <div class="p-content-col">
 
             <section class="p-search-row">
-                <form class="p-search-bar" action="fiestas.php" method="get">
-                    <input type="text" name="q" placeholder="Search fiestas, barangays, dates…">
-                    <select name="category" class="p-category-select">
-                        <option>All Categories</option>
-                        <option>Fiesta</option>
-                        <option>Event</option>
+                <form class="p-search-bar" action="fiestas.php" method="get" onsubmit="return false;">
+                    <input type="text" name="q" id="pSearchInput" placeholder="Search fiestas, barangays, dates…">
+                    <select name="category" class="p-category-select" id="pCategorySelect">
+                        <option value="">All Categories</option>
+                        <option value="Fiesta">Fiesta</option>
+                        <option value="Event">Event</option>
                     </select>
                 </form>
             </section>
@@ -281,7 +281,10 @@ if (isset($_GET['ajax_calendar'])) {
                         $isFav = in_array((string) $fid, $favoritedFiestaIds, true);
                         $fMonth = !empty($item['celebration_date']) ? (int) date('n', strtotime($item['celebration_date'])) : '';
                     ?>
-                    <article class="p-card" data-month="<?= $fMonth ?>" onclick="openViewDetails(<?= $fid ?>)">
+                    <?php
+                        $searchBlob = mb_strtolower(trim(($item['fiesta_name'] ?? '') . ' ' . ($item['location'] ?? '') . ' ' . ($item['description'] ?? '')));
+                    ?>
+                    <article class="p-card" data-month="<?= $fMonth ?>" data-category="<?= htmlspecialchars($item['type'] ?? '') ?>" data-search="<?= htmlspecialchars($searchBlob) ?>" onclick="openViewDetails(<?= $fid ?>)">
                         <div class="p-card-body">
                             <div class="p-card-top-row">
                                 <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
@@ -370,47 +373,63 @@ function findFiesta(id) {
 function openPModal(id) { document.getElementById(id).classList.add('open'); }
 function closePModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// ── Month filter — multi-select pills, client-side (mirrors the
-// category-pill filter pattern used on the homepage's "For You" preview) ──
+// ── Filtering — search box, category select, and month pills all combine
+// (AND logic) over the cards already rendered, client-side, no page reload ──
 (function () {
     const pillBar = document.getElementById('pMonthPills');
     const clearBtn = document.getElementById('pMonthClear');
     const grid = document.getElementById('pFiestaGrid');
     const emptyState = document.getElementById('pMonthEmptyState');
-    if (!pillBar || !grid) return;
+    const searchInput = document.getElementById('pSearchInput');
+    const categorySelect = document.getElementById('pCategorySelect');
+    if (!grid) return;
 
     const activeMonths = new Set();
 
     function applyFilter() {
-        clearBtn.hidden = activeMonths.size === 0;
+        if (clearBtn) clearBtn.hidden = activeMonths.size === 0 && !searchInput.value.trim() && !categorySelect.value;
+        const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        const category = categorySelect ? categorySelect.value : '';
         let visibleCount = 0;
         grid.querySelectorAll('.p-card').forEach((card) => {
-            const show = activeMonths.size === 0 || activeMonths.has(card.dataset.month);
+            const matchesMonth = activeMonths.size === 0 || activeMonths.has(card.dataset.month);
+            const matchesCategory = !category || card.dataset.category === category;
+            const matchesSearch = !query || (card.dataset.search || '').includes(query);
+            const show = matchesMonth && matchesCategory && matchesSearch;
             card.style.display = show ? '' : 'none';
             if (show) visibleCount++;
         });
         if (emptyState) emptyState.hidden = visibleCount !== 0;
     }
 
-    pillBar.addEventListener('click', (e) => {
-        const pill = e.target.closest('.p-month-pill');
-        if (!pill) return;
-        const month = pill.dataset.month;
-        if (activeMonths.has(month)) {
-            activeMonths.delete(month);
-            pill.classList.remove('is-active');
-        } else {
-            activeMonths.add(month);
-            pill.classList.add('is-active');
-        }
-        applyFilter();
-    });
+    if (pillBar) {
+        pillBar.addEventListener('click', (e) => {
+            const pill = e.target.closest('.p-month-pill');
+            if (!pill) return;
+            const month = pill.dataset.month;
+            if (activeMonths.has(month)) {
+                activeMonths.delete(month);
+                pill.classList.remove('is-active');
+            } else {
+                activeMonths.add(month);
+                pill.classList.add('is-active');
+            }
+            applyFilter();
+        });
+    }
 
-    clearBtn.addEventListener('click', () => {
-        activeMonths.clear();
-        pillBar.querySelectorAll('.p-month-pill').forEach((p) => p.classList.remove('is-active'));
-        applyFilter();
-    });
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            activeMonths.clear();
+            if (pillBar) pillBar.querySelectorAll('.p-month-pill').forEach((p) => p.classList.remove('is-active'));
+            if (searchInput) searchInput.value = '';
+            if (categorySelect) categorySelect.value = '';
+            applyFilter();
+        });
+    }
+
+    if (searchInput) searchInput.addEventListener('input', applyFilter);
+    if (categorySelect) categorySelect.addEventListener('change', applyFilter);
 })();
 
 // ── Calendar month navigation (no page reload) ──
