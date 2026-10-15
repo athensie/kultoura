@@ -91,6 +91,26 @@ function fy_is_favorited(string $itemType, int $itemId, array $favoritedKeys): b
     return isset($favoritedKeys[$itemType . '-' . $itemId]);
 }
 
+// Places the user has actually logged a visit to in their Travel Diary
+// (diary_entries) — a stronger signal than a casual page view or even a
+// favorite, since it means they went, and often wrote a note about it.
+// Oldest-first so the recency weighting below treats the most recent
+// trip as the strongest signal. Session-only visitors (not logged in)
+// have no diary, so this is empty for them — same gate as $favoritedKeys.
+$diaryItemKeys = [];
+if ($isLoggedIn) {
+    $diaryUserId = (int) $_SESSION['user_id'];
+    if ($diaryStmt = $conn->prepare("SELECT item_type, item_id FROM diary_entries WHERE user_id = ? ORDER BY created_at ASC")) {
+        $diaryStmt->bind_param('i', $diaryUserId);
+        $diaryStmt->execute();
+        $diaryRows = $diaryStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $diaryStmt->close();
+        foreach ($diaryRows as $dr) {
+            $diaryItemKeys[] = $dr['item_type'] . '-' . $dr['item_id'];
+        }
+    }
+}
+
 // Which broad filter pill each category belongs to, and which color
 // the category badge on each card should use.
 
@@ -264,10 +284,12 @@ $categoryLabels = [
    1. Every place becomes a TF-IDF vector built from its name,
       category and description.
    2. A "profile vector" for the visitor is the weighted centroid
-      of the vectors for every place they opened or favorited —
-      real interaction signals, not just which category page loaded:
-        - items opened ($_SESSION['itemHistory'])  weight 3x
-        - favorites    ($favoritedKeys)             weight 5x
+      of the vectors for every place they opened, logged in their
+      Travel Diary, or favorited — real interaction signals, not
+      just which category page loaded:
+        - items opened  ($_SESSION['itemHistory'])  weight 3x
+        - diary entries ($diaryItemKeys)             weight 4x
+        - favorites     ($favoritedKeys)             weight 5x
       Each is also recency-weighted so recent activity outweighs
       older activity.
    3. Every other place is scored by cosine similarity to that
@@ -390,12 +412,16 @@ foreach ($places as $p) {
 
 $history = $_SESSION['history'];
 $itemHistory = $_SESSION['itemHistory'];
-$hasHistory = count($history) > 0 || count($itemHistory) > 0 || count($favoritedKeys) > 0;
+$hasHistory = count($history) > 0 || count($itemHistory) > 0 || count($favoritedKeys) > 0 || count($diaryItemKeys) > 0;
 
-// -- Category affinity (recency-weighted, same three signals) --
+// -- Category affinity (recency-weighted, now four signals) --
 $freq = fy_recency_weighted_scores($history, 1.0);
 $itemHistoryCats = array_map(fn($h) => $h['type'], $itemHistory);
 foreach (fy_recency_weighted_scores($itemHistoryCats, 3.0) as $cat => $score) {
+    $freq[$cat] = ($freq[$cat] ?? 0) + $score;
+}
+$diaryCats = array_values(array_filter(array_map(fn($key) => $placesByKey[$key]['category'] ?? null, $diaryItemKeys)));
+foreach (fy_recency_weighted_scores($diaryCats, 4.0) as $cat => $score) {
     $freq[$cat] = ($freq[$cat] ?? 0) + $score;
 }
 foreach (array_keys($favoritedKeys) as $key) {
@@ -407,13 +433,24 @@ arsort($freq);
 $topCategories = array_keys($freq);
 $maxFreq = !empty($freq) ? max($freq) : 0;
 
-// -- Content profile vector: weighted centroid of every item opened
-//    or favorited, so what the visitor actually read about (not just
-//    which category they clicked) drives the similarity score. --
+// -- Content profile vector: weighted centroid of every item opened,
+//    logged in the Travel Diary, or favorited, so what the visitor
+//    actually read about / visited (not just which category they
+//    clicked) drives the similarity score. --
 $profileVector = [];
 $profileWeight = 0.0;
 $itemHistoryKeyed = array_map(fn($h) => $h['type'] . '-' . $h['id'], $itemHistory);
 foreach (fy_recency_weighted_scores($itemHistoryKeyed, 3.0) as $key => $weight) {
+    if (!isset($placesByKey[$key])) continue;
+    foreach ($placeVectors[$placesByKey[$key]['id']] as $term => $w) {
+        $profileVector[$term] = ($profileVector[$term] ?? 0) + ($w * $weight);
+    }
+    $profileWeight += $weight;
+}
+// Diary visits outweigh a casual page view and sit just under an
+// explicit favorite — logging a trip (often with a note) is a
+// deliberate, confirmed sign of interest in that kind of place.
+foreach (fy_recency_weighted_scores($diaryItemKeys, 4.0) as $key => $weight) {
     if (!isset($placesByKey[$key])) continue;
     foreach ($placeVectors[$placesByKey[$key]['id']] as $term => $w) {
         $profileVector[$term] = ($profileVector[$term] ?? 0) + ($w * $weight);
@@ -434,11 +471,15 @@ if ($profileWeight > 0) {
     }
 }
 
-// Items already opened this session — excluded first so the section
-// surfaces something new rather than a repeat of what was just viewed.
+// Items already opened this session, or already logged in the Travel
+// Diary, are excluded first so the section surfaces something new
+// rather than a repeat of a trip already taken and written up.
 $viewedItemKeys = [];
 foreach ($itemHistory as $h) {
     $viewedItemKeys[$h['type'] . '-' . $h['id']] = true;
+}
+foreach ($diaryItemKeys as $key) {
+    $viewedItemKeys[$key] = true;
 }
 
 // Interest score for every place, not just the eventual top 6 — sent
