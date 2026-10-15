@@ -48,6 +48,7 @@ $adminRole = $_SESSION['role'] ?? 'Admin';
 include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/admin_requests.php';
+require_once '../config/ai_recommend.php';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
 
@@ -280,6 +281,23 @@ if (count($monthsWithData) >= 3 && $totalRecentViews >= 10) {
         ? (int) round((($projectedNextMonth - $baseline) / $baseline) * 100)
         : 0;
     $projectedGrowthPct = max(-90, min(200, $projectedGrowthPct));
+}
+
+// When Gemini is configured, prefer a real AI forecast over the trend
+// line above — it can weigh recent momentum and seasonality in a way a
+// straight line can't. The trend line never goes away: it's still what
+// renders whenever AI isn't configured or the call fails, so the
+// section always has a number as long as there's enough real data.
+$forecastIsAI = false;
+$forecastInsight = null;
+if ($projectedNextMonth !== null) {
+    $aiForecast = ai_forecast_pageviews($conn, $monthlyVisitors);
+    if ($aiForecast !== null) {
+        $projectedNextMonth = $aiForecast['projected_next_month'];
+        $projectedGrowthPct = $aiForecast['growth_pct'];
+        $forecastInsight = $aiForecast['insight'];
+        $forecastIsAI = true;
+    }
 }
 
 // Pages gaining momentum: this week's views vs last week's, per page.
@@ -669,7 +687,11 @@ if (empty($recommendations)) {
         </div>
 
         <!-- 4. PREDICTIVE ANALYTICS -->
-        <div class="alabel-desc">Forecasts &amp; Momentum <span class="analytics-tag tag-predictive">Predictive</span></div>
+        <div class="alabel-desc">
+            Forecasts &amp; Momentum
+            <span class="analytics-tag tag-predictive">Predictive</span>
+            <?php if ($forecastIsAI): ?><span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?>
+        </div>
 
         <div class="charts-2col animate">
             <div class="chart-box">
@@ -686,8 +708,11 @@ if (empty($recommendations)) {
                         <div class="forecast-label">projected page views next month</div>
                         <div class="forecast-change <?php echo $projectedGrowthPct >= 0 ? 'up' : 'down'; ?>">
                             <i data-lucide="<?php echo $projectedGrowthPct >= 0 ? 'trending-up' : 'trending-down'; ?>" class="lucide"></i>
-                            <?php echo ($projectedGrowthPct >= 0 ? '+' : '') . $projectedGrowthPct; ?>% vs. last month (trend-line estimate)
+                            <?php echo ($projectedGrowthPct >= 0 ? '+' : '') . $projectedGrowthPct; ?>% vs. last month (<?php echo $forecastIsAI ? 'AI estimate' : 'trend-line estimate'; ?>)
                         </div>
+                        <?php if ($forecastInsight): ?>
+                            <p class="forecast-insight"><?php echo htmlspecialchars($forecastInsight); ?></p>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>

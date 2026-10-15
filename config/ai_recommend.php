@@ -50,6 +50,23 @@ $conn->query(
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
 
+// Caches admindashboard.php's AI page-view forecast so a day of admin
+// visits costs at most one live Gemini call, not one per page load —
+// same spirit as place_embeddings, keyed by a hash of the actual input
+// series so a cache from before today's numbers changed never leaks in.
+$conn->query(
+    "CREATE TABLE IF NOT EXISTS analytics_forecasts (
+        forecast_key VARCHAR(40) NOT NULL PRIMARY KEY,
+        input_hash   CHAR(32) NOT NULL,
+        result       TEXT NOT NULL,
+        created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+);
+
+if (!defined('GEMINI_TEXT_MODEL')) {
+    define('GEMINI_TEXT_MODEL', getenv('GEMINI_TEXT_MODEL') ?: 'gemini-3.8-flash');
+}
+
 function ai_configured(): bool
 {
     return defined('GEMINI_API_KEY') && GEMINI_API_KEY !== '' && function_exists('curl_init');
@@ -161,4 +178,105 @@ function ai_get_place_embedding(mysqli $conn, string $itemType, int $itemId, str
     $stmt->close();
 
     return $embedding;
+}
+
+/*
+ |--------------------------------------------------------------------
+ | AI FORECASTING — admindashboard.php's "Forecasts & Momentum"
+ |--------------------------------------------------------------------
+ | A real Gemini call (generateContent, not embeddings) reasons over
+ | the last several months of page_views totals and returns a
+ | projected next-month number, a growth %, and a one-sentence
+ | explanation. Cached in analytics_forecasts so a whole day of admin
+ | dashboard visits costs at most one live call. Falls back to null
+ | (never throws) on any failure — admindashboard.php's own
+ | least-squares trend line is the fallback when this returns null,
+ | same pattern as embeddings falling back to TF-IDF.
+ */
+function ai_forecast_pageviews(mysqli $conn, array $monthlySeries): ?array
+{
+    if (!ai_configured() || empty($monthlySeries)) {
+        return null;
+    }
+
+    $series = array_map(fn($m) => ['month' => $m['label'], 'views' => (int) $m['value']], $monthlySeries);
+    $inputHash = md5(json_encode($series));
+    $forecastKey = 'pageviews_' . GEMINI_TEXT_MODEL;
+
+    $stmt = $conn->prepare("SELECT input_hash, result FROM analytics_forecasts WHERE forecast_key = ?");
+    $stmt->bind_param('s', $forecastKey);
+    $stmt->execute();
+    $cached = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if ($cached && $cached['input_hash'] === $inputHash) {
+        $decoded = json_decode($cached['result'], true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+    }
+
+    $prompt = "You are a web analytics forecaster for a small-town tourism website. "
+        . "Here is the real monthly page view total for the last " . count($series) . " months, oldest first:\n"
+        . json_encode($series) . "\n\n"
+        . "Project next month's total page views. Consider the trend direction, recent momentum, "
+        . "and that small absolute numbers can swing wildly in percentage terms — don't let noise dominate. "
+        . "Respond with ONLY this JSON shape, no other text: "
+        . '{"projected_next_month": <integer>, "growth_pct": <integer, vs. the latest month>, '
+        . '"insight": "<one short plain-English sentence explaining the projection>"}';
+
+    $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . GEMINI_TEXT_MODEL . ':generateContent';
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_TIMEOUT        => 12,
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            'x-goog-api-key: ' . GEMINI_API_KEY,
+        ],
+        CURLOPT_POSTFIELDS => json_encode([
+            'contents' => [['parts' => [['text' => $prompt]]]],
+            'generationConfig' => [
+                'responseMimeType' => 'application/json',
+                'temperature'      => 0.2, // low — this should read as analysis, not creative writing
+            ],
+        ]),
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+
+    if ($response === false || $curlError || $httpCode !== 200) {
+        return null;
+    }
+
+    $data = json_decode($response, true);
+    $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+    if (!is_string($text)) {
+        return null;
+    }
+    $parsed = json_decode($text, true);
+    if (!is_array($parsed) || !isset($parsed['projected_next_month'], $parsed['growth_pct'], $parsed['insight'])) {
+        return null;
+    }
+
+    $result = [
+        'projected_next_month' => max(0, (int) $parsed['projected_next_month']),
+        // Same clamp as the trend-line fallback — a model shouldn't be
+        // able to headline a wilder swing than the deterministic math does.
+        'growth_pct'           => max(-90, min(200, (int) $parsed['growth_pct'])),
+        'insight'              => mb_substr((string) $parsed['insight'], 0, 200),
+    ];
+
+    $json = json_encode($result);
+    $stmt = $conn->prepare(
+        "INSERT INTO analytics_forecasts (forecast_key, input_hash, result)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE input_hash = VALUES(input_hash), result = VALUES(result), created_at = CURRENT_TIMESTAMP"
+    );
+    $stmt->bind_param('sss', $forecastKey, $inputHash, $json);
+    $stmt->execute();
+    $stmt->close();
+
+    return $result;
 }

@@ -205,6 +205,22 @@ $aiActive = ai_configured();
                         <span class="status-pill-dot"></span><?php echo $aiActive ? 'Active' : 'Inactive'; ?>
                     </span>
                 </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">AI Forecasting</div>
+                        <div class="setting-desc">
+                            Powers the "Forecasts &amp; Momentum" prediction on the Analytics dashboard.
+                            <?php if ($aiActive): ?>
+                                Running on real Gemini reasoning over your page view history.
+                            <?php else: ?>
+                                No GEMINI_API_KEY found — using the local trend-line fallback (still works, just not AI-based).
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <span class="status-pill <?php echo $aiActive ? 'status-pill-on' : 'status-pill-off'; ?>">
+                        <span class="status-pill-dot"></span><?php echo $aiActive ? 'Active' : 'Inactive'; ?>
+                    </span>
+                </div>
             </div>
 
             <!-- SITE VISIBILITY -->
