@@ -21,6 +21,7 @@ require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/site_settings.php';
 require_once __DIR__ . '/../config/admin_email_approval.php';
 require_once __DIR__ . '/../config/admin_requests.php';
+require_once __DIR__ . '/../config/ai_recommend.php';
 
 /*
  |--------------------------------------------------------------------
@@ -82,6 +83,13 @@ $settings = site_settings_get_all($conn, [
     'flagged_content_alert' => true,
     'weekly_summary'        => false,
 ]);
+
+// Whether the For You page's recommendations are running on real Gemini
+// embeddings (config/gemini.php locally, or a GEMINI_API_KEY env var on
+// a host like Railway) versus the local TF-IDF fallback. Read-only here
+// — there's no key input field, since GEMINI_API_KEY is a secret and
+// belongs in an env var, not a value typed into the admin panel.
+$aiActive = ai_configured();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -176,6 +184,28 @@ $settings = site_settings_get_all($conn, [
         </div>
 
         <div class="settings-grid animate">
+
+            <!-- SYSTEM STATUS -->
+            <div class="settings-card">
+                <h3><i data-lucide="cpu" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> System Status</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">AI Recommendations</div>
+                        <div class="setting-desc">
+                            Powers the "Because You Explored" picks on the For You page.
+                            <?php if ($aiActive): ?>
+                                Running on real Gemini embeddings.
+                            <?php else: ?>
+                                No GEMINI_API_KEY found — using the local TF-IDF fallback (still works, just not AI-based).
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <span class="status-pill <?php echo $aiActive ? 'status-pill-on' : 'status-pill-off'; ?>">
+                        <span class="status-pill-dot"></span><?php echo $aiActive ? 'Active' : 'Inactive'; ?>
+                    </span>
+                </div>
+            </div>
 
             <!-- SITE VISIBILITY -->
             <div class="settings-card">
