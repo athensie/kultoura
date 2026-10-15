@@ -23,9 +23,10 @@ $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
 
 // Fiestas/Events are added by the admin via admineventandfiesta.php.
-// Only upcoming items (today onward), soonest first.
+// These are annual barangay feast days, so past-dated ones still show
+// (they're not "expired" — they'll roll around again next year).
 $fiestas = [];
-if ($result = $conn->query("SELECT * FROM fiestas WHERE status = 'active' AND celebration_date >= CURDATE() ORDER BY celebration_date ASC")) {
+if ($result = $conn->query("SELECT * FROM fiestas WHERE status = 'active' ORDER BY celebration_date ASC")) {
     $fiestas = $result->fetch_all(MYSQLI_ASSOC);
 }
 
@@ -260,7 +261,7 @@ if (isset($_GET['ajax_calendar'])) {
                     <div>
                         <p class="t-cat-label">Culture</p>
                         <h2 class="t-cat-title">Fiestas</h2>
-                        <p class="t-cat-desc">Upcoming celebrations that bring Malvar's barangays together, soonest first.</p>
+                        <p class="t-cat-desc">Celebrations that bring Malvar's barangays together, throughout the year.</p>
                     </div>
                 </div>
 
@@ -272,7 +273,7 @@ if (isset($_GET['ajax_calendar'])) {
                 <?php else: ?>
                 <div class="p-empty-state" id="pMonthEmptyState" hidden>
                     <h3>No fiestas in the selected month(s)</h3>
-                    <p>Try a different month, or clear the filter to see everything upcoming.</p>
+                    <p>Try a different month, or clear the filter to see all fiestas.</p>
                 </div>
                 <div class="p-card-grid" id="pFiestaGrid">
                     <?php foreach ($fiestas as $item):
