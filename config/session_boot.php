@@ -39,6 +39,7 @@ if (!class_exists('KtDbSessionHandler')) {
     {
         private mysqli $conn;
         private int $lifetime;
+        private ?string $lockName = null;
 
         public function __construct(mysqli $conn, int $lifetime)
         {
@@ -53,11 +54,40 @@ if (!class_exists('KtDbSessionHandler')) {
 
         public function close(): bool
         {
+            // Release the advisory lock taken in read() below — mirrors
+            // flock() being released when PHP's native file session
+            // handler closes the session file.
+            if ($this->lockName !== null) {
+                $stmt = $this->conn->prepare('SELECT RELEASE_LOCK(?)');
+                $stmt->bind_param('s', $this->lockName);
+                $stmt->execute();
+                $stmt->close();
+                $this->lockName = null;
+            }
             return true;
         }
 
         public function read($id): string
         {
+            // A MySQL advisory lock named after the session id, held for
+            // the rest of this request (released in close()). Without
+            // this, two requests on the same session running at once —
+            // the page load plus a background AJAX call, a login racing
+            // a request already in flight, even just a fast double-click
+            // — each read the same starting data, and whichever finishes
+            // writing last silently overwrites the other's changes. PHP's
+            // native file session handler gets this serialization for
+            // free via flock() on the session file; a custom handler has
+            // to do it explicitly. This is what was actually causing
+            // "logged out on refresh": a losing write could persist a
+            // stale, logged-out-looking session over a freshly logged-in
+            // one, with nothing in the logic itself being wrong.
+            $this->lockName = 'kt_session_' . $id;
+            $lockStmt = $this->conn->prepare('SELECT GET_LOCK(?, 10)');
+            $lockStmt->bind_param('s', $this->lockName);
+            $lockStmt->execute();
+            $lockStmt->close();
+
             $cutoff = time() - $this->lifetime;
             $stmt = $this->conn->prepare('SELECT data FROM sessions WHERE id = ? AND last_activity > ? LIMIT 1');
             $stmt->bind_param('si', $id, $cutoff);
