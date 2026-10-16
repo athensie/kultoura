@@ -229,7 +229,7 @@ foreach ($heroPhotoGroups as &$group) {
 }
 unset($group);
 
-$aboutSections = sitecontent_get_about_sections($conn, true);
+$aboutSections = sitecontent_get_about_sections($conn, false);
 $iconSvgs   = sitecontent_icons();
 $iconLabels = sitecontent_icon_labels();
 ?>

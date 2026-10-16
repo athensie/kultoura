@@ -165,6 +165,45 @@ if (!function_exists('kt_archive_restore')) {
     }
 }
 
+// Permanently removes an already-archived row — the one real DELETE in
+// the whole panel (everything else here is a soft status flip). Only
+// ever called from the Archive page on a row that's already archived,
+// so there's no live-site content to lose; the image file (if any) is
+// best-effort cleaned up too so uploads don't pile up forever, but a
+// failure to remove it never blocks the row delete itself.
+if (!function_exists('kt_archive_permanently_delete')) {
+    function kt_archive_permanently_delete(mysqli $conn, string $entityType, int $id): bool
+    {
+        $meta = kt_archive_types()[$entityType] ?? null;
+        if (!$meta) return false;
+
+        $stmt = $conn->prepare("SELECT `{$meta['imageCol']}` AS image FROM `{$meta['table']}` WHERE `{$meta['idCol']}` = ? AND status = 'archived'");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$row) {
+            return false; // not archived (or doesn't exist) — refuse to touch it
+        }
+
+        $stmt = $conn->prepare("DELETE FROM `{$meta['table']}` WHERE `{$meta['idCol']}` = ? AND status = 'archived'");
+        $stmt->bind_param('i', $id);
+        $ok = $stmt->execute() && $stmt->affected_rows > 0;
+        $stmt->close();
+
+        if ($ok && !empty($row['image'])) {
+            $relative = preg_replace('#^/?kultoura/#', '', $row['image']);
+            $path = __DIR__ . '/../' . $relative;
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        return $ok;
+    }
+}
+
 // The live row an 'update' or 'archive' request is based on, keyed the
 // same way as the request's payload — so the review queue can show
 // "current value -> proposed value" per field instead of just the new

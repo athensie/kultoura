@@ -29,15 +29,25 @@ $adminRole = $_SESSION['role'] ?? 'Super Admin';
 
 kt_requests_ensure_schema($conn);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && $_POST['form_action'] === 'restore') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && in_array($_POST['form_action'], ['restore', 'delete'], true)) {
     csrf_verify();
+    $formAction = $_POST['form_action'];
     $entityType = $_POST['entity_type'] ?? '';
     $entityId = (int) ($_POST['entity_id'] ?? 0);
     $archiveMeta = kt_archive_types()[$entityType] ?? null;
-    if ($archiveMeta && $entityId > 0 && kt_archive_restore($conn, $entityType, $entityId)) {
-        $_SESSION['admin_flash'] = 'Restored — it\'s live again on the site.';
+
+    if ($formAction === 'restore') {
+        if ($archiveMeta && $entityId > 0 && kt_archive_restore($conn, $entityType, $entityId)) {
+            $_SESSION['admin_flash'] = 'Restored — it\'s live again on the site.';
+        } else {
+            $_SESSION['admin_flash'] = 'Could not restore that item.';
+        }
     } else {
-        $_SESSION['admin_flash'] = 'Could not restore that item.';
+        if ($archiveMeta && $entityId > 0 && kt_archive_permanently_delete($conn, $entityType, $entityId)) {
+            $_SESSION['admin_flash'] = 'Permanently deleted — this cannot be undone.';
+        } else {
+            $_SESSION['admin_flash'] = 'Could not delete that item.';
+        }
     }
     header("Location: " . BASE_URL . "/admin/adminarchive.php");
     exit;
@@ -153,7 +163,7 @@ $archivedGrouped = kt_archived_items_grouped($conn);
             <div>
                 <div class="section-label">Content Management</div>
                 <h1><em>Archive</em></h1>
-                <p>Everything archived across the site — hidden from the public site, never deleted. Restore anything back to live from here.</p>
+                <p>Everything archived across the site — hidden from the public site. Restore anything back to live, or delete it permanently.</p>
             </div>
         </div>
 
@@ -202,6 +212,13 @@ $archivedGrouped = kt_archived_items_grouped($conn);
                                     <button type="submit" class="tbl-btn edit"><i data-lucide="rotate-ccw" class="lucide" style="width:.72rem;height:.72rem;"></i> Restore</button>
                                 </form>
                                 <a href="<?php echo BASE_URL; ?>/admin/<?php echo htmlspecialchars($group['page']); ?>" class="tbl-btn" style="background:rgba(255,255,255,.05);color:rgba(245,237,216,.6);"><i data-lucide="external-link" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</a>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete &quot;<?php echo htmlspecialchars(addslashes($item['name'] ?: ('#' . $item['id'])), ENT_QUOTES); ?>&quot;? This cannot be undone — it will be gone for good, not just archived.');">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="form_action" value="delete">
+                                    <input type="hidden" name="entity_type" value="<?php echo htmlspecialchars($type); ?>">
+                                    <input type="hidden" name="entity_id" value="<?php echo (int) $item['id']; ?>">
+                                    <button type="submit" class="tbl-btn delete"><i data-lucide="trash-2" class="lucide" style="width:.72rem;height:.72rem;"></i> Delete</button>
+                                </form>
                             </div>
                         <?php endforeach; ?>
                     </div>

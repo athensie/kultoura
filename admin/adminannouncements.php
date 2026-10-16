@@ -48,7 +48,7 @@ unset($_SESSION['admin_flash']);
  |--------------------------------------------------------------------
  */
 $announcements = [];
-if ($result = $conn->query("SELECT * FROM announcements ORDER BY created_at DESC")) {
+if ($result = $conn->query("SELECT * FROM announcements WHERE status != 'archived' ORDER BY created_at DESC")) {
     $announcements = $result->fetch_all(MYSQLI_ASSOC);
 }
 

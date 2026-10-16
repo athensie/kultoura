@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
  |--------------------------------------------------------------------
  */
 $destinations = [];
-$result = $conn->query("SELECT * FROM destination ORDER BY created_at DESC");
+$result = $conn->query("SELECT * FROM destination WHERE status != 'archived' ORDER BY created_at DESC");
 if ($result) {
     $destinations = $result->fetch_all(MYSQLI_ASSOC);
 }

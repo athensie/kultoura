@@ -220,11 +220,13 @@ $sql = "
            price, location AS address, latitude, longitude, NULL AS contact_number, NULL AS opening_hours,
            NULL AS google_map, image, created_at, 'product' AS type
     FROM products
+    WHERE status != 'archived'
     UNION ALL
     SELECT restaurant_id AS id, restaurant_name AS name, category, description AS `desc`,
            NULL AS price, address, latitude, longitude, contact_number, opening_hours,
            google_map, image, created_at, 'restaurant' AS type
     FROM restaurants
+    WHERE status != 'archived'
     ORDER BY created_at DESC
 ";
 if ($result = $conn->query($sql)) {
