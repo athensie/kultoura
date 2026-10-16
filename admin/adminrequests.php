@@ -61,19 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     csrf_verify();
     $formAction = $_POST['form_action'];
 
-    if ($formAction === 'restore') {
-        $entityType = $_POST['entity_type'] ?? '';
-        $entityId = (int) ($_POST['entity_id'] ?? 0);
-        $archiveMeta = kt_archive_types()[$entityType] ?? null;
-        if ($archiveMeta && $entityId > 0 && kt_archive_restore($conn, $entityType, $entityId)) {
-            $_SESSION['admin_flash'] = 'Restored — it\'s live again on the site.';
-        } else {
-            $_SESSION['admin_flash'] = 'Could not restore that item.';
-        }
-        header("Location: " . BASE_URL . "/admin/adminrequests.php#archive");
-        exit;
-    }
-
     $requestId = (int) ($_POST['request_id'] ?? 0);
     $request = $requestId > 0 ? kt_requests_find($conn, $requestId) : null;
 
@@ -100,7 +87,6 @@ $requestedStatus = $_GET['status'] ?? 'pending';
 $statusFilter = in_array($requestedStatus, ['pending', 'approved', 'rejected'], true) ? $requestedStatus : 'pending';
 $requests = kt_requests_list($conn, $statusFilter);
 $pendingCount = kt_requests_pending_count($conn);
-$archivedGrouped = kt_archived_items_grouped($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -144,28 +130,6 @@ $archivedGrouped = kt_archived_items_grouped($conn);
         .status-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
         .status-tabs a { padding: 7px 16px; border-radius: 20px; font-size: .78rem; color: rgba(245,237,216,.6); text-decoration: none; background: rgba(255,255,255,.03); }
         .status-tabs a.active { background: var(--gold,#C8A96E); color: #1a1812; font-weight: 600; }
-
-        /* ARCHIVE SECTION — bottom of this page, categorized by content
-           type so a dozen archived items of different kinds don't turn
-           into one undifferentiated pile. */
-        .archive-section { margin-top: 44px; }
-        .archive-section-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--cream); margin-bottom: 4px; }
-        .archive-section-sub { font-size: .8rem; color: rgba(245,237,216,.45); margin-bottom: 20px; }
-        .archive-category { background: rgba(255,255,255,.02); border: 1px solid rgba(245,237,216,.08); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
-        .archive-category-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; cursor: pointer; list-style: none; }
-        .archive-category-head::-webkit-details-marker { display: none; }
-        .archive-category-name { display: flex; align-items: center; gap: 10px; font-size: .9rem; color: var(--cream); font-weight: 600; }
-        .archive-category-count { font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; background: rgba(229,115,115,.15); color: #e57373; }
-        .archive-category-chevron { transition: transform .2s; color: rgba(245,237,216,.4); }
-        details[open] .archive-category-chevron { transform: rotate(90deg); }
-        .archive-items { padding: 0 18px 14px; display: flex; flex-direction: column; gap: 8px; }
-        .archive-item { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.03); border-radius: 8px; padding: 8px 12px; }
-        .archive-item-thumb { flex-shrink: 0; width: 38px; height: 38px; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.05); display: flex; align-items: center; justify-content: center; }
-        .archive-item-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .archive-item-body { flex: 1; min-width: 0; }
-        .archive-item-name { font-size: .82rem; color: rgba(245,237,216,.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .archive-item-date { font-size: .68rem; color: rgba(245,237,216,.35); margin-top: 1px; }
-        .archive-empty { font-size: .82rem; color: rgba(245,237,216,.4); padding: 20px; text-align: center; background: rgba(255,255,255,.02); border: 1px dashed rgba(245,237,216,.1); border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -197,6 +161,7 @@ $archivedGrouped = kt_archived_items_grouped($conn);
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" class="active"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
 
@@ -323,60 +288,6 @@ $archivedGrouped = kt_archived_items_grouped($conn);
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
-
-        <!-- ARCHIVE SECTION — every archived content item, grouped by type -->
-        <div class="archive-section" id="archive">
-            <div class="archive-section-title">Archive</div>
-            <div class="archive-section-sub">Everything archived across the site — hidden from the public site, never deleted. Restore anything back to live from here.</div>
-
-            <?php if (empty($archivedGrouped)): ?>
-                <div class="archive-empty">Nothing archived yet.</div>
-            <?php else: ?>
-                <?php $archiveIcons = [
-                    'destination' => 'map-pin', 'product' => 'shopping-bag', 'restaurant' => 'utensils',
-                    'fiesta' => 'calendar-heart', 'person' => 'users-round', 'announcement' => 'megaphone',
-                    'about_section' => 'image', 'partner' => 'handshake', 'event_photo' => 'images',
-                    'page_widget' => 'layout-template',
-                ]; ?>
-                <?php foreach ($archivedGrouped as $type => $group): ?>
-                    <details class="archive-category">
-                        <summary class="archive-category-head">
-                            <span class="archive-category-name">
-                                <i data-lucide="<?php echo htmlspecialchars($archiveIcons[$type] ?? 'archive'); ?>" class="lucide" style="width:1rem;height:1rem;"></i>
-                                <?php echo htmlspecialchars($group['label']); ?>
-                                <span class="archive-category-count"><?php echo count($group['items']); ?></span>
-                            </span>
-                            <i data-lucide="chevron-right" class="lucide archive-category-chevron" style="width:1rem;height:1rem;"></i>
-                        </summary>
-                        <div class="archive-items">
-                            <?php foreach ($group['items'] as $item): ?>
-                                <div class="archive-item">
-                                    <div class="archive-item-thumb">
-                                        <?php if (!empty($item['image'])): ?>
-                                            <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="">
-                                        <?php else: ?>
-                                            <i data-lucide="<?php echo htmlspecialchars($archiveIcons[$type] ?? 'archive'); ?>" class="lucide" style="width:1rem;height:1rem;color:rgba(245,237,216,.3);"></i>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="archive-item-body">
-                                        <div class="archive-item-name"><?php echo htmlspecialchars($item['name'] ?: ('#' . $item['id'])); ?></div>
-                                        <div class="archive-item-date">Archived · <?php echo htmlspecialchars(date('M j, Y', strtotime($item['created_at']))); ?></div>
-                                    </div>
-                                    <form method="POST" style="display:inline;">
-                                        <?php echo csrf_field(); ?>
-                                        <input type="hidden" name="form_action" value="restore">
-                                        <input type="hidden" name="entity_type" value="<?php echo htmlspecialchars($type); ?>">
-                                        <input type="hidden" name="entity_id" value="<?php echo (int) $item['id']; ?>">
-                                        <button type="submit" class="tbl-btn edit"><i data-lucide="rotate-ccw" class="lucide" style="width:.72rem;height:.72rem;"></i> Restore</button>
-                                    </form>
-                                    <a href="<?php echo BASE_URL; ?>/admin/<?php echo htmlspecialchars($group['page']); ?>" class="tbl-btn" style="background:rgba(255,255,255,.05);color:rgba(245,237,216,.6);"><i data-lucide="external-link" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</a>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </details>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
 
     </div>
 </div>
