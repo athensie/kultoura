@@ -29,15 +29,13 @@ function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
 
 function openAddEvent() {
   document.getElementById('addEventForm')?.reset();
-  document.getElementById('addLocationInput').value = '';
-  const addLat = document.getElementById('addLatInput');
-  const addLng = document.getElementById('addLngInput');
-  if (addLat) addLat.value = '';
-  if (addLng) addLng.value = '';
-  const label = document.getElementById('addMapLabel');
-  if (label) label.textContent = 'No location selected yet — search or click the map.';
+  document.getElementById('addLatInput').value = '';
+  document.getElementById('addLngInput').value = '';
   openModal('addEventModal');
-  initMapPicker('add');
+  setTimeout(() => {
+    const picker = ktSetupEventMap('add');
+    if (picker) { picker.map.invalidateSize(); picker.reset(); }
+  }, 150);
 }
 
 function openViewEvent(id) {
@@ -66,21 +64,23 @@ function openEditEvent(id) {
   document.getElementById('editDescInput').value = e.description || '';
   document.getElementById('editExistingImage').value = e.image || '';
   document.getElementById('editLocationInput').value = e.location || '';
-  const label = document.getElementById('editMapLabel');
-  if (label) label.textContent = e.location || 'No location selected yet — search or click the map.';
 
-  const editLat = document.getElementById('editLatInput');
-  const editLng = document.getElementById('editLngInput');
   const hasCoords = e.latitude !== null && e.latitude !== undefined && e.latitude !== '' &&
                     e.longitude !== null && e.longitude !== undefined && e.longitude !== '';
-  if (editLat) editLat.value = hasCoords ? e.latitude : '';
-  if (editLng) editLng.value = hasCoords ? e.longitude : '';
+  document.getElementById('editLatInput').value = hasCoords ? e.latitude : '';
+  document.getElementById('editLngInput').value = hasCoords ? e.longitude : '';
 
   openModal('editEventModal');
-  initMapPicker('edit', hasCoords ? parseFloat(e.latitude) : null, hasCoords ? parseFloat(e.longitude) : null);
-  if (hasCoords) {
-    setMapMarker('edit', parseFloat(e.latitude), parseFloat(e.longitude));
-  }
+  setTimeout(() => {
+    const picker = ktSetupEventMap('edit');
+    if (!picker) return;
+    picker.map.invalidateSize();
+    if (hasCoords) {
+      picker.setPosition(parseFloat(e.latitude), parseFloat(e.longitude), 16);
+    } else {
+      picker.reset();
+    }
+  }, 150);
 }
 
 function confirmDelete(id, name) {
@@ -205,132 +205,22 @@ function showToast(msg) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// MAP PICKER — Leaflet + OpenStreetMap tiles + Nominatim search.
-// No API key, no billing account: the least-hassle way to let an
-// admin pick a location by clicking a map instead of typing one.
+// ADDRESS PICKER (shared module — assets/js/kt-address-picker.js)
 // ─────────────────────────────────────────────────────────────
-const _maps = {};
-const _markers = {};
+const ktEventMaps = { add: null, edit: null };
 
-const MALVAR_CENTER = { lat: 14.0086, lng: 121.1583 };
-
-function initMapPicker(prefix, lat, lng) {
-  if (typeof L === 'undefined') return;
-  const canvas = document.getElementById(prefix + 'MapCanvas');
-  if (!canvas) return;
-
-  if (_maps[prefix]) {
-    _maps[prefix].remove();
-    delete _maps[prefix];
-    delete _markers[prefix];
-  }
-
-  const startLat = lat || MALVAR_CENTER.lat;
-  const startLng = lng || MALVAR_CENTER.lng;
-
-  const map = L.map(canvas).setView([startLat, startLng], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19
-  }).addTo(map);
-
-  map.on('click', function (e) {
-    setMapMarker(prefix, e.latlng.lat, e.latlng.lng);
-    setLatLngInputs(prefix, e.latlng.lat, e.latlng.lng);
-    reverseGeocode(prefix, e.latlng.lat, e.latlng.lng);
+function ktSetupEventMap(prefix) {
+  if (ktEventMaps[prefix]) return ktEventMaps[prefix];
+  ktEventMaps[prefix] = KtAddressPicker.setup({
+    mapElId: prefix + 'MapCanvas',
+    inputElId: prefix + 'LocationInput',
+    statusElId: prefix + 'MapStatus',
+    onPosition: function (lat, lng) {
+      const latInput = document.getElementById(prefix + 'LatInput');
+      const lngInput = document.getElementById(prefix + 'LngInput');
+      if (latInput) latInput.value = lat;
+      if (lngInput) lngInput.value = lng;
+    },
   });
-
-  _maps[prefix] = map;
-  setTimeout(() => map.invalidateSize(), 200);
-
-  // If we were handed existing coordinates (editing an event), drop a pin right away.
-  if (lat && lng) {
-    setMapMarker(prefix, lat, lng);
-    setLatLngInputs(prefix, lat, lng);
-  }
-}
-
-function setLatLngInputs(prefix, lat, lng) {
-  const latInput = document.getElementById(prefix + 'LatInput');
-  const lngInput = document.getElementById(prefix + 'LngInput');
-  if (latInput) latInput.value = lat;
-  if (lngInput) lngInput.value = lng;
-}
-
-function setMapMarker(prefix, lat, lng) {
-  const map = _maps[prefix];
-  if (!map) return;
-  if (_markers[prefix]) {
-    _markers[prefix].setLatLng([lat, lng]);
-  } else {
-    _markers[prefix] = L.marker([lat, lng]).addTo(map);
-  }
-  const label = document.getElementById(prefix + 'MapLabel');
-  if (label) label.textContent = '✓ Pin set at ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' — looking up address…';
-}
-
-function reverseGeocode(prefix, lat, lng) {
-  const label = document.getElementById(prefix + 'MapLabel');
-  const input = document.getElementById(prefix + 'LocationInput');
-  if (label) label.textContent = 'Looking up address…';
-  fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng)
-    .then(res => res.json())
-    .then(data => {
-      const address = (data && data.display_name) ? data.display_name : (lat.toFixed(5) + ', ' + lng.toFixed(5));
-      if (label) label.textContent = address;
-      if (input) input.value = address;
-    })
-    .catch(() => {
-      const fallback = lat.toFixed(5) + ', ' + lng.toFixed(5);
-      if (label) label.textContent = fallback;
-      if (input) input.value = fallback;
-    });
-}
-
-// "Use My Location" — drops the pin at the admin's actual current
-// position (e.g. standing at the fiesta/event venue) instead of
-// making them search for or click it on the map.
-function useMyLocation(prefix) {
-  const label = document.getElementById(prefix + 'MapLabel');
-  if (!navigator.geolocation) {
-    if (label) label.textContent = "Your browser doesn't support location access — search or click the map instead.";
-    return;
-  }
-  if (label) label.textContent = 'Finding your location…';
-  navigator.geolocation.getCurrentPosition(
-    function (pos) {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const map = _maps[prefix];
-      if (map) map.setView([lat, lng], 17);
-      setMapMarker(prefix, lat, lng);
-      setLatLngInputs(prefix, lat, lng);
-      reverseGeocode(prefix, lat, lng);
-    },
-    function (err) {
-      if (label) label.textContent = err.code === err.PERMISSION_DENIED
-        ? 'Location access was denied — search or click the map instead.'
-        : "Couldn't get your location — search or click the map instead.";
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-  );
-}
-
-function searchMapPlace(prefix) {
-  const searchInput = document.getElementById(prefix + 'MapSearch');
-  const q = searchInput ? searchInput.value.trim() : '';
-  if (!q) return;
-  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q + ', Malvar, Batangas'))
-    .then(res => res.json())
-    .then(results => {
-      if (!results || !results.length) { showToast('Place not found — try a different search or click the map.'); return; }
-      const lat = parseFloat(results[0].lat);
-      const lng = parseFloat(results[0].lon);
-      const map = _maps[prefix];
-      if (map) map.setView([lat, lng], 16);
-      setMapMarker(prefix, lat, lng);
-      setLatLngInputs(prefix, lat, lng);
-      reverseGeocode(prefix, lat, lng);
-    })
-    .catch(() => showToast('Search failed — try clicking the map instead.'));
+  return ktEventMaps[prefix];
 }

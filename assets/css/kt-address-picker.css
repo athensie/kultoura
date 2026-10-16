@@ -1,0 +1,45 @@
+/* =========================================================
+   KULTOURA — SHARED ADDRESS PICKER (admin forms)
+   Leaflet map + OpenStreetMap tiles + Nominatim search, no API
+   key needed. Used by every admin page with a location/address
+   field (Destinations, Events & Fiesta, Food & Dining) so the
+   picking experience is identical everywhere.
+   ========================================================= */
+
+.kt-map-field { position: relative; }
+
+.kt-map-status { font-size: .7rem; color: rgba(245,237,216,.4); margin-top: 4px; }
+
+.kt-map-canvas {
+    height: 220px;
+    border-radius: 8px;
+    margin-top: 8px;
+    background: rgba(255,255,255,.04);
+    overflow: hidden;
+}
+
+.kt-suggest-box {
+    display: none;
+    position: absolute;
+    z-index: 20;
+    left: 0; right: 0; top: 100%;
+    background: #1e1d1a;
+    border: 1px solid rgba(245,237,216,.12);
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+
+.kt-suggest-item {
+    padding: 10px 12px;
+    font-size: .8rem;
+    color: rgba(245,237,216,.85);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.kt-suggest-item:last-child { border-bottom: none; }
+.kt-suggest-item:hover { background: rgba(255,255,255,.06); }
+.kt-suggest-empty { padding: 10px 12px; font-size: .75rem; color: rgba(245,237,216,.35); }

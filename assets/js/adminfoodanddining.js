@@ -98,18 +98,19 @@ function toggleTypeFields(prefix) {
   document.querySelectorAll('.' + prefix + '-restaurant-fields').forEach(el => {
     el.style.display = isProduct ? 'none' : '';
   });
+
+  // Products submit as `location`, restaurants as `address` — one shared
+  // address-picker input serves both, renamed to match whichever the
+  // currently-selected listing type expects.
+  const locationInput = document.getElementById(prefix + 'LocationInput');
+  if (locationInput) locationInput.name = isProduct ? 'location' : 'address';
 }
 
 /* ------------------------------------------------------------------ *
- * MAP PICKER (Leaflet + OpenStreetMap tiles + Nominatim geocoding)
- * No API key needed — this is the "easier, less hassle" option
- * compared to wiring up a billed Google Maps API key.
- *
- * Each prefix ('add' / 'edit' / 'view') has its own canvas + hidden
- * latitude/longitude inputs. The search box (e.g. addMapSearchInput)
- * is independent of the real product `location` / restaurant `address`
- * text field — it's just for finding a spot on the map — so picking a
- * pin never overwrites what the admin typed into those fields.
+ * READ-ONLY MAP PREVIEW (View modal only) — Leaflet + OpenStreetMap
+ * tiles. Add/Edit use the shared, editable KtAddressPicker instead
+ * (see ktSetupFoodMap below); this one just drops a static pin for
+ * a listing that already has coordinates, no API key needed.
  * ------------------------------------------------------------------ */
 const DEFAULT_CENTER = [14.0570, 121.1610]; // Malvar, Batangas
 const mapInstances = {};    // canvasId -> Leaflet map
@@ -194,46 +195,6 @@ function dropPin(prefix, lat, lng, reverseGeocode) {
   if (reverseGeocode) reverseGeocodeLatLng(prefix, lat, lng);
 }
 
-function searchAddress(prefix) {
-  const { addressInput } = getMapRefs(prefix);
-  const query = addressInput ? addressInput.value.trim() : '';
-  if (!query) { showToast('Type an address to search first.'); return; }
-
-  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ph&q=' + encodeURIComponent(query);
-  fetch(url, { headers: { 'Accept': 'application/json' } })
-    .then(res => res.json())
-    .then(results => {
-      if (!results || !results.length) { showToast('No matching location found — try a more specific address.'); return; }
-      const lat = parseFloat(results[0].lat);
-      const lng = parseFloat(results[0].lon);
-      dropPin(prefix, lat, lng, false);
-      if (addressInput && results[0].display_name) addressInput.value = results[0].display_name;
-    })
-    .catch(() => showToast('Could not reach the map search service. Try again.'));
-}
-
-// "Use My Location" — drops the pin at the admin's actual current
-// position (e.g. standing at the restaurant) instead of making them
-// search for or click it on the map.
-function useMyLocation(prefix) {
-  if (!navigator.geolocation) {
-    setMapHint(prefix, "Your browser doesn't support location access — search or click the map instead.");
-    return;
-  }
-  setMapHint(prefix, 'Finding your location…');
-  navigator.geolocation.getCurrentPosition(
-    function (pos) {
-      dropPin(prefix, pos.coords.latitude, pos.coords.longitude, true);
-    },
-    function (err) {
-      setMapHint(prefix, err.code === err.PERMISSION_DENIED
-        ? 'Location access was denied — search or click the map instead.'
-        : "Couldn't get your location — search or click the map instead.");
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-  );
-}
-
 function reverseGeocodeLatLng(prefix, lat, lng) {
   const { addressInput } = getMapRefs(prefix);
   if (!addressInput) return;
@@ -244,6 +205,29 @@ function reverseGeocodeLatLng(prefix, lat, lng) {
       if (data && data.display_name) addressInput.value = data.display_name;
     })
     .catch(() => { /* silent — the pin/coords are already saved either way */ });
+}
+
+/* ------------------------------------------------------------------ *
+ * ADDRESS PICKER for Add/Edit (shared module — kt-address-picker.js)
+ * The View modal's static map above still uses the lightweight
+ * read-only initMapPicker() — it has no input to autocomplete.
+ * ------------------------------------------------------------------ */
+const ktFoodMaps = { add: null, edit: null };
+
+function ktSetupFoodMap(prefix) {
+  if (ktFoodMaps[prefix]) return ktFoodMaps[prefix];
+  ktFoodMaps[prefix] = KtAddressPicker.setup({
+    mapElId: prefix + 'MapCanvas',
+    inputElId: prefix + 'LocationInput',
+    statusElId: prefix + 'MapStatus',
+    onPosition: function (lat, lng) {
+      const latInput = document.getElementById(prefix + 'LatInput');
+      const lngInput = document.getElementById(prefix + 'LngInput');
+      if (latInput) latInput.value = lat;
+      if (lngInput) lngInput.value = lng;
+    },
+  });
+  return ktFoodMaps[prefix];
 }
 
 /* ------------------------------------------------------------------ *
@@ -259,7 +243,10 @@ function openAddListing() {
   toggleTypeFields('add');
   toggleCategoryField('add');
   openModal('addListingModal');
-  setTimeout(() => initMapPicker('add', null, null, false), 150);
+  setTimeout(() => {
+    const picker = ktSetupFoodMap('add');
+    if (picker) { picker.map.invalidateSize(); picker.reset(); }
+  }, 150);
 }
 
 function validateListingForm(mode) {
@@ -334,11 +321,10 @@ function openEditListing(id, type) {
   toggleTypeFields('edit');
   toggleCategoryField('edit');
 
+  document.getElementById('editLocationInput').value = l.address || '';
   if (l.type === 'product') {
     document.getElementById('editPriceInput').value = l.price ?? '';
-    document.getElementById('editLocationInput').value = l.address || '';
   } else {
-    document.getElementById('editAddressInput').value = l.address || '';
     document.getElementById('editContactInput').value = l.contact_number || '';
     document.getElementById('editHoursInput').value = l.opening_hours || '';
     document.getElementById('editGoogleMapInput').value = l.google_map || '';
@@ -349,9 +335,16 @@ function openEditListing(id, type) {
   document.getElementById('editLngInput').value = hasCoords ? l.longitude : '';
 
   openModal('editListingModal');
-  const lat = hasCoords ? parseFloat(l.latitude) : null;
-  const lng = hasCoords ? parseFloat(l.longitude) : null;
-  setTimeout(() => initMapPicker('edit', lat, lng, false), 150);
+  setTimeout(() => {
+    const picker = ktSetupFoodMap('edit');
+    if (!picker) return;
+    picker.map.invalidateSize();
+    if (hasCoords) {
+      picker.setPosition(parseFloat(l.latitude), parseFloat(l.longitude), 16);
+    } else {
+      picker.reset();
+    }
+  }, 150);
 }
 
 function confirmDelete(id, type, name) {

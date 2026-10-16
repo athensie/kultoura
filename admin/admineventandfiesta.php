@@ -80,10 +80,29 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
     exit;
 }
 
+/*
+ |--------------------------------------------------------------------
+ | SCHEMA — widen `location`
+ |--------------------------------------------------------------------
+ | Started as VARCHAR(100) back when admins typed a short manual
+ | location. The address picker now fills this from a full Nominatim
+ | result (often 100+ characters), so it needs the same width as
+ | destination.address / restaurants.address. Guarded with a static
+ | flag, same pattern as kt_people_ensure_schema().
+ */
+function kt_fiestas_ensure_schema(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $conn->query("ALTER TABLE fiestas MODIFY location VARCHAR(255) NOT NULL");
+}
+
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
+kt_fiestas_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
@@ -211,6 +230,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
     <!-- Leaflet (OpenStreetMap) — free, no API key, used for the location picker -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
 
     <link rel="stylesheet" href="../assets/css/admineventandfiesta.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
@@ -458,15 +478,14 @@ $upcomingCount = count(array_filter($events, function ($e) {
             </div>
             <div class="form-group">
                 <label class="form-label">Location</label>
-                <div class="map-picker">
-                    <input class="form-input map-search" type="text" id="addMapSearch" placeholder="Search a place… or just click the map" onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapPlace('add');}">
-                    <button type="button" class="btn-ghost" style="margin:8px 0;padding:7px 14px;font-size:.78rem;" onclick="useMyLocation('add')"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i> Use My Location</button>
-                    <div class="map-canvas" id="addMapCanvas"></div>
-                    <div class="map-picked-label" id="addMapLabel">No location selected yet — click the map.</div>
+                <div class="kt-map-field">
+                    <input class="form-input" type="text" name="location" id="addLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off">
                 </div>
-                <input type="hidden" name="location" id="addLocationInput">
-                <input type="hidden" name="latitude" id="addLatInput">
-                <input type="hidden" name="longitude" id="addLngInput">
+                <input type="hidden" name="latitude" id="addLatInput" value="">
+                <input type="hidden" name="longitude" id="addLngInput" value="">
+                <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktEventMaps.add && ktEventMaps.add.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
+                <div id="addMapCanvas" class="kt-map-canvas"></div>
+                <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>
@@ -516,15 +535,14 @@ $upcomingCount = count(array_filter($events, function ($e) {
             </div>
             <div class="form-group">
                 <label class="form-label">Location</label>
-                <div class="map-picker">
-                    <input class="form-input map-search" type="text" id="editMapSearch" placeholder="Search a place… or just click the map" onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapPlace('edit');}">
-                    <button type="button" class="btn-ghost" style="margin:8px 0;padding:7px 14px;font-size:.78rem;" onclick="useMyLocation('edit')"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i> Use My Location</button>
-                    <div class="map-canvas" id="editMapCanvas"></div>
-                    <div class="map-picked-label" id="editMapLabel">No location selected yet — click the map.</div>
+                <div class="kt-map-field">
+                    <input class="form-input" type="text" name="location" id="editLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off">
                 </div>
-                <input type="hidden" name="location" id="editLocationInput">
-                <input type="hidden" name="latitude" id="editLatInput">
-                <input type="hidden" name="longitude" id="editLngInput">
+                <input type="hidden" name="latitude" id="editLatInput" value="">
+                <input type="hidden" name="longitude" id="editLngInput" value="">
+                <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktEventMaps.edit && ktEventMaps.edit.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
+                <div id="editMapCanvas" class="kt-map-canvas"></div>
+                <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>
@@ -590,6 +608,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261016"></script>
 <script src="../assets/js/admineventandfiesta.js"></script>
 <script>initViewToggle('events', '.data-table-wrap', '#eventsGrid'); initSidebarCollapse();</script>
 <script>

@@ -230,33 +230,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
          search — no API key, no billing account required. -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        .kt-map-field { position: relative; }
-        .kt-map-status { font-size: .7rem; color: rgba(245,237,216,.4); margin-top: 4px; }
-        .kt-suggest-box {
-            display: none;
-            position: absolute;
-            z-index: 20;
-            left: 0; right: 0; top: 100%;
-            background: #1e1d1a;
-            border: 1px solid rgba(245,237,216,.12);
-            border-radius: 8px;
-            margin-top: 4px;
-            max-height: 220px;
-            overflow-y: auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,.4);
-        }
-        .kt-suggest-item {
-            padding: 10px 12px;
-            font-size: .8rem;
-            color: rgba(245,237,216,.85);
-            cursor: pointer;
-            border-bottom: 1px solid rgba(255,255,255,.05);
-        }
-        .kt-suggest-item:last-child { border-bottom: none; }
-        .kt-suggest-item:hover { background: rgba(255,255,255,.06); }
-        .kt-suggest-empty { padding: 10px 12px; font-size: .75rem; color: rgba(245,237,216,.35); }
-    </style>
+    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
 </head>
 <body>
 
@@ -577,7 +551,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 </div>
                 <input type="hidden" name="google_maps" id="addGoogleMaps" value="">
                 <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktAddMap && ktAddMap.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
-                <div id="addMapPicker" style="height:220px;border-radius:8px;margin-top:8px;background:rgba(255,255,255,.04);overflow:hidden;"></div>
+                <div id="addMapPicker" class="kt-map-canvas"></div>
                 <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
@@ -650,7 +624,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 </div>
                 <input type="hidden" name="google_maps" id="editGoogleMaps" value="">
                 <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktEditMap && ktEditMap.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
-                <div id="editMapPicker" style="height:220px;border-radius:8px;margin-top:8px;background:rgba(255,255,255,.04);overflow:hidden;"></div>
+                <div id="editMapPicker" class="kt-map-canvas"></div>
                 <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
@@ -741,6 +715,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261016"></script>
 <script src="../assets/js/admindestinations.js"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>

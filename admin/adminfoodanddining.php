@@ -29,10 +29,29 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
     exit;
 }
 
+/*
+ |--------------------------------------------------------------------
+ | SCHEMA — widen `location`
+ |--------------------------------------------------------------------
+ | Started as VARCHAR(100) back when admins typed a short manual
+ | location. The address picker now fills this from a full Nominatim
+ | result (often 100+ characters), so it needs the same width as
+ | destination.address / restaurants.address. Guarded with a static
+ | flag, same pattern as kt_people_ensure_schema() in adminpeople.php.
+ */
+function kt_products_ensure_schema(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $conn->query("ALTER TABLE products MODIFY location VARCHAR(255) NULL");
+}
+
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
+kt_products_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
@@ -280,15 +299,8 @@ sort($allCategories);
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
+    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
     <style>
-        /* Map picker — kept inline so no extra CSS file is needed */
-        .map-picker { margin-top: 6px; }
-        .map-picker-canvas { width: 100%; height: 220px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(245,237,216,.15); }
-        .map-picker-hint { font-size: .7rem; color: rgba(245,237,216,.45); margin-top: 6px; }
-        .map-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .map-search-row .form-input { flex: 1; }
-        .map-search-btn { white-space: nowrap; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(245,237,216,.2); background: rgba(255,255,255,.06); color: #f5edd8; cursor: pointer; }
-        .map-search-btn:hover { background: rgba(255,255,255,.12); }
         .image-current-hint { font-size: .7rem; color: rgba(245,237,216,.45); margin-top: 6px; }
     </style>
 </head>
@@ -560,18 +572,10 @@ sort($allCategories);
                     <label class="form-label">Price</label>
                     <input class="form-input" type="number" step="0.01" min="0" name="price" placeholder="e.g. 150.00">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Location</label>
-                    <input class="form-input" type="text" name="location" placeholder="e.g. Town Proper, Malvar">
-                </div>
             </div>
 
             <!-- Restaurant-only fields -->
             <div class="add-restaurant-fields" style="display:none;">
-                <div class="form-group">
-                    <label class="form-label">Address</label>
-                    <input class="form-input" type="text" name="address" placeholder="e.g. Poblacion, Malvar, Batangas">
-                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Contact Number</label>
@@ -594,16 +598,13 @@ sort($allCategories);
             </div>
 
             <div class="form-group">
-                <label class="form-label">Pin Location on Map</label>
-                <div class="map-search-row">
-                    <input class="form-input" type="text" id="addMapSearchInput" placeholder="Search an address, e.g. Town Proper, Malvar">
-                    <button type="button" class="map-search-btn" onclick="searchAddress('add')">Find</button>
-                    <button type="button" class="map-search-btn" onclick="useMyLocation('add')" title="Use my current location"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i></button>
+                <label class="form-label">Location</label>
+                <div class="kt-map-field">
+                    <input class="form-input" type="text" name="location" id="addLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off">
                 </div>
-                <div class="map-picker">
-                    <div class="map-picker-canvas" id="addMapCanvas"></div>
-                    <p class="map-picker-hint" id="addMapHint">Search an address, or click/drag the pin directly on the map to set the exact spot. This is what powers the "Navigate" button on the site.</p>
-                </div>
+                <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktFoodMaps.add && ktFoodMaps.add.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
+                <div id="addMapCanvas" class="kt-map-canvas"></div>
+                <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot. This is what powers the "Navigate" button on the site.</div>
             </div>
 
             <div class="form-group">
@@ -654,18 +655,10 @@ sort($allCategories);
                     <label class="form-label">Price</label>
                     <input class="form-input" type="number" step="0.01" min="0" name="price" id="editPriceInput" placeholder="e.g. 150.00">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Location</label>
-                    <input class="form-input" type="text" name="location" id="editLocationInput" placeholder="e.g. Town Proper, Malvar">
-                </div>
             </div>
 
             <!-- Restaurant-only fields -->
             <div class="edit-restaurant-fields" style="display:none;">
-                <div class="form-group">
-                    <label class="form-label">Address</label>
-                    <input class="form-input" type="text" name="address" id="editAddressInput" placeholder="Address">
-                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Contact Number</label>
@@ -689,16 +682,13 @@ sort($allCategories);
             </div>
 
             <div class="form-group">
-                <label class="form-label">Pin Location on Map</label>
-                <div class="map-search-row">
-                    <input class="form-input" type="text" id="editMapSearchInput" placeholder="Search an address…">
-                    <button type="button" class="map-search-btn" onclick="searchAddress('edit')">Find</button>
-                    <button type="button" class="map-search-btn" onclick="useMyLocation('edit')" title="Use my current location"><i data-lucide="locate-fixed" class="lucide" style="width:.8rem;height:.8rem;"></i></button>
+                <label class="form-label">Location</label>
+                <div class="kt-map-field">
+                    <input class="form-input" type="text" name="location" id="editLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off">
                 </div>
-                <div class="map-picker">
-                    <div class="map-picker-canvas" id="editMapCanvas"></div>
-                    <p class="map-picker-hint" id="editMapHint">Search an address, or click/drag the pin directly on the map to set the exact spot.</p>
-                </div>
+                <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktFoodMaps.edit && ktFoodMaps.edit.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
+                <div id="editMapCanvas" class="kt-map-canvas"></div>
+                <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
 
             <div class="form-group">
@@ -730,7 +720,7 @@ sort($allCategories);
             <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Description</div>
             <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.6;" id="vlDesc">—</div>
         </div>
-        <div class="map-picker-canvas" id="viewMapCanvas" style="margin-bottom:18px;"></div>
+        <div class="kt-map-canvas" id="viewMapCanvas" style="margin-bottom:18px;"></div>
         <div style="display:flex;gap:10px;">
             <button class="btn-primary" style="flex:1;" onclick="reopenAsEdit()"><i data-lucide="pencil" class="lucide" style="width:.85rem;height:.85rem;"></i> Edit Listing</button>
             <button class="btn-ghost" onclick="closeModal('viewListingModal')">Close</button>
@@ -780,6 +770,7 @@ sort($allCategories);
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261016"></script>
 <script src="../assets/js/adminfoodanddining.js"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
 

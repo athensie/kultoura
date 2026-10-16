@@ -18,200 +18,46 @@ function showToast(msg) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-/* ---------- FREE ADDRESS PICKER (OpenStreetMap/Nominatim search + Google Maps preview) ---------- */
-const KT_DEFAULT_CENTER = { lat: 14.0086, lng: 121.1567 }; // Malvar, Batangas
+/* ---------- ADDRESS PICKER (shared module — assets/js/kt-address-picker.js) ---------- */
+const KT_DEFAULT_CENTER = KtAddressPicker.DEFAULT_CENTER;
 
 let ktAddMap = null;
 let ktEditMap = null;
 
-function ktDebounce(fn, wait) {
-  let t = null;
-  return function (...args) {
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(this, args), wait);
-  };
-}
-
-async function ktSearchAddress(query, suggestBox, input, setPosition) {
-  if (query.trim().length < 3) {
-    suggestBox.style.display = 'none';
-    suggestBox.innerHTML = '';
-    return;
-  }
-  try {
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=ph&q=' + encodeURIComponent(query);
-    const res = await fetch(url);
-    const results = await res.json();
-
-    suggestBox.innerHTML = '';
-    if (!results.length) {
-      const empty = document.createElement('div');
-      empty.className = 'kt-suggest-empty';
-      empty.textContent = 'No matches — try a more specific address.';
-      suggestBox.appendChild(empty);
-      suggestBox.style.display = 'block';
-      return;
-    }
-
-    results.forEach(function (r) {
-      const item = document.createElement('div');
-      item.className = 'kt-suggest-item';
-      item.textContent = r.display_name;
-      item.addEventListener('click', function () {
-        input.value = r.display_name;
-        setPosition(parseFloat(r.lat), parseFloat(r.lon), 16);
-        suggestBox.innerHTML = '';
-        suggestBox.style.display = 'none';
-      });
-      suggestBox.appendChild(item);
-    });
-    suggestBox.style.display = 'block';
-  } catch (err) {
-    console.error('Address search failed:', err);
-  }
-}
-
-function ktSetupMapPicker(mapElId, inputElId, hiddenElId, statusElId) {
-  const mapEl = document.getElementById(mapElId);
-  const input = document.getElementById(inputElId);
-  if (!mapEl || !input || typeof L === 'undefined') return null;
-
-  const map = L.map(mapEl).setView([KT_DEFAULT_CENTER.lat, KT_DEFAULT_CENTER.lng], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19,
-  }).addTo(map);
-
-  const marker = L.marker([KT_DEFAULT_CENTER.lat, KT_DEFAULT_CENTER.lng], { draggable: true }).addTo(map);
-
-  function setStatus(text) {
-    const statusEl = document.getElementById(statusElId);
-    if (statusEl) statusEl.textContent = text;
-  }
-
-  function setHidden(lat, lng) {
-    const hidden = document.getElementById(hiddenElId);
-    if (hidden) hidden.value = Number(lat).toFixed(6) + ',' + Number(lng).toFixed(6);
-    setStatus('✓ Pin set at ' + Number(lat).toFixed(5) + ', ' + Number(lng).toFixed(5) + ' — drag it to fine-tune.');
-  }
-
-  function setPosition(lat, lng, zoom) {
-    map.setView([lat, lng], zoom || map.getZoom());
-    marker.setLatLng([lat, lng]);
-    setHidden(lat, lng);
-  }
-
-  // Reverse geocode: turn clicked/dragged coordinates into a
-  // human-readable address and drop it into the input field.
-  async function reverseGeocode(lat, lng) {
-    try {
-      const url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng;
-      const res = await fetch(url);
-      const result = await res.json();
-      if (result && result.display_name) {
-        input.value = result.display_name;
-      }
-    } catch (err) {
-      console.error('Reverse geocode failed:', err);
-    }
-  }
-
-  marker.on('dragend', function () {
-    const pos = marker.getLatLng();
-    setHidden(pos.lat, pos.lng);
-    reverseGeocode(pos.lat, pos.lng);
-  });
-
-  // Click anywhere on the map to drop the pin there.
-  map.on('click', function (e) {
-    setPosition(e.latlng.lat, e.latlng.lng, map.getZoom());
-    reverseGeocode(e.latlng.lat, e.latlng.lng);
-  });
-
-  // "Use My Location" — drops the pin at the admin's actual current
-  // position (e.g. standing at the destination) instead of making them
-  // search for or click it on the map.
-  function locate() {
-    if (!navigator.geolocation) {
-      setStatus("Your browser doesn't support location access — search or click the map instead.");
-      return;
-    }
-    setStatus('Finding your location…');
-    navigator.geolocation.getCurrentPosition(
-      function (pos) {
-        setPosition(pos.coords.latitude, pos.coords.longitude, 17);
-        reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-      },
-      function (err) {
-        setStatus(err.code === err.PERMISSION_DENIED
-          ? 'Location access was denied — search or click the map instead.'
-          : "Couldn't get your location — search or click the map instead.");
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
-  }
-
-  const suggestBox = document.createElement('div');
-  suggestBox.className = 'kt-suggest-box';
-  input.parentNode.appendChild(suggestBox);
-
-  const debouncedSearch = ktDebounce(function () {
-    ktSearchAddress(input.value, suggestBox, input, setPosition);
-  }, 450);
-
-  input.addEventListener('input', debouncedSearch);
-  input.addEventListener('focus', function () {
-    if (suggestBox.innerHTML) suggestBox.style.display = 'block';
-  });
-  document.addEventListener('click', function (e) {
-    if (e.target !== input && !suggestBox.contains(e.target)) {
-      suggestBox.style.display = 'none';
-    }
-  });
-
-  // Fallback: if the admin types an address and tabs/clicks away
-  // WITHOUT picking a suggestion, dragging, or clicking the map,
-  // geocode whatever they typed so google_maps still gets saved.
-  input.addEventListener('blur', function () {
-    setTimeout(async () => {
-      const hidden = document.getElementById(hiddenElId);
-      if (hidden && !hidden.value && input.value.trim().length >= 3) {
-        try {
-          const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ph&q=' + encodeURIComponent(input.value);
-          const res = await fetch(url);
-          const results = await res.json();
-          if (results.length) {
-            setPosition(parseFloat(results[0].lat), parseFloat(results[0].lon), 16);
-          }
-        } catch (err) {
-          console.error('Fallback geocode failed:', err);
-        }
-      }
-    }, 200);
-  });
-
-  return { map: map, marker: marker, setPosition: setPosition, setStatus: setStatus, locate: locate };
+function ktSetHiddenLatLng(hiddenElId, lat, lng) {
+  const hidden = document.getElementById(hiddenElId);
+  if (hidden) hidden.value = Number(lat).toFixed(6) + ',' + Number(lng).toFixed(6);
 }
 
 // Lazily creates each picker the first time its modal opens, and just
-// re-centers/invalidates size on later opens (Leaflet renders wrong in
-// a container that was hidden with display:none at init time).
+// resets it on later opens (Leaflet renders wrong in a container that
+// was hidden with display:none at init time).
 function ktRefreshAddMap() {
   setTimeout(() => {
     if (!ktAddMap) {
-      ktAddMap = ktSetupMapPicker('addMapPicker', 'addLocationInput', 'addGoogleMaps', 'addMapStatus');
+      ktAddMap = KtAddressPicker.setup({
+        mapElId: 'addMapPicker',
+        inputElId: 'addLocationInput',
+        statusElId: 'addMapStatus',
+        onPosition: (lat, lng) => ktSetHiddenLatLng('addGoogleMaps', lat, lng),
+      });
     } else {
-      ktAddMap.map.invalidateSize();
-      ktAddMap.setPosition(KT_DEFAULT_CENTER.lat, KT_DEFAULT_CENTER.lng, 13);
+      ktAddMap.reset();
     }
-    if (ktAddMap) ktAddMap.setStatus('Search an address, or click/drag the pin to set the exact spot.');
+    const hidden = document.getElementById('addGoogleMaps');
+    if (hidden) hidden.value = '';
   }, 150);
 }
 
 function ktRefreshEditMap(savedGoogleMaps) {
   setTimeout(() => {
     if (!ktEditMap) {
-      ktEditMap = ktSetupMapPicker('editMapPicker', 'editDestinationLocationInput', 'editGoogleMaps', 'editMapStatus');
+      ktEditMap = KtAddressPicker.setup({
+        mapElId: 'editMapPicker',
+        inputElId: 'editDestinationLocationInput',
+        statusElId: 'editMapStatus',
+        onPosition: (lat, lng) => ktSetHiddenLatLng('editGoogleMaps', lat, lng),
+      });
     } else {
       ktEditMap.map.invalidateSize();
     }
@@ -221,10 +67,9 @@ function ktRefreshEditMap(savedGoogleMaps) {
     if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
       ktEditMap.setPosition(parts[0], parts[1], 16);
     } else {
-      ktEditMap.setPosition(KT_DEFAULT_CENTER.lat, KT_DEFAULT_CENTER.lng, 13);
+      ktEditMap.reset();
       const hidden = document.getElementById('editGoogleMaps');
       if (hidden) hidden.value = '';
-      ktEditMap.setStatus('Search an address, or click/drag the pin to set the exact spot.');
     }
   }, 150);
 }
