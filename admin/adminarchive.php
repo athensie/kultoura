@@ -58,6 +58,30 @@ unset($_SESSION['admin_flash']);
 
 $pendingRequestCount = kt_requests_pending_count($conn);
 $archivedGrouped = kt_archived_items_grouped($conn);
+
+/*
+ |--------------------------------------------------------------------
+ | DETAILS VIEW — turn each item's raw row into a generic [label =>
+ | value] list for the "Open" modal, so every entity type gets a real
+ | details view without needing its own custom template. Technical/
+ | already-shown-elsewhere columns are left out.
+ */
+$archiveFieldSkip = ['status', 'created_at', 'archive_note', 'views', 'favorited'];
+foreach ($archivedGrouped as $type => &$group) {
+    $meta = kt_archive_types()[$type];
+    $skip = array_merge($archiveFieldSkip, [$meta['idCol'], 'id', $meta['nameCol'], 'name', $meta['imageCol'], 'image']);
+    foreach ($group['items'] as &$item) {
+        $details = [];
+        foreach ($item as $col => $val) {
+            if (in_array($col, $skip, true) || $val === null || $val === '') continue;
+            $label = ucwords(str_replace('_', ' ', $col));
+            $details[] = ['label' => $label, 'value' => (string) $val];
+        }
+        $item['details'] = $details;
+    }
+    unset($item);
+}
+unset($group);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -99,6 +123,17 @@ $archivedGrouped = kt_archived_items_grouped($conn);
         .archive-item-name { font-size: .82rem; color: rgba(245,237,216,.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .archive-item-date { font-size: .68rem; color: rgba(245,237,216,.35); margin-top: 1px; }
         .archive-empty { font-size: .82rem; color: rgba(245,237,216,.4); padding: 20px; text-align: center; background: rgba(255,255,255,.02); border: 1px dashed rgba(245,237,216,.1); border-radius: 12px; }
+
+        .archive-details-thumb { width: 100%; height: 160px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.04); margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
+        .archive-details-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .archive-note-box { text-align: left; background: rgba(200,169,110,.08); border: 1px solid rgba(200,169,110,.25); border-radius: 10px; padding: 12px 14px; margin: 16px 0; }
+        .archive-note-label { font-size: .68rem; letter-spacing: 1px; text-transform: uppercase; color: #C8A96E; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .archive-note-text { font-size: .85rem; color: rgba(245,237,216,.85); line-height: 1.5; white-space: pre-wrap; }
+        .archive-note-by { font-size: .68rem; color: rgba(245,237,216,.4); margin-top: 8px; }
+        .archive-details-list { text-align: left; display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; }
+        .archive-detail-row { border-bottom: 1px solid rgba(255,255,255,.06); padding-bottom: 8px; }
+        .archive-detail-label { font-size: .65rem; letter-spacing: 1px; text-transform: uppercase; color: rgba(245,237,216,.35); margin-bottom: 2px; }
+        .archive-detail-value { font-size: .82rem; color: rgba(245,237,216,.8); word-break: break-word; }
     </style>
 </head>
 <body>
@@ -202,7 +237,12 @@ $archivedGrouped = kt_archived_items_grouped($conn);
                                 </div>
                                 <div class="archive-item-body">
                                     <div class="archive-item-name"><?php echo htmlspecialchars($item['name'] ?: ('#' . $item['id'])); ?></div>
-                                    <div class="archive-item-date">Archived · <?php echo htmlspecialchars(date('M j, Y', strtotime($item['created_at']))); ?></div>
+                                    <div class="archive-item-date">
+                                        Archived · <?php echo htmlspecialchars(date('M j, Y', strtotime($item['created_at']))); ?>
+                                        <?php if (!empty($item['archive_note']['note'])): ?>
+                                            <span title="A reason was left for this archive" style="color:#C8A96E;"> · <i data-lucide="message-square" class="lucide" style="width:.65rem;height:.65rem;vertical-align:-1px;"></i> Note</span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 <form method="POST" style="display:inline;">
                                     <?php echo csrf_field(); ?>
@@ -211,7 +251,7 @@ $archivedGrouped = kt_archived_items_grouped($conn);
                                     <input type="hidden" name="entity_id" value="<?php echo (int) $item['id']; ?>">
                                     <button type="submit" class="tbl-btn edit"><i data-lucide="rotate-ccw" class="lucide" style="width:.72rem;height:.72rem;"></i> Restore</button>
                                 </form>
-                                <a href="<?php echo BASE_URL; ?>/admin/<?php echo htmlspecialchars($group['page']); ?>" class="tbl-btn" style="background:rgba(255,255,255,.05);color:rgba(245,237,216,.6);"><i data-lucide="external-link" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</a>
+                                <button type="button" class="tbl-btn" style="background:rgba(255,255,255,.05);color:rgba(245,237,216,.6);" onclick="openArchiveDetails('<?php echo htmlspecialchars($type); ?>', <?php echo (int) $item['id']; ?>)"><i data-lucide="eye" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</button>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete &quot;<?php echo htmlspecialchars(addslashes($item['name'] ?: ('#' . $item['id'])), ENT_QUOTES); ?>&quot;? This cannot be undone — it will be gone for good, not just archived.');">
                                     <?php echo csrf_field(); ?>
                                     <input type="hidden" name="form_action" value="delete">
@@ -229,8 +269,98 @@ $archivedGrouped = kt_archived_items_grouped($conn);
     </div>
 </div>
 
+<!-- ARCHIVE ITEM DETAILS MODAL -->
+<div class="modal-overlay" id="archiveDetailsModal" onclick="closeModalOutside(event, 'archiveDetailsModal')">
+    <div class="modal-card" style="max-width:480px;">
+        <button class="modal-close" onclick="closeModal('archiveDetailsModal')"><i data-lucide="x" class="lucide"></i></button>
+        <div class="archive-details-thumb" id="adThumb"></div>
+        <div class="modal-title" id="adName">—</div>
+        <div class="modal-sub" id="adMeta">—</div>
+
+        <div class="archive-note-box" id="adNoteBox" hidden>
+            <div class="archive-note-label"><i data-lucide="message-square" class="lucide" style="width:.8rem;height:.8rem;"></i> Reason for archiving</div>
+            <div class="archive-note-text" id="adNoteText">—</div>
+            <div class="archive-note-by" id="adNoteBy"></div>
+        </div>
+
+        <div class="archive-details-list" id="adDetailsList"></div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('archiveDetailsModal')">Close</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script>
+    const archivedGroupedData = <?php echo json_encode($archivedGrouped); ?>;
+
+    // Every value here is free-text admin input (names, notes,
+    // descriptions…), so it's built with DOM nodes / textContent
+    // rather than innerHTML string concatenation — never trust it as HTML.
+    function openArchiveDetails(type, id) {
+        const group = archivedGroupedData[type];
+        const item = group ? group.items.find(i => Number(i.id) === Number(id)) : null;
+        if (!item) return;
+
+        document.getElementById('adName').textContent = item.name || ('#' + item.id);
+        document.getElementById('adMeta').textContent = 'Archived ' + new Date(item.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        const thumb = document.getElementById('adThumb');
+        thumb.textContent = '';
+        if (item.image) {
+            const img = document.createElement('img');
+            img.src = item.image;
+            img.alt = '';
+            thumb.appendChild(img);
+        } else {
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'archive');
+            icon.className = 'lucide';
+            icon.style.cssText = 'width:1.4rem;height:1.4rem;color:rgba(245,237,216,.25);';
+            thumb.appendChild(icon);
+        }
+
+        const noteBox = document.getElementById('adNoteBox');
+        if (item.archive_note && item.archive_note.note) {
+            noteBox.hidden = false;
+            document.getElementById('adNoteText').textContent = item.archive_note.note;
+            const by = item.archive_note.archived_by_name;
+            const at = item.archive_note.archived_at ? new Date(item.archive_note.archived_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+            document.getElementById('adNoteBy').textContent = (by ? 'By ' + by : '') + (by && at ? ' · ' : '') + at;
+        } else {
+            noteBox.hidden = true;
+        }
+
+        const list = document.getElementById('adDetailsList');
+        list.textContent = '';
+        const details = item.details || [];
+        if (!details.length) {
+            const empty = document.createElement('div');
+            empty.className = 'archive-empty';
+            empty.textContent = 'No other details on file.';
+            list.appendChild(empty);
+        } else {
+            details.forEach(d => {
+                const row = document.createElement('div');
+                row.className = 'archive-detail-row';
+                const label = document.createElement('div');
+                label.className = 'archive-detail-label';
+                label.textContent = d.label;
+                const value = document.createElement('div');
+                value.className = 'archive-detail-value';
+                value.textContent = d.value;
+                row.appendChild(label);
+                row.appendChild(value);
+                list.appendChild(row);
+            });
+        }
+
+        openModal('archiveDetailsModal');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+</script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>

@@ -136,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         'description'       => $_POST['description'] ?? '',
         'google_maps'       => $_POST['google_maps'] ?? '',
         'image'             => $imagePath,
+        'archive_note'      => $_POST['archive_note'] ?? '',
     ];
 
     // The archive form only posts action+id — look the name up so the
@@ -700,6 +701,10 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
             <input type="hidden" name="action" value="delete">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="deleteDestinationId" value="">
+            <div class="form-group" style="text-align:left; margin-top:16px;">
+                <label class="form-label">Reason for archiving (optional)</label>
+                <textarea class="form-textarea" name="archive_note" rows="3" placeholder="e.g. Permanently closed, duplicate entry…"></textarea>
+            </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteDestinationModal')">Cancel</button>
@@ -716,7 +721,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admindestinations.js"></script>
+<script src="../assets/js/admindestinations.js?v=20261016"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>

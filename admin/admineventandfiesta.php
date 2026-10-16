@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $entityAction = $action === 'add' ? 'create' : ($action === 'edit' ? 'update' : 'archive');
 
         if ($entityAction === 'archive') {
-            $data = [];
+            $data = ['archive_note' => $_POST['archive_note'] ?? ''];
             $stmt = $conn->prepare("SELECT fiesta_name AS name FROM fiestas WHERE fiesta_id = ?");
             $stmt->bind_param('i', $id);
             $stmt->execute();
@@ -586,6 +586,10 @@ $upcomingCount = count(array_filter($events, function ($e) {
             <input type="hidden" name="action" value="delete">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="fiesta_id" id="deleteFiestaId">
+            <div class="form-group" style="text-align:left; margin-top:16px;">
+                <label class="form-label">Reason for archiving (optional)</label>
+                <textarea class="form-textarea" name="archive_note" rows="3" placeholder="e.g. Event cancelled, duplicate entry…"></textarea>
+            </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteModal')">Cancel</button>
@@ -609,7 +613,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admineventandfiesta.js"></script>
+<script src="../assets/js/admineventandfiesta.js?v=20261016"></script>
 <script>initViewToggle('events', '.data-table-wrap', '#eventsGrid'); initSidebarCollapse();</script>
 <script>
     (function initLucide() {

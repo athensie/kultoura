@@ -65,6 +65,73 @@ if (!function_exists('kt_requests_ensure_schema')) {
                 INDEX (admin_id, is_read)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
+
+        // One optional note per currently-archived row, across every
+        // entity type — why it was archived. A side table instead of a
+        // column on each of the 10 content tables, since it only ever
+        // applies while a row is archived (see kt_archive_restore() /
+        // kt_archive_permanently_delete(), which delete it again).
+        $conn->query(
+            "CREATE TABLE IF NOT EXISTS archive_notes (
+                entity_type VARCHAR(30) NOT NULL,
+                entity_id INT NOT NULL,
+                note TEXT NULL,
+                archived_by INT NULL,
+                archived_by_name VARCHAR(100) NULL,
+                archived_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (entity_type, entity_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+    }
+}
+
+// Records (or replaces) the reason an admin gave for archiving one row.
+// Called from kt_apply_entity_change() right before the archive itself,
+// using whichever admin is logged into the current request.
+if (!function_exists('kt_archive_note_save')) {
+    function kt_archive_note_save(mysqli $conn, string $entityType, int $id, string $note): void
+    {
+        if (trim($note) === '') return;
+
+        $adminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+        $adminName = $_SESSION['username'] ?? null;
+
+        $stmt = $conn->prepare(
+            "INSERT INTO archive_notes (entity_type, entity_id, note, archived_by, archived_by_name)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE note = VALUES(note), archived_by = VALUES(archived_by),
+                archived_by_name = VALUES(archived_by_name), archived_at = CURRENT_TIMESTAMP"
+        );
+        $stmt->bind_param('sisis', $entityType, $id, $note, $adminId, $adminName);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+// The note (if any) left behind when a row was archived — shown in the
+// Archive page's item details.
+if (!function_exists('kt_archive_note_get')) {
+    function kt_archive_note_get(mysqli $conn, string $entityType, int $id): ?array
+    {
+        $stmt = $conn->prepare("SELECT note, archived_by_name, archived_at FROM archive_notes WHERE entity_type = ? AND entity_id = ?");
+        $stmt->bind_param('si', $entityType, $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+}
+
+// Clears a row's archive note once it's no longer archived (restored,
+// or permanently deleted) — never shown for a row that isn't currently
+// sitting in the Archive.
+if (!function_exists('kt_archive_note_clear')) {
+    function kt_archive_note_clear(mysqli $conn, string $entityType, int $id): void
+    {
+        $stmt = $conn->prepare("DELETE FROM archive_notes WHERE entity_type = ? AND entity_id = ?");
+        $stmt->bind_param('si', $entityType, $id);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 
@@ -131,16 +198,25 @@ if (!function_exists('kt_archived_items_grouped')) {
     {
         $grouped = [];
         foreach (kt_archive_types() as $type => $meta) {
-            $sql = "SELECT `{$meta['idCol']}` AS id, `{$meta['nameCol']}` AS name, `{$meta['imageCol']}` AS image, created_at
+            // SELECT * (not just id/name/image/created_at) so the Archive
+            // page's details view can show every real field a row has,
+            // not just the bare minimum the list row itself needs.
+            $sql = "SELECT *, `{$meta['idCol']}` AS id, `{$meta['nameCol']}` AS name, `{$meta['imageCol']}` AS image
                      FROM `{$meta['table']}` WHERE status = 'archived' ORDER BY created_at DESC";
             $result = $conn->query($sql);
             if (!$result || $result->num_rows === 0) {
                 continue;
             }
+            $items = $result->fetch_all(MYSQLI_ASSOC);
+            foreach ($items as &$item) {
+                $item['archive_note'] = kt_archive_note_get($conn, $type, (int) $item['id']);
+            }
+            unset($item);
+
             $grouped[$type] = [
                 'label' => $meta['label'],
                 'page'  => $meta['page'],
-                'items' => $result->fetch_all(MYSQLI_ASSOC),
+                'items' => $items,
             ];
         }
         return $grouped;
@@ -161,6 +237,10 @@ if (!function_exists('kt_archive_restore')) {
         $stmt->bind_param('si', $meta['activeStatus'], $id);
         $ok = $stmt->execute();
         $stmt->close();
+
+        if ($ok) {
+            kt_archive_note_clear($conn, $entityType, $id);
+        }
         return $ok;
     }
 }
@@ -191,6 +271,10 @@ if (!function_exists('kt_archive_permanently_delete')) {
         $stmt->bind_param('i', $id);
         $ok = $stmt->execute() && $stmt->affected_rows > 0;
         $stmt->close();
+
+        if ($ok) {
+            kt_archive_note_clear($conn, $entityType, $id);
+        }
 
         if ($ok && !empty($row['image'])) {
             $relative = preg_replace('#^/?kultoura/#', '', $row['image']);
@@ -432,6 +516,10 @@ if (!function_exists('kt_requests_resolve')) {
 if (!function_exists('kt_apply_entity_change')) {
     function kt_apply_entity_change(mysqli $conn, string $entityType, string $action, ?int $id, array $data): string
     {
+        if ($action === 'archive' && $id !== null && !empty($data['archive_note'])) {
+            kt_archive_note_save($conn, $entityType, $id, (string) $data['archive_note']);
+        }
+
         switch ($entityType) {
             case 'destination':      return kt_apply_destination($conn, $action, $id, $data);
             case 'product':          return kt_apply_product($conn, $action, $id, $data);

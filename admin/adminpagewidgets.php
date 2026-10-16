@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     $id = ($verb === 'update' || $verb === 'archive') ? (int) ($_POST['id'] ?? 0) : null;
 
     if ($verb === 'archive') {
-        $data = [];
+        $data = ['archive_note' => $_POST['archive_note'] ?? ''];
         $stmt = $conn->prepare("SELECT page_slug FROM page_widgets WHERE id = ?");
         $stmt->bind_param('i', $id);
         $stmt->execute();
@@ -483,6 +483,10 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <input type="hidden" name="id" id="archiveIdInput">
             <input type="hidden" name="form_action" value="delete_page_widget">
             <?php echo csrf_field(); ?>
+            <div class="form-group" style="text-align:left; margin-top:16px;">
+                <label class="form-label">Reason for archiving (optional)</label>
+                <textarea class="form-textarea" name="archive_note" rows="3" placeholder="e.g. Section redesigned, content outdated…"></textarea>
+            </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('archiveModal')">Cancel</button>

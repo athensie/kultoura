@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $entityAction = $action === 'create_section' ? 'create' : ($action === 'update_section' ? 'update' : 'archive');
 
         if ($entityAction === 'archive') {
-            $data = [];
+            $data = ['archive_note' => $_POST['archive_note'] ?? ''];
             $stmt = $conn->prepare("SELECT title AS name FROM about_sections WHERE section_id = ?");
             $stmt->bind_param('i', $id);
             $stmt->execute();
@@ -457,9 +457,10 @@ $iconLabels = sitecontent_icon_labels();
                             'body' => $s['body'],
                             'hasImage' => !empty($s['image']),
                         ]), ENT_QUOTES); ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                        <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" style="display:inline;" onsubmit="return confirm('<?php echo $isSuperAdmin ? 'Archive' : 'Submit a request to archive'; ?> the &quot;<?php echo htmlspecialchars(addslashes($s['title'])); ?>&quot; section? It will be hidden from the public About page.');">
+                        <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" style="display:inline;" onsubmit="return ktArchiveWithNote(this, <?php echo json_encode($s['title']); ?>);">
                             <input type="hidden" name="action" value="delete_section">
                             <input type="hidden" name="id" value="<?php echo (int) $s['section_id']; ?>">
+                            <input type="hidden" name="archive_note" value="">
                             <?php echo csrf_field(); ?>
                             <button type="submit" class="tbl-btn delete"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </form>
@@ -581,6 +582,7 @@ $iconLabels = sitecontent_icon_labels();
 <div class="toast" id="toast"></div>
 
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
+<script src="../assets/js/admin-archive-note.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script>window.KT_CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;</script>

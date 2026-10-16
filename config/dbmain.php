@@ -31,6 +31,20 @@ if ($isHosted) {
     error_reporting(E_ALL);
 }
 
+/*
+ |--------------------------------------------------------------------
+ | NO CACHING FOR ADMIN PAGES
+ |--------------------------------------------------------------------
+ | Admin pages render live, frequently-changing data (listings, pending
+ | counts, forms). Without this, a browser can serve a stale cached
+ | copy of the whole page — including old markup/JS from before a
+ | deploy — on back/forward navigation or a plain reload.
+ */
+if (strpos($_SERVER['SCRIPT_NAME'] ?? '', '/admin/') !== false) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+}
+
 $conn = new mysqli($host, $user, $pass, $dbname, $port);
 
 if ($conn->connect_error) {

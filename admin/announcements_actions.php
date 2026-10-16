@@ -87,7 +87,7 @@ $entityAction = $action === 'create' ? 'create' : ($action === 'update' ? 'updat
 $id = ($action === 'update' || $action === 'delete') ? (int) ($_POST['id'] ?? 0) : null;
 
 if ($entityAction === 'archive') {
-    $data = [];
+    $data = ['archive_note' => $_POST['archive_note'] ?? ''];
     $stmt = $conn->prepare("SELECT title AS name FROM announcements WHERE id = ?");
     $stmt->bind_param('i', $id);
     $stmt->execute();

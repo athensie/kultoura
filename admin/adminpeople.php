@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $entityAction = $action === 'add' ? 'create' : ($action === 'edit' ? 'update' : 'archive');
 
         if ($entityAction === 'archive') {
-            $data = [];
+            $data = ['archive_note' => $_POST['archive_note'] ?? ''];
             $stmt = $conn->prepare("SELECT fullname AS name FROM people WHERE person_id = ?");
             $stmt->bind_param('i', $id);
             $stmt->execute();
@@ -519,6 +519,10 @@ $addedThisMonth = count(array_filter($people, function ($p) {
             <input type="hidden" name="action" value="delete">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="person_id" id="deletePersonId">
+            <div class="form-group" style="text-align:left; margin-top:16px;">
+                <label class="form-label">Reason for archiving (optional)</label>
+                <textarea class="form-textarea" name="archive_note" rows="3" placeholder="e.g. Passed away, requested removal…"></textarea>
+            </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteModal')">Cancel</button>

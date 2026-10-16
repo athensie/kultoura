@@ -399,6 +399,10 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id" id="deleteAnnId" value="">
             <?php echo csrf_field(); ?>
+            <div class="form-group" style="text-align:left; margin-top:16px;">
+                <label class="form-label">Reason for archiving (optional)</label>
+                <textarea class="form-textarea" name="archive_note" rows="3" placeholder="e.g. No longer relevant, event passed…"></textarea>
+            </div>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;"><?php echo $isSuperAdmin ? 'Yes, Archive' : 'Submit Request'; ?></button>
                 <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('deleteAnnouncementModal')">Cancel</button>
