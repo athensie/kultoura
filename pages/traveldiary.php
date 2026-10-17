@@ -137,16 +137,17 @@ function td_parse_latlng_pair(?string $raw): array
 // publicly listed.
 $catalog = []; // keyed "itemType-itemId" => item details
 
-if ($result = $conn->query("SELECT product_id, product_name, category, image, location, latitude, longitude FROM products")) {
+if ($result = $conn->query("SELECT product_id, product_name, category, description, image, location, latitude, longitude FROM products")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['product_id'];
         $catalog['product-' . $id] = [
-            'itemType'  => 'product',
-            'itemId'    => $id,
-            'name'      => $row['product_name'],
-            'category'  => 'product',
-            'badgeText' => $row['category'] ?: 'Product',
-            'address'   => $row['location'] ?? '',
+            'itemType'    => 'product',
+            'itemId'      => $id,
+            'name'        => $row['product_name'],
+            'category'    => 'product',
+            'badgeText'   => $row['category'] ?: 'Product',
+            'address'     => $row['location'] ?? '',
+            'description' => $row['description'] ?? '',
             'image'     => td_image_src('product', $row['image'] ?? null, $imageSubfolder),
             'link'      => 'tourism/products.php',
             'lat'       => $row['latitude'] !== null ? (float) $row['latitude'] : null,
@@ -155,16 +156,17 @@ if ($result = $conn->query("SELECT product_id, product_name, category, image, lo
     }
 }
 
-if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, image, address, latitude, longitude FROM restaurants")) {
+if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, description, image, address, latitude, longitude FROM restaurants")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['restaurant_id'];
         $catalog['restaurant-' . $id] = [
-            'itemType'  => 'restaurant',
-            'itemId'    => $id,
-            'name'      => $row['restaurant_name'],
-            'category'  => 'restaurant',
-            'badgeText' => $row['category'] ?: 'Restaurant',
-            'address'   => $row['address'] ?? '',
+            'itemType'    => 'restaurant',
+            'itemId'      => $id,
+            'name'        => $row['restaurant_name'],
+            'category'    => 'restaurant',
+            'badgeText'   => $row['category'] ?: 'Restaurant',
+            'address'     => $row['address'] ?? '',
+            'description' => $row['description'] ?? '',
             'image'     => td_image_src('restaurant', $row['image'] ?? null, $imageSubfolder),
             'link'      => 'tourism/restaurants.php',
             'lat'       => $row['latitude'] !== null ? (float) $row['latitude'] : null,
@@ -182,7 +184,7 @@ $destinationLinks = [
     'service'       => 'tourism/services.php',
     'church'        => 'tourism/churches.php',
 ];
-if ($result = $conn->query("SELECT destination_id, destination_name, category, image, address, latitude, longitude, google_maps FROM destination")) {
+if ($result = $conn->query("SELECT destination_id, destination_name, category, description, image, address, latitude, longitude, google_maps FROM destination")) {
     while ($row = $result->fetch_assoc()) {
         $cat = $row['category'];
         if (!isset($destinationLinks[$cat])) continue;
@@ -197,12 +199,13 @@ if ($result = $conn->query("SELECT destination_id, destination_name, category, i
             [$destLat, $destLng] = td_parse_latlng_pair($row['google_maps'] ?? null);
         }
         $catalog['destination-' . $id] = [
-            'itemType'  => 'destination',
-            'itemId'    => $id,
-            'name'      => $row['destination_name'],
-            'category'  => $cat,
-            'badgeText' => ucfirst($cat),
-            'address'   => $row['address'] ?? '',
+            'itemType'    => 'destination',
+            'itemId'      => $id,
+            'name'        => $row['destination_name'],
+            'category'    => $cat,
+            'badgeText'   => ucfirst($cat),
+            'address'     => $row['address'] ?? '',
+            'description' => $row['description'] ?? '',
             'image'     => td_image_src($cat, $row['image'] ?? null, $imageSubfolder),
             'link'      => $destinationLinks[$cat],
             'lat'       => $destLat,
@@ -211,16 +214,17 @@ if ($result = $conn->query("SELECT destination_id, destination_name, category, i
     }
 }
 
-if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, location, latitude, longitude FROM fiestas")) {
+if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, image, location, latitude, longitude FROM fiestas")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['fiesta_id'];
         $catalog['fiesta-' . $id] = [
-            'itemType'  => 'fiesta',
-            'itemId'    => $id,
-            'name'      => $row['fiesta_name'],
-            'category'  => 'fiesta',
-            'badgeText' => $row['type'] ?: 'Fiesta',
-            'address'   => $row['location'] ?? '',
+            'itemType'    => 'fiesta',
+            'itemId'      => $id,
+            'name'        => $row['fiesta_name'],
+            'category'    => 'fiesta',
+            'badgeText'   => $row['type'] ?: 'Fiesta',
+            'address'     => $row['location'] ?? '',
+            'description' => $row['description'] ?? '',
             'image'     => td_image_src('fiesta', $row['image'] ?? null, $imageSubfolder),
             'link'      => 'tourism/fiestas.php',
             'lat'       => $row['latitude'] !== null ? (float) $row['latitude'] : null,
@@ -229,18 +233,19 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, image, location
     }
 }
 
-if ($result = $conn->query("SELECT person_id, fullname, title, image FROM people")) {
+if ($result = $conn->query("SELECT person_id, fullname, title, description, image FROM people")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['person_id'];
         $catalog['person-' . $id] = [
-            'itemType'  => 'person',
-            'itemId'    => $id,
-            'name'      => $row['fullname'],
-            'category'  => 'person',
-            'badgeText' => $row['title'] ?: 'Person',
+            'itemType'    => 'person',
+            'itemId'      => $id,
+            'name'        => $row['fullname'],
+            'category'    => 'person',
+            'badgeText'   => $row['title'] ?: 'Person',
             // People have no address column in the schema — the UI omits
             // the location line for these rather than showing a blank.
-            'address'   => '',
+            'address'     => '',
+            'description' => $row['description'] ?? '',
             'image'     => td_image_src('person', $row['image'] ?? null, $imageSubfolder),
             'link'      => 'tourism/people.php',
             // People aren't geotagged — the modal always falls back to
@@ -670,18 +675,19 @@ foreach ($timeline as $t) {
     $key = $t['itemType'] . '-' . $t['itemId'];
     if (!isset($diaryGroups[$key])) {
         $diaryGroups[$key] = [
-            'key'       => $key,
-            'itemType'  => $t['itemType'],
-            'itemId'    => $t['itemId'],
-            'name'      => $t['name'],
-            'badgeText' => $t['badgeText'],
-            'category'  => $t['category'],
-            'address'   => $t['address'],
-            'image'     => $t['image'],
-            'link'      => $t['link'],
-            'lat'       => $t['lat'],
-            'lng'       => $t['lng'],
-            'visits'    => [],
+            'key'         => $key,
+            'itemType'    => $t['itemType'],
+            'itemId'      => $t['itemId'],
+            'name'        => $t['name'],
+            'badgeText'   => $t['badgeText'],
+            'category'    => $t['category'],
+            'address'     => $t['address'],
+            'description' => $catalog[$key]['description'] ?? '',
+            'image'       => $t['image'],
+            'link'        => $t['link'],
+            'lat'         => $t['lat'],
+            'lng'         => $t['lng'],
+            'visits'      => [],
         ];
     }
     $diaryGroups[$key]['visits'][] = $t;
@@ -691,6 +697,14 @@ foreach ($diaryGroups as &$g) {
     $g['visitCount']     = count($g['visits']);
     $g['photoCount']     = array_sum(array_map(fn($v) => count($v['photos']), $g['visits']));
     $g['latestVisitDate'] = $g['visits'][0]['visitedDate'];
+    // Flat photos-across-all-visits list for the "Photos (N)" gallery —
+    // each photo still knows which visit it came from (for its caption).
+    $g['allPhotos'] = [];
+    foreach ($g['visits'] as $v) {
+        foreach ($v['photos'] as $p) {
+            $g['allPhotos'][] = $p + ['visitedDate' => $v['visitedDate']];
+        }
+    }
 }
 unset($g);
 
@@ -1027,48 +1041,108 @@ usort($checklist, function ($a, $b) {
                                         <p class="td-group-stats">
                                             Latest visit: <?php echo htmlspecialchars(date('F j, Y', strtotime($g['latestVisitDate']))); ?>
                                             · <?php echo (int) $g['visitCount']; ?> visit<?php echo $g['visitCount'] === 1 ? '' : 's'; ?>
-                                            · <span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?> photo<?php echo $g['photoCount'] === 1 ? '' : 's'; ?></span>
+                                            · <span class="td-group-photo-count" data-format="suffix" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?> photo<?php echo $g['photoCount'] === 1 ? '' : 's'; ?></span>
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="td-group-detail" hidden>
-                                    <?php foreach ($g['visits'] as $v): ?>
-                                        <div class="td-visit-row">
-                                            <p class="td-visit-row-date">
-                                                <?php echo htmlspecialchars(date('F j, Y', strtotime($v['visitedDate']))); ?>
-                                                <?php if (!empty($v['visitedTime'])): ?> · <?php echo htmlspecialchars(date('g:i A', strtotime($v['visitedTime']))); ?><?php endif; ?>
-                                            </p>
-                                            <?php if (!empty($v['note'])): ?>
-                                                <p class="td-timeline-note"><?php echo htmlspecialchars($v['note']); ?></p>
-                                            <?php endif; ?>
-                                            <?php if (!empty($v['photos'])): ?>
-                                                <div class="td-timeline-photos">
-                                                    <?php foreach ($v['photos'] as $p):
-                                                        $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
-                                                        $pCaption = htmlspecialchars($g['name'] . ' · ' . date('F j, Y', strtotime($v['visitedDate'])));
-                                                    ?>
-                                                        <div class="td-timeline-photo">
-                                                            <img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-caption="<?php echo $pCaption; ?>">
-                                                            <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            <?php endif; ?>
-                                            <button type="button" class="td-timeline-delete" data-entry-id="<?php echo (int) $v['entryId']; ?>">Remove</button>
+                                    <div class="td-folder-page-left">
+                                        <div class="td-folder-stat-boxes">
+                                            <div class="td-folder-stat-box">
+                                                <span class="td-folder-stat-label">Latest visit</span>
+                                                <span class="td-folder-stat-value"><?php echo htmlspecialchars(date('F j, Y', strtotime($g['latestVisitDate']))); ?></span>
+                                            </div>
+                                            <div class="td-folder-stat-box">
+                                                <span class="td-folder-stat-label">Total visits</span>
+                                                <span class="td-folder-stat-value"><?php echo (int) $g['visitCount']; ?></span>
+                                            </div>
+                                            <div class="td-folder-stat-box">
+                                                <span class="td-folder-stat-label">Total photos</span>
+                                                <span class="td-folder-stat-value td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>
+                                            </div>
                                         </div>
-                                    <?php endforeach; ?>
 
-                                    <div class="td-timeline-actions">
-                                        <button type="button" class="td-timeline-log-again"
+                                        <?php if (!empty($g['description'])): ?>
+                                            <h4 class="td-folder-section-head">About</h4>
+                                            <p class="td-folder-about"><?php echo nl2br(htmlspecialchars($g['description'])); ?></p>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="td-folder-page-right">
+                                        <h4 class="td-folder-section-head">Visit History</h4>
+                                        <div class="td-visit-history">
+                                            <?php foreach ($g['visits'] as $v): ?>
+                                                <div class="td-visit-row">
+                                                    <div class="td-visit-row-head" role="button" tabindex="0" aria-expanded="false">
+                                                        <div>
+                                                            <p class="td-visit-row-date"><?php echo htmlspecialchars(date('F j, Y', strtotime($v['visitedDate']))); ?></p>
+                                                            <p class="td-visit-row-weekday"><?php echo htmlspecialchars(date('l', strtotime($v['visitedDate']))); ?></p>
+                                                        </div>
+                                                        <div class="td-visit-row-meta">
+                                                            <span class="td-visit-photo-count" data-count="<?php echo count($v['photos']); ?>"><?php echo count($v['photos']); ?> photo<?php echo count($v['photos']) === 1 ? '' : 's'; ?></span>
+                                                            <svg class="td-visit-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                                                        </div>
+                                                    </div>
+                                                    <div class="td-visit-row-body" hidden>
+                                                        <?php if (!empty($v['note'])): ?>
+                                                            <p class="td-timeline-note"><?php echo htmlspecialchars($v['note']); ?></p>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($v['photos'])): ?>
+                                                            <div class="td-timeline-photos">
+                                                                <?php foreach ($v['photos'] as $p):
+                                                                    $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
+                                                                    $pCaption = htmlspecialchars($g['name'] . ' · ' . date('F j, Y', strtotime($v['visitedDate'])));
+                                                                ?>
+                                                                    <div class="td-timeline-photo">
+                                                                        <img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-caption="<?php echo $pCaption; ?>">
+                                                                        <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <button type="button" class="td-timeline-delete" data-entry-id="<?php echo (int) $v['entryId']; ?>">Remove</button>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+
+                                        <h4 class="td-folder-section-head td-folder-photos-head">Photos (<span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>)</h4>
+                                        <?php if (!empty($g['allPhotos'])): ?>
+                                            <div class="td-folder-photos">
+                                                <?php foreach ($g['allPhotos'] as $p):
+                                                    $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
+                                                    $pCaption = htmlspecialchars($g['name'] . ' · ' . date('F j, Y', strtotime($p['visitedDate'])));
+                                                ?>
+                                                    <div class="td-timeline-photo">
+                                                        <img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-caption="<?php echo $pCaption; ?>">
+                                                        <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <p class="td-empty-inline">No photos yet.</p>
+                                        <?php endif; ?>
+
+                                        <h4 class="td-folder-section-head">Notes</h4>
+                                        <textarea
+                                            class="td-note-input td-folder-note"
+                                            placeholder="Add a note about this place…"
                                             data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
                                             data-item-id="<?php echo (int) $g['itemId']; ?>"
-                                            data-place="<?php echo htmlspecialchars($g['name']); ?>"
-                                            data-lat="<?php echo $g['lat'] !== null ? $g['lat'] : ''; ?>"
-                                            data-lng="<?php echo $g['lng'] !== null ? $g['lng'] : ''; ?>">+ Log Another Visit</button>
-                                        <button type="button" class="td-timeline-add-photo"
-                                            data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
-                                            data-item-id="<?php echo (int) $g['itemId']; ?>"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Add Photo</button>
+                                        ><?php echo htmlspecialchars($g['visits'][0]['note'] ?? ''); ?></textarea>
+
+                                        <div class="td-timeline-actions">
+                                            <button type="button" class="td-timeline-log-again"
+                                                data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
+                                                data-item-id="<?php echo (int) $g['itemId']; ?>"
+                                                data-place="<?php echo htmlspecialchars($g['name']); ?>"
+                                                data-lat="<?php echo $g['lat'] !== null ? $g['lat'] : ''; ?>"
+                                                data-lng="<?php echo $g['lng'] !== null ? $g['lng'] : ''; ?>">+ Log Another Visit</button>
+                                            <button type="button" class="td-timeline-add-photo"
+                                                data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
+                                                data-item-id="<?php echo (int) $g['itemId']; ?>"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Add Photo</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

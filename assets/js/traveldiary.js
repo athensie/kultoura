@@ -689,6 +689,30 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     });
 })();
 
+/* ---------------- Travel Timeline: Visit History row expand ----------------
+   Inside an open folder, each visit's own date row collapses its note/
+   photos/Remove button until clicked — delegated on document since these
+   rows live inside the backdrop once their folder is popped open. */
+(function () {
+    document.addEventListener('click', (e) => {
+        const head = e.target.closest('.td-visit-row-head');
+        if (!head) return;
+        const body = head.nextElementSibling;
+        if (!body || !body.classList.contains('td-visit-row-body')) return;
+        const expanded = body.hidden;
+        body.hidden = !expanded;
+        head.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const head = e.target.closest('.td-visit-row-head');
+        if (!head) return;
+        e.preventDefault();
+        head.click();
+    });
+})();
+
 /* ---------------- Travel Timeline: search + sort ---------------- */
 (function () {
     const searchInput = document.getElementById('tdTimelineSearch');
@@ -1324,18 +1348,44 @@ const tdLightbox = (function () {
    own in-memory list for pagination) via a custom event, so nothing goes
    stale without a page reload. */
 function tdRemovePhotoFromStaticSections(photoId) {
-    document.querySelectorAll(`.td-photo-delete-btn[data-photo-id="${photoId}"]`).forEach((btn) => {
+    const matches = document.querySelectorAll(`.td-photo-delete-btn[data-photo-id="${photoId}"]`);
+
+    // A photo can appear TWICE within the same open folder now (its visit's
+    // own entry in Visit History, and again in the aggregated "Photos (N)"
+    // gallery) — decrement that folder's counts once per distinct group,
+    // not once per DOM copy, or deleting one photo would subtract 2.
+    const decrementedRows = new Set();
+
+    matches.forEach((btn) => {
         if (btn.closest('#tdMemoryGrid')) return; // the grid re-renders itself from its own array
 
-        // The collapsed destination row's "N photos" count is static server-
-        // rendered text — without this it'd go stale the moment a photo is
-        // deleted live (no reload happens for this action).
         const groupRow = btn.closest('.td-group-row');
-        const countEl = groupRow && groupRow.querySelector('.td-group-photo-count');
-        if (countEl) {
-            const remaining = Math.max(0, Number(countEl.dataset.count) - 1);
-            countEl.dataset.count = remaining;
-            countEl.textContent = `${remaining} photo${remaining === 1 ? '' : 's'}`;
+        if (groupRow && !decrementedRows.has(groupRow)) {
+            decrementedRows.add(groupRow);
+            // The destination row's photo counts are static server-rendered
+            // text, in up to three places at once (collapsed header, the
+            // open folder's stat box, and its "Photos (N)" heading) —
+            // without this they'd go stale the moment a photo is deleted
+            // live (no reload happens for this action).
+            groupRow.querySelectorAll('.td-group-photo-count').forEach((countEl) => {
+                const remaining = Math.max(0, Number(countEl.dataset.count) - 1);
+                countEl.dataset.count = remaining;
+                countEl.textContent = countEl.dataset.format === 'suffix'
+                    ? `${remaining} photo${remaining === 1 ? '' : 's'}`
+                    : String(remaining);
+            });
+        }
+
+        // This copy's own Visit History row ("N photos" next to its
+        // chevron) — only the Visit History copy of a photo sits inside a
+        // .td-visit-row, so this naturally doesn't double-fire for the
+        // aggregated gallery's copy of the same photo.
+        const visitRow = btn.closest('.td-visit-row');
+        const visitCountEl = visitRow && visitRow.querySelector('.td-visit-photo-count');
+        if (visitCountEl) {
+            const remaining = Math.max(0, Number(visitCountEl.dataset.count) - 1);
+            visitCountEl.dataset.count = remaining;
+            visitCountEl.textContent = `${remaining} photo${remaining === 1 ? '' : 's'}`;
         }
 
         const container = btn.closest('.td-timeline-photo, .td-gallery-tile');
