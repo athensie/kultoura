@@ -1161,69 +1161,160 @@
     font-size: 13px;
 }
 
-/* ── Travel Timeline ── */
-.td-timeline {
-    position: relative;
-    padding-left: 34px;
+/* ── Travel Timeline: compact destination list ── */
+.td-toolbar-timeline {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
-.td-timeline::before {
-    content: '';
-    position: absolute;
-    left: 13px;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    background: rgba(44, 26, 14, 0.12);
+.td-toolbar-timeline .td-search {
+    flex: 1;
 }
 
-.td-timeline-item {
-    position: relative;
-    margin-bottom: 18px;
+.td-sort-select {
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(44, 26, 14, 0.15);
+    background: #fff;
+    color: #2c1a0e;
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
-.td-timeline-item:last-child {
-    margin-bottom: 0;
+.td-sort-select:focus {
+    border-color: rgba(200, 169, 110, 0.6);
 }
 
-.td-timeline-dot {
-    position: absolute;
-    left: -34px;
-    top: 0;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+.td-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.td-group-row {
+    background: #fff;
+    border: 1px solid rgba(44, 26, 14, 0.09);
+    border-radius: 12px;
+    transition: border-color 0.15s;
+}
+
+.td-group-row:hover {
+    border-color: rgba(44, 26, 14, 0.18);
+}
+
+.td-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+}
+
+.td-group-thumb {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #e5dccb;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 5px;
-    color: #fff;
-    border: 3px solid #f0ebe3;
 }
 
-.td-timeline-dot svg { width: 100%; height: 100%; display: block; }
-
-.td-timeline-card {
-    background: #fff;
-    border: 1px solid rgba(44, 26, 14, 0.09);
-    border-radius: 10px;
-    padding: 12px 14px;
+.td-group-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
-.td-timeline-name {
+.td-group-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.td-group-name {
+    font-family: Georgia, serif;
+    font-weight: 700;
     font-size: 13.5px;
     color: #2c1a0e;
-    margin: 0 0 2px;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.td-timeline-name strong {
-    font-family: Georgia, serif;
-}
-
-.td-timeline-meta {
+.td-group-location {
     font-size: 11.5px;
     color: rgba(44, 26, 14, 0.5);
-    margin: 0 0 6px;
+    margin: 1px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.td-group-stats {
+    font-size: 11.5px;
+    color: rgba(44, 26, 14, 0.55);
+    margin: 3px 0 0;
+}
+
+.td-group-toggle {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(44, 26, 14, 0.12);
+    background: #fff;
+    color: rgba(44, 26, 14, 0.5);
+    cursor: pointer;
+    padding: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, color 0.15s, border-color 0.15s;
+}
+
+.td-group-toggle svg { width: 100%; height: 100%; display: block; }
+
+.td-group-toggle:hover {
+    color: #5f7d4c;
+    border-color: rgba(95, 125, 76, 0.3);
+}
+
+.td-group-row.is-expanded .td-group-toggle {
+    transform: rotate(180deg);
+    color: #5f7d4c;
+    border-color: rgba(95, 125, 76, 0.3);
+}
+
+.td-group-detail {
+    padding: 0 14px 14px;
+    border-top: 1px solid rgba(44, 26, 14, 0.08);
+    margin-top: 2px;
+}
+
+.td-visit-row {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(44, 26, 14, 0.07);
+}
+
+.td-visit-row:last-of-type {
+    border-bottom: none;
+}
+
+.td-visit-row-date {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    color: #2c1a0e;
+    margin: 0 0 4px;
 }
 
 .td-timeline-note {
@@ -1234,6 +1325,8 @@
 }
 
 .td-timeline-delete {
+    display: inline-block;
+    margin-top: 2px;
     font-size: 11px;
     font-weight: 600;
     color: rgba(44, 26, 14, 0.35);
@@ -1314,6 +1407,7 @@
     align-items: center;
     gap: 14px;
     flex-wrap: wrap;
+    margin-top: 10px;
 }
 
 .td-timeline-log-again,
@@ -2774,6 +2868,8 @@
     .td-stats-grid { grid-template-columns: repeat(2, 1fr); }
     .td-cta-banner { padding: 44px 22px 38px; }
     .td-cta-quote-mark { font-size: 70px; left: 18px; top: -6px; }
+    .td-toolbar-timeline { flex-direction: column; align-items: stretch; }
+    .td-sort-select { width: 100%; }
 }
 
 /* ── Add Photo: camera vs library choice ── */

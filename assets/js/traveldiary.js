@@ -554,8 +554,128 @@ function tdWireExpandButton(buttonId, hiddenSelector) {
     });
 }
 tdWireExpandButton('tdExpandChecklist', '#tdChecklist .td-hidden-extra');
-tdWireExpandButton('tdExpandTimeline', '.td-timeline .td-hidden-extra');
+tdWireExpandButton('tdExpandTimeline', '.td-group-list .td-hidden-extra');
 tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
+
+/* ---------------- Travel Timeline: destination expand/collapse ----------------
+   Each row's detail panel (individual visits, photos, Log Another Visit/Add
+   Photo) is hidden until toggled. State is persisted to sessionStorage so an
+   expanded destination stays expanded across the location.reload() that
+   mark_visited/upload_photo/delete_entry already do (see tdPost calls below)
+   — otherwise logging another visit from inside an expanded row would
+   silently collapse it back on reload. */
+(function () {
+    const list = document.getElementById('tdGroupList');
+    if (!list) return;
+
+    const STORAGE_KEY = 'tdExpandedGroups';
+
+    function readExpanded() {
+        try {
+            return new Set(JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'));
+        } catch (err) {
+            return new Set();
+        }
+    }
+
+    function writeExpanded(set) {
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+        } catch (err) {
+            // Private browsing / storage disabled — expand state just won't
+            // survive a reload, nothing else depends on it.
+        }
+    }
+
+    function setExpanded(row, expanded) {
+        const detail = row.querySelector('.td-group-detail');
+        const toggle = row.querySelector('.td-group-toggle');
+        if (detail) detail.hidden = !expanded;
+        row.classList.toggle('is-expanded', expanded);
+        if (toggle) toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    const expandedKeys = readExpanded();
+    list.querySelectorAll('.td-group-row').forEach((row) => {
+        const key = row.dataset.name + '|' + row.dataset.latestDate; // stable enough without a dedicated id attribute
+        row.dataset.groupKey = key;
+        if (expandedKeys.has(key)) setExpanded(row, true);
+    });
+
+    list.addEventListener('click', (e) => {
+        const toggle = e.target.closest('.td-group-toggle');
+        if (!toggle) return;
+        const row = toggle.closest('.td-group-row');
+        if (!row) return;
+
+        const nowExpanded = row.querySelector('.td-group-detail').hidden; // about to flip to this state
+        setExpanded(row, nowExpanded);
+
+        const key = row.dataset.groupKey;
+        const expanded = readExpanded();
+        if (nowExpanded) expanded.add(key); else expanded.delete(key);
+        writeExpanded(expanded);
+    });
+})();
+
+/* ---------------- Travel Timeline: search + sort ---------------- */
+(function () {
+    const searchInput = document.getElementById('tdTimelineSearch');
+    const sortSelect = document.getElementById('tdTimelineSort');
+    const list = document.getElementById('tdGroupList');
+    const noResults = document.getElementById('tdTimelineNoResults');
+    const expandBtn = document.getElementById('tdExpandTimeline');
+    if (!list) return;
+
+    // Searching/sorting needs every row in play — a match hidden behind the
+    // "View All Destinations" collapse (.td-hidden-extra is display:none
+    // !important) would otherwise never show up. Same one-way reveal the
+    // button itself does, just triggered by typing/choosing a sort instead.
+    function revealAll() {
+        list.querySelectorAll('.td-hidden-extra').forEach((el) => el.classList.remove('td-hidden-extra'));
+        if (expandBtn) expandBtn.remove();
+    }
+
+    function applySearch() {
+        const term = (searchInput && searchInput.value.trim().toLowerCase()) || '';
+        if (term) revealAll();
+        let visibleCount = 0;
+
+        list.querySelectorAll('.td-group-row').forEach((row) => {
+            const matches = !term || row.dataset.name.includes(term) || row.dataset.address.includes(term);
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        if (noResults) noResults.hidden = visibleCount !== 0;
+    }
+
+    function applySort() {
+        if (!sortSelect) return;
+        const mode = sortSelect.value;
+        if (mode !== 'newest') revealAll();
+        const rows = Array.from(list.querySelectorAll('.td-group-row'));
+
+        rows.sort((a, b) => {
+            switch (mode) {
+                case 'oldest':
+                    return a.dataset.latestDate.localeCompare(b.dataset.latestDate);
+                case 'name':
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                case 'most-visited':
+                    return Number(b.dataset.visitCount) - Number(a.dataset.visitCount);
+                case 'newest':
+                default:
+                    return b.dataset.latestDate.localeCompare(a.dataset.latestDate);
+            }
+        });
+
+        rows.forEach((row) => list.appendChild(row));
+    }
+
+    if (searchInput) searchInput.addEventListener('input', applySearch);
+    if (sortSelect) sortSelect.addEventListener('change', applySort);
+})();
 
 /* ---------------- Travel Wrapped: period picker + slideshow ---------------- */
 (function () {
@@ -1135,6 +1255,18 @@ const tdLightbox = (function () {
 function tdRemovePhotoFromStaticSections(photoId) {
     document.querySelectorAll(`.td-photo-delete-btn[data-photo-id="${photoId}"]`).forEach((btn) => {
         if (btn.closest('#tdMemoryGrid')) return; // the grid re-renders itself from its own array
+
+        // The collapsed destination row's "N photos" count is static server-
+        // rendered text — without this it'd go stale the moment a photo is
+        // deleted live (no reload happens for this action).
+        const groupRow = btn.closest('.td-group-row');
+        const countEl = groupRow && groupRow.querySelector('.td-group-photo-count');
+        if (countEl) {
+            const remaining = Math.max(0, Number(countEl.dataset.count) - 1);
+            countEl.dataset.count = remaining;
+            countEl.textContent = `${remaining} photo${remaining === 1 ? '' : 's'}`;
+        }
+
         const container = btn.closest('.td-timeline-photo, .td-gallery-tile');
         if (container) container.remove();
     });
