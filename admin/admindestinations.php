@@ -31,10 +31,29 @@ if (!in_array($role, ['admin', 'super admin'], true)) {
     exit;
 }
 
+/*
+ |--------------------------------------------------------------------
+ | SCHEMA — retire the Pending/Inactive statuses
+ |--------------------------------------------------------------------
+ | Destinations no longer have an admin-picked Active/Pending/Inactive
+ | state — every saved destination is just live, or hidden by archiving
+ | it. One-time flip of any pre-existing 'pending'/'inactive' rows to
+ | 'active' so nothing is left stranded with no UI left to manage it.
+ | Guarded with a static flag, same pattern as kt_people_ensure_schema().
+ */
+function kt_destinations_ensure_schema(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $conn->query("UPDATE destination SET status = 'active' WHERE status NOT IN ('active', 'archived')");
+}
+
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
+kt_destinations_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
 
 /*
@@ -132,7 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         'address'           => $_POST['location'] ?? '',
         'category'          => $_POST['category'] ?? '',
         'subcategory'       => $_POST['subcategory'] ?? '',
-        'status'            => $_POST['status'] ?? 'active',
+        // No more admin-picked Active/Pending/Inactive — a destination is
+        // just live once saved, or hidden by archiving it instead.
+        'status'            => 'active',
         'description'       => $_POST['description'] ?? '',
         'google_maps'       => $_POST['google_maps'] ?? '',
         'image'             => $imagePath,
@@ -197,10 +218,10 @@ $categoryLabels = [
     'church'        => 'Churches',
 ];
 
-$totalCount    = count($destinations);
-$activeCount   = count(array_filter($destinations, fn($d) => $d['status'] === 'active'));
-$pendingCount  = count(array_filter($destinations, fn($d) => $d['status'] === 'pending'));
-$inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'inactive'));
+$totalCount     = count($destinations);
+$totalViews     = array_sum(array_map(fn($d) => $destinationViews[(int) $d['destination_id']] ?? 0, $destinations));
+$favoritedCount = count(array_filter($destinations, fn($d) => !empty($d['favorited'])));
+$addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtotime($d['created_at'])) === date('Y-m')));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -330,16 +351,16 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <div class="mini-kpi-label">Total Destinations</div>
             </div>
             <div class="mini-kpi">
-                <div class="mini-kpi-num"><?php echo (int) $activeCount; ?></div>
-                <div class="mini-kpi-label">Active</div>
+                <div class="mini-kpi-num"><?php echo (int) $totalViews; ?></div>
+                <div class="mini-kpi-label">Total Views</div>
             </div>
             <div class="mini-kpi">
-                <div class="mini-kpi-num"><?php echo (int) $pendingCount; ?></div>
-                <div class="mini-kpi-label">Pending Review</div>
+                <div class="mini-kpi-num"><?php echo (int) $favoritedCount; ?></div>
+                <div class="mini-kpi-label">Favorited</div>
             </div>
             <div class="mini-kpi">
-                <div class="mini-kpi-num"><?php echo (int) $inactiveCount; ?></div>
-                <div class="mini-kpi-label">Inactive</div>
+                <div class="mini-kpi-num"><?php echo (int) $addedThisMonth; ?></div>
+                <div class="mini-kpi-label">Added This Month</div>
             </div>
         </div>
 
@@ -356,12 +377,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <option value="service">Other Services</option>
                 <option value="church">Churches</option>
             </select>
-            <select class="filter-select" id="destStatusFilter" onchange="filterByStatus(this.value)">
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="inactive">Inactive</option>
-            </select>
             <div class="view-toggle">
                 <button type="button" class="view-btn" data-view="list" onclick="setView('list')" aria-label="List view"><i data-lucide="list" class="lucide"></i></button>
                 <button type="button" class="view-btn" data-view="grid" onclick="setView('grid')" aria-label="Grid view"><i data-lucide="layout-grid" class="lucide"></i></button>
@@ -376,7 +391,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                         <th>Destination</th>
                         <th>Category</th>
                         <th>Address</th>
-                        <th>Status</th>
                         <th>Views</th>
                         <th>Actions</th>
                     </tr>
@@ -384,7 +398,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <tbody>
                 <?php if (empty($destinations)): ?>
                     <tr id="destEmptyRow">
-                        <td colspan="6">
+                        <td colspan="5">
                             <div class="table-empty">
                                 <i data-lucide="map-pin" class="lucide"></i>
                                 <div class="table-empty-title">No destinations yet</div>
@@ -403,7 +417,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                             </td>
                             <td><span class="category-badge <?php echo htmlspecialchars($d['category'] ?? ''); ?>"><?php echo htmlspecialchars($categoryLabels[$d['category']] ?? ucfirst($d['category'] ?? '—')); ?></span></td>
                             <td><?php echo htmlspecialchars($d['address']); ?></td>
-                            <td><span class="status <?php echo htmlspecialchars($d['status']); ?>"><?php echo htmlspecialchars(ucfirst($d['status'])); ?></span></td>
                             <td><?php echo (int) ($destinationViews[(int) $d['destination_id']] ?? 0); ?></td>
                             <td>
                                 <div class="table-actions">
@@ -414,7 +427,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                                         data-location="<?php echo htmlspecialchars($d['address']); ?>"
                                         data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                         data-views="<?php echo htmlspecialchars((string) ($d['views'] ?? 0)); ?>"
-                                        data-status="<?php echo htmlspecialchars($d['status']); ?>"
                                         data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                         data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                         onclick="openViewDestination(this)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
@@ -425,7 +437,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                                         data-location="<?php echo htmlspecialchars($d['address']); ?>"
                                         data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                         data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
-                                        data-status="<?php echo htmlspecialchars($d['status']); ?>"
                                         data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                         data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                         onclick="openEditDestination(this)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
@@ -465,7 +476,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                             <div class="grid-card-title"><?php echo htmlspecialchars($d['destination_name']); ?></div>
                             <div class="grid-card-sub"><?php echo htmlspecialchars($d['address']); ?></div>
                             <div class="grid-card-meta">
-                                <span class="status <?php echo htmlspecialchars($d['status']); ?>"><?php echo htmlspecialchars(ucfirst($d['status'])); ?></span>
                                 <span><i data-lucide="eye" class="lucide"></i> <?php echo (int) ($destinationViews[(int) $d['destination_id']] ?? 0); ?></span>
                             </div>
                         </div>
@@ -477,7 +487,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                                 data-location="<?php echo htmlspecialchars($d['address']); ?>"
                                 data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                 data-views="<?php echo htmlspecialchars((string) ($d['views'] ?? 0)); ?>"
-                                data-status="<?php echo htmlspecialchars($d['status']); ?>"
                                 data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                 data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                 onclick="openViewDestination(this)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
@@ -488,7 +497,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                                 data-location="<?php echo htmlspecialchars($d['address']); ?>"
                                 data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                 data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
-                                data-status="<?php echo htmlspecialchars($d['status']); ?>"
                                 data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                 data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                 onclick="openEditDestination(this)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
@@ -556,14 +564,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
-                <label class="form-label">Status</label>
-                <select class="filter-select" name="status" style="width:100%; padding:11px 14px; border-radius:8px;">
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="description" placeholder="Describe this destination…"></textarea>
             </div>
@@ -629,14 +629,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
                 <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
-                <label class="form-label">Status</label>
-                <select class="filter-select" name="status" id="editDestinationStatusInput" style="width:100%; padding:11px 14px; border-radius:8px;">
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="description" id="editDestinationDescInput" placeholder="Description…"></textarea>
             </div>
@@ -663,7 +655,6 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
         <div id="vdIcon" style="font-size:2rem;text-align:center;margin-bottom:8px;">📍</div>
         <div class="modal-title" style="text-align:center;" id="vdName">—</div>
         <div style="display:flex;justify-content:center;gap:10px;margin:10px 0 18px;flex-wrap:wrap;">
-            <span class="status active" id="vdStatus">Active</span>
             <span class="category-badge nature" id="vdCategory">—</span>
             <span style="font-size:.75rem;color:rgba(245,237,216,.4);align-self:center;" id="vdLocation">—</span>
         </div>
@@ -696,7 +687,7 @@ $inactiveCount = count(array_filter($destinations, fn($d) => $d['status'] === 'i
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div style="font-size:3rem; margin-bottom:12px;">🗄️</div>
         <div class="modal-title" id="deleteDestinationTitle">Archive destination?</div>
-        <div class="modal-sub"><?php echo $isSuperAdmin ? 'It will be hidden from the public site. You can see it under archived entries, and this is reversible by editing its status.' : 'This will be submitted to a Super Admin for approval before it\'s archived.'; ?></div>
+        <div class="modal-sub"><?php echo $isSuperAdmin ? 'It will be hidden from the public site. You can find it — and restore it — from the Archive page.' : 'This will be submitted to a Super Admin for approval before it\'s archived.'; ?></div>
         <form id="deleteDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST">
             <input type="hidden" name="action" value="delete">
             <?php echo csrf_field(); ?>

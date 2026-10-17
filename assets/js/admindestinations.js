@@ -122,10 +122,6 @@ function openViewDestination(btn) {
   categoryEl.textContent = categoryLabels[d.category] || d.category || '—';
   categoryEl.className = 'category-badge ' + (d.category || '');
 
-  const statusEl = document.getElementById('vdStatus');
-  statusEl.textContent = (d.status || 'active').charAt(0).toUpperCase() + (d.status || 'active').slice(1);
-  statusEl.className = 'status ' + (d.status || 'active');
-
   const mapLink = document.getElementById('vdMapLink');
   if (mapLink) {
     const saved = d.googleMaps || '';
@@ -162,9 +158,6 @@ function openEditDestination(btn) {
   const subcategorySelect = document.getElementById('editDestinationSubcategoryInput');
   if (subcategorySelect) subcategorySelect.value = d.subcategory || '';
 
-  const statusSelect = document.getElementById('editDestinationStatusInput');
-  if (statusSelect) statusSelect.value = d.status || 'active';
-
   openModal('editDestinationModal');
   ktRefreshEditMap(d.googleMaps || '');
 }
@@ -191,31 +184,11 @@ function filterDestinations(value) {
   });
 }
 
-function filterByStatus(value) {
-  applyDestinationFilters();
-}
-
 function filterByCategory(value) {
-  applyDestinationFilters();
-}
-
-// Status and category filters both need to pass for a row to show,
-// so they're applied together rather than overwriting each other.
-function applyDestinationFilters() {
-  const statusVal = document.getElementById('destStatusFilter')?.value || 'all';
-  const categoryVal = document.getElementById('destCategoryFilter')?.value || 'all';
-
   document.querySelectorAll('#destinationsTable tbody tr, #destinationsGrid .grid-card').forEach(item => {
     if (item.id === 'destEmptyRow' || item.classList.contains('grid-empty')) return;
-
-    const statusEl = item.querySelector('.status');
-    const rowStatus = statusEl ? statusEl.classList[1] : '';
     const rowCategory = item.dataset.category || '';
-
-    const statusMatch = statusVal === 'all' || rowStatus === statusVal;
-    const categoryMatch = categoryVal === 'all' || rowCategory === categoryVal;
-
-    item.style.display = (statusMatch && categoryMatch) ? '' : 'none';
+    item.style.display = (value === 'all' || rowCategory === value) ? '' : 'none';
   });
 }
 
@@ -267,39 +240,28 @@ async function exportDestinationsExcel() {
       ['KulToura — Destinations Export'],
       [`Generated: ${dateStr}`],
       [],
-      ['#', 'Destination', 'Category', 'Location', 'Rating', 'Status'],
+      ['#', 'Destination', 'Category', 'Address', 'Views'],
     ];
-
-    let active = 0, pending = 0, inactive = 0;
 
     rows.forEach((row, i) => {
       const cells = row.querySelectorAll('td');
       const name = cells[0]?.textContent.trim() || '';
       const category = cells[1]?.textContent.trim() || '';
-      const location = cells[2]?.textContent.trim() || '';
-      const rating = cells[3]?.textContent.trim() || '';
-      const status = cells[4]?.textContent.trim() || '';
+      const address = cells[2]?.textContent.trim() || '';
+      const views = cells[3]?.textContent.trim() || '';
 
-      sheetRows.push([i + 1, name, category, location, rating, status]);
-
-      const s = status.toLowerCase();
-      if (s === 'active') active++;
-      else if (s === 'pending') pending++;
-      else if (s === 'inactive') inactive++;
+      sheetRows.push([i + 1, name, category, address, views]);
     });
 
     sheetRows.push([]);
     sheetRows.push(['Total Destinations', rows.length]);
-    sheetRows.push(['Active', active]);
-    sheetRows.push(['Pending', pending]);
-    sheetRows.push(['Inactive', inactive]);
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
-    ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 16 }, { wch: 24 }, { wch: 10 }, { wch: 12 }];
+    ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 16 }, { wch: 28 }, { wch: 10 }];
     ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Destinations');
 
