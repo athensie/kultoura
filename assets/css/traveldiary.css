@@ -1353,6 +1353,44 @@
     font-size: 34px;
 }
 
+/* Shown instead of a photo when the listing has no real uploaded photo —
+   just a generic sitewide "*_card.svg" category icon on file, which reads
+   as an oversized generic graphic at this thumb's large hero-photo size. */
+.td-group-thumb-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.td-group-thumb-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.td-group-thumb-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.td-group-thumb-label {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #2c1a0e;
+}
+
 .td-group-main {
     min-width: 0;
 }

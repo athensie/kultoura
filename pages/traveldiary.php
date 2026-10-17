@@ -48,6 +48,17 @@ function td_image_src(string $category, ?string $rawImage, array $imageSubfolder
     return '../assets/uploads/' . ($imageSubfolder[$category] ?? $category) . '/' . basename($rawImage);
 }
 
+// Listings with no real uploaded photo fall back to a generic, sitewide
+// "*_card.svg" category icon (e.g. cafe_card.svg) as their `image` column
+// — fine at a small thumbnail size elsewhere, but blown up to the Travel
+// Timeline folder's large hero-photo size it just reads as an oversized
+// generic icon instead of an actual photo. Treated as "no photo" here so
+// the folder shows its own icon+label fallback instead.
+function td_is_placeholder_card_image(?string $path): bool
+{
+    return $path !== null && str_ends_with(basename($path), '_card.svg');
+}
+
 $categoryLabels = [
     'product'       => 'Product',
     'restaurant'    => 'Restaurant',
@@ -1027,10 +1038,13 @@ usort($checklist, function ($a, $b) {
                                 <button type="button" class="td-group-close" aria-label="Close">&times;</button>
                                 <div class="td-group-header" role="button" tabindex="0" aria-label="Expand destination" aria-expanded="false">
                                     <div class="td-group-thumb">
-                                        <?php if (!empty($g['image'])): ?>
+                                        <?php if (!empty($g['image']) && !td_is_placeholder_card_image($g['image'])): ?>
                                             <img src="<?php echo htmlspecialchars($g['image']); ?>" alt="" loading="lazy">
                                         <?php else: ?>
-                                            <span class="td-check-initial"><?php echo htmlspecialchars(mb_substr($g['name'], 0, 1)); ?></span>
+                                            <div class="td-group-thumb-fallback">
+                                                <span class="td-group-thumb-icon td-badge-<?php echo htmlspecialchars($g['category']); ?>"><?php echo $categoryIcons[$g['category']] ?? ''; ?></span>
+                                                <span class="td-group-thumb-label"><?php echo htmlspecialchars($g['badgeText']); ?></span>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="td-group-main">
