@@ -558,12 +558,16 @@ tdWireExpandButton('tdExpandTimeline', '.td-group-list .td-hidden-extra');
 tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 
 /* ---------------- Travel Timeline: destination pop-open ----------------
-   Clicking a folder card pops it out of the grid into a centered,
-   animated card (position:fixed, with a folder-tab "flip open" and a
-   pop-in scale) instead of expanding in place — only one open at a time,
-   closed via its × button, the backdrop, or Escape. State is persisted to
-   sessionStorage so the same folder re-opens across the location.reload()
-   that mark_visited/upload_photo/delete_entry already do (see tdPost calls
+   Clicking a folder card physically moves it (DOM-wise) out of the grid
+   into the backdrop, which flex-centers it — that's what lets the open
+   animation be a pure "tilt up from flat" rotateX hinge (see
+   @keyframes td-folder-pop in the CSS) instead of fighting a centering
+   transform. A comment-node placeholder marks where it came from so
+   closing can put it back in the exact same spot in the grid. Only one
+   folder is open at a time, closed via its × button, the backdrop, or
+   Escape. The open folder's identity is persisted to sessionStorage so
+   it re-opens automatically across the location.reload() that
+   mark_visited/upload_photo/delete_entry already do (see tdPost calls
    below) — otherwise logging another visit from inside an open folder
    would silently close it back on reload. */
 (function () {
@@ -572,6 +576,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     if (!list || !backdrop) return;
 
     const STORAGE_KEY = 'tdExpandedGroup';
+    let placeholder = null; // marks the open row's spot in the grid while it's moved into the backdrop
 
     function readExpandedKey() {
         try { return sessionStorage.getItem(STORAGE_KEY) || null; } catch (err) { return null; }
@@ -588,19 +593,31 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     }
 
     function closeAll() {
-        list.querySelectorAll('.td-group-row.is-expanded').forEach((row) => {
-            row.classList.remove('is-expanded');
-            const detail = row.querySelector('.td-group-detail');
+        const expandedRow = backdrop.querySelector('.td-group-row.is-expanded');
+        if (expandedRow) {
+            expandedRow.classList.remove('is-expanded');
+            const detail = expandedRow.querySelector('.td-group-detail');
             if (detail) detail.hidden = true;
-            const header = row.querySelector('.td-group-header');
+            const header = expandedRow.querySelector('.td-group-header');
             if (header) header.setAttribute('aria-expanded', 'false');
-        });
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.insertBefore(expandedRow, placeholder);
+            } else {
+                list.appendChild(expandedRow);
+            }
+        }
+        if (placeholder && placeholder.parentNode) placeholder.remove();
+        placeholder = null;
         backdrop.classList.remove('open');
         document.body.style.overflow = '';
     }
 
     function openRow(row) {
         closeAll();
+        placeholder = document.createComment('td-folder-slot');
+        row.parentNode.insertBefore(placeholder, row);
+        backdrop.appendChild(row); // moves it into the backdrop's flex-centered stage
+
         row.classList.add('is-expanded');
         const detail = row.querySelector('.td-group-detail');
         if (detail) detail.hidden = false;
@@ -630,7 +647,11 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         if (match) openRow(match);
     }
 
-    list.addEventListener('click', (e) => {
+    // Delegated on document, not just the grid — once a card is moved into
+    // the backdrop it's no longer a descendant of #tdGroupList, so clicks
+    // on its close button / header there would never reach a listener
+    // scoped to the grid.
+    document.addEventListener('click', (e) => {
         const closeBtn = e.target.closest('.td-group-close');
         if (closeBtn) {
             closeAll();
@@ -638,12 +659,18 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
             return;
         }
         const header = e.target.closest('.td-group-header');
-        if (!header) return;
-        const row = header.closest('.td-group-row');
-        if (row) toggleRow(row);
+        if (header) {
+            const row = header.closest('.td-group-row');
+            if (row) toggleRow(row);
+        }
     });
 
-    list.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && backdrop.classList.contains('open')) {
+            closeAll();
+            writeExpandedKey(null);
+            return;
+        }
         if (e.key !== 'Enter' && e.key !== ' ') return;
         const header = e.target.closest('.td-group-header');
         if (!header) return;
@@ -652,16 +679,13 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         if (row) toggleRow(row);
     });
 
-    backdrop.addEventListener('click', () => {
+    // Only the backdrop's own background should close it — a click inside
+    // the open card still bubbles up to this listener (the card is now
+    // nested inside the backdrop), so it must be filtered out here.
+    backdrop.addEventListener('click', (e) => {
+        if (e.target !== backdrop) return;
         closeAll();
         writeExpandedKey(null);
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && list.querySelector('.td-group-row.is-expanded')) {
-            closeAll();
-            writeExpandedKey(null);
-        }
     });
 })();
 

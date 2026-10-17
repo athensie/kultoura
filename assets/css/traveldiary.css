@@ -1211,44 +1211,46 @@
     box-shadow: 0 10px 20px rgba(44, 26, 14, 0.12);
 }
 
-/* ── Popped-open state: the card lifts out of the grid and opens as a
-   centered card, like pulling a folder out of a stack. position:fixed
-   takes it out of grid flow, so the other cards reflow to fill the gap. ── */
+/* ── Popped-open state ──
+   The card is moved (by JS) out of the grid into the backdrop, which
+   flex-centers it — no positioning transform needed here, so the whole
+   `transform` on .is-expanded is free to be the actual "opening" motion:
+   the card tilts up from lying flat (as if lifted off a table) into full
+   view, hinged at its bottom edge. */
 .td-group-row.is-expanded {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    width: min(560px, 92vw);
+    width: min(560px, 100%);
     max-height: 86vh;
     overflow-y: auto;
-    z-index: 3200;
     box-shadow: 0 30px 70px rgba(20, 12, 6, 0.35);
-    animation: td-folder-pop 0.32s cubic-bezier(0.22, 1.36, 0.4, 1) both;
+    transform-origin: center bottom;
+    animation: td-folder-pop 0.55s cubic-bezier(0.25, 1, 0.4, 1) both;
 }
 
 @keyframes td-folder-pop {
-    from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
-    to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    0%   { transform: rotateX(-80deg) scale(0.92); opacity: 0; }
+    60%  { transform: rotateX(8deg) scale(1.01); opacity: 1; }
+    100% { transform: rotateX(0deg) scale(1); opacity: 1; }
 }
 
-/* The folder tab "flips open" like a lid as the card pops up. */
+/* The folder tab flips open in sync, like the lid's own little latch. */
 .td-group-row.is-expanded .td-folder-tab {
     transform-origin: bottom center;
-    animation: td-folder-flap 0.45s ease-out both;
+    animation: td-folder-flap 0.55s ease-out both;
 }
 
 @keyframes td-folder-flap {
     0%   { transform: rotateX(0deg); }
-    45%  { transform: rotateX(-130deg); }
+    55%  { transform: rotateX(-130deg); }
     100% { transform: rotateX(0deg); }
 }
 
+/* Contents reveal just after the cover has visibly opened. */
 .td-group-row.is-expanded .td-group-detail {
-    animation: td-folder-contents-in 0.3s ease 0.12s both;
+    animation: td-folder-contents-in 0.35s ease 0.28s both;
 }
 
 @keyframes td-folder-contents-in {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -1282,9 +1284,14 @@
     inset: 0;
     background: rgba(44, 26, 14, 0.45);
     z-index: 3150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s;
+    perspective: 1400px;
 }
 
 .td-folder-backdrop.open {
