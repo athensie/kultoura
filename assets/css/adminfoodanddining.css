@@ -20,6 +20,10 @@
     --text-success: #6EE783;
   --text-info: #7ea5f5;
   --text-danger: #E76E6E;
+  --text-purple: #c3a6f0;
+  --text-tan: #d9c3a0;
+  --text-blue2: #7fbfe0;
+  --text-orange: #E39A6B;
   color-scheme: dark;
 }
 
@@ -34,6 +38,10 @@
     --text-success: #1E7A3E;
   --text-info: #1A3A8A;
   --text-danger: #C93A3A;
+  --text-purple: #6B4FA0;
+  --text-tan: #8A6D3F;
+  --text-blue2: #1F6FA8;
+  --text-orange: #A85A2E;
   --gold: #8F5A0A;
   color-scheme: light;
 }
@@ -152,6 +160,24 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .status.pending::before { background: var(--gold); }
 .status.inactive { background: rgba(var(--overlay-rgb),.06); color: rgba(var(--cream-rgb),.35); }
 .status.inactive::before { background: rgba(var(--cream-rgb),.25); }
+
+/* CATEGORY BADGES — same look as Destinations' .category-badge, one
+   color per Product/Restaurant category (see $categoriesByType in
+   adminfoodanddining.php). food-cat-other is the fallback for any
+   older row whose category isn't one of the current presets. */
+.category-badge { display: inline-flex; align-items: center; font-size: .68rem; padding: 3px 10px; border-radius: 999px; letter-spacing: .5px; white-space: nowrap; }
+.category-badge.food-cat-local-food             { background: rgba(44,122,69,.18); color: var(--text-success); }
+.category-badge.food-cat-local-products         { background: rgba(122,106,83,.25); color: var(--text-tan); }
+.category-badge.food-cat-crafts                 { background: rgba(125,95,163,.2); color: var(--text-purple); }
+.category-badge.food-cat-restaurant             { background: rgba(45,130,183,.18); color: var(--text-info); }
+.category-badge.food-cat-karinderya             { background: rgba(122,59,30,.25); color: var(--text-orange); }
+.category-badge.food-cat-cafe                   { background: rgba(122,106,83,.25); color: var(--text-tan); }
+.category-badge.food-cat-fast-food              { background: rgba(201,58,58,.15); color: var(--text-danger); }
+.category-badge.food-cat-bulalo-lomi-house      { background: rgba(122,59,30,.25); color: var(--text-orange); }
+.category-badge.food-cat-bakery                 { background: rgba(47,102,144,.22); color: var(--text-blue2); }
+.category-badge.food-cat-milk-tea-beverage-shop { background: rgba(45,130,183,.18); color: var(--text-info); }
+.category-badge.food-cat-dessert-shop           { background: rgba(125,95,163,.2); color: var(--text-purple); }
+.category-badge.food-cat-other                  { background: rgba(var(--overlay-rgb),.06); color: rgba(var(--cream-rgb),.5); }
 
 /* FORM / MODAL */
 .form-group { margin-bottom: 16px; }

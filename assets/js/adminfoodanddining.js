@@ -8,6 +8,16 @@
 // `contact_number` + `opening_hours` + `google_map`. Add/Edit forms show
 // the relevant field group based on listing type (see toggleTypeFields).
 
+// CSS class suffix for a category's colored badge — mirrors
+// kt_food_category_slug() in adminfoodanddining.php so the View
+// modal's badge (filled client-side from listingsData) matches the
+// table/grid badges (rendered server-side).
+function ktFoodCategorySlug(category) {
+  const known = Object.values(window.categoriesByType || {}).flat();
+  if (!known.includes(category)) return 'other';
+  return category.toLowerCase().replace(/&/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof lucide !== 'undefined') lucide.createIcons();
   // Default category + field set for the Add modal's initial "product" type.
@@ -287,7 +297,9 @@ function openViewListing(id, type) {
   _lastViewed = l;
   document.getElementById('vlName').textContent = l.name;
   document.getElementById('vlType').textContent = l.type === 'product' ? 'Product' : 'Restaurant';
-  document.getElementById('vlCategory').textContent = l.category;
+  const categoryEl = document.getElementById('vlCategory');
+  categoryEl.textContent = l.category;
+  categoryEl.className = 'category-badge food-cat-' + ktFoodCategorySlug(l.category);
   document.getElementById('vlDetails').innerHTML = buildDetailsHtml(l);
   document.getElementById('vlDesc').textContent = l.desc || 'No description available.';
 
