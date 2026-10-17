@@ -589,10 +589,10 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 
     function setExpanded(row, expanded) {
         const detail = row.querySelector('.td-group-detail');
-        const toggle = row.querySelector('.td-group-toggle');
+        const header = row.querySelector('.td-group-header');
         if (detail) detail.hidden = !expanded;
         row.classList.toggle('is-expanded', expanded);
-        if (toggle) toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        if (header) header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     }
 
     const expandedKeys = readExpanded();
@@ -602,12 +602,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         if (expandedKeys.has(key)) setExpanded(row, true);
     });
 
-    list.addEventListener('click', (e) => {
-        const toggle = e.target.closest('.td-group-toggle');
-        if (!toggle) return;
-        const row = toggle.closest('.td-group-row');
-        if (!row) return;
-
+    function toggleRow(row) {
         const nowExpanded = row.querySelector('.td-group-detail').hidden; // about to flip to this state
         setExpanded(row, nowExpanded);
 
@@ -615,6 +610,25 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         const expanded = readExpanded();
         if (nowExpanded) expanded.add(key); else expanded.delete(key);
         writeExpanded(expanded);
+    }
+
+    // The whole card header is the click target now (no separate chevron
+    // button in the folder-card layout — the chevron glyph next to the
+    // stats line is purely decorative, just a visual hint).
+    list.addEventListener('click', (e) => {
+        const header = e.target.closest('.td-group-header');
+        if (!header) return;
+        const row = header.closest('.td-group-row');
+        if (row) toggleRow(row);
+    });
+
+    list.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const header = e.target.closest('.td-group-header');
+        if (!header) return;
+        e.preventDefault();
+        const row = header.closest('.td-group-row');
+        if (row) toggleRow(row);
     });
 })();
 

@@ -1190,41 +1190,71 @@
 }
 
 .td-group-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 30px 20px;
+    margin-top: 30px;
 }
 
+/* ── Folder card ── */
 .td-group-row {
-    background: #fff;
-    border: 1px solid rgba(44, 26, 14, 0.09);
-    border-radius: 12px;
-    transition: border-color 0.15s;
+    position: relative;
+    border-radius: 4px 14px 14px 14px;
+    padding: 14px 14px 16px;
+    box-shadow: 0 2px 6px rgba(44, 26, 14, 0.07);
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .td-group-row:hover {
-    border-color: rgba(44, 26, 14, 0.18);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(44, 26, 14, 0.12);
 }
+
+.td-group-row.is-expanded {
+    grid-column: 1 / -1;
+}
+
+/* Alternating manila-folder tones, scrapbook style. */
+.td-folder-sage { background: #dde6d0; }
+.td-folder-tan  { background: #ece0c8; }
+
+/* The little tab peeking above the folder's top-left corner. */
+.td-folder-tab {
+    position: absolute;
+    top: -12px;
+    left: 22px;
+    width: 72px;
+    height: 16px;
+    border-radius: 7px 7px 0 0;
+}
+
+.td-folder-sage .td-folder-tab { background: #dde6d0; }
+.td-folder-tan  .td-folder-tab { background: #ece0c8; }
 
 .td-group-header {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    flex-direction: column;
     cursor: pointer;
+    outline: none;
+}
+
+.td-group-header:focus-visible {
+    outline: 2px solid #5f7d4c;
+    outline-offset: 3px;
+    border-radius: 10px;
 }
 
 .td-group-thumb {
-    width: 44px;
-    height: 44px;
+    width: 100%;
+    aspect-ratio: 4 / 3;
     flex-shrink: 0;
     border-radius: 10px;
     overflow: hidden;
-    background: #e5dccb;
+    background: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 12px;
 }
 
 .td-group-thumb img {
@@ -1234,70 +1264,47 @@
     display: block;
 }
 
+.td-group-thumb .td-check-initial {
+    font-size: 34px;
+}
+
+.td-group-row.is-expanded .td-group-thumb {
+    max-width: 320px;
+}
+
 .td-group-main {
-    flex: 1;
     min-width: 0;
 }
 
 .td-group-name {
     font-family: Georgia, serif;
     font-weight: 700;
-    font-size: 13.5px;
+    font-size: 16px;
+    line-height: 1.3;
     color: #2c1a0e;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin: 0 0 6px;
 }
 
 .td-group-location {
-    font-size: 11.5px;
-    color: rgba(44, 26, 14, 0.5);
-    margin: 1px 0 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 12px;
+    color: rgba(44, 26, 14, 0.6);
+    line-height: 1.4;
+    margin: 0 0 10px;
 }
 
 .td-group-stats {
     font-size: 11.5px;
     color: rgba(44, 26, 14, 0.55);
-    margin: 3px 0 0;
-}
-
-.td-group-toggle {
-    flex-shrink: 0;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 1px solid rgba(44, 26, 14, 0.12);
-    background: #fff;
-    color: rgba(44, 26, 14, 0.5);
-    cursor: pointer;
-    padding: 7px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s, color 0.15s, border-color 0.15s;
-}
-
-.td-group-toggle svg { width: 100%; height: 100%; display: block; }
-
-.td-group-toggle:hover {
-    color: #5f7d4c;
-    border-color: rgba(95, 125, 76, 0.3);
-}
-
-.td-group-row.is-expanded .td-group-toggle {
-    transform: rotate(180deg);
-    color: #5f7d4c;
-    border-color: rgba(95, 125, 76, 0.3);
+    line-height: 1.5;
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(44, 26, 14, 0.14);
 }
 
 .td-group-detail {
-    padding: 0 14px 14px;
-    border-top: 1px solid rgba(44, 26, 14, 0.08);
-    margin-top: 2px;
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(44, 26, 14, 0.14);
 }
 
 .td-visit-row {

@@ -1004,12 +1004,13 @@ usort($checklist, function ($a, $b) {
                     </div>
                     <div class="td-group-list" id="tdGroupList">
                         <?php foreach ($diaryGroups as $i => $g): ?>
-                            <div class="td-group-row<?php echo $i >= 6 ? ' td-hidden-extra' : ''; ?>"
+                            <div class="td-group-row td-folder-<?php echo $i % 2 === 0 ? 'sage' : 'tan'; ?><?php echo $i >= 6 ? ' td-hidden-extra' : ''; ?>"
                                 data-name="<?php echo htmlspecialchars(mb_strtolower($g['name'])); ?>"
                                 data-address="<?php echo htmlspecialchars(mb_strtolower($g['address'])); ?>"
                                 data-latest-date="<?php echo htmlspecialchars($g['latestVisitDate']); ?>"
                                 data-visit-count="<?php echo (int) $g['visitCount']; ?>">
-                                <div class="td-group-header">
+                                <span class="td-folder-tab" aria-hidden="true"></span>
+                                <div class="td-group-header" role="button" tabindex="0" aria-label="Expand destination" aria-expanded="false">
                                     <div class="td-group-thumb">
                                         <?php if (!empty($g['image'])): ?>
                                             <img src="<?php echo htmlspecialchars($g['image']); ?>" alt="" loading="lazy">
@@ -1028,9 +1029,6 @@ usort($checklist, function ($a, $b) {
                                             · <span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?> photo<?php echo $g['photoCount'] === 1 ? '' : 's'; ?></span>
                                         </p>
                                     </div>
-                                    <button type="button" class="td-group-toggle" aria-label="Expand destination" aria-expanded="false">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                                    </button>
                                 </div>
 
                                 <div class="td-group-detail" hidden>
