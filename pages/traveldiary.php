@@ -1010,6 +1010,7 @@ usort($checklist, function ($a, $b) {
                                 data-latest-date="<?php echo htmlspecialchars($g['latestVisitDate']); ?>"
                                 data-visit-count="<?php echo (int) $g['visitCount']; ?>">
                                 <span class="td-folder-tab" aria-hidden="true"></span>
+                                <button type="button" class="td-group-close" aria-label="Close">&times;</button>
                                 <div class="td-group-header" role="button" tabindex="0" aria-label="Expand destination" aria-expanded="false">
                                     <div class="td-group-thumb">
                                         <?php if (!empty($g['image'])): ?>
@@ -1475,6 +1476,9 @@ usort($checklist, function ($a, $b) {
     </div>
     <?php endif; ?>
 </div>
+
+<!-- ── Backdrop behind a popped-open folder card ── -->
+<div class="td-folder-backdrop" id="tdFolderBackdrop"></div>
 
 <!-- ── Visit confirmation (geofence check / backdated visit) ── -->
 <div class="td-visit-overlay" id="tdVisitOverlay">

@@ -557,65 +557,86 @@ tdWireExpandButton('tdExpandChecklist', '#tdChecklist .td-hidden-extra');
 tdWireExpandButton('tdExpandTimeline', '.td-group-list .td-hidden-extra');
 tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 
-/* ---------------- Travel Timeline: destination expand/collapse ----------------
-   Each row's detail panel (individual visits, photos, Log Another Visit/Add
-   Photo) is hidden until toggled. State is persisted to sessionStorage so an
-   expanded destination stays expanded across the location.reload() that
-   mark_visited/upload_photo/delete_entry already do (see tdPost calls below)
-   — otherwise logging another visit from inside an expanded row would
-   silently collapse it back on reload. */
+/* ---------------- Travel Timeline: destination pop-open ----------------
+   Clicking a folder card pops it out of the grid into a centered,
+   animated card (position:fixed, with a folder-tab "flip open" and a
+   pop-in scale) instead of expanding in place — only one open at a time,
+   closed via its × button, the backdrop, or Escape. State is persisted to
+   sessionStorage so the same folder re-opens across the location.reload()
+   that mark_visited/upload_photo/delete_entry already do (see tdPost calls
+   below) — otherwise logging another visit from inside an open folder
+   would silently close it back on reload. */
 (function () {
     const list = document.getElementById('tdGroupList');
-    if (!list) return;
+    const backdrop = document.getElementById('tdFolderBackdrop');
+    if (!list || !backdrop) return;
 
-    const STORAGE_KEY = 'tdExpandedGroups';
+    const STORAGE_KEY = 'tdExpandedGroup';
 
-    function readExpanded() {
+    function readExpandedKey() {
+        try { return sessionStorage.getItem(STORAGE_KEY) || null; } catch (err) { return null; }
+    }
+
+    function writeExpandedKey(key) {
         try {
-            return new Set(JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'));
+            if (key) sessionStorage.setItem(STORAGE_KEY, key);
+            else sessionStorage.removeItem(STORAGE_KEY);
         } catch (err) {
-            return new Set();
+            // Private browsing / storage disabled — the open folder just
+            // won't survive a reload, nothing else depends on it.
         }
     }
 
-    function writeExpanded(set) {
-        try {
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
-        } catch (err) {
-            // Private browsing / storage disabled — expand state just won't
-            // survive a reload, nothing else depends on it.
-        }
+    function closeAll() {
+        list.querySelectorAll('.td-group-row.is-expanded').forEach((row) => {
+            row.classList.remove('is-expanded');
+            const detail = row.querySelector('.td-group-detail');
+            if (detail) detail.hidden = true;
+            const header = row.querySelector('.td-group-header');
+            if (header) header.setAttribute('aria-expanded', 'false');
+        });
+        backdrop.classList.remove('open');
+        document.body.style.overflow = '';
     }
 
-    function setExpanded(row, expanded) {
+    function openRow(row) {
+        closeAll();
+        row.classList.add('is-expanded');
         const detail = row.querySelector('.td-group-detail');
+        if (detail) detail.hidden = false;
         const header = row.querySelector('.td-group-header');
-        if (detail) detail.hidden = !expanded;
-        row.classList.toggle('is-expanded', expanded);
-        if (header) header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        if (header) header.setAttribute('aria-expanded', 'true');
+        backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        writeExpandedKey(row.dataset.groupKey);
     }
-
-    const expandedKeys = readExpanded();
-    list.querySelectorAll('.td-group-row').forEach((row) => {
-        const key = row.dataset.name + '|' + row.dataset.latestDate; // stable enough without a dedicated id attribute
-        row.dataset.groupKey = key;
-        if (expandedKeys.has(key)) setExpanded(row, true);
-    });
 
     function toggleRow(row) {
-        const nowExpanded = row.querySelector('.td-group-detail').hidden; // about to flip to this state
-        setExpanded(row, nowExpanded);
-
-        const key = row.dataset.groupKey;
-        const expanded = readExpanded();
-        if (nowExpanded) expanded.add(key); else expanded.delete(key);
-        writeExpanded(expanded);
+        if (row.classList.contains('is-expanded')) {
+            closeAll();
+            writeExpandedKey(null);
+        } else {
+            openRow(row);
+        }
     }
 
-    // The whole card header is the click target now (no separate chevron
-    // button in the folder-card layout — the chevron glyph next to the
-    // stats line is purely decorative, just a visual hint).
+    list.querySelectorAll('.td-group-row').forEach((row) => {
+        row.dataset.groupKey = row.dataset.name + '|' + row.dataset.latestDate; // stable enough without a dedicated id attribute
+    });
+
+    const savedKey = readExpandedKey();
+    if (savedKey) {
+        const match = Array.from(list.querySelectorAll('.td-group-row')).find((r) => r.dataset.groupKey === savedKey);
+        if (match) openRow(match);
+    }
+
     list.addEventListener('click', (e) => {
+        const closeBtn = e.target.closest('.td-group-close');
+        if (closeBtn) {
+            closeAll();
+            writeExpandedKey(null);
+            return;
+        }
         const header = e.target.closest('.td-group-header');
         if (!header) return;
         const row = header.closest('.td-group-row');
@@ -629,6 +650,18 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         e.preventDefault();
         const row = header.closest('.td-group-row');
         if (row) toggleRow(row);
+    });
+
+    backdrop.addEventListener('click', () => {
+        closeAll();
+        writeExpandedKey(null);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && list.querySelector('.td-group-row.is-expanded')) {
+            closeAll();
+            writeExpandedKey(null);
+        }
     });
 })();
 

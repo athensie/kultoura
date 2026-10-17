@@ -1203,6 +1203,7 @@
     padding: 14px 14px 16px;
     box-shadow: 0 2px 6px rgba(44, 26, 14, 0.07);
     transition: transform 0.15s, box-shadow 0.15s;
+    perspective: 500px;
 }
 
 .td-group-row:hover {
@@ -1210,8 +1211,85 @@
     box-shadow: 0 10px 20px rgba(44, 26, 14, 0.12);
 }
 
+/* ── Popped-open state: the card lifts out of the grid and opens as a
+   centered card, like pulling a folder out of a stack. position:fixed
+   takes it out of grid flow, so the other cards reflow to fill the gap. ── */
 .td-group-row.is-expanded {
-    grid-column: 1 / -1;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(560px, 92vw);
+    max-height: 86vh;
+    overflow-y: auto;
+    z-index: 3200;
+    box-shadow: 0 30px 70px rgba(20, 12, 6, 0.35);
+    animation: td-folder-pop 0.32s cubic-bezier(0.22, 1.36, 0.4, 1) both;
+}
+
+@keyframes td-folder-pop {
+    from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+    to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* The folder tab "flips open" like a lid as the card pops up. */
+.td-group-row.is-expanded .td-folder-tab {
+    transform-origin: bottom center;
+    animation: td-folder-flap 0.45s ease-out both;
+}
+
+@keyframes td-folder-flap {
+    0%   { transform: rotateX(0deg); }
+    45%  { transform: rotateX(-130deg); }
+    100% { transform: rotateX(0deg); }
+}
+
+.td-group-row.is-expanded .td-group-detail {
+    animation: td-folder-contents-in 0.3s ease 0.12s both;
+}
+
+@keyframes td-folder-contents-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.td-group-close {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(44, 26, 14, 0.12);
+    color: #2c1a0e;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.td-group-close:hover {
+    background: rgba(44, 26, 14, 0.22);
+}
+
+.td-group-row.is-expanded .td-group-close {
+    display: block;
+}
+
+.td-folder-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(44, 26, 14, 0.45);
+    z-index: 3150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+}
+
+.td-folder-backdrop.open {
+    opacity: 1;
+    pointer-events: all;
 }
 
 /* Alternating manila-folder tones, scrapbook style. */
@@ -1266,10 +1344,6 @@
 
 .td-group-thumb .td-check-initial {
     font-size: 34px;
-}
-
-.td-group-row.is-expanded .td-group-thumb {
-    max-width: 320px;
 }
 
 .td-group-main {
