@@ -596,8 +596,9 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         const expandedRow = backdrop.querySelector('.td-group-row.is-expanded');
         if (expandedRow) {
             expandedRow.classList.remove('is-expanded');
-            const detail = expandedRow.querySelector('.td-group-detail');
-            if (detail) detail.hidden = true;
+            expandedRow.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => {
+                page.hidden = true;
+            });
             const header = expandedRow.querySelector('.td-group-header');
             if (header) header.setAttribute('aria-expanded', 'false');
             if (placeholder && placeholder.parentNode) {
@@ -619,8 +620,9 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         backdrop.appendChild(row); // moves it into the backdrop's flex-centered stage
 
         row.classList.add('is-expanded');
-        const detail = row.querySelector('.td-group-detail');
-        if (detail) detail.hidden = false;
+        row.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => {
+            page.hidden = false;
+        });
         const header = row.querySelector('.td-group-header');
         if (header) header.setAttribute('aria-expanded', 'true');
         backdrop.classList.add('open');

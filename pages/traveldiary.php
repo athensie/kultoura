@@ -1036,6 +1036,7 @@ usort($checklist, function ($a, $b) {
                                 data-visit-count="<?php echo (int) $g['visitCount']; ?>">
                                 <span class="td-folder-tab" aria-hidden="true"></span>
                                 <button type="button" class="td-group-close" aria-label="Close">&times;</button>
+                                <div class="td-folder-pages">
                                 <div class="td-group-header" role="button" tabindex="0" aria-label="Expand destination" aria-expanded="false">
                                     <div class="td-group-thumb">
                                         <?php if (!empty($g['image']) && !td_is_placeholder_card_image($g['image'])): ?>
@@ -1050,7 +1051,7 @@ usort($checklist, function ($a, $b) {
                                     <div class="td-group-main">
                                         <p class="td-group-name"><?php echo htmlspecialchars($g['name']); ?></p>
                                         <?php if (!empty($g['address'])): ?>
-                                            <p class="td-group-location"><?php echo htmlspecialchars($g['address']); ?></p>
+                                            <p class="td-group-location"><span class="td-group-location-pin"><?php echo $statIcons['pin']; ?></span><?php echo htmlspecialchars($g['address']); ?></p>
                                         <?php endif; ?>
                                         <p class="td-group-stats">
                                             Latest visit: <?php echo htmlspecialchars(date('F j, Y', strtotime($g['latestVisitDate']))); ?>
@@ -1060,8 +1061,7 @@ usort($checklist, function ($a, $b) {
                                     </div>
                                 </div>
 
-                                <div class="td-group-detail" hidden>
-                                    <div class="td-folder-page-left">
+                                <div class="td-folder-page-left" hidden>
                                         <div class="td-folder-stat-boxes">
                                             <div class="td-folder-stat-box">
                                                 <span class="td-folder-stat-label">Latest visit</span>
@@ -1083,7 +1083,7 @@ usort($checklist, function ($a, $b) {
                                         <?php endif; ?>
                                     </div>
 
-                                    <div class="td-folder-page-right">
+                                <div class="td-folder-page-right" hidden>
                                         <h4 class="td-folder-section-head">Visit History</h4>
                                         <div class="td-visit-history">
                                             <?php foreach ($g['visits'] as $v): ?>
@@ -1157,7 +1157,7 @@ usort($checklist, function ($a, $b) {
                                                 data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
                                                 data-item-id="<?php echo (int) $g['itemId']; ?>"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Add Photo</button>
                                         </div>
-                                    </div>
+                                </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

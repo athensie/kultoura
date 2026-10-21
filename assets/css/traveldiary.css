@@ -1211,20 +1211,53 @@
     box-shadow: 0 10px 20px rgba(44, 26, 14, 0.12);
 }
 
-/* ── Popped-open state ──
+/* ── Popped-open state: a literal open folder ──
    The card is moved (by JS) out of the grid into the backdrop, which
    flex-centers it — no positioning transform needed here, so the whole
    `transform` on .is-expanded is free to be the actual "opening" motion:
    the card tilts up from lying flat (as if lifted off a table) into full
-   view, hinged at its bottom edge. */
+   view, hinged at its bottom edge.
+
+   While open, .td-group-row itself becomes the folder's cover — a richer,
+   more saturated shade of its pastel tone — with generous padding so the
+   cream "pages" (wrapped in .td-folder-pages) sit inset with a visible
+   colored margin all around, like an actual folder. The cover itself is
+   NOT the scroll/clip container — overflow lives on .td-folder-pages
+   instead, so the tab and the stacked-page sliver below can poke outside
+   the cream pages' box without being clipped by a scrollable ancestor
+   (overflow-y:auto on an element also clips content that overflows its
+   OTHER edges, which would otherwise cut the tab's negative top offset
+   right off). */
 .td-group-row.is-expanded {
-    width: min(800px, 100%);
-    max-height: 86vh;
-    overflow-y: auto;
+    width: min(860px, 100%);
+    padding: 34px 26px 26px;
+    border-radius: 6px 20px 20px 20px;
     box-shadow: 0 30px 70px rgba(20, 12, 6, 0.35);
     transform-origin: center bottom;
     animation: td-folder-pop 0.55s cubic-bezier(0.25, 1, 0.4, 1) both;
 }
+
+.td-group-row.is-expanded.td-folder-sage { background: #85a271; }
+.td-group-row.is-expanded.td-folder-tan  { background: #bb9a64; }
+
+.td-group-row.is-expanded .td-folder-pages {
+    max-height: calc(86vh - 60px);
+    overflow-y: auto;
+}
+
+/* A second, slightly rotated sliver of "folder" peeking out behind the
+   open cover — just enough to read as depth/thickness, not a full page. */
+.td-group-row.is-expanded::after {
+    content: '';
+    position: absolute;
+    inset: 10px -6px -10px 10px;
+    border-radius: 6px 18px 18px 18px;
+    transform: rotate(1.2deg);
+    z-index: -1;
+}
+
+.td-group-row.is-expanded.td-folder-sage::after { background: #6f8a5e; }
+.td-group-row.is-expanded.td-folder-tan::after  { background: #a37f4c; }
 
 @keyframes td-folder-pop {
     0%   { transform: rotateX(-80deg) scale(0.92); opacity: 0; }
@@ -1232,11 +1265,21 @@
     100% { transform: rotateX(0deg) scale(1); opacity: 1; }
 }
 
-/* The folder tab flips open in sync, like the lid's own little latch. */
+/* The folder tab flips open in sync, like the lid's own little latch —
+   and grows into a proper folder tab (bigger, its own richer shade)
+   while open, instead of the small collapsed-card peek. */
 .td-group-row.is-expanded .td-folder-tab {
+    width: 110px;
+    height: 24px;
+    top: -14px;
+    left: 30px;
+    border-radius: 9px 9px 0 0;
     transform-origin: bottom center;
     animation: td-folder-flap 0.55s ease-out both;
 }
+
+.td-group-row.is-expanded.td-folder-sage .td-folder-tab { background: #6f8a5e; }
+.td-group-row.is-expanded.td-folder-tan  .td-folder-tab { background: #a37f4c; }
 
 @keyframes td-folder-flap {
     0%   { transform: rotateX(0deg); }
@@ -1245,7 +1288,9 @@
 }
 
 /* Contents reveal just after the cover has visibly opened. */
-.td-group-row.is-expanded .td-group-detail {
+.td-group-row.is-expanded .td-group-header,
+.td-group-row.is-expanded .td-folder-page-left,
+.td-group-row.is-expanded .td-folder-page-right {
     animation: td-folder-contents-in 0.35s ease 0.28s both;
 }
 
@@ -1257,8 +1302,8 @@
 .td-group-close {
     display: none;
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 12px;
+    right: 12px;
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -1277,6 +1322,12 @@
 
 .td-group-row.is-expanded .td-group-close {
     display: block;
+    background: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+.td-group-row.is-expanded .td-group-close:hover {
+    background: rgba(255, 255, 255, 0.45);
 }
 
 .td-folder-backdrop {
@@ -1411,6 +1462,21 @@
     margin: 0 0 10px;
 }
 
+.td-group-location-pin {
+    display: inline-flex;
+    width: 13px;
+    height: 13px;
+    margin-right: 5px;
+    vertical-align: -2px;
+    color: #5f7d4c;
+}
+
+.td-group-location-pin svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 .td-group-stats {
     font-size: 11.5px;
     color: rgba(44, 26, 14, 0.55);
@@ -1420,25 +1486,51 @@
     border-top: 1px solid rgba(44, 26, 14, 0.14);
 }
 
-/* Hidden while open — the stat boxes inside .td-group-detail show the
-   same numbers, so the two don't duplicate each other on screen. */
+/* Hidden while open — the stat boxes on the left page show the same
+   numbers, so the two don't duplicate each other on screen. */
 .td-group-row.is-expanded .td-group-stats {
     display: none;
 }
 
-.td-group-detail {
-    margin-top: 14px;
-    padding-top: 18px;
-    border-top: 1px solid rgba(44, 26, 14, 0.14);
-}
-
-/* Two "pages": destination info + About on the left, Visit History /
-   Photos / Notes on the right — only while popped open. */
-.td-group-row.is-expanded .td-group-detail {
+/* Two real "pages" while popped open: .td-group-header (photo/name/
+   address) and .td-folder-page-left (stat boxes + About) stack as ONE
+   seamless cream left page; .td-folder-page-right (Visit History /
+   Photos / Notes) is the right page, aligned top with the left page and
+   spanning its full height. .td-folder-pages is the grid — these three
+   are its direct children, explicitly placed, so the header and
+   left-page content can share one page without a visible seam. */
+.td-group-row.is-expanded .td-folder-pages {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 28px;
-    align-items: start;
+    grid-template-rows: auto 1fr;
+    gap: 0 24px;
+}
+
+.td-group-row.is-expanded .td-group-header {
+    grid-column: 1;
+    grid-row: 1;
+    background: #f5efe0;
+    border-radius: 14px 14px 0 0;
+    padding: 20px 20px 14px;
+    box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
+}
+
+.td-group-row.is-expanded .td-folder-page-left {
+    grid-column: 1;
+    grid-row: 2;
+    background: #f5efe0;
+    border-radius: 0 0 14px 14px;
+    padding: 0 20px 22px;
+    box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
+}
+
+.td-group-row.is-expanded .td-folder-page-right {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    background: #f5efe0;
+    border-radius: 14px;
+    padding: 22px 20px;
+    box-shadow: -6px 0 16px -8px rgba(44, 26, 14, 0.25), 0 2px 10px rgba(44, 26, 14, 0.1);
 }
 
 .td-folder-page-left,
@@ -1583,8 +1675,32 @@
 }
 
 @media (max-width: 680px) {
-    .td-group-row.is-expanded .td-group-detail {
+    /* Stack the two pages top-to-bottom instead of side-by-side — each
+       override resets the explicit column/row placement set above. */
+    .td-group-row.is-expanded .td-folder-pages {
         grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+    }
+
+    .td-group-row.is-expanded .td-group-header,
+    .td-group-row.is-expanded .td-folder-page-left,
+    .td-group-row.is-expanded .td-folder-page-right {
+        grid-column: 1;
+    }
+
+    .td-group-row.is-expanded .td-group-header {
+        grid-row: 1;
+    }
+
+    .td-group-row.is-expanded .td-folder-page-left {
+        grid-row: 2;
+    }
+
+    .td-group-row.is-expanded .td-folder-page-right {
+        grid-row: 3;
+        border-radius: 14px;
+        margin-top: 16px;
+        box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
     }
 }
 
