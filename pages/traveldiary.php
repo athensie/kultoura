@@ -4,6 +4,7 @@ include '../config/dbmain.php';
 require_once __DIR__ . '/../config/maintenance.php';
 kt_maintenance_gate($conn);
 include '../config/analytics.php';
+require_once __DIR__ . '/../config/ai_recommend.php';
 analytics_track($conn, 'traveldiary');
 
 $isLoggedIn = isset($_SESSION['user_id']);
@@ -631,6 +632,13 @@ if ($twFavStmt = $conn->prepare("SELECT item_type, item_id FROM favorites WHERE 
 
 // Enough logged visits in the chosen window to make a Wrapped worth generating.
 $canGenerateWrapped = count($wrappedEntries) > 0;
+
+// AI-personalized captions (see ai_travel_wrapped_captions) — null, or
+// missing any given field, whenever AI isn't configured or the call
+// fails, so every slide below keeps its own static fallback copy.
+$twCaptions = $canGenerateWrapped
+    ? (ai_travel_wrapped_captions($conn, $userId, $wrappedPeriod, $wrappedLabel, $tw) ?? [])
+    : [];
 
 $twMapPoints = td_wrapped_map_points($tw['distinctPlaces']);
 
@@ -1354,7 +1362,7 @@ usort($checklist, function ($a, $b) {
             <div class="tw-slide-inner">
                 <div class="tw-brand">KULTOURA<span>MALVAR, BATANGAS</span></div>
                 <h1 class="tw-title-1">KULTOURA<br><span class="tw-accent-green">Wrapped</span><br><span class="tw-accent-gold"><?php echo htmlspecialchars($wrappedLabel); ?></span></h1>
-                <p class="tw-sub">Your journey. Your story.<br>Malvar is better with you.</p>
+                <p class="tw-sub"><?php echo !empty($twCaptions['title_sub']) ? ai_wrapped_caption_html($twCaptions['title_sub']) : 'Your journey. Your story.<br>Malvar is better with you.'; ?></p>
                 <?php if (!empty($tw['photoMemories'])): ?>
                 <div class="tw-collage">
                     <?php foreach (array_slice($tw['photoMemories'], 0, 4) as $i => $m): ?>
@@ -1370,7 +1378,7 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-2">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">By the Numbers</h2>
-                <p class="tw-sub-2">A look back at your amazing journey around Malvar.</p>
+                <p class="tw-sub-2"><?php echo !empty($twCaptions['numbers_sub']) ? ai_wrapped_caption_html($twCaptions['numbers_sub']) : 'A look back at your amazing journey around Malvar.'; ?></p>
                 <div class="tw-stat-list">
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-green"><?php echo $statIcons['places']; ?></span><div><span class="tw-stat-num"><?php echo $tw['totalPlaces']; ?></span><span class="tw-stat-label">Places Visited</span></div></div>
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-orange"><?php echo $statIcons['days']; ?></span><div><span class="tw-stat-num"><?php echo $tw['daysTraveled']; ?></span><span class="tw-stat-label">Days Traveled</span></div></div>
@@ -1378,7 +1386,7 @@ usort($checklist, function ($a, $b) {
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-purple"><?php echo $statIcons['favorites']; ?></span><div><span class="tw-stat-num"><?php echo $twFavoritesCount; ?></span><span class="tw-stat-label">Favorites Marked</span></div></div>
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-blue"><?php echo $statIcons['categories']; ?></span><div><span class="tw-stat-num"><?php echo $tw['categoriesCompleted']; ?></span><span class="tw-stat-label">Categories Explored</span></div></div>
                 </div>
-                <p class="tw-footer-note">Every number has a memory behind it.</p>
+                <p class="tw-footer-note"><?php echo !empty($twCaptions['numbers_footer']) ? ai_wrapped_caption_html($twCaptions['numbers_footer']) : 'Every number has a memory behind it.'; ?></p>
             </div>
         </div>
 
@@ -1439,7 +1447,7 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-4">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Journey<br>Timeline</h2>
-                <p class="tw-sub-2">Some highlights from your travel diary.</p>
+                <p class="tw-sub-2"><?php echo !empty($twCaptions['timeline_sub']) ? ai_wrapped_caption_html($twCaptions['timeline_sub']) : 'Some highlights from your travel diary.'; ?></p>
                 <div class="tw-mini-timeline">
                     <?php foreach (array_slice($tw['timeline'], 0, 4) as $t): ?>
                         <div class="tw-mini-item">
@@ -1455,7 +1463,7 @@ usort($checklist, function ($a, $b) {
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <p class="tw-footer-note">More memories await next time!</p>
+                <p class="tw-footer-note"><?php echo !empty($twCaptions['timeline_footer']) ? ai_wrapped_caption_html($twCaptions['timeline_footer']) : 'More memories await next time!'; ?></p>
             </div>
         </div>
 
@@ -1464,7 +1472,7 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-5">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Places You<br>Explored</h2>
-                <p class="tw-sub-2">Here are the places you visited in Malvar.</p>
+                <p class="tw-sub-2"><?php echo !empty($twCaptions['places_sub']) ? ai_wrapped_caption_html($twCaptions['places_sub']) : 'Here are the places you visited in Malvar.'; ?></p>
                 <div class="tw-places-grid">
                     <?php foreach (array_slice($tw['distinctPlaces'], 0, 4) as $p): ?>
                         <div class="tw-place-card">
@@ -1484,7 +1492,7 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-6">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">What You Liked</h2>
-                <p class="tw-sub-2">Your favorites say a lot about you!</p>
+                <p class="tw-sub-2"><?php echo !empty($twCaptions['liked_sub']) ? ai_wrapped_caption_html($twCaptions['liked_sub']) : 'Your favorites say a lot about you!'; ?></p>
                 <div class="tw-liked-stack">
                     <?php foreach ($twFavoriteItems as $f): ?>
                         <div class="tw-liked-card">
@@ -1502,7 +1510,7 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-7">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Travel<br>Map</h2>
-                <p class="tw-sub-2">A map of the places you visited in Malvar.</p>
+                <p class="tw-sub-2"><?php echo !empty($twCaptions['map_sub']) ? ai_wrapped_caption_html($twCaptions['map_sub']) : 'A map of the places you visited in Malvar.'; ?></p>
                 <div class="tw-map-wrap">
                     <div class="tw-map-leaflet" id="twMapLeaflet" data-points="<?php echo htmlspecialchars(json_encode($twMapPoints, JSON_UNESCAPED_UNICODE)); ?>" data-boundary="<?php echo htmlspecialchars(json_encode(td_wrapped_boundary_latlngs())); ?>"></div>
                 </div>
@@ -1520,7 +1528,7 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-8">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Photos</h2>
-                <p class="tw-sub-2">A glimpse of the moments you captured.</p>
+                <p class="tw-sub-2"><?php echo !empty($twCaptions['photos_sub']) ? ai_wrapped_caption_html($twCaptions['photos_sub']) : 'A glimpse of the moments you captured.'; ?></p>
                 <div class="tw-collage tw-collage-big">
                     <?php foreach ($twPhotosSlide as $i => $m): ?>
                         <div class="tw-collage-photo tw-tilt-<?php echo $i % 4; ?>"><img src="<?php echo htmlspecialchars($m['image']); ?>" alt=""></div>
@@ -1535,12 +1543,12 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-9">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Memories at<br>a Glance</h2>
-                <p class="tw-sub-2">Small moments. Big stories.</p>
+                <p class="tw-sub-2"><?php echo !empty($twCaptions['glance_sub']) ? ai_wrapped_caption_html($twCaptions['glance_sub']) : 'Small moments. Big stories.'; ?></p>
                 <div class="tw-scatter">
                     <?php foreach ($twScatterPhotos as $i => $m): ?>
                         <div class="tw-scatter-photo tw-scatter-<?php echo $i % 3; ?>"><img src="<?php echo htmlspecialchars($m['image']); ?>" alt=""></div>
                     <?php endforeach; ?>
-                    <div class="tw-sticky-note">Good food<br>Good places<br>Good company</div>
+                    <div class="tw-sticky-note"><?php echo !empty($twCaptions['sticky_note']) ? ai_wrapped_caption_html($twCaptions['sticky_note']) : 'Good food<br>Good places<br>Good company'; ?></div>
                 </div>
             </div>
         </div>
@@ -1550,11 +1558,9 @@ usort($checklist, function ($a, $b) {
         <div class="tw-slide tw-slide-10">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Here's to more <span class="tw-accent-green">adventures!</span></h2>
-                <p class="tw-thanks">Thank you for exploring Malvar with KULTOURA.<br>Let's make more memories together!</p>
+                <p class="tw-thanks"><?php echo !empty($twCaptions['thanks_sub']) ? ai_wrapped_caption_html($twCaptions['thanks_sub']) : "Thank you for exploring Malvar with KULTOURA.<br>Let's make more memories together!"; ?></p>
                 <blockquote class="tw-quote">
-                    Every place you've been leaves a story.<br>
-                    Keep exploring. Keep supporting local.<br>
-                    Keep loving Malvar.
+                    <?php echo !empty($twCaptions['quote']) ? ai_wrapped_caption_html($twCaptions['quote']) : "Every place you've been leaves a story.<br>\n                    Keep exploring. Keep supporting local.<br>\n                    Keep loving Malvar."; ?>
                 </blockquote>
                 <div class="tw-brand-footer">KULTOURA<span>MALVAR, BATANGAS</span></div>
             </div>

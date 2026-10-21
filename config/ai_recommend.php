@@ -487,3 +487,89 @@ function ai_chart_insights(mysqli $conn, array $charts): array
     }
     return $out;
 }
+
+/*
+ |--------------------------------------------------------------------
+ | TRAVEL WRAPPED CAPTIONS — pages/traveldiary.php's "Wrapped" slides
+ |--------------------------------------------------------------------
+ | Every slide's subtitle/footer used to be one fixed string shown to
+ | every visitor, every time ("Your journey. Your story. Malvar is
+ | better with you." etc.) — true but generic, and visibly the same
+ | line again on a second Wrapped. This writes short, personalized
+ | replacements grounded in that one visitor's real stats (their
+ | favorite category, their most-visited place by name, their actual
+ | streak...), cached per visitor + period so reopening the same
+ | Wrapped doesn't re-roll it or spend a second API call, while a
+ | genuinely new period (or new visits logged since) does regenerate.
+ | Falls back to null (never throws) — traveldiary.php keeps its
+ | original static copy per field whenever this doesn't return one.
+ */
+function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, string $periodLabel, array $stats): ?array
+{
+    $facts = [
+        'period'              => $periodLabel,
+        'total_places'        => $stats['totalPlaces'],
+        'days_traveled'       => $stats['daysTraveled'],
+        'total_photos'        => $stats['totalPhotos'],
+        'categories_explored' => $stats['categoriesCompleted'],
+        'favorite_category'   => $stats['favoriteCategory'],
+        'most_visited_place'  => $stats['mostVisited']['name'] ?? null,
+        'first_place_visited' => $stats['firstPlaceVisited']['name'] ?? null,
+        'latest_adventure'    => $stats['latestAdventure']['name'] ?? null,
+        'longest_streak_days' => $stats['longestStreak'],
+        'places_visited'      => array_slice(array_column($stats['distinctPlaces'], 'name'), 0, 8),
+    ];
+
+    $prompt = "You are writing the short captions for one visitor's personal \"Travel Wrapped\" recap on "
+        . "KULTOURA, a tourism site for Malvar, Batangas, Philippines (a Spotify-Wrapped-style slideshow of "
+        . "their own travel diary). Here are THIS visitor's real stats for \"{$periodLabel}\" — use only these "
+        . "facts, never invent a place name or number that isn't given:\n"
+        . json_encode($facts) . "\n\n"
+        . "Write warm, upbeat, specific captions that reference their actual places/numbers where it fits "
+        . "naturally — avoid generic filler that could apply to anyone. Keep every field short (it's a caption, "
+        . "not a paragraph) and avoid repeating the same place name in more than two fields. "
+        . "Respond with ONLY this JSON shape, no other text: "
+        . '{"title_sub": "<two short lines, \\n between them>", '
+        . '"numbers_sub": "<one sentence>", "numbers_footer": "<under 8 words>", '
+        . '"timeline_sub": "<one sentence>", "timeline_footer": "<under 8 words>", '
+        . '"places_sub": "<one sentence>", "liked_sub": "<one sentence>", '
+        . '"map_sub": "<one sentence>", "photos_sub": "<one sentence>", "glance_sub": "<one sentence>", '
+        . '"sticky_note": "<three short words/phrases, \\n between them>", '
+        . '"thanks_sub": "<one or two short sentences, \\n between them>", '
+        . '"quote": "<three short lines, \\n between them>"}';
+
+    // analytics_forecasts.forecast_key is only VARCHAR(40) — a plain
+    // "wrapped_captions_<userId>_<period>_<model>" key would silently
+    // get truncated on write while the lookup SELECT still compares the
+    // untruncated string, so every request misses the cache and
+    // re-generates. Hashed instead, so it always fits regardless of how
+    // long userId/period/model happen to be.
+    $cacheKey = 'tw_cap_' . md5($userId . '|' . $period);
+    $parsed = ai_cached_or_generate($conn, $cacheKey, $facts, $prompt);
+    if ($parsed === null) {
+        return null;
+    }
+
+    $fields = [
+        'title_sub' => 200, 'numbers_sub' => 160, 'numbers_footer' => 80,
+        'timeline_sub' => 160, 'timeline_footer' => 80, 'places_sub' => 160,
+        'liked_sub' => 160, 'map_sub' => 160, 'photos_sub' => 160, 'glance_sub' => 160,
+        'sticky_note' => 120, 'thanks_sub' => 200, 'quote' => 200,
+    ];
+    $out = [];
+    foreach ($fields as $key => $maxLen) {
+        if (!empty($parsed[$key]) && is_string($parsed[$key])) {
+            $out[$key] = mb_substr(trim($parsed[$key]), 0, $maxLen);
+        }
+    }
+    return !empty($out) ? $out : null;
+}
+
+// Turns one AI caption field (possibly with literal "\n" line breaks)
+// into safe HTML, each line escaped and joined with <br> — never trust
+// AI output as pre-formed HTML even though it's always plain text here.
+function ai_wrapped_caption_html(string $text): string
+{
+    $lines = preg_split('/\\\\n|\n/', $text);
+    return implode('<br>', array_map('htmlspecialchars', $lines));
+}
