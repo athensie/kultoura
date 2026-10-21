@@ -877,9 +877,10 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 })();
 
 /* ---------------- Travel Timeline: Visit History row expand ----------------
-   Inside an open folder, each visit's own date row collapses its note/
-   photos/Remove button until clicked — delegated on document since these
-   rows live inside the backdrop once their folder is popped open. */
+   Inside an open folder, each visit's own date row collapses its note and
+   Remove button until clicked (photos now show inline in the row header
+   itself, always visible) — delegated on document since these rows live
+   inside the backdrop once their folder is popped open. */
 (function () {
     document.addEventListener('click', (e) => {
         const head = e.target.closest('.td-visit-row-head');
@@ -897,6 +898,76 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         if (!head) return;
         e.preventDefault();
         head.click();
+    });
+})();
+
+/* ---------------- Travel Timeline: Visit History pagination ----------------
+   Each open folder's Visit History list pages itself (PAGE_SIZE rows at a
+   time) once it has more than one page's worth, instead of growing into a
+   long scroll — dots below the list jump between pages. Scoped per
+   .td-visit-history instance so each diary group paginates independently;
+   initialized here at load time since the rows are all server-rendered
+   upfront (all visible), same as the rest of this feature. */
+(function () {
+    const PAGE_SIZE = 3;
+
+    function buildPagination(history) {
+        const rows = Array.from(history.querySelectorAll('.td-visit-row'));
+        const pagination = history.nextElementSibling;
+        if (!pagination || !pagination.classList.contains('td-visit-pagination')) return;
+
+        const pageCount = Math.ceil(rows.length / PAGE_SIZE);
+        if (pageCount <= 1) {
+            pagination.hidden = true;
+            return;
+        }
+
+        rows.forEach((row, i) => {
+            row.style.display = Math.floor(i / PAGE_SIZE) === 0 ? '' : 'none';
+        });
+
+        pagination.innerHTML = '';
+        for (let p = 0; p < pageCount; p++) {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'td-visit-dot' + (p === 0 ? ' is-active' : '');
+            dot.dataset.page = p;
+            dot.setAttribute('aria-label', `Visit history page ${p + 1} of ${pageCount}`);
+            pagination.appendChild(dot);
+        }
+        pagination.hidden = false;
+    }
+
+    document.querySelectorAll('.td-visit-history').forEach(buildPagination);
+
+    document.addEventListener('click', (e) => {
+        const dot = e.target.closest('.td-visit-dot');
+        if (!dot) return;
+        const pagination = dot.closest('.td-visit-pagination');
+        const history = pagination && pagination.previousElementSibling;
+        if (!history || !history.classList.contains('td-visit-history')) return;
+
+        const page = Number(dot.dataset.page);
+        Array.from(history.querySelectorAll('.td-visit-row')).forEach((row, i) => {
+            row.style.display = Math.floor(i / PAGE_SIZE) === page ? '' : 'none';
+        });
+        pagination.querySelectorAll('.td-visit-dot').forEach((d) => d.classList.toggle('is-active', d === dot));
+    });
+})();
+
+/* ---------------- Travel Timeline: Photos "View All" ----------------
+   Per-folder reveal (unlike tdWireExpandButton, which is for page-wide
+   singletons) — each open folder has its own Photos section and its own
+   button, so this is scoped to whichever .td-folder-page-right the
+   clicked button lives in. */
+(function () {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.td-photos-viewall');
+        if (!btn) return;
+        const pageRight = btn.closest('.td-folder-page-right');
+        if (!pageRight) return;
+        pageRight.querySelectorAll('.td-folder-photos .td-hidden-extra').forEach((el) => el.classList.remove('td-hidden-extra'));
+        btn.remove();
     });
 })();
 
@@ -1577,6 +1648,14 @@ function tdRemovePhotoFromStaticSections(photoId) {
 
         const container = btn.closest('.td-timeline-photo, .td-gallery-tile');
         if (container) container.remove();
+    });
+
+    // The decorative preview thumbnail in each visit row's collapsed
+    // header (.td-visit-row-thumbs) isn't a .td-photo-delete-btn copy —
+    // it's just a plain <img>, so it needs its own cleanup pass here
+    // instead of being covered by the loop above.
+    document.querySelectorAll(`.td-visit-row-thumb[data-photo-id="${photoId}"]`).forEach((el) => {
+        el.remove();
     });
 }
 

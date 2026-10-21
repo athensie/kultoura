@@ -1084,51 +1084,60 @@ usort($checklist, function ($a, $b) {
                                     </div>
 
                                 <div class="td-folder-page-right" hidden>
-                                        <h4 class="td-folder-section-head">Visit History</h4>
+                                        <div class="td-folder-section-head-row">
+                                            <h4 class="td-folder-section-head">Visit History</h4>
+                                            <span class="td-folder-pill">All Visits <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+                                        </div>
                                         <div class="td-visit-history">
-                                            <?php foreach ($g['visits'] as $v): ?>
+                                            <?php foreach ($g['visits'] as $v):
+                                                $vTs = strtotime($v['visitedDate']);
+                                            ?>
                                                 <div class="td-visit-row">
                                                     <div class="td-visit-row-head" role="button" tabindex="0" aria-expanded="false">
-                                                        <div>
-                                                            <p class="td-visit-row-date"><?php echo htmlspecialchars(date('F j, Y', strtotime($v['visitedDate']))); ?></p>
-                                                            <p class="td-visit-row-weekday"><?php echo htmlspecialchars(date('l', strtotime($v['visitedDate']))); ?></p>
+                                                        <div class="td-visit-date-badge">
+                                                            <span class="td-visit-date-month"><?php echo htmlspecialchars(strtoupper(date('M', $vTs))); ?></span>
+                                                            <span class="td-visit-date-day"><?php echo htmlspecialchars(date('j', $vTs)); ?></span>
+                                                            <span class="td-visit-date-year"><?php echo htmlspecialchars(date('Y', $vTs)); ?></span>
                                                         </div>
-                                                        <div class="td-visit-row-meta">
-                                                            <span class="td-visit-photo-count" data-count="<?php echo count($v['photos']); ?>"><?php echo count($v['photos']); ?> photo<?php echo count($v['photos']) === 1 ? '' : 's'; ?></span>
-                                                            <svg class="td-visit-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                                                        <div class="td-visit-row-info">
+                                                            <p class="td-visit-row-weekday"><?php echo htmlspecialchars(date('l', $vTs)); ?></p>
+                                                            <p class="td-visit-row-photocount td-visit-photo-count" data-count="<?php echo count($v['photos']); ?>"><?php echo count($v['photos']); ?> photo<?php echo count($v['photos']) === 1 ? '' : 's'; ?></p>
                                                         </div>
+                                                        <?php if (!empty($v['photos'])): ?>
+                                                            <div class="td-visit-row-thumbs">
+                                                                <?php foreach (array_slice($v['photos'], 0, 4) as $p):
+                                                                    $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
+                                                                ?>
+                                                                    <span class="td-visit-row-thumb" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><img src="<?php echo $pImg; ?>" alt=""></span>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <svg class="td-visit-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
                                                     </div>
                                                     <div class="td-visit-row-body" hidden>
                                                         <?php if (!empty($v['note'])): ?>
                                                             <p class="td-timeline-note"><?php echo htmlspecialchars($v['note']); ?></p>
-                                                        <?php endif; ?>
-                                                        <?php if (!empty($v['photos'])): ?>
-                                                            <div class="td-timeline-photos">
-                                                                <?php foreach ($v['photos'] as $p):
-                                                                    $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
-                                                                    $pCaption = htmlspecialchars($g['name'] . ' · ' . date('F j, Y', strtotime($v['visitedDate'])));
-                                                                ?>
-                                                                    <div class="td-timeline-photo">
-                                                                        <img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-caption="<?php echo $pCaption; ?>">
-                                                                        <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
-                                                                    </div>
-                                                                <?php endforeach; ?>
-                                                            </div>
                                                         <?php endif; ?>
                                                         <button type="button" class="td-timeline-delete" data-entry-id="<?php echo (int) $v['entryId']; ?>">Remove</button>
                                                     </div>
                                                 </div>
                                             <?php endforeach; ?>
                                         </div>
+                                        <div class="td-visit-pagination" hidden></div>
 
-                                        <h4 class="td-folder-section-head td-folder-photos-head">Photos (<span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>)</h4>
+                                        <div class="td-folder-section-head-row">
+                                            <h4 class="td-folder-section-head td-folder-photos-head">Photos (<span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>)</h4>
+                                            <?php if (count($g['allPhotos']) > 6): ?>
+                                                <button type="button" class="td-folder-pill td-photos-viewall">View All <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+                                            <?php endif; ?>
+                                        </div>
                                         <?php if (!empty($g['allPhotos'])): ?>
                                             <div class="td-folder-photos">
-                                                <?php foreach ($g['allPhotos'] as $p):
+                                                <?php foreach ($g['allPhotos'] as $pi => $p):
                                                     $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
                                                     $pCaption = htmlspecialchars($g['name'] . ' · ' . date('F j, Y', strtotime($p['visitedDate'])));
                                                 ?>
-                                                    <div class="td-timeline-photo">
+                                                    <div class="td-timeline-photo<?php echo $pi >= 6 ? ' td-hidden-extra' : ''; ?>">
                                                         <img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-caption="<?php echo $pCaption; ?>">
                                                         <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
                                                     </div>
@@ -1147,13 +1156,13 @@ usort($checklist, function ($a, $b) {
                                         ><?php echo htmlspecialchars($g['visits'][0]['note'] ?? ''); ?></textarea>
 
                                         <div class="td-timeline-actions">
-                                            <button type="button" class="td-timeline-log-again"
+                                            <button type="button" class="td-timeline-log-again td-folder-btn-solid"
                                                 data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
                                                 data-item-id="<?php echo (int) $g['itemId']; ?>"
                                                 data-place="<?php echo htmlspecialchars($g['name']); ?>"
                                                 data-lat="<?php echo $g['lat'] !== null ? $g['lat'] : ''; ?>"
-                                                data-lng="<?php echo $g['lng'] !== null ? $g['lng'] : ''; ?>">+ Log Another Visit</button>
-                                            <button type="button" class="td-timeline-add-photo"
+                                                data-lng="<?php echo $g['lng'] !== null ? $g['lng'] : ''; ?>"><span class="td-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>Log Another Visit</button>
+                                            <button type="button" class="td-timeline-add-photo td-folder-btn-outline"
                                                 data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
                                                 data-item-id="<?php echo (int) $g['itemId']; ?>"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Add Photo</button>
                                         </div>

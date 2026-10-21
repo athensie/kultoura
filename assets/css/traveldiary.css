@@ -1551,6 +1551,51 @@
     margin: 0 0 10px;
 }
 
+.td-folder-section-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.td-folder-section-head-row .td-folder-section-head {
+    margin-bottom: 0;
+}
+
+/* Small rounded pill used for "All Visits" and "View All" — a button
+   when interactive (View All), inert decoration otherwise (All Visits). */
+.td-folder-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border: 1px solid rgba(44, 26, 14, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    color: rgba(44, 26, 14, 0.65);
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: default;
+}
+
+button.td-folder-pill {
+    cursor: pointer;
+}
+
+button.td-folder-pill:hover {
+    background: #fff;
+    color: #2c1a0e;
+}
+
+.td-folder-pill svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+
 .td-folder-about {
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.7);
@@ -1559,7 +1604,7 @@
 }
 
 .td-visit-history {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .td-visit-row {
@@ -1573,39 +1618,91 @@
 .td-visit-row-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
     padding: 10px 2px;
     cursor: pointer;
 }
 
-.td-visit-row-date {
+/* Calendar-tile date badge — month/day/year stacked, like a torn-off
+   page-a-day calendar. */
+.td-visit-date-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 52px;
+    padding: 6px 4px;
+    border-radius: 10px;
+    background: rgba(44, 26, 14, 0.06);
+}
+
+.td-visit-date-month {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: rgba(44, 26, 14, 0.55);
+}
+
+.td-visit-date-day {
     font-family: Georgia, serif;
     font-weight: 700;
-    font-size: 12.5px;
+    font-size: 19px;
+    color: #2c1a0e;
+    line-height: 1.1;
+}
+
+.td-visit-date-year {
+    font-size: 10px;
+    color: rgba(44, 26, 14, 0.5);
+}
+
+.td-visit-row-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.td-visit-row-weekday {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 13px;
     color: #2c1a0e;
     margin: 0;
 }
 
-.td-visit-row-weekday {
-    font-size: 11px;
-    color: rgba(44, 26, 14, 0.5);
+.td-visit-row-photocount {
+    font-size: 11.5px;
+    color: rgba(44, 26, 14, 0.55);
     margin: 2px 0 0;
 }
 
-.td-visit-row-meta {
+.td-visit-row-thumbs {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11.5px;
-    color: rgba(44, 26, 14, 0.55);
+    gap: 6px;
     flex-shrink: 0;
+}
+
+.td-visit-row-thumb {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.td-visit-row-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .td-visit-row-chevron {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+    color: rgba(44, 26, 14, 0.4);
     transition: transform 0.2s;
 }
 
@@ -1614,7 +1711,36 @@
 }
 
 .td-visit-row-body {
-    padding: 0 2px 14px;
+    padding: 0 2px 14px 66px;
+}
+
+/* Dot pager for the Visit History list once it has more than one page. */
+.td-visit-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 4px 0 18px;
+}
+
+.td-visit-dot {
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(44, 26, 14, 0.2);
+    cursor: pointer;
+}
+
+.td-visit-dot:hover {
+    background: rgba(44, 26, 14, 0.35);
+}
+
+.td-visit-dot.is-active {
+    width: 16px;
+    border-radius: 999px;
+    background: #8a6a2e;
 }
 
 .td-folder-photos-head {
@@ -1677,6 +1803,14 @@
         border-radius: 14px;
         margin-top: 16px;
         box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
+    }
+
+    /* The visit row (date badge + info + up to 4 thumbnails + chevron)
+       is too much to fit on one line at phone widths — drop the inline
+       thumbnail previews there; the full set is still one tap away in
+       the Photos section and inside the row itself once expanded. */
+    .td-visit-row-thumbs {
+        display: none;
     }
 }
 
@@ -1768,26 +1902,52 @@
 .td-timeline-actions {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     flex-wrap: wrap;
     margin-top: 10px;
 }
 
 .td-timeline-log-again,
 .td-timeline-add-photo {
-    font-size: 11px;
-    font-weight: 600;
-    color: #8a6a2f;
-    background: none;
-    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
     cursor: pointer;
-    padding: 0;
     font-family: inherit;
+    white-space: nowrap;
 }
 
-.td-timeline-log-again:hover,
-.td-timeline-add-photo:hover {
-    text-decoration: underline;
+.td-folder-btn-solid {
+    background: #8a6a2e;
+    border: 1.5px solid #8a6a2e;
+    color: #fff;
+}
+
+.td-folder-btn-solid:hover {
+    background: #74581f;
+    border-color: #74581f;
+}
+
+.td-folder-btn-outline {
+    background: none;
+    border: 1.5px solid rgba(44, 26, 14, 0.25);
+    color: #2c1a0e;
+}
+
+.td-folder-btn-outline:hover {
+    border-color: #8a6a2e;
+    color: #8a6a2e;
+}
+
+.td-timeline-log-again .td-btn-icon,
+.td-timeline-add-photo .td-btn-icon {
+    width: 15px;
+    height: 15px;
+    margin-right: 0;
 }
 
 /* ── Photo Memories gallery ── */
