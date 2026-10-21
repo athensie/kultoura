@@ -1243,6 +1243,11 @@
 .td-group-row.is-expanded .td-folder-pages {
     height: 100%;
     overflow-y: auto;
+    /* Explicit, not just implied by overflow-y — otherwise the Visit
+       History page-flip's rotateY mid-turn (a 3D transform, whose
+       rendered bounds can bleed a hair past its own box at extreme
+       angles) triggers a horizontal scrollbar here. */
+    overflow-x: hidden;
     padding: 34px 26px 26px;
     box-sizing: border-box;
 }
@@ -1604,7 +1609,16 @@ button.td-folder-pill:hover {
 }
 
 .td-visit-history {
+    position: relative;
     margin-bottom: 10px;
+    perspective: 1200px;
+}
+
+/* One per pagination page (grouped by JS) — flips like a book page
+   turning when switching pages, instead of an instant swap. */
+.td-visit-page {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .td-visit-row {

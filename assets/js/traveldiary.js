@@ -904,13 +904,21 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 /* ---------------- Travel Timeline: Visit History pagination ----------------
    Each open folder's Visit History list pages itself (PAGE_SIZE rows at a
    time) once it has more than one page's worth, instead of growing into a
-   long scroll — dots below the list jump between pages. Scoped per
-   .td-visit-history instance so each diary group paginates independently;
-   initialized here at load time since the rows are all server-rendered
-   upfront (all visible), same as the rest of this feature. */
+   long scroll — dots below the list jump between pages, and the page
+   itself flips like a book page turning (rotateY + fade, direction
+   depending on whether you're going forward or back), rather than an
+   instant swap. Scoped per .td-visit-history instance so each diary group
+   paginates independently; initialized here at load time since the rows
+   are all server-rendered upfront (all visible), same as the rest of this
+   feature. */
 (function () {
     const PAGE_SIZE = 3;
+    const DURATION = 480;
+    const REDUCE_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // Groups the server-rendered rows into .td-visit-page wrappers — one
+    // per page of PAGE_SIZE rows — so a page switch can flip one container
+    // instead of juggling individual row visibility.
     function buildPagination(history) {
         const rows = Array.from(history.querySelectorAll('.td-visit-row'));
         const pagination = history.nextElementSibling;
@@ -922,9 +930,15 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
             return;
         }
 
-        rows.forEach((row, i) => {
-            row.style.display = Math.floor(i / PAGE_SIZE) === 0 ? '' : 'none';
-        });
+        for (let p = 0; p < pageCount; p++) {
+            const pageEl = document.createElement('div');
+            pageEl.className = 'td-visit-page';
+            pageEl.dataset.page = p;
+            if (p !== 0) pageEl.hidden = true;
+            rows.slice(p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE).forEach((row) => pageEl.appendChild(row));
+            history.appendChild(pageEl);
+        }
+        history.dataset.activePage = '0';
 
         pagination.innerHTML = '';
         for (let p = 0; p < pageCount; p++) {
@@ -940,18 +954,65 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 
     document.querySelectorAll('.td-visit-history').forEach(buildPagination);
 
+    function flipToPage(history, pagination, targetPage) {
+        const current = Number(history.dataset.activePage || 0);
+        if (current === targetPage || history.dataset.flipping === 'true') return;
+
+        const fromEl = history.querySelector(`.td-visit-page[data-page="${current}"]`);
+        const toEl = history.querySelector(`.td-visit-page[data-page="${targetPage}"]`);
+        if (!fromEl || !toEl) return;
+
+        pagination.querySelectorAll('.td-visit-dot').forEach((d) => {
+            d.classList.toggle('is-active', Number(d.dataset.page) === targetPage);
+        });
+        history.dataset.activePage = String(targetPage);
+
+        if (REDUCE_MOTION) {
+            fromEl.hidden = true;
+            toEl.hidden = false;
+            return;
+        }
+
+        history.dataset.flipping = 'true';
+        const forward = targetPage > current;
+
+        toEl.hidden = false;
+        // Both pages sit absolutely stacked on each other for the
+        // duration of the flip (container height pinned to the taller of
+        // the two) so the list doesn't collapse/jump while the outgoing
+        // page is still (partially) visible mid-turn.
+        const height = Math.max(fromEl.getBoundingClientRect().height, toEl.getBoundingClientRect().height);
+        history.style.height = height + 'px';
+        Object.assign(fromEl.style, { position: 'absolute', top: '0', left: '0', right: '0', transformOrigin: forward ? 'left center' : 'right center' });
+        Object.assign(toEl.style, { position: 'absolute', top: '0', left: '0', right: '0', transformOrigin: forward ? 'right center' : 'left center' });
+
+        const outAnim = fromEl.animate(
+            [{ transform: 'rotateY(0deg)', opacity: 1 }, { transform: `rotateY(${forward ? '-100' : '100'}deg)`, opacity: 0 }],
+            { duration: DURATION * 0.55, easing: 'ease-in', fill: 'both' }
+        );
+        const inAnim = toEl.animate(
+            [{ transform: `rotateY(${forward ? '100' : '-100'}deg)`, opacity: 0 }, { transform: 'rotateY(0deg)', opacity: 1 }],
+            { duration: DURATION * 0.6, delay: DURATION * 0.35, easing: 'ease-out', fill: 'both' }
+        );
+
+        Promise.all([outAnim.finished, inAnim.finished]).catch(() => {}).then(() => {
+            outAnim.cancel();
+            inAnim.cancel();
+            fromEl.hidden = true;
+            fromEl.removeAttribute('style');
+            toEl.removeAttribute('style');
+            history.style.height = '';
+            delete history.dataset.flipping;
+        });
+    }
+
     document.addEventListener('click', (e) => {
         const dot = e.target.closest('.td-visit-dot');
         if (!dot) return;
         const pagination = dot.closest('.td-visit-pagination');
         const history = pagination && pagination.previousElementSibling;
         if (!history || !history.classList.contains('td-visit-history')) return;
-
-        const page = Number(dot.dataset.page);
-        Array.from(history.querySelectorAll('.td-visit-row')).forEach((row, i) => {
-            row.style.display = Math.floor(i / PAGE_SIZE) === page ? '' : 'none';
-        });
-        pagination.querySelectorAll('.td-visit-dot').forEach((d) => d.classList.toggle('is-active', d === dot));
+        flipToPage(history, pagination, Number(dot.dataset.page));
     });
 })();
 
