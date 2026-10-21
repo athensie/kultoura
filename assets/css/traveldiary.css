@@ -1714,8 +1714,8 @@
 
 .td-timeline-photo {
     position: relative;
-    width: 48px;
-    height: 48px;
+    width: 72px;
+    height: 72px;
 }
 
 .td-timeline-photo img {
@@ -1934,7 +1934,9 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.6);
-    z-index: 2200;
+    /* Above .td-folder-backdrop (3150) — "Log Another Visit" is clickable
+       from inside an open folder, so this must render in front of it. */
+    z-index: 3160;
     align-items: center;
     justify-content: center;
     padding: 20px;
@@ -2111,7 +2113,10 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.9);
-    z-index: 2000;
+    /* Above .td-folder-backdrop (3150) — photo thumbnails inside an open
+       folder's Visit History / Photos sections open this lightbox, so it
+       must render in front of the folder, not behind it. */
+    z-index: 3180;
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -3241,7 +3246,9 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.72);
-    z-index: 3100;
+    /* Above .td-folder-backdrop (3150) — "Add Photo" is clickable from
+       inside an open folder, so this must render in front of it. */
+    z-index: 3170;
     align-items: center;
     justify-content: center;
     padding: 20px;
