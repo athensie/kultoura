@@ -558,25 +558,33 @@ tdWireExpandButton('tdExpandTimeline', '.td-group-list .td-hidden-extra');
 tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 
 /* ---------------- Travel Timeline: destination pop-open ----------------
-   Clicking a folder card physically moves it (DOM-wise) out of the grid
-   into the backdrop, which flex-centers it — that's what lets the open
-   animation be a pure "tilt up from flat" rotateX hinge (see
-   @keyframes td-folder-pop in the CSS) instead of fighting a centering
-   transform. A comment-node placeholder marks where it came from so
-   closing can put it back in the exact same spot in the grid. Only one
+   Clicking a folder card flies it (DOM-wise, via the Web Animations API)
+   from its exact on-page rect to a responsive, top-anchored open rect —
+   a FLIP-style animation: capture the starting rect, move the real row
+   into the backdrop, then interpolate left/top/width/height from start
+   to end while the cover's color morphs, the right page flips into
+   view, and the tab/depth-sliver fade in once the cover has mostly
+   arrived. A comment-node placeholder marks where the row came from so
+   closing can fly it back to the exact same spot in the grid. Only one
    folder is open at a time, closed via its × button, the backdrop, or
    Escape. The open folder's identity is persisted to sessionStorage so
-   it re-opens automatically across the location.reload() that
-   mark_visited/upload_photo/delete_entry already do (see tdPost calls
-   below) — otherwise logging another visit from inside an open folder
-   would silently close it back on reload. */
+   it re-opens automatically (instantly, no flight) across the
+   location.reload() that mark_visited/upload_photo/delete_entry already
+   do (see tdPost calls below) — otherwise logging another visit from
+   inside an open folder would silently close it back on reload. */
 (function () {
     const list = document.getElementById('tdGroupList');
     const backdrop = document.getElementById('tdFolderBackdrop');
     if (!list || !backdrop) return;
 
     const STORAGE_KEY = 'tdExpandedGroup';
+    const REDUCE_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const D_OPEN = 650;
+    const D_CLOSE = 500;
+
     let placeholder = null; // marks the open row's spot in the grid while it's moved into the backdrop
+    let busy = false;
 
     function readExpandedKey() {
         try { return sessionStorage.getItem(STORAGE_KEY) || null; } catch (err) { return null; }
@@ -592,42 +600,205 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         }
     }
 
-    function closeAll() {
-        const expandedRow = backdrop.querySelector('.td-group-row.is-expanded');
-        if (expandedRow) {
-            expandedRow.classList.remove('is-expanded');
-            expandedRow.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => {
-                page.hidden = true;
-            });
-            const header = expandedRow.querySelector('.td-group-header');
-            if (header) header.setAttribute('aria-expanded', 'false');
-            if (placeholder && placeholder.parentNode) {
-                placeholder.parentNode.insertBefore(expandedRow, placeholder);
-            } else {
-                list.appendChild(expandedRow);
-            }
-        }
-        if (placeholder && placeholder.parentNode) placeholder.remove();
-        placeholder = null;
-        backdrop.classList.remove('open');
-        document.body.style.overflow = '';
+    function px(r) {
+        return { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' };
     }
 
-    function openRow(row) {
-        closeAll();
-        placeholder = document.createComment('td-folder-slot');
-        row.parentNode.insertBefore(placeholder, row);
-        backdrop.appendChild(row); // moves it into the backdrop's flex-centered stage
+    // Responsive + top-anchored: capped by viewport, sitting near the top
+    // instead of dead-center, so it reads as "the folder opened right
+    // where you clicked" rather than jumping to the middle of the screen.
+    function finalRect(height) {
+        const margin = 16;
+        const width = Math.min(880, innerWidth - margin * 2);
+        const top = Math.max(margin, Math.min(innerHeight * 0.05, 48));
+        const maxHeight = innerHeight - top - margin;
+        return { left: (innerWidth - width) / 2, top, width, height: Math.min(height, maxHeight) };
+    }
 
-        row.classList.add('is-expanded');
-        row.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => {
-            page.hidden = false;
+    // How tall the open folder wants to be for ITS OWN content (varies —
+    // more visits/photos need more room) — measured off-screen so nothing
+    // visibly flashes before the real animation starts.
+    function measureNaturalHeight(row, width) {
+        const prevStyle = row.getAttribute('style');
+        row.style.cssText = `position:fixed; visibility:hidden; left:-9999px; top:0; width:${width}px; height:auto;`;
+        const height = row.getBoundingClientRect().height;
+        if (prevStyle === null) row.removeAttribute('style'); else row.setAttribute('style', prevStyle);
+        return height;
+    }
+
+    // Where the row would naturally sit back in the grid right now — used
+    // as the close animation's target, re-measured each time (rather than
+    // reusing the rect captured at open-time) so it's still correct even
+    // if search/sort/resize reflowed the grid while the folder was open.
+    function measureCollapsedRect(row) {
+        if (!placeholder || !placeholder.parentNode) return null;
+        const hadExpanded = row.classList.contains('is-expanded');
+        const prevStyle = row.getAttribute('style');
+        row.classList.remove('is-expanded');
+        row.style.cssText = 'visibility:hidden;';
+        placeholder.parentNode.insertBefore(row, placeholder);
+        const rect = row.getBoundingClientRect();
+        backdrop.appendChild(row);
+        if (prevStyle === null) row.removeAttribute('style'); else row.setAttribute('style', prevStyle);
+        if (hadExpanded) row.classList.add('is-expanded');
+        return rect;
+    }
+
+    function setPageRightFolded(row, folded) {
+        const pageRight = row.querySelector('.td-folder-page-right');
+        if (pageRight) pageRight.style.cssText = folded ? 'opacity:0; transform:rotateY(-65deg);' : '';
+    }
+
+    function setAccentsVisible(row, visible) {
+        const tab = row.querySelector('.td-folder-tab');
+        if (tab) tab.style.cssText = visible ? '' : 'opacity:0; transform:scale(0.7);';
+        const close = row.querySelector('.td-group-close');
+        if (close) close.style.opacity = visible ? '' : '0';
+    }
+
+    function folderColors(row) {
+        const cs = getComputedStyle(row);
+        return {
+            closed: cs.getPropertyValue('--td-folder-closed').trim(),
+            open: cs.getPropertyValue('--td-folder-open').trim(),
+        };
+    }
+
+    function settleRow(row, animations) {
+        animations.forEach((a) => { try { a.commitStyles(); } catch (err) {} a.cancel(); });
+        row.style.opacity = '';
+        setPageRightFolded(row, false);
+        setAccentsVisible(row, true);
+    }
+
+    function closeAll(instant) {
+        if (busy && !instant) return Promise.resolve(); // don't interrupt an in-flight open/close
+
+        const row = backdrop.querySelector('.td-group-row.is-expanded');
+        if (!row) {
+            placeholder = null;
+            backdrop.classList.remove('open');
+            document.body.style.overflow = '';
+            return Promise.resolve();
+        }
+
+        const finish = () => {
+            row.classList.remove('is-expanded');
+            row.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => { page.hidden = true; });
+            row.querySelector('.td-group-header')?.setAttribute('aria-expanded', 'false');
+            row.removeAttribute('style');
+            setPageRightFolded(row, false);
+            setAccentsVisible(row, true);
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.insertBefore(row, placeholder);
+            } else {
+                list.appendChild(row);
+            }
+            if (placeholder && placeholder.parentNode) placeholder.remove();
+            placeholder = null;
+            backdrop.classList.remove('open');
+            document.body.style.overflow = '';
+        };
+
+        if (instant || REDUCE_MOTION) {
+            finish();
+            return Promise.resolve();
+        }
+
+        busy = true;
+        const to = measureCollapsedRect(row) || row.getBoundingClientRect();
+        const from = row.getBoundingClientRect();
+        const colors = folderColors(row);
+
+        const animations = [
+            row.animate([{ ...px(from), opacity: 1 }, { ...px(to), opacity: 0 }], { duration: D_CLOSE, easing: EASE_OUT, fill: 'both' }),
+            row.animate([{ backgroundColor: colors.open }, { backgroundColor: colors.closed }], { duration: D_CLOSE, fill: 'both' }),
+        ];
+        const pageRight = row.querySelector('.td-folder-page-right');
+        if (pageRight) {
+            animations.push(pageRight.animate(
+                [{ opacity: 1, transform: 'rotateY(0deg)' }, { opacity: 0, transform: 'rotateY(-65deg)' }],
+                { duration: D_CLOSE * 0.55, easing: 'ease-in', fill: 'both' }
+            ));
+        }
+        [row.querySelector('.td-folder-tab'), row.querySelector('.td-group-close')].forEach((el) => {
+            if (!el) return;
+            animations.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: D_CLOSE * 0.3, fill: 'both' }));
         });
-        const header = row.querySelector('.td-group-header');
-        if (header) header.setAttribute('aria-expanded', 'true');
-        backdrop.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        writeExpandedKey(row.dataset.groupKey);
+        backdrop.classList.remove('open');
+
+        return Promise.all(animations.map((a) => a.finished)).catch(() => {}).then(() => {
+            animations.forEach((a) => { try { a.cancel(); } catch (err) {} });
+            finish();
+            busy = false;
+        });
+    }
+
+    function openRow(row, instant) {
+        if (busy) return;
+        const alreadyOpen = backdrop.querySelector('.td-group-row.is-expanded');
+        const doOpen = () => {
+            busy = true;
+            const from = row.getBoundingClientRect();
+
+            placeholder = document.createComment('td-folder-slot');
+            row.parentNode.insertBefore(placeholder, row);
+            backdrop.appendChild(row);
+
+            row.classList.add('is-expanded');
+            row.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => { page.hidden = false; });
+            row.querySelector('.td-group-header')?.setAttribute('aria-expanded', 'true');
+            backdrop.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            writeExpandedKey(row.dataset.groupKey);
+
+            const naturalHeight = measureNaturalHeight(row, finalRect(0).width);
+            const to = finalRect(naturalHeight);
+
+            if (instant || REDUCE_MOTION) {
+                row.removeAttribute('style');
+                Object.assign(row.style, { position: 'fixed' }, px(to));
+                busy = false;
+                return;
+            }
+
+            row.removeAttribute('style');
+            Object.assign(row.style, { position: 'fixed', opacity: '0' }, px(from));
+            setPageRightFolded(row, true);
+            setAccentsVisible(row, false);
+            row.getBoundingClientRect(); // force the browser to register the "from" state before animating
+
+            const colors = folderColors(row);
+            const animations = [
+                row.animate([{ ...px(from), opacity: 0 }, { ...px(to), opacity: 1 }], { duration: D_OPEN, easing: EASE_OUT, fill: 'both' }),
+                row.animate([{ backgroundColor: colors.closed }, { backgroundColor: colors.open }], { duration: D_OPEN, fill: 'both' }),
+            ];
+            const pageRight = row.querySelector('.td-folder-page-right');
+            if (pageRight) {
+                animations.push(pageRight.animate(
+                    [{ opacity: 0, transform: 'rotateY(-65deg)' }, { opacity: 1, transform: 'rotateY(0deg)' }],
+                    { duration: D_OPEN * 0.5, delay: D_OPEN * 0.4, easing: EASE_OUT, fill: 'both' }
+                ));
+            }
+            [row.querySelector('.td-folder-tab'), row.querySelector('.td-group-close')].forEach((el) => {
+                if (!el) return;
+                animations.push(el.animate(
+                    [{ opacity: 0, transform: 'scale(0.7)' }, { opacity: 1, transform: 'scale(1)' }],
+                    { duration: D_OPEN * 0.35, delay: D_OPEN * 0.55, easing: EASE_OUT, fill: 'both' }
+                ));
+            });
+
+            Promise.all(animations.map((a) => a.finished)).catch(() => {}).then(() => {
+                settleRow(row, animations);
+                busy = false;
+            });
+        };
+
+        if (alreadyOpen && alreadyOpen !== row) {
+            closeAll().then(doOpen);
+        } else if (!alreadyOpen) {
+            doOpen();
+        }
     }
 
     function toggleRow(row) {
@@ -646,8 +817,22 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     const savedKey = readExpandedKey();
     if (savedKey) {
         const match = Array.from(list.querySelectorAll('.td-group-row')).find((r) => r.dataset.groupKey === savedKey);
-        if (match) openRow(match);
+        if (match) openRow(match, true); // instant — a reload shouldn't replay the fly-in
     }
+
+    // Keep the open folder correctly sized/positioned if the viewport
+    // changes (rotate, resize, zoom) while it's open.
+    let resizeFrame = null;
+    addEventListener('resize', () => {
+        if (busy) return;
+        const row = backdrop.querySelector('.td-group-row.is-expanded');
+        if (!row) return;
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+            const naturalHeight = measureNaturalHeight(row, finalRect(0).width);
+            Object.assign(row.style, px(finalRect(naturalHeight)));
+        });
+    });
 
     // Delegated on document, not just the grid — once a card is moved into
     // the backdrop it's no longer a descendant of #tdGroupList, so clicks
@@ -692,9 +877,10 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 })();
 
 /* ---------------- Travel Timeline: Visit History row expand ----------------
-   Inside an open folder, each visit's own date row collapses its note/
-   photos/Remove button until clicked — delegated on document since these
-   rows live inside the backdrop once their folder is popped open. */
+   Inside an open folder, each visit's own date row collapses its note and
+   Remove button until clicked (photos now show inline in the row header
+   itself, always visible) — delegated on document since these rows live
+   inside the backdrop once their folder is popped open. */
 (function () {
     document.addEventListener('click', (e) => {
         const head = e.target.closest('.td-visit-row-head');
@@ -712,6 +898,137 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         if (!head) return;
         e.preventDefault();
         head.click();
+    });
+})();
+
+/* ---------------- Travel Timeline: Visit History pagination ----------------
+   Each open folder's Visit History list pages itself (PAGE_SIZE rows at a
+   time) once it has more than one page's worth, instead of growing into a
+   long scroll — dots below the list jump between pages, and the page
+   itself flips like a book page turning (rotateY + fade, direction
+   depending on whether you're going forward or back), rather than an
+   instant swap. Scoped per .td-visit-history instance so each diary group
+   paginates independently; initialized here at load time since the rows
+   are all server-rendered upfront (all visible), same as the rest of this
+   feature. */
+(function () {
+    const PAGE_SIZE = 3;
+    const DURATION = 480;
+    const REDUCE_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Groups the server-rendered rows into .td-visit-page wrappers — one
+    // per page of PAGE_SIZE rows — so a page switch can flip one container
+    // instead of juggling individual row visibility.
+    function buildPagination(history) {
+        const rows = Array.from(history.querySelectorAll('.td-visit-row'));
+        const pagination = history.nextElementSibling;
+        if (!pagination || !pagination.classList.contains('td-visit-pagination')) return;
+
+        const pageCount = Math.ceil(rows.length / PAGE_SIZE);
+        if (pageCount <= 1) {
+            pagination.hidden = true;
+            return;
+        }
+
+        for (let p = 0; p < pageCount; p++) {
+            const pageEl = document.createElement('div');
+            pageEl.className = 'td-visit-page';
+            pageEl.dataset.page = p;
+            if (p !== 0) pageEl.hidden = true;
+            rows.slice(p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE).forEach((row) => pageEl.appendChild(row));
+            history.appendChild(pageEl);
+        }
+        history.dataset.activePage = '0';
+
+        pagination.innerHTML = '';
+        for (let p = 0; p < pageCount; p++) {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'td-visit-dot' + (p === 0 ? ' is-active' : '');
+            dot.dataset.page = p;
+            dot.setAttribute('aria-label', `Visit history page ${p + 1} of ${pageCount}`);
+            pagination.appendChild(dot);
+        }
+        pagination.hidden = false;
+    }
+
+    document.querySelectorAll('.td-visit-history').forEach(buildPagination);
+
+    function flipToPage(history, pagination, targetPage) {
+        const current = Number(history.dataset.activePage || 0);
+        if (current === targetPage || history.dataset.flipping === 'true') return;
+
+        const fromEl = history.querySelector(`.td-visit-page[data-page="${current}"]`);
+        const toEl = history.querySelector(`.td-visit-page[data-page="${targetPage}"]`);
+        if (!fromEl || !toEl) return;
+
+        pagination.querySelectorAll('.td-visit-dot').forEach((d) => {
+            d.classList.toggle('is-active', Number(d.dataset.page) === targetPage);
+        });
+        history.dataset.activePage = String(targetPage);
+
+        if (REDUCE_MOTION) {
+            fromEl.hidden = true;
+            toEl.hidden = false;
+            return;
+        }
+
+        history.dataset.flipping = 'true';
+        const forward = targetPage > current;
+
+        toEl.hidden = false;
+        // Both pages sit absolutely stacked on each other for the
+        // duration of the flip (container height pinned to the taller of
+        // the two) so the list doesn't collapse/jump while the outgoing
+        // page is still (partially) visible mid-turn.
+        const height = Math.max(fromEl.getBoundingClientRect().height, toEl.getBoundingClientRect().height);
+        history.style.height = height + 'px';
+        Object.assign(fromEl.style, { position: 'absolute', top: '0', left: '0', right: '0', transformOrigin: forward ? 'left center' : 'right center' });
+        Object.assign(toEl.style, { position: 'absolute', top: '0', left: '0', right: '0', transformOrigin: forward ? 'right center' : 'left center' });
+
+        const outAnim = fromEl.animate(
+            [{ transform: 'rotateY(0deg)', opacity: 1 }, { transform: `rotateY(${forward ? '-100' : '100'}deg)`, opacity: 0 }],
+            { duration: DURATION * 0.55, easing: 'ease-in', fill: 'both' }
+        );
+        const inAnim = toEl.animate(
+            [{ transform: `rotateY(${forward ? '100' : '-100'}deg)`, opacity: 0 }, { transform: 'rotateY(0deg)', opacity: 1 }],
+            { duration: DURATION * 0.6, delay: DURATION * 0.35, easing: 'ease-out', fill: 'both' }
+        );
+
+        Promise.all([outAnim.finished, inAnim.finished]).catch(() => {}).then(() => {
+            outAnim.cancel();
+            inAnim.cancel();
+            fromEl.hidden = true;
+            fromEl.removeAttribute('style');
+            toEl.removeAttribute('style');
+            history.style.height = '';
+            delete history.dataset.flipping;
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const dot = e.target.closest('.td-visit-dot');
+        if (!dot) return;
+        const pagination = dot.closest('.td-visit-pagination');
+        const history = pagination && pagination.previousElementSibling;
+        if (!history || !history.classList.contains('td-visit-history')) return;
+        flipToPage(history, pagination, Number(dot.dataset.page));
+    });
+})();
+
+/* ---------------- Travel Timeline: Photos "View All" ----------------
+   Per-folder reveal (unlike tdWireExpandButton, which is for page-wide
+   singletons) — each open folder has its own Photos section and its own
+   button, so this is scoped to whichever .td-folder-page-right the
+   clicked button lives in. */
+(function () {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.td-photos-viewall');
+        if (!btn) return;
+        const pageRight = btn.closest('.td-folder-page-right');
+        if (!pageRight) return;
+        pageRight.querySelectorAll('.td-folder-photos .td-hidden-extra').forEach((el) => el.classList.remove('td-hidden-extra'));
+        btn.remove();
     });
 })();
 
@@ -1392,6 +1709,14 @@ function tdRemovePhotoFromStaticSections(photoId) {
 
         const container = btn.closest('.td-timeline-photo, .td-gallery-tile');
         if (container) container.remove();
+    });
+
+    // The decorative preview thumbnail in each visit row's collapsed
+    // header (.td-visit-row-thumbs) isn't a .td-photo-delete-btn copy —
+    // it's just a plain <img>, so it needs its own cleanup pass here
+    // instead of being covered by the loop above.
+    document.querySelectorAll(`.td-visit-row-thumb[data-photo-id="${photoId}"]`).forEach((el) => {
+        el.remove();
     });
 }
 

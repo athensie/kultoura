@@ -1212,13 +1212,16 @@
 }
 
 /* ── Popped-open state: a literal open folder ──
-   The card is moved (by JS) out of the grid into the backdrop, which
-   flex-centers it — no positioning transform needed here, so the whole
-   `transform` on .is-expanded is free to be the actual "opening" motion:
-   the card tilts up from lying flat (as if lifted off a table) into full
-   view, hinged at its bottom edge.
+   assets/js/traveldiary.js drives the actual opening/closing motion with
+   the Web Animations API — a FLIP-style fly from the clicked card's exact
+   on-page rect to a responsive, top-anchored open rect, with the cover
+   color morphing from the pastel closed tone to the richer open tone,
+   the right page flipping into view, and the tab/depth-sliver fading in
+   once the cover has mostly arrived. position:fixed plus the JS-set
+   inline left/top/width/height is what makes that rect interpolation
+   possible; nothing here does the animating.
 
-   While open, .td-group-row itself becomes the folder's cover — a richer,
+   While open, .td-group-row itself is the folder's cover — a richer,
    more saturated shade of its pastel tone — with generous padding so the
    cream "pages" (wrapped in .td-folder-pages) sit inset with a visible
    colored margin all around, like an actual folder. The cover itself is
@@ -1229,20 +1232,24 @@
    OTHER edges, which would otherwise cut the tab's negative top offset
    right off). */
 .td-group-row.is-expanded {
-    width: min(860px, 100%);
-    padding: 34px 26px 26px;
+    position: fixed;
     border-radius: 6px 20px 20px 20px;
     box-shadow: 0 30px 70px rgba(20, 12, 6, 0.35);
-    transform-origin: center bottom;
-    animation: td-folder-pop 0.55s cubic-bezier(0.25, 1, 0.4, 1) both;
 }
 
-.td-group-row.is-expanded.td-folder-sage { background: #85a271; }
-.td-group-row.is-expanded.td-folder-tan  { background: #bb9a64; }
+.td-group-row.is-expanded.td-folder-sage { background: var(--td-folder-open); }
+.td-group-row.is-expanded.td-folder-tan  { background: var(--td-folder-open); }
 
 .td-group-row.is-expanded .td-folder-pages {
-    max-height: calc(86vh - 60px);
+    height: 100%;
     overflow-y: auto;
+    /* Explicit, not just implied by overflow-y — otherwise the Visit
+       History page-flip's rotateY mid-turn (a 3D transform, whose
+       rendered bounds can bleed a hair past its own box at extreme
+       angles) triggers a horizontal scrollbar here. */
+    overflow-x: hidden;
+    padding: 34px 26px 26px;
+    box-sizing: border-box;
 }
 
 /* A second, slightly rotated sliver of "folder" peeking out behind the
@@ -1256,47 +1263,21 @@
     z-index: -1;
 }
 
-.td-group-row.is-expanded.td-folder-sage::after { background: #6f8a5e; }
-.td-group-row.is-expanded.td-folder-tan::after  { background: #a37f4c; }
-
-@keyframes td-folder-pop {
-    0%   { transform: rotateX(-80deg) scale(0.92); opacity: 0; }
-    60%  { transform: rotateX(8deg) scale(1.01); opacity: 1; }
-    100% { transform: rotateX(0deg) scale(1); opacity: 1; }
+.td-group-row.is-expanded.td-folder-sage::after,
+.td-group-row.is-expanded.td-folder-tan::after {
+    background: var(--td-folder-tab);
 }
 
-/* The folder tab flips open in sync, like the lid's own little latch —
-   and grows into a proper folder tab (bigger, its own richer shade)
-   while open, instead of the small collapsed-card peek. */
+/* The folder tab grows into a proper folder tab (bigger, its own richer
+   shade) while open, instead of the small collapsed-card peek — JS
+   handles its fade/pop-in timing. */
 .td-group-row.is-expanded .td-folder-tab {
     width: 110px;
     height: 24px;
     top: -14px;
     left: 30px;
     border-radius: 9px 9px 0 0;
-    transform-origin: bottom center;
-    animation: td-folder-flap 0.55s ease-out both;
-}
-
-.td-group-row.is-expanded.td-folder-sage .td-folder-tab { background: #6f8a5e; }
-.td-group-row.is-expanded.td-folder-tan  .td-folder-tab { background: #a37f4c; }
-
-@keyframes td-folder-flap {
-    0%   { transform: rotateX(0deg); }
-    55%  { transform: rotateX(-130deg); }
-    100% { transform: rotateX(0deg); }
-}
-
-/* Contents reveal just after the cover has visibly opened. */
-.td-group-row.is-expanded .td-group-header,
-.td-group-row.is-expanded .td-folder-page-left,
-.td-group-row.is-expanded .td-folder-page-right {
-    animation: td-folder-contents-in 0.35s ease 0.28s both;
-}
-
-@keyframes td-folder-contents-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
+    background: var(--td-folder-tab);
 }
 
 .td-group-close {
@@ -1335,10 +1316,6 @@
     inset: 0;
     background: rgba(44, 26, 14, 0.45);
     z-index: 3150;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s;
@@ -1350,9 +1327,12 @@
     pointer-events: all;
 }
 
-/* Alternating manila-folder tones, scrapbook style. */
-.td-folder-sage { background: #dde6d0; }
-.td-folder-tan  { background: #ece0c8; }
+/* Alternating manila-folder tones, scrapbook style. Exposed as custom
+   properties too — the open/close animation (assets/js/traveldiary.js)
+   reads these to morph the background color smoothly as it plays,
+   instead of an instant class-toggle snap. */
+.td-folder-sage { background: #dde6d0; --td-folder-closed: #dde6d0; --td-folder-open: #85a271; --td-folder-tab: #6f8a5e; }
+.td-folder-tan  { background: #ece0c8; --td-folder-closed: #ece0c8; --td-folder-open: #bb9a64; --td-folder-tab: #a37f4c; }
 
 /* The little tab peeking above the folder's top-left corner. */
 .td-folder-tab {
@@ -1382,7 +1362,7 @@
 
 .td-group-thumb {
     width: 100%;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 5 / 4;
     flex-shrink: 0;
     border-radius: 10px;
     overflow: hidden;
@@ -1531,6 +1511,7 @@
     border-radius: 14px;
     padding: 22px 20px;
     box-shadow: -6px 0 16px -8px rgba(44, 26, 14, 0.25), 0 2px 10px rgba(44, 26, 14, 0.1);
+    transform-origin: left center;
 }
 
 .td-folder-page-left,
@@ -1575,6 +1556,51 @@
     margin: 0 0 10px;
 }
 
+.td-folder-section-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.td-folder-section-head-row .td-folder-section-head {
+    margin-bottom: 0;
+}
+
+/* Small rounded pill used for "All Visits" and "View All" — a button
+   when interactive (View All), inert decoration otherwise (All Visits). */
+.td-folder-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border: 1px solid rgba(44, 26, 14, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    color: rgba(44, 26, 14, 0.65);
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: default;
+}
+
+button.td-folder-pill {
+    cursor: pointer;
+}
+
+button.td-folder-pill:hover {
+    background: #fff;
+    color: #2c1a0e;
+}
+
+.td-folder-pill svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+
 .td-folder-about {
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.7);
@@ -1583,7 +1609,16 @@
 }
 
 .td-visit-history {
-    margin-bottom: 20px;
+    position: relative;
+    margin-bottom: 10px;
+    perspective: 1200px;
+}
+
+/* One per pagination page (grouped by JS) — flips like a book page
+   turning when switching pages, instead of an instant swap. */
+.td-visit-page {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .td-visit-row {
@@ -1597,39 +1632,91 @@
 .td-visit-row-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
     padding: 10px 2px;
     cursor: pointer;
 }
 
-.td-visit-row-date {
+/* Calendar-tile date badge — month/day/year stacked, like a torn-off
+   page-a-day calendar. */
+.td-visit-date-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 52px;
+    padding: 6px 4px;
+    border-radius: 10px;
+    background: rgba(44, 26, 14, 0.06);
+}
+
+.td-visit-date-month {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: rgba(44, 26, 14, 0.55);
+}
+
+.td-visit-date-day {
     font-family: Georgia, serif;
     font-weight: 700;
-    font-size: 12.5px;
+    font-size: 19px;
+    color: #2c1a0e;
+    line-height: 1.1;
+}
+
+.td-visit-date-year {
+    font-size: 10px;
+    color: rgba(44, 26, 14, 0.5);
+}
+
+.td-visit-row-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.td-visit-row-weekday {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 13px;
     color: #2c1a0e;
     margin: 0;
 }
 
-.td-visit-row-weekday {
-    font-size: 11px;
-    color: rgba(44, 26, 14, 0.5);
+.td-visit-row-photocount {
+    font-size: 11.5px;
+    color: rgba(44, 26, 14, 0.55);
     margin: 2px 0 0;
 }
 
-.td-visit-row-meta {
+.td-visit-row-thumbs {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11.5px;
-    color: rgba(44, 26, 14, 0.55);
+    gap: 6px;
     flex-shrink: 0;
+}
+
+.td-visit-row-thumb {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.td-visit-row-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .td-visit-row-chevron {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+    color: rgba(44, 26, 14, 0.4);
     transition: transform 0.2s;
 }
 
@@ -1638,7 +1725,36 @@
 }
 
 .td-visit-row-body {
-    padding: 0 2px 14px;
+    padding: 0 2px 14px 66px;
+}
+
+/* Dot pager for the Visit History list once it has more than one page. */
+.td-visit-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 4px 0 18px;
+}
+
+.td-visit-dot {
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(44, 26, 14, 0.2);
+    cursor: pointer;
+}
+
+.td-visit-dot:hover {
+    background: rgba(44, 26, 14, 0.35);
+}
+
+.td-visit-dot.is-active {
+    width: 16px;
+    border-radius: 999px;
+    background: #8a6a2e;
 }
 
 .td-folder-photos-head {
@@ -1702,6 +1818,14 @@
         margin-top: 16px;
         box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
     }
+
+    /* The visit row (date badge + info + up to 4 thumbnails + chevron)
+       is too much to fit on one line at phone widths — drop the inline
+       thumbnail previews there; the full set is still one tap away in
+       the Photos section and inside the row itself once expanded. */
+    .td-visit-row-thumbs {
+        display: none;
+    }
 }
 
 .td-timeline-note {
@@ -1738,8 +1862,8 @@
 
 .td-timeline-photo {
     position: relative;
-    width: 48px;
-    height: 48px;
+    width: 72px;
+    height: 72px;
 }
 
 .td-timeline-photo img {
@@ -1792,26 +1916,52 @@
 .td-timeline-actions {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     flex-wrap: wrap;
     margin-top: 10px;
 }
 
 .td-timeline-log-again,
 .td-timeline-add-photo {
-    font-size: 11px;
-    font-weight: 600;
-    color: #8a6a2f;
-    background: none;
-    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
     cursor: pointer;
-    padding: 0;
     font-family: inherit;
+    white-space: nowrap;
 }
 
-.td-timeline-log-again:hover,
-.td-timeline-add-photo:hover {
-    text-decoration: underline;
+.td-folder-btn-solid {
+    background: #8a6a2e;
+    border: 1.5px solid #8a6a2e;
+    color: #fff;
+}
+
+.td-folder-btn-solid:hover {
+    background: #74581f;
+    border-color: #74581f;
+}
+
+.td-folder-btn-outline {
+    background: none;
+    border: 1.5px solid rgba(44, 26, 14, 0.25);
+    color: #2c1a0e;
+}
+
+.td-folder-btn-outline:hover {
+    border-color: #8a6a2e;
+    color: #8a6a2e;
+}
+
+.td-timeline-log-again .td-btn-icon,
+.td-timeline-add-photo .td-btn-icon {
+    width: 15px;
+    height: 15px;
+    margin-right: 0;
 }
 
 /* ── Photo Memories gallery ── */
@@ -1958,7 +2108,9 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.6);
-    z-index: 2200;
+    /* Above .td-folder-backdrop (3150) — "Log Another Visit" is clickable
+       from inside an open folder, so this must render in front of it. */
+    z-index: 3160;
     align-items: center;
     justify-content: center;
     padding: 20px;
@@ -2135,7 +2287,10 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.9);
-    z-index: 2000;
+    /* Above .td-folder-backdrop (3150) — photo thumbnails inside an open
+       folder's Visit History / Photos sections open this lightbox, so it
+       must render in front of the folder, not behind it. */
+    z-index: 3180;
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -3265,7 +3420,9 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.72);
-    z-index: 3100;
+    /* Above .td-folder-backdrop (3150) — "Add Photo" is clickable from
+       inside an open folder, so this must render in front of it. */
+    z-index: 3170;
     align-items: center;
     justify-content: center;
     padding: 20px;
