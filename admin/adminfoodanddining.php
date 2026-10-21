@@ -86,6 +86,21 @@ $tableMap = [
     'restaurant' => ['table' => 'restaurants', 'idCol' => 'restaurant_id', 'nameCol' => 'restaurant_name'],
 ];
 
+// CSS class suffix for a category's colored badge (see the
+// .category-badge.food-cat-* rules in adminfoodanddining.css) — any
+// older row whose category predates the current preset list falls
+// back to the neutral "other" style instead of going unstyled.
+function kt_food_category_slug(string $category, array $categoriesByType): string
+{
+    $known = array_merge(...array_values($categoriesByType));
+    if (!in_array($category, $known, true)) {
+        return 'other';
+    }
+    $slug = strtolower(str_replace('&', '', $category));
+    $slug = trim(preg_replace('/[^a-z0-9]+/', '-', $slug), '-');
+    return $slug;
+}
+
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
 
@@ -460,7 +475,7 @@ sort($allCategories);
                             <tr data-id="<?php echo (int) $l['id']; ?>" data-type="<?php echo htmlspecialchars($l['type']); ?>" data-category="<?php echo htmlspecialchars($l['category']); ?>" data-name="<?php echo htmlspecialchars(strtolower($l['name'])); ?>">
                                 <td><?php echo htmlspecialchars($l['name']); ?></td>
                                 <td><?php echo $l['type'] === 'product' ? 'Product' : 'Restaurant'; ?></td>
-                                <td><?php echo htmlspecialchars($l['category']); ?></td>
+                                <td><span class="category-badge food-cat-<?php echo kt_food_category_slug($l['category'], $categoriesByType); ?>"><?php echo htmlspecialchars($l['category']); ?></span></td>
                                 <td><?php echo htmlspecialchars($l['address'] ?: '—'); ?></td>
                                 <td>
                                     <?php if ($l['type'] === 'product'): ?>
@@ -505,7 +520,7 @@ sort($allCategories);
                         </div>
                         <div class="grid-card-body">
                             <div class="grid-card-title"><?php echo htmlspecialchars($l['name']); ?></div>
-                            <div class="grid-card-sub"><?php echo htmlspecialchars($l['category']); ?> &middot; <?php echo htmlspecialchars($l['address'] ?: '—'); ?></div>
+                            <div class="grid-card-sub"><span class="category-badge food-cat-<?php echo kt_food_category_slug($l['category'], $categoriesByType); ?>"><?php echo htmlspecialchars($l['category']); ?></span> &middot; <?php echo htmlspecialchars($l['address'] ?: '—'); ?></div>
                             <div class="grid-card-meta">
                                 <span>
                                     <?php if ($l['type'] === 'product'): ?>
@@ -710,7 +725,7 @@ sort($allCategories);
         <div class="modal-title" style="text-align:center;" id="vlName">—</div>
         <div style="display:flex;justify-content:center;gap:10px;margin:10px 0 18px;flex-wrap:wrap;">
             <span style="font-size:.75rem;color:rgba(245,237,216,.4);align-self:center;" id="vlType">—</span>
-            <span style="font-size:.75rem;color:rgba(245,237,216,.4);align-self:center;" id="vlCategory">—</span>
+            <span class="category-badge" id="vlCategory">—</span>
         </div>
         <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:12px;">
             <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Details</div>
