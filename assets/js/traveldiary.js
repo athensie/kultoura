@@ -558,25 +558,33 @@ tdWireExpandButton('tdExpandTimeline', '.td-group-list .td-hidden-extra');
 tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 
 /* ---------------- Travel Timeline: destination pop-open ----------------
-   Clicking a folder card physically moves it (DOM-wise) out of the grid
-   into the backdrop, which flex-centers it — that's what lets the open
-   animation be a pure "tilt up from flat" rotateX hinge (see
-   @keyframes td-folder-pop in the CSS) instead of fighting a centering
-   transform. A comment-node placeholder marks where it came from so
-   closing can put it back in the exact same spot in the grid. Only one
+   Clicking a folder card flies it (DOM-wise, via the Web Animations API)
+   from its exact on-page rect to a responsive, top-anchored open rect —
+   a FLIP-style animation: capture the starting rect, move the real row
+   into the backdrop, then interpolate left/top/width/height from start
+   to end while the cover's color morphs, the right page flips into
+   view, and the tab/depth-sliver fade in once the cover has mostly
+   arrived. A comment-node placeholder marks where the row came from so
+   closing can fly it back to the exact same spot in the grid. Only one
    folder is open at a time, closed via its × button, the backdrop, or
    Escape. The open folder's identity is persisted to sessionStorage so
-   it re-opens automatically across the location.reload() that
-   mark_visited/upload_photo/delete_entry already do (see tdPost calls
-   below) — otherwise logging another visit from inside an open folder
-   would silently close it back on reload. */
+   it re-opens automatically (instantly, no flight) across the
+   location.reload() that mark_visited/upload_photo/delete_entry already
+   do (see tdPost calls below) — otherwise logging another visit from
+   inside an open folder would silently close it back on reload. */
 (function () {
     const list = document.getElementById('tdGroupList');
     const backdrop = document.getElementById('tdFolderBackdrop');
     if (!list || !backdrop) return;
 
     const STORAGE_KEY = 'tdExpandedGroup';
+    const REDUCE_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const D_OPEN = 650;
+    const D_CLOSE = 500;
+
     let placeholder = null; // marks the open row's spot in the grid while it's moved into the backdrop
+    let busy = false;
 
     function readExpandedKey() {
         try { return sessionStorage.getItem(STORAGE_KEY) || null; } catch (err) { return null; }
@@ -592,42 +600,205 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         }
     }
 
-    function closeAll() {
-        const expandedRow = backdrop.querySelector('.td-group-row.is-expanded');
-        if (expandedRow) {
-            expandedRow.classList.remove('is-expanded');
-            expandedRow.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => {
-                page.hidden = true;
-            });
-            const header = expandedRow.querySelector('.td-group-header');
-            if (header) header.setAttribute('aria-expanded', 'false');
-            if (placeholder && placeholder.parentNode) {
-                placeholder.parentNode.insertBefore(expandedRow, placeholder);
-            } else {
-                list.appendChild(expandedRow);
-            }
-        }
-        if (placeholder && placeholder.parentNode) placeholder.remove();
-        placeholder = null;
-        backdrop.classList.remove('open');
-        document.body.style.overflow = '';
+    function px(r) {
+        return { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' };
     }
 
-    function openRow(row) {
-        closeAll();
-        placeholder = document.createComment('td-folder-slot');
-        row.parentNode.insertBefore(placeholder, row);
-        backdrop.appendChild(row); // moves it into the backdrop's flex-centered stage
+    // Responsive + top-anchored: capped by viewport, sitting near the top
+    // instead of dead-center, so it reads as "the folder opened right
+    // where you clicked" rather than jumping to the middle of the screen.
+    function finalRect(height) {
+        const margin = 16;
+        const width = Math.min(880, innerWidth - margin * 2);
+        const top = Math.max(margin, Math.min(innerHeight * 0.05, 48));
+        const maxHeight = innerHeight - top - margin;
+        return { left: (innerWidth - width) / 2, top, width, height: Math.min(height, maxHeight) };
+    }
 
-        row.classList.add('is-expanded');
-        row.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => {
-            page.hidden = false;
+    // How tall the open folder wants to be for ITS OWN content (varies —
+    // more visits/photos need more room) — measured off-screen so nothing
+    // visibly flashes before the real animation starts.
+    function measureNaturalHeight(row, width) {
+        const prevStyle = row.getAttribute('style');
+        row.style.cssText = `position:fixed; visibility:hidden; left:-9999px; top:0; width:${width}px; height:auto;`;
+        const height = row.getBoundingClientRect().height;
+        if (prevStyle === null) row.removeAttribute('style'); else row.setAttribute('style', prevStyle);
+        return height;
+    }
+
+    // Where the row would naturally sit back in the grid right now — used
+    // as the close animation's target, re-measured each time (rather than
+    // reusing the rect captured at open-time) so it's still correct even
+    // if search/sort/resize reflowed the grid while the folder was open.
+    function measureCollapsedRect(row) {
+        if (!placeholder || !placeholder.parentNode) return null;
+        const hadExpanded = row.classList.contains('is-expanded');
+        const prevStyle = row.getAttribute('style');
+        row.classList.remove('is-expanded');
+        row.style.cssText = 'visibility:hidden;';
+        placeholder.parentNode.insertBefore(row, placeholder);
+        const rect = row.getBoundingClientRect();
+        backdrop.appendChild(row);
+        if (prevStyle === null) row.removeAttribute('style'); else row.setAttribute('style', prevStyle);
+        if (hadExpanded) row.classList.add('is-expanded');
+        return rect;
+    }
+
+    function setPageRightFolded(row, folded) {
+        const pageRight = row.querySelector('.td-folder-page-right');
+        if (pageRight) pageRight.style.cssText = folded ? 'opacity:0; transform:rotateY(-65deg);' : '';
+    }
+
+    function setAccentsVisible(row, visible) {
+        const tab = row.querySelector('.td-folder-tab');
+        if (tab) tab.style.cssText = visible ? '' : 'opacity:0; transform:scale(0.7);';
+        const close = row.querySelector('.td-group-close');
+        if (close) close.style.opacity = visible ? '' : '0';
+    }
+
+    function folderColors(row) {
+        const cs = getComputedStyle(row);
+        return {
+            closed: cs.getPropertyValue('--td-folder-closed').trim(),
+            open: cs.getPropertyValue('--td-folder-open').trim(),
+        };
+    }
+
+    function settleRow(row, animations) {
+        animations.forEach((a) => { try { a.commitStyles(); } catch (err) {} a.cancel(); });
+        row.style.opacity = '';
+        setPageRightFolded(row, false);
+        setAccentsVisible(row, true);
+    }
+
+    function closeAll(instant) {
+        if (busy && !instant) return Promise.resolve(); // don't interrupt an in-flight open/close
+
+        const row = backdrop.querySelector('.td-group-row.is-expanded');
+        if (!row) {
+            placeholder = null;
+            backdrop.classList.remove('open');
+            document.body.style.overflow = '';
+            return Promise.resolve();
+        }
+
+        const finish = () => {
+            row.classList.remove('is-expanded');
+            row.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => { page.hidden = true; });
+            row.querySelector('.td-group-header')?.setAttribute('aria-expanded', 'false');
+            row.removeAttribute('style');
+            setPageRightFolded(row, false);
+            setAccentsVisible(row, true);
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.insertBefore(row, placeholder);
+            } else {
+                list.appendChild(row);
+            }
+            if (placeholder && placeholder.parentNode) placeholder.remove();
+            placeholder = null;
+            backdrop.classList.remove('open');
+            document.body.style.overflow = '';
+        };
+
+        if (instant || REDUCE_MOTION) {
+            finish();
+            return Promise.resolve();
+        }
+
+        busy = true;
+        const to = measureCollapsedRect(row) || row.getBoundingClientRect();
+        const from = row.getBoundingClientRect();
+        const colors = folderColors(row);
+
+        const animations = [
+            row.animate([{ ...px(from), opacity: 1 }, { ...px(to), opacity: 0 }], { duration: D_CLOSE, easing: EASE_OUT, fill: 'both' }),
+            row.animate([{ backgroundColor: colors.open }, { backgroundColor: colors.closed }], { duration: D_CLOSE, fill: 'both' }),
+        ];
+        const pageRight = row.querySelector('.td-folder-page-right');
+        if (pageRight) {
+            animations.push(pageRight.animate(
+                [{ opacity: 1, transform: 'rotateY(0deg)' }, { opacity: 0, transform: 'rotateY(-65deg)' }],
+                { duration: D_CLOSE * 0.55, easing: 'ease-in', fill: 'both' }
+            ));
+        }
+        [row.querySelector('.td-folder-tab'), row.querySelector('.td-group-close')].forEach((el) => {
+            if (!el) return;
+            animations.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: D_CLOSE * 0.3, fill: 'both' }));
         });
-        const header = row.querySelector('.td-group-header');
-        if (header) header.setAttribute('aria-expanded', 'true');
-        backdrop.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        writeExpandedKey(row.dataset.groupKey);
+        backdrop.classList.remove('open');
+
+        return Promise.all(animations.map((a) => a.finished)).catch(() => {}).then(() => {
+            animations.forEach((a) => { try { a.cancel(); } catch (err) {} });
+            finish();
+            busy = false;
+        });
+    }
+
+    function openRow(row, instant) {
+        if (busy) return;
+        const alreadyOpen = backdrop.querySelector('.td-group-row.is-expanded');
+        const doOpen = () => {
+            busy = true;
+            const from = row.getBoundingClientRect();
+
+            placeholder = document.createComment('td-folder-slot');
+            row.parentNode.insertBefore(placeholder, row);
+            backdrop.appendChild(row);
+
+            row.classList.add('is-expanded');
+            row.querySelectorAll('.td-folder-page-left, .td-folder-page-right').forEach((page) => { page.hidden = false; });
+            row.querySelector('.td-group-header')?.setAttribute('aria-expanded', 'true');
+            backdrop.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            writeExpandedKey(row.dataset.groupKey);
+
+            const naturalHeight = measureNaturalHeight(row, finalRect(0).width);
+            const to = finalRect(naturalHeight);
+
+            if (instant || REDUCE_MOTION) {
+                row.removeAttribute('style');
+                Object.assign(row.style, { position: 'fixed' }, px(to));
+                busy = false;
+                return;
+            }
+
+            row.removeAttribute('style');
+            Object.assign(row.style, { position: 'fixed', opacity: '0' }, px(from));
+            setPageRightFolded(row, true);
+            setAccentsVisible(row, false);
+            row.getBoundingClientRect(); // force the browser to register the "from" state before animating
+
+            const colors = folderColors(row);
+            const animations = [
+                row.animate([{ ...px(from), opacity: 0 }, { ...px(to), opacity: 1 }], { duration: D_OPEN, easing: EASE_OUT, fill: 'both' }),
+                row.animate([{ backgroundColor: colors.closed }, { backgroundColor: colors.open }], { duration: D_OPEN, fill: 'both' }),
+            ];
+            const pageRight = row.querySelector('.td-folder-page-right');
+            if (pageRight) {
+                animations.push(pageRight.animate(
+                    [{ opacity: 0, transform: 'rotateY(-65deg)' }, { opacity: 1, transform: 'rotateY(0deg)' }],
+                    { duration: D_OPEN * 0.5, delay: D_OPEN * 0.4, easing: EASE_OUT, fill: 'both' }
+                ));
+            }
+            [row.querySelector('.td-folder-tab'), row.querySelector('.td-group-close')].forEach((el) => {
+                if (!el) return;
+                animations.push(el.animate(
+                    [{ opacity: 0, transform: 'scale(0.7)' }, { opacity: 1, transform: 'scale(1)' }],
+                    { duration: D_OPEN * 0.35, delay: D_OPEN * 0.55, easing: EASE_OUT, fill: 'both' }
+                ));
+            });
+
+            Promise.all(animations.map((a) => a.finished)).catch(() => {}).then(() => {
+                settleRow(row, animations);
+                busy = false;
+            });
+        };
+
+        if (alreadyOpen && alreadyOpen !== row) {
+            closeAll().then(doOpen);
+        } else if (!alreadyOpen) {
+            doOpen();
+        }
     }
 
     function toggleRow(row) {
@@ -646,8 +817,22 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     const savedKey = readExpandedKey();
     if (savedKey) {
         const match = Array.from(list.querySelectorAll('.td-group-row')).find((r) => r.dataset.groupKey === savedKey);
-        if (match) openRow(match);
+        if (match) openRow(match, true); // instant — a reload shouldn't replay the fly-in
     }
+
+    // Keep the open folder correctly sized/positioned if the viewport
+    // changes (rotate, resize, zoom) while it's open.
+    let resizeFrame = null;
+    addEventListener('resize', () => {
+        if (busy) return;
+        const row = backdrop.querySelector('.td-group-row.is-expanded');
+        if (!row) return;
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+            const naturalHeight = measureNaturalHeight(row, finalRect(0).width);
+            Object.assign(row.style, px(finalRect(naturalHeight)));
+        });
+    });
 
     // Delegated on document, not just the grid — once a card is moved into
     // the backdrop it's no longer a descendant of #tdGroupList, so clicks
