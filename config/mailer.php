@@ -25,7 +25,7 @@ require_once __DIR__ . '/../lib/PHPMailer/PHPMailer.php';
 require_once __DIR__ . '/../lib/PHPMailer/SMTP.php';
 
 if (!function_exists('kt_send_mail')) {
-    function kt_send_mail(string $to, string $subject, string $body): bool
+    function kt_send_mail(string $to, string $subject, string $body, ?string $html = null): bool
     {
         $transport = strtolower(getenv('MAIL_TRANSPORT') ?: 'smtp');
         $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: 'kultouramalvar@gmail.com';
@@ -46,6 +46,11 @@ if (!function_exists('kt_send_mail')) {
                 'subject'     => $subject,
                 'textContent' => $body,
             ]);
+                        if ($html !== null) {
+                $decoded = json_decode($payload, true);
+                $decoded['htmlContent'] = $html;
+                $payload = json_encode($decoded);
+            }
             $ch = curl_init('https://api.brevo.com/v3/smtp/email');
             curl_setopt_array($ch, [
                 CURLOPT_POST           => true,
@@ -90,7 +95,13 @@ if (!function_exists('kt_send_mail')) {
             $mail->setFrom($fromAddress, $fromName);
             $mail->addAddress($to);
             $mail->Subject = $subject;
-            $mail->Body = $body;
+                        if ($html !== null) {
+                $mail->isHTML(true);
+                $mail->Body = $html;
+                $mail->AltBody = $body;
+            } else {
+                $mail->Body = $body;
+            }
             $mail->send();
             return true;
         } catch (\Throwable $e) {

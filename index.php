@@ -1,6 +1,22 @@
 <?php
 require_once __DIR__ . '/config/session_boot.php';
 include 'config/dbmain.php';
+require_once __DIR__ . '/config/mailer.php';      // <-- use the real filename of your mailer file
+require_once __DIR__ . '/config/newsletter.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'newsletter_subscribe') {
+    header('Content-Type: application/json');
+    echo json_encode(kt_newsletter_subscribe($conn, (string) ($_POST['email'] ?? '')));
+    exit;
+}
+if (isset($_GET['unsubscribe'])) {
+    $done = kt_newsletter_unsubscribe($conn, (string) $_GET['unsubscribe']);
+    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>KULTOURA</title></head>'
+       . '<body style="font-family:Arial,sans-serif;text-align:center;padding:60px">'
+       . '<h2>' . ($done ? 'You have been unsubscribed.' : 'Link invalid or already unsubscribed.') . '</h2>'
+       . '<p><a href="index.php">Back to KULTOURA</a></p></body></html>';
+    exit;
+}
 require_once __DIR__ . '/config/maintenance.php';
 kt_maintenance_gate($conn);
 include 'config/sitecontent.php';
@@ -617,13 +633,14 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
             </div>
         </div>
         <div class="home-footer-col home-footer-newsletter">
-            <h4>Newsletter</h4>
-            <p>Get updates on events, festivals, and hidden gems in Malvar.</p>
-            <form class="home-newsletter-form" id="homeNewsletterForm">
-                <input type="email" placeholder="Enter your email" required>
-                <button type="submit" aria-label="Subscribe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-            </form>
-        </div>
+    <h4>Newsletter</h4>
+    <p>Enter your email and we'll send you the latest and upcoming announcements from KULTOURA.</p>
+    <form class="home-newsletter-form" id="homeNewsletterForm">
+        <input type="email" name="email" placeholder="Enter your email" required>
+        <button type="submit" aria-label="Subscribe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="home-newsletter-msg" id="homeNewsletterMsg" hidden></p>
+</div>
     </div>
     <div class="home-footer-bottom">
         <p>&copy; <?php echo date('Y'); ?> KULTOURA. All rights reserved.</p>
@@ -635,3 +652,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
 <script src="assets/js/home.js"></script>
 </body>
 </html>
+<?php
+if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); } else { @ob_flush(); flush(); }
+kt_newsletter_dispatch_pending($conn);
+?>

@@ -66,16 +66,39 @@
     if (nextBtn) nextBtn.addEventListener('click', () => scrollByCard(1));
 })();
 
-/* ---------------- Newsletter form (no backend yet — just a friendly ack) ---------------- */
+/* ---------------- Newsletter form ---------------- */
 (function () {
     const form = document.getElementById('homeNewsletterForm');
     if (!form) return;
-    form.addEventListener('submit', (e) => {
+    const input = form.querySelector('input[type="email"]');
+    const btn = form.querySelector('button[type="submit"]');
+    const msg = document.getElementById('homeNewsletterMsg');
+
+    function show(text, cls) {
+        if (!msg) return;
+        msg.hidden = false;
+        msg.className = 'home-newsletter-msg ' + (cls || '');
+        msg.textContent = text;
+    }
+
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const input = form.querySelector('input[type="email"]');
-        if (!input || !input.value.trim()) return;
-        input.value = '';
-        input.placeholder = "Thanks — you're on the list!";
+        const email = input.value.trim();
+        if (!email) return;
+        btn.disabled = true;
+        show('Subscribing...', '');
+        try {
+            const res = await fetch('index.php', {
+                method: 'POST',
+                body: new URLSearchParams({ action: 'newsletter_subscribe', email })
+            });
+            const data = await res.json();
+            show(data.message, data.ok ? 'is-success' : 'is-error');
+            if (data.ok) input.value = '';
+        } catch (err) {
+            show('Something went wrong. Please try again.', 'is-error');
+        }
+        btn.disabled = false;
     });
 })();
 
