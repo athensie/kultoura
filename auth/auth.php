@@ -5,6 +5,7 @@ require_once '../config/login_throttle.php';
 require_once '../config/password_policy.php';
 require_once '../config/mailer.php';
 require_once '../config/admin_password_approval.php';
+require_once '../config/newsletter.php';
 
 /*
  |--------------------------------------------------------------------
@@ -111,6 +112,21 @@ if ($action === 'signup') {
             $stmt->execute();
             $newUserId = $stmt->insert_id;
             $stmt->close();
+
+            if ($promo) {
+                try {
+                    kt_newsletter_ensure_schema($conn);
+                    $subEmail = strtolower($email);
+                    $subToken = bin2hex(random_bytes(16));
+                    $n = $conn->prepare("INSERT INTO newsletter_subscribers (email, token) VALUES (?, ?)
+                                         ON DUPLICATE KEY UPDATE status = 'active'");
+                    $n->bind_param('ss', $subEmail, $subToken);
+                    $n->execute();
+                    $n->close();
+                } catch (Throwable $e) {
+                    error_log('signup newsletter opt-in: ' . $e->getMessage());
+                }
+            }
 
             session_regenerate_id(true);
             $_SESSION['user_id']   = $newUserId;

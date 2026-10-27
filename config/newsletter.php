@@ -136,6 +136,19 @@ function kt_newsletter_unsubscribe(mysqli $conn, string $token): bool
     $stmt->execute();
     $ok = $stmt->affected_rows > 0;
     $stmt->close();
+
+    // NEW: start of added block
+    try {
+        $u = $conn->prepare("UPDATE users SET promotional_email = 0
+                             WHERE email = (SELECT email FROM newsletter_subscribers WHERE token = ?)");
+        $u->bind_param('s', $token);
+        $u->execute();
+        $u->close();
+    } catch (Throwable $e) {
+        error_log('unsubscribe user flag: ' . $e->getMessage());
+    }
+    // NEW: end of added block
+
     return $ok;
 }
 
