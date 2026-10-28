@@ -13,13 +13,15 @@ rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_eve
       /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf
 a2enmod mpm_prefork >/dev/null 2>&1 || true
 
-# Railway assigns a dynamic $PORT and expects the app to listen on it —
-# Apache's image defaults to a fixed port 80, so both spots that name
-# the port need patching before apache2-foreground starts.
+# Railway assigns a dynamic $PORT and expects the app to listen on it.
+# Both files are REWRITTEN (not patched) so the result is the same no
+# matter how many times the container restarts. Patching with
+# "s/Listen 80/..." turned "Listen 8080" into "Listen 808080" on restart,
+# which caused AH00526 and a crash loop.
 PORT="${PORT:-80}"
 
-sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf
-sed -i "s/:80>/:${PORT}>/" /etc/apache2/sites-available/000-default.conf
+echo "Listen ${PORT}" > /etc/apache2/ports.conf
+sed -i -E "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 
 # Restore any seed images missing from assets/uploads/ — on Railway
 # that path is a persistent volume, which starts out empty the first
