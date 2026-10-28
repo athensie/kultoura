@@ -5,18 +5,17 @@
  |   google.php?action=start  -> sends the visitor to Google
  |   google.php?code=...      -> Google sends them back here (callback)
  |
- | Behaviour:
- |   - Email already has an account in `users`  -> sign in to THAT account
- |   - Email has no account                     -> create a new account
+ | Behaviour (by verified Google email):
+ |   - Email belongs to an ADMIN account -> sign in as that admin
+ |                                          (or block, see setting below)
+ |   - Email belongs to a USER account   -> sign in to that user account
+ |   - Email is in neither table         -> create a new user account
  |
  | Needs two environment variables:
  |   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
  |   - Railway: kultoura service > Variables
  |   - Local XAMPP: SetEnv lines in C:\xampp\apache\conf\httpd.conf
  | Optional: GOOGLE_REDIRECT_URI (only if the auto-detected one is wrong)
- |
- | Only creates / signs in regular site users (the `users` table).
- | Admin accounts are never created or signed in through Google.
  |--------------------------------------------------------------------
  */
 require_once __DIR__ . '/../config/session_boot.php';
@@ -29,6 +28,13 @@ require_once __DIR__ . '/../config/admin_password_approval.php';
 require_once __DIR__ . '/../config/newsletter.php';
 
 define('BASE_URL', '/kultoura');
+
+/*
+ | What to do when the Google email matches an ADMIN account:
+ |   'signin' = sign in as that admin (no password needed, Google verifies the email)
+ |   'block'  = refuse; admins must use username + password on the login form
+ */
+const GOOGLE_ADMIN_MODE = 'signin';
 
 function g_env(string $key): string
 {
@@ -81,7 +87,18 @@ function g_http(string $url, ?array $postFields = null, ?string $bearer = null):
     return is_array($data) ? $data : null;
 }
 
-// Looks up an existing site user by email (case-insensitive).
+// Looks up an admin account by email (case-insensitive).
+function g_find_admin(mysqli $conn, string $email): ?array
+{
+    $stmt = $conn->prepare('SELECT admin_id, username, role, status, first_name, last_name FROM admins WHERE LOWER(email) = ? LIMIT 1');
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ?: null;
+}
+
+// Looks up a regular site user by email (case-insensitive).
 function g_find_user(mysqli $conn, string $email): ?array
 {
     $stmt = $conn->prepare('SELECT id, username, fullname, status FROM users WHERE LOWER(email) = ? LIMIT 1');
@@ -168,14 +185,43 @@ if ($email === '' || empty($info['email_verified'])) {
 $fullName = trim((string) ($info['name'] ?? ''));
 
 try {
-    // 1) Does an account with this email already exist? Use THAT account.
+    /*
+     | 1) Admin account with this email? (checked first, same order as auth.php)
+     */
+    $admin = g_find_admin($conn, $email);
+
+    if ($admin) {
+        if (GOOGLE_ADMIN_MODE !== 'signin') {
+            g_fail('This email belongs to an admin account. Please sign in with your admin username and password.');
+        }
+        if (($admin['status'] ?? 'Active') === 'Inactive') {
+            g_fail('This account has been deactivated. Contact a Super Admin.');
+        }
+
+        // Same session keys auth.php sets for an admin login.
+        session_regenerate_id(true);
+        $_SESSION['user_id']       = $admin['admin_id'];
+        $_SESSION['username']      = $admin['username'];
+        $_SESSION['role']          = $admin['role'];
+        $_SESSION['user_name']     = trim($admin['first_name'] . ' ' . $admin['last_name']);
+        $_SESSION['session_token'] = kt_session_issue($conn, 'admins', 'admin_id', (int) $admin['admin_id']);
+
+        header('Location: ' . BASE_URL . '/admin/admindashboard.php');
+        exit;
+    }
+
+    /*
+     | 2) Regular user with this email? Use THAT account.
+     */
     $user = g_find_user($conn, $email);
 
     if ($user && ($user['status'] ?? 'Active') === 'Inactive') {
         g_fail('This account has been deactivated.');
     }
 
-    // 2) No account with this email -> create a new one.
+    /*
+     | 3) Email is in neither table -> create a new user account.
+     */
     if (!$user) {
         $base = preg_replace('/[^A-Za-z0-9_]/', '', (string) strstr($email, '@', true));
         $base = substr($base, 0, 16);
@@ -183,19 +229,29 @@ try {
             $base = 'user' . $base;
         }
 
-        // Usernames must be unique, 4-20 chars, letters/numbers/underscore.
+        // Usernames must be unique across BOTH tables (login checks admins first),
+        // 4-20 chars, letters/numbers/underscore.
         $username = $base;
-        $check = $conn->prepare('SELECT 1 FROM users WHERE username = ? LIMIT 1');
+        $checkU = $conn->prepare('SELECT 1 FROM users WHERE username = ? LIMIT 1');
+        $checkA = $conn->prepare('SELECT 1 FROM admins WHERE username = ? LIMIT 1');
         for ($i = 0; $i < 20; $i++) {
-            $check->bind_param('s', $username);
-            $check->execute();
-            $check->store_result();
-            if ($check->num_rows === 0) {
+            $checkU->bind_param('s', $username);
+            $checkU->execute();
+            $checkU->store_result();
+            $takenU = $checkU->num_rows > 0;
+
+            $checkA->bind_param('s', $username);
+            $checkA->execute();
+            $checkA->store_result();
+            $takenA = $checkA->num_rows > 0;
+
+            if (!$takenU && !$takenA) {
                 break;
             }
             $username = substr($base, 0, 16) . random_int(100, 9999);
         }
-        $check->close();
+        $checkU->close();
+        $checkA->close();
 
         if ($fullName === '') {
             $fullName = $username;
