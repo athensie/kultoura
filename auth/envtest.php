@@ -1,5 +1,5 @@
 <?php
-foreach (['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'MYSQLHOST'] as $k) {
-    $v = getenv($k);
-    echo $k . ': ' . (($v !== false && $v !== '') ? 'SET, ' . strlen($v) . ' chars' : 'MISSING') . '<br>';
-}
+$s = (string) getenv('GOOGLE_CLIENT_SECRET');
+echo 'Secret length: ' . strlen($s) . '<br>';
+echo 'Starts with GOCSPX-: ' . (strpos($s, 'GOCSPX-') === 0 ? 'yes' : 'NO') . '<br>';
+echo 'Has spaces or quotes: ' . (preg_match('/[\s"\']/', $s) ? 'YES (remove them)' : 'no');
