@@ -68,12 +68,20 @@ foreach ($fiestas as $item) {
     }
 }
 
+// Every YYYY-MM that has at least one fiesta/event — used by the month
+// picker to put a small dot on months worth jumping to.
+$calEventMonths = [];
+foreach ($fiestas as $item) {
+    if (empty($item['celebration_date'])) continue;
+    $calEventMonths[date('Y-m', strtotime($item['celebration_date']))] = true;
+}
+
 function renderCalendarHtml($calMonthLabel, $calFirstDow, $calDaysInMonth, $today, $calMonthParam, $prevMonth, $nextMonth, $calEventsByDay) {
     ob_start();
     ?>
-    <div class="p-calendar-header">
+    <div class="p-calendar-header" data-cal-month="<?= htmlspecialchars($calMonthParam) ?>">
         <button type="button" class="p-calendar-nav" onclick="loadCalendarMonth('<?= htmlspecialchars($prevMonth) ?>')" aria-label="Previous month">&#8249;</button>
-        <span class="p-calendar-month"><?= htmlspecialchars($calMonthLabel) ?></span>
+        <button type="button" class="p-calendar-month" onclick="toggleMonthPicker()" aria-haspopup="true" aria-label="Pick a month"><?= htmlspecialchars($calMonthLabel) ?></button>
         <button type="button" class="p-calendar-nav" onclick="loadCalendarMonth('<?= htmlspecialchars($nextMonth) ?>')" aria-label="Next month">&#8250;</button>
     </div>
     <div class="p-calendar-grid">
@@ -89,14 +97,19 @@ function renderCalendarHtml($calMonthLabel, $calFirstDow, $calDaysInMonth, $toda
             $cellDate  = sprintf('%s-%02d', $calMonthParam, $d);
             $hasEvent  = isset($calEventsByDay[$d]);
             $isToday   = ($cellDate === $today);
+            $col       = ($calFirstDow + $d - 1) % 7; // 0 = Sunday column
             $classes   = 'p-calendar-day';
-            if ($hasEvent) $classes .= ' has-event';
+            if ($hasEvent) {
+                $classes .= ' has-event';
+                // Keep the tooltip inside the calendar on the edge columns.
+                if ($col <= 1)      $classes .= ' tip-left';
+                elseif ($col >= 5)  $classes .= ' tip-right';
+            }
             if ($isToday)  $classes .= ' is-today';
-            $titleAttr = $hasEvent
-                ? ' title="' . htmlspecialchars(implode(', ', array_map(fn($e) => $e['fiesta_name'], $calEventsByDay[$d]))) . '"'
-                : '';
         ?>
-            <span class="<?= $classes ?>"<?= $titleAttr ?>><?= $d ?></span>
+            <span class="<?= $classes ?>"<?= $hasEvent ? ' tabindex="0"' : '' ?>><?= $d ?><?php if ($hasEvent):
+                $dayEvents = $calEventsByDay[$d]; ?><span class="p-cal-tip" role="tooltip"><span class="p-cal-tip-date"><?= htmlspecialchars(date('F j, Y', strtotime($cellDate))) ?></span><?php foreach (array_slice($dayEvents, 0, 3) as $ev):
+                    $meta = implode(' · ', array_filter([trim((string) ($ev['type'] ?? '')), trim((string) ($ev['location'] ?? ''))])); ?><span class="p-cal-tip-item"><span class="p-cal-tip-name"><?= htmlspecialchars($ev['fiesta_name']) ?></span><?php if ($meta !== ''): ?><span class="p-cal-tip-meta"><?= htmlspecialchars($meta) ?></span><?php endif; ?></span><?php endforeach; ?><?php if (count($dayEvents) > 3): ?><span class="p-cal-tip-more">+<?= count($dayEvents) - 3 ?> more</span><?php endif; ?></span><?php endif; ?></span>
         <?php endfor; ?>
     </div>
     <div class="p-calendar-legend">
@@ -125,6 +138,186 @@ if (isset($_GET['ajax_calendar'])) {
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261015c">
+
+    <style>
+        /* ── Calendar: clickable month label ── */
+        #pCalendarWrap { position: relative; }
+
+        button.p-calendar-month {
+            background: none;
+            border: 0;
+            font: inherit;
+            color: inherit;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: background .15s ease;
+        }
+        button.p-calendar-month::after {
+            content: '▾';
+            font-size: .7em;
+            margin-left: 6px;
+            opacity: .55;
+        }
+        button.p-calendar-month:hover,
+        button.p-calendar-month:focus-visible {
+            background: rgba(200, 169, 110, .22);
+            outline: none;
+        }
+
+        /* ── Month picker (overlays the calendar) ── */
+        .p-month-picker {
+            position: absolute;
+            inset: 0;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 14px;
+            background: var(--p-cal-bg, #fffdf7);
+            border-radius: inherit;
+            animation: pMpIn .18s ease;
+        }
+        @keyframes pMpIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .p-mp-head { display: flex; align-items: center; justify-content: space-between; }
+        .p-mp-year { font-weight: 700; font-size: 1.05rem; }
+        .p-mp-nav {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 0, 0, .14);
+            background: transparent;
+            color: inherit;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background .15s ease;
+        }
+        .p-mp-nav:hover { background: rgba(0, 0, 0, .07); }
+        .p-mp-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            align-content: start;
+            flex: 1;
+        }
+        .p-mp-month {
+            position: relative;
+            padding: 12px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, .12);
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            font-size: .85rem;
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease, border-color .15s ease;
+        }
+        .p-mp-month:hover { background: #1f3a2a; border-color: #1f3a2a; color: #fdf6e3; }
+        .p-mp-month.is-current { background: #C8A96E; border-color: #C8A96E; color: #1a1812; font-weight: 700; }
+        .p-mp-month.has-event::after {
+            content: '';
+            position: absolute;
+            top: 6px; right: 8px;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: #C8A96E;
+        }
+        .p-mp-month.is-current.has-event::after { background: #1a1812; }
+        .p-mp-month:hover.has-event::after { background: #C8A96E; }
+        .p-mp-legend {
+            margin: 0;
+            font-size: .72rem;
+            opacity: .7;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ── Calendar: hover card on fiesta/event dates ── */
+        .p-calendar-day.has-event {
+            position: relative;
+            cursor: pointer;
+            transition: box-shadow .15s ease, filter .15s ease;
+        }
+        .p-calendar-day.has-event:hover,
+        .p-calendar-day.has-event:focus-visible {
+            z-index: 30;
+            outline: none;
+            filter: brightness(1.06);
+            box-shadow: 0 0 0 2px #C8A96E, 0 4px 12px rgba(0, 0, 0, .18);
+        }
+
+        .p-cal-tip {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translate(-50%, 6px);
+            display: block;
+            min-width: 170px;
+            max-width: 230px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #1f3a2a;
+            color: #fdf6e3;
+            text-align: left;
+            font-size: .75rem;
+            font-weight: 400;
+            line-height: 1.35;
+            white-space: normal;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, .3);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity .18s ease, transform .18s ease, visibility .18s;
+            z-index: 50;
+        }
+        .p-cal-tip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border: 6px solid transparent;
+            border-top-color: #1f3a2a;
+        }
+        .p-calendar-day.has-event:hover .p-cal-tip,
+        .p-calendar-day.has-event:focus-visible .p-cal-tip {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, 0);
+        }
+
+        /* Edge columns: anchor the card to the cell edge so it stays on screen */
+        .p-calendar-day.tip-left .p-cal-tip { left: 0; transform: translate(0, 6px); }
+        .p-calendar-day.tip-left .p-cal-tip::after { left: 14px; margin-left: 0; }
+        .p-calendar-day.tip-left:hover .p-cal-tip,
+        .p-calendar-day.tip-left:focus-visible .p-cal-tip { transform: translate(0, 0); }
+
+        .p-calendar-day.tip-right .p-cal-tip { left: auto; right: 0; transform: translate(0, 6px); }
+        .p-calendar-day.tip-right .p-cal-tip::after { left: auto; right: 14px; margin-left: 0; }
+        .p-calendar-day.tip-right:hover .p-cal-tip,
+        .p-calendar-day.tip-right:focus-visible .p-cal-tip { transform: translate(0, 0); }
+
+        .p-cal-tip-date {
+            display: block;
+            margin-bottom: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(200, 169, 110, .35);
+            color: #C8A96E;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .p-cal-tip-item { display: block; }
+        .p-cal-tip-item + .p-cal-tip-item { margin-top: 7px; }
+        .p-cal-tip-name { display: block; font-size: .8rem; font-weight: 700; }
+        .p-cal-tip-meta { display: block; margin-top: 1px; font-size: .7rem; opacity: .75; }
+        .p-cal-tip-more { display: block; margin-top: 7px; font-size: .68rem; color: #C8A96E; }
+    </style>
 </head>
 <body>
 
@@ -368,6 +561,7 @@ if (isset($_GET['ajax_calendar'])) {
 const fiestasData  = <?php echo json_encode($fiestas); ?>;
 const isLoggedIn    = <?php echo json_encode($isLoggedIn); ?>;
 const favoritedIds  = new Set(<?php echo json_encode($favoritedFiestaIds); ?>);
+const calEventMonths = new Set(<?php echo json_encode(array_keys($calEventMonths)); ?>);
 
 function findFiesta(id) {
     return fiestasData.find(f => String(f.fiesta_id) === String(id));
@@ -447,6 +641,60 @@ async function loadCalendarMonth(month) {
         console.error('Calendar load failed:', err);
     }
 }
+
+// ── Month picker — click the month name to jump to any month/year ──
+const MP_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function buildMonthPicker(year, curMonth) {
+    let html = '<div class="p-mp-head">' +
+        '<button type="button" class="p-mp-nav" data-year="' + (year - 1) + '" aria-label="Previous year">&#8249;</button>' +
+        '<span class="p-mp-year">' + year + '</span>' +
+        '<button type="button" class="p-mp-nav" data-year="' + (year + 1) + '" aria-label="Next year">&#8250;</button>' +
+        '</div><div class="p-mp-grid">';
+    MP_MONTHS.forEach(function (name, i) {
+        const key = year + '-' + String(i + 1).padStart(2, '0');
+        let cls = 'p-mp-month';
+        if (calEventMonths.has(key)) cls += ' has-event';
+        if (key === curMonth) cls += ' is-current';
+        html += '<button type="button" class="' + cls + '" data-month="' + key + '">' + name + '</button>';
+    });
+    html += '</div><p class="p-mp-legend"><span class="p-calendar-dot"></span> Has a fiesta / event</p>';
+    return html;
+}
+
+function closeMonthPicker() {
+    const picker = document.querySelector('#pCalendarWrap .p-month-picker');
+    if (picker) picker.remove();
+}
+
+function toggleMonthPicker() {
+    const wrap = document.getElementById('pCalendarWrap');
+    if (wrap.querySelector('.p-month-picker')) { closeMonthPicker(); return; }
+
+    const header = wrap.querySelector('.p-calendar-header');
+    const cur = header ? header.dataset.calMonth : '';
+    const year = parseInt(cur.slice(0, 4), 10) || new Date().getFullYear();
+
+    const picker = document.createElement('div');
+    picker.className = 'p-month-picker';
+    picker.innerHTML = buildMonthPicker(year, cur);
+    picker.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const nav = e.target.closest('.p-mp-nav');
+        if (nav) { picker.innerHTML = buildMonthPicker(parseInt(nav.dataset.year, 10), cur); return; }
+        const m = e.target.closest('.p-mp-month');
+        if (m) loadCalendarMonth(m.dataset.month);
+    });
+    wrap.appendChild(picker);
+}
+
+// Click anywhere else (or press Esc) to close the picker.
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('.p-calendar-month')) closeMonthPicker();
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMonthPicker();
+});
 
 // ── Favorites ──
 function isFavorited(id) { return favoritedIds.has(String(id)); }
