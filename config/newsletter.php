@@ -202,6 +202,10 @@ function kt_newsletter_dispatch_pending(mysqli $conn): void
         $locked = $lr && ((int) ($lr->fetch_assoc()['l'] ?? 0) === 1);
         if (!$locked) return;
 
+                // "Website only" announcements are never emailed; mark them done so they don't linger.
+        $conn->query("UPDATE announcements SET newsletter_sent = 1
+                      WHERE status = 'live' AND newsletter_sent = 0 AND audience = 'Website Only'");
+
         $res = $conn->query("SELECT id, title, body, type, published_at, created_at FROM announcements
                              WHERE status = 'live' AND newsletter_sent = 0 ORDER BY id ASC LIMIT 3");
         if (!$res || !$res->num_rows) return;

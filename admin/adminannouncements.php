@@ -34,6 +34,8 @@ $adminRole = $_SESSION['role'] ?? 'Admin';
 include '../config/dbmain.php';
 include '../config/announcements.php';
 require_once '../config/admin_requests.php';
+require_once '../config/mailer.php';
+require_once '../config/newsletter.php';
 
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
@@ -200,9 +202,8 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                     <div class="form-group">
                         <label class="form-label">Target Audience</label>
                         <select class="filter-select" name="audience" style="width:100%; padding:11px 16px; border-radius:8px;">
-                            <option>All Users</option>
-                            <option>Registered Users Only</option>
-                            <option>Admins Only</option>
+                            <option value="All Subscribers">All Subscribers (email + website)</option>
+                            <option value="Website Only">Website only</option>
                         </select>
                     </div>
                 </div>
@@ -429,3 +430,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </body>
 </html>
+<?php
+if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); } else { @ob_flush(); flush(); }
+kt_newsletter_dispatch_pending($conn);
+?>

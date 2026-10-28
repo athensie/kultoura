@@ -99,7 +99,19 @@ if ($entityAction === 'archive') {
     $body     = trim($_POST['body'] ?? '');
     $type     = in_array($_POST['type'] ?? '', $validTypes, true) ? $_POST['type'] : 'info';
     $status   = in_array($_POST['status'] ?? '', $validStatuses, true) ? $_POST['status'] : 'draft';
-    $audience = trim($_POST['audience'] ?? '') ?: 'All Users';
+        $audience = trim($_POST['audience'] ?? '');
+    if (!in_array($audience, ['All Subscribers', 'Website Only'], true)) {
+        // Not sent by the form (e.g. the edit modal): keep what is already saved.
+        $audience = 'All Subscribers';
+        if ($entityAction === 'update' && $id) {
+            $q = $conn->prepare("SELECT audience FROM announcements WHERE id = ?");
+            $q->bind_param('i', $id);
+            $q->execute();
+            $old = $q->get_result()->fetch_assoc();
+            $q->close();
+            if (!empty($old['audience'])) $audience = $old['audience'];
+        }
+    }
     $newImage = kt_handle_announcement_image_upload();
     $image    = $entityAction === 'create' ? ($newImage ?? '') : ($newImage ?? trim($_POST['existing_image'] ?? ''));
 
@@ -140,4 +152,13 @@ if ($isSuperAdmin) {
 }
 
 header("Location: adminannouncements.php");
+if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); } else { @ob_flush(); flush(); }
+
+// Super Admin changes are live immediately, so email subscribers now.
+// (Admin requests are emailed after a Super Admin approves them.)
+if ($isSuperAdmin) {
+    require_once '../config/mailer.php';
+    require_once '../config/newsletter.php';
+    kt_newsletter_dispatch_pending($conn);
+}
 exit;
