@@ -1,6 +1,11 @@
 <?php
 // KULTOURA — Newsletter (subscribe, welcome digest, announcement dispatch)
 // Sends through the existing kt_send_mail() — plain text.
+//
+// Who receives announcement emails:
+//   - people who entered their email in the newsletter box, and
+//   - people who ticked the promotional email box when signing up.
+// Accounts created with "Continue with Google" are NOT subscribed automatically.
 
 function kt_newsletter_ensure_schema(mysqli $conn): void
 {
@@ -15,11 +20,24 @@ function kt_newsletter_ensure_schema(mysqli $conn): void
             status ENUM('active','unsubscribed') NOT NULL DEFAULT 'active',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
+
+        // Tracks which subscriber already got which announcement, so a failed
+        // send is retried later and nobody is emailed twice.
+        $conn->query("CREATE TABLE IF NOT EXISTS newsletter_deliveries (
+            announcement_id INT NOT NULL,
+            subscriber_id INT NOT NULL,
+            sent TINYINT(1) NOT NULL DEFAULT 0,
+            attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY (announcement_id, subscriber_id)
+        )");
+
         $r = $conn->query("SHOW COLUMNS FROM announcements LIKE 'newsletter_sent'");
         if ($r && $r->num_rows === 0) {
             if ($conn->query("ALTER TABLE announcements ADD COLUMN newsletter_sent TINYINT(1) NOT NULL DEFAULT 0")) {
                 // Existing announcements are NOT blasted to subscribers
                 $conn->query("UPDATE announcements SET newsletter_sent = 1");
+            } else {
+                error_log('newsletter schema: could not add announcements.newsletter_sent');
             }
         }
     } catch (Throwable $e) {
@@ -137,7 +155,6 @@ function kt_newsletter_unsubscribe(mysqli $conn, string $token): bool
     $ok = $stmt->affected_rows > 0;
     $stmt->close();
 
-    // NEW: start of added block
     try {
         $u = $conn->prepare("UPDATE users SET promotional_email = 0
                              WHERE email = (SELECT email FROM newsletter_subscribers WHERE token = ?)");
@@ -147,42 +164,115 @@ function kt_newsletter_unsubscribe(mysqli $conn, string $token): bool
     } catch (Throwable $e) {
         error_log('unsubscribe user flag: ' . $e->getMessage());
     }
-    // NEW: end of added block
 
     return $ok;
 }
 
-// Emails each newly published (or newly promoted scheduled) announcement once.
+// Users who ticked the promotional email box at sign-up but have no subscriber
+// row yet (e.g. they signed up before the newsletter existed) get one here.
+// Google sign-ups are saved with promotional_email = 0, so they are never added.
+// Anyone who already has a row (including "unsubscribed") is left untouched.
+function kt_newsletter_sync_opted_in_users(mysqli $conn): void
+{
+    try {
+        $conn->query("INSERT IGNORE INTO newsletter_subscribers (email, token)
+                      SELECT LOWER(TRIM(u.email)), MD5(CONCAT(u.email, UUID(), RAND()))
+                      FROM users u
+                      WHERE u.promotional_email = 1
+                        AND u.email <> ''
+                        AND COALESCE(u.status, 'Active') <> 'Inactive'");
+    } catch (Throwable $e) {
+        error_log('newsletter sync opted-in users: ' . $e->getMessage());
+    }
+}
+
+// Emails each newly published (or newly promoted scheduled) announcement to
+// every active subscriber exactly once. Runs in small batches and resumes on
+// the next page load, so a failed send is retried instead of being lost.
 function kt_newsletter_dispatch_pending(mysqli $conn): void
 {
     kt_newsletter_ensure_schema($conn);
     @set_time_limit(120);
     ignore_user_abort(true);
+
+    $locked = false;
     try {
+        // Only one page load may dispatch at a time.
+        $lr = $conn->query("SELECT GET_LOCK('kt_newsletter_dispatch', 0) AS l");
+        $locked = $lr && ((int) ($lr->fetch_assoc()['l'] ?? 0) === 1);
+        if (!$locked) return;
+
         $res = $conn->query("SELECT id, title, body, type, published_at, created_at FROM announcements
                              WHERE status = 'live' AND newsletter_sent = 0 ORDER BY id ASC LIMIT 3");
         if (!$res || !$res->num_rows) return;
         $items = $res->fetch_all(MYSQLI_ASSOC);
 
-        $s = $conn->query("SELECT email, token FROM newsletter_subscribers WHERE status = 'active'");
-        $subs = $s ? $s->fetch_all(MYSQLI_ASSOC) : [];
+        kt_newsletter_sync_opted_in_users($conn);
+
+        $need = $conn->prepare("SELECT s.id, s.email, s.token
+                                FROM newsletter_subscribers s
+                                LEFT JOIN newsletter_deliveries d
+                                       ON d.announcement_id = ? AND d.subscriber_id = s.id
+                                WHERE s.status = 'active'
+                                  AND (d.subscriber_id IS NULL OR (d.sent = 0 AND d.attempts < 5))
+                                ORDER BY s.id ASC
+                                LIMIT ?");
+        $rec  = $conn->prepare("INSERT INTO newsletter_deliveries (announcement_id, subscriber_id, sent, attempts)
+                                VALUES (?, ?, ?, 1)
+                                ON DUPLICATE KEY UPDATE sent = VALUES(sent), attempts = attempts + 1");
+        $done = $conn->prepare("UPDATE announcements SET newsletter_sent = 1 WHERE id = ?");
+
+        $budget   = 40;               // max emails per page load
+        $deadline = time() + 90;      // and never run longer than this
+        $consecutiveFails = 0;
 
         foreach ($items as $a) {
-            // Atomic claim: two simultaneous page loads never double-send
-            $claim = $conn->prepare("UPDATE announcements SET newsletter_sent = 1 WHERE id = ? AND newsletter_sent = 0");
-            $claim->bind_param('i', $a['id']);
-            $claim->execute();
-            $won = $claim->affected_rows === 1;
-            $claim->close();
-            if (!$won) continue;
+            if ($budget <= 0 || time() > $deadline) break;
 
-            foreach ($subs as $sub) {
+            $annId = (int) $a['id'];
+            $limit = $budget;
+            $need->bind_param('ii', $annId, $limit);
+            $need->execute();
+            $batch = $need->get_result()->fetch_all(MYSQLI_ASSOC);
+
+            $failures = 0;
+            foreach ($batch as $sub) {
+                if ($budget <= 0 || time() > $deadline) { $failures++; break; }
+
                 $body = "New announcement from KULTOURA:\n\n" . kt_newsletter_item_text($a)
                       . "\nRead more: " . kt_newsletter_base_url() . '/index.php';
-                kt_newsletter_send($sub['email'], 'KULTOURA: ' . $a['title'], $body . kt_newsletter_footer($sub['token']));
+                $ok = kt_newsletter_send($sub['email'], 'KULTOURA: ' . $a['title'], $body . kt_newsletter_footer($sub['token']));
+
+                $subId = (int) $sub['id'];
+                $flag  = $ok ? 1 : 0;
+                $rec->bind_param('iii', $annId, $subId, $flag);
+                $rec->execute();
+                $budget--;
+
+                if ($ok) {
+                    $consecutiveFails = 0;
+                } else {
+                    $failures++;
+                    $consecutiveFails++;
+                    error_log('newsletter: failed to send announcement #' . $annId . ' to ' . $sub['email']);
+                    if ($consecutiveFails >= 3) {
+                        error_log('newsletter: 3 failures in a row, pausing until next page load');
+                        return;
+                    }
+                }
+            }
+
+            // Everyone was reached: mark the announcement finished.
+            if ($failures === 0 && count($batch) < $limit) {
+                $done->bind_param('i', $annId);
+                $done->execute();
             }
         }
     } catch (Throwable $e) {
         error_log('newsletter dispatch: ' . $e->getMessage());
+    } finally {
+        if ($locked) {
+            try { $conn->query("SELECT RELEASE_LOCK('kt_newsletter_dispatch')"); } catch (Throwable $e) {}
+        }
     }
 }
