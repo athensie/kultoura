@@ -79,15 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // ---- Hero / singleton photo slots (home_hero_1, home_hero_2, about_hero) ----
+    // ---- Hero / singleton photo slots (home_hero_1, home_hero_2, home_hero_bg, about_hero) ----
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
-        if (in_array($key, [
-            'home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero',
-            'tourism_hero', 'products_hero', 'nature_hero', 'resort_hero', 'industry_hero', 'churches_hero',
-            'fiestas_hero', 'people_hero', 'restaurants_hero', 'accommodation_hero',
-            'banks_hero', 'services_hero', 'favorites_hero', 'mostpopular_hero',
-        ], true)) {
+        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero'], true)) {
             if (!empty($_POST['remove_image'])) {
                 $stmt = $conn->prepare("INSERT INTO site_photos (photo_key, image) VALUES (?, NULL) ON DUPLICATE KEY UPDATE image = NULL");
                 $stmt->bind_param('s', $key);
@@ -167,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
  |--------------------------------------------------------------------
  | DATA FOR THE PAGE
  */
-// Grouped by where they live in the site nav, so the admin can find a slot
+// Grouped by where they live on the site, so the admin can find a slot
 // by "which page is this" instead of scanning one long flat list. Each slot
 // carries the live page's URL so admin can jump straight there to see
 // exactly where the photo will land.
@@ -184,40 +179,6 @@ $heroPhotoGroups = [
         'icon'  => 'info',
         'slots' => [
             'about_hero' => ['label' => 'Hero Photo', 'hint' => 'The full-width background photo behind "About / Malvar".', 'url' => BASE_URL . '/pages/about.php', 'highlight' => '.a-hero'],
-        ],
-    ],
-    'Tourism Hub' => [
-        'icon'  => 'compass',
-        'slots' => [
-            'tourism_hero' => ['label' => 'Hero Background Photo', 'hint' => 'The full-width background photo behind the "Tourism" hub page hero. Leave empty to keep the plain cream background.', 'url' => BASE_URL . '/pages/tourism.php', 'highlight' => '.t-hero'],
-        ],
-    ],
-    'Explore Malvar (nav dropdown)' => [
-        'icon'  => 'map',
-        'slots' => [
-            'products_hero'  => ['label' => 'Products — Hero Photo', 'hint' => 'Behind the "Products" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/products.php', 'highlight' => '.t-hero'],
-            'nature_hero'    => ['label' => 'Nature — Hero Photo', 'hint' => 'Behind the "Nature" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/nature.php', 'highlight' => '.t-hero'],
-            'resort_hero'    => ['label' => 'Resort — Hero Photo', 'hint' => 'Behind the "Resort" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/resort.php', 'highlight' => '.t-hero'],
-            'industry_hero'  => ['label' => 'Industry Zone — Hero Photo', 'hint' => 'Behind the "Industry Zone" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/industry.php', 'highlight' => '.t-hero'],
-            'churches_hero'  => ['label' => 'Churches — Hero Photo', 'hint' => 'Behind the "Churches" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/churches.php', 'highlight' => '.t-hero'],
-            'fiestas_hero'   => ['label' => 'Fiestas — Hero Photo', 'hint' => 'Behind the "Fiestas" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/fiestas.php', 'highlight' => '.t-hero'],
-            'people_hero'    => ['label' => 'People of Malvar — Hero Photo', 'hint' => 'Behind the "People of Malvar" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/people.php', 'highlight' => '.t-hero'],
-            'services_hero'  => ['label' => 'Other Services — Hero Photo', 'hint' => 'Behind the "Other Services" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/services.php', 'highlight' => '.t-hero'],
-        ],
-    ],
-    'Main Nav Pages' => [
-        'icon'  => 'utensils',
-        'slots' => [
-            'restaurants_hero'   => ['label' => 'Restaurants — Hero Photo', 'hint' => 'Behind the "Restaurants" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/restaurants.php', 'highlight' => '.t-hero'],
-            'accommodation_hero' => ['label' => 'Accommodation — Hero Photo', 'hint' => 'Behind the "Accommodation" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/accommodation.php', 'highlight' => '.t-hero'],
-            'banks_hero'         => ['label' => 'Banks — Hero Photo', 'hint' => 'Behind the "Banks" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/tourism/banks.php', 'highlight' => '.t-hero'],
-        ],
-    ],
-    'More Menu' => [
-        'icon'  => 'more-horizontal',
-        'slots' => [
-            'favorites_hero'   => ['label' => 'Favorites — Hero Photo', 'hint' => 'Behind the "Your Favorites" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/favorites.php', 'highlight' => '.t-hero'],
-            'mostpopular_hero' => ['label' => 'Most Popular — Hero Photo', 'hint' => 'Behind the "Most Popular" page hero. Leave empty for the plain cream background.', 'url' => BASE_URL . '/pages/mostpopular.php', 'highlight' => '.t-hero'],
         ],
     ],
 ];
@@ -322,7 +283,7 @@ $iconLabels = sitecontent_icon_labels();
             <div>
                 <div class="section-label">Content Management</div>
                 <h1>Site <em>Content</em></h1>
-                <p>Control the hero photos across every public page, plus the About page's History, Geography, and other story sections.</p>
+                <p>Control the Homepage and About page hero photos, plus the About page's History, Geography, and other story sections.</p>
             </div>
         </div>
 
@@ -340,7 +301,7 @@ $iconLabels = sitecontent_icon_labels();
 
         <!-- HERO PHOTOS -->
         <h2 class="content-h2">Hero Photos</h2>
-        <p class="content-sub">Grouped by where they show up in the site's navigation. Click "Preview page" on any card to see exactly where a photo will land before you upload it.</p>
+        <p class="content-sub">Grouped by where they show up on the site. Click "Preview page" on any card to see exactly where a photo will land before you upload it.</p>
 
         <nav class="hero-group-jump" aria-label="Jump to a page group">
             <?php foreach ($heroPhotoGroups as $groupName => $group):
