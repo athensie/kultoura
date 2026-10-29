@@ -2059,3 +2059,8 @@ a.home-partner-card { text-decoration: none; }
     }
 }
 
+
+/* Keep the homepage logo optically centered in the hero. */
+.brand-title-logo { width: 100%; display: flex; justify-content: center; }
+.brand-title-logo img { display: block; margin: 0 auto; }
+

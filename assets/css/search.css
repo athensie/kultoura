@@ -274,3 +274,34 @@
     }
 }
 
+
+/* Keep the expanding search beside its trigger without pushing the navbar off-screen. */
+.navbar-search { z-index: 1201; }
+.navbar-search.is-open .navbar-search-form {
+    position: absolute;
+    top: 50%;
+    right: 44px;
+    transform: translateY(-50%);
+    width: min(260px, calc(100vw - 110px));
+    max-width: 0;
+    margin-left: 0;
+    z-index: 1202;
+}
+.navbar-search.is-open .navbar-search-form {
+    max-width: min(260px, calc(100vw - 110px));
+    overflow: visible;
+}
+.navbar-search-form input { min-width: 0; width: 100%; }
+@media (max-width: 768px) {
+    .navbar-search.is-open .navbar-search-form {
+        top: var(--navbar-h, 69px);
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-width: none;
+        transform: none;
+        z-index: 1202;
+    }
+    .navbar-search-dropdown { z-index: 1203; }
+}
+
