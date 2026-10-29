@@ -300,20 +300,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
 
         </div>
 
-        <?php if (!empty($heroPhotos)): ?>
-        <div class="hero-collage" aria-hidden="true">
-            <div class="hero-photo hero-photo-1">
-                <img src="<?php echo htmlspecialchars($heroPhotos[0]['image']); ?>" alt="<?php echo htmlspecialchars($heroPhotos[0]['name']); ?>" loading="lazy">
-            </div>
-            <?php if (!empty($heroPhotos[1])): ?>
-            <div class="hero-photo hero-photo-2">
-                <img src="<?php echo htmlspecialchars($heroPhotos[1]['image']); ?>" alt="<?php echo htmlspecialchars($heroPhotos[1]['name']); ?>" loading="lazy">
-            </div>
-            <?php endif; ?>
-            <span class="hero-collage-leaf hero-collage-leaf-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
-            <span class="hero-collage-leaf hero-collage-leaf-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
-        </div>
-        <?php endif; ?>
+
 
     </main>
 
