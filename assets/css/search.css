@@ -305,3 +305,35 @@
     .navbar-search-dropdown { z-index: 1203; }
 }
 
+
+/* Mobile search stays anchored to the navbar icon without inheriting desktop sizing. */
+@media (max-width: 768px) {
+    .navbar-search { position: relative; }
+    .navbar-search.is-open .navbar-search-form {
+        position: absolute;
+        top: calc(100% + 14px);
+        right: -48px;
+        left: auto;
+        transform: none;
+        width: min(260px, calc(100vw - 24px));
+        max-width: 260px;
+        margin: 0;
+        overflow: visible;
+        z-index: 1202;
+    }
+    .navbar-search.is-open .navbar-search-form input {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+    .navbar-search-dropdown {
+        position: absolute;
+        top: calc(100% + 62px);
+        right: -48px;
+        left: auto;
+        width: min(340px, calc(100vw - 24px));
+        max-width: calc(100vw - 24px);
+        z-index: 1203;
+    }
+}
+
