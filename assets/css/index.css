@@ -1050,6 +1050,9 @@ body {
     color: rgba(44, 26, 14, 0.55);
     margin: 0;
 }
+.home-upcoming-time { font-size: 13px; font-weight: 700; color: #5f7d4c; margin: 0 0 5px; }
+.home-upcoming-card-mass .home-upcoming-media { background: linear-gradient(145deg, #31533a, #8a7451); }
+.home-upcoming-card-mass .home-upcoming-type { color: #8b3a3a; }
 
 @media (max-width: 700px) {
     .home-upcoming-top { flex-direction: column; align-items: flex-start; }

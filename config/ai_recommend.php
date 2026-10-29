@@ -560,8 +560,12 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         . "template: vary sentence openings and rhythm, and use personal_moments when present. Keep every field short (it's a caption, "
         . "not a paragraph) and avoid repeating the same place name in more than two fields. Reference only "
         . "supplied facts, places, notes, and captions; do not invent feelings, companions, weather, or events. "
-        . "Respond with ONLY this JSON shape, no other text: "
-        . '{"title_sub": "<two short lines, \\n between them>", '
+        . "Also choose one layout that best fits the visitor's actual recap: photo_journal when photos "
+        . "dominate, place_collector when many distinct places stand out, timeline when visit history "
+        . "is the strongest thread, or map_explorer when geographic breadth stands out. Return the layout "
+        . "as exactly one of those four values. Respond with ONLY this JSON shape, no other text: "
+        . '{"layout":"<one of photo_journal, place_collector, timeline, map_explorer>", '
+        . '"title_sub": "<two short lines, \\n between them>", '
         . '"numbers_sub": "<one sentence>", "numbers_footer": "<under 8 words>", '
         . '"timeline_sub": "<one sentence>", "timeline_footer": "<under 8 words>", '
         . '"places_sub": "<one sentence>", "liked_sub": "<one sentence>", '
@@ -593,6 +597,10 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         if (!empty($parsed[$key]) && is_string($parsed[$key])) {
             $out[$key] = mb_substr(trim($parsed[$key]), 0, $maxLen);
         }
+    }
+    $allowedLayouts = ['photo_journal', 'place_collector', 'timeline', 'map_explorer'];
+    if (isset($parsed['layout']) && in_array($parsed['layout'], $allowedLayouts, true)) {
+        $out['layout'] = $parsed['layout'];
     }
     return !empty($out) ? $out : null;
 }

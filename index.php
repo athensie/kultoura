@@ -172,8 +172,57 @@ if ($result = $conn->query(
      ORDER BY celebration_date ASC
      LIMIT 10"
 )) {
-    $homeUpcoming = $result->fetch_all(MYSQLI_ASSOC);
+    foreach ($result->fetch_all(MYSQLI_ASSOC) as $fiesta) {
+        $homeUpcoming[] = [
+            'kind' => 'fiesta',
+            'title' => $fiesta['fiesta_name'],
+            'type' => $fiesta['type'],
+            'date' => $fiesta['celebration_date'],
+            'time' => '',
+            'location' => $fiesta['location'],
+            'image' => home_img('fiesta', $fiesta['image'], $homeImageSubfolder),
+            'href' => 'pages/tourism/fiestas.php',
+        ];
+    }
 }
+
+// Add upcoming services from the admin-published one-month church schedules.
+$homeNow = new DateTimeImmutable();
+$homeChurches = $conn->query(
+    "SELECT destination_name, address, image, schedule_month, schedule_text
+     FROM destination
+     WHERE category = 'church' AND status = 'active'
+       AND schedule_month >= DATE_FORMAT(CURDATE(), '%Y-%m-01')"
+);
+if ($homeChurches) {
+    while ($church = $homeChurches->fetch_assoc()) {
+        $services = json_decode($church['schedule_text'] ?? '', true);
+        if (!is_array($services)) continue;
+        foreach ($services as $service) {
+            $date = (string) ($service['date'] ?? '');
+            $time = (string) ($service['time'] ?? '');
+            $serviceDateTime = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date . ' ' . $time);
+            if (!$serviceDateTime || $serviceDateTime < $homeNow) continue;
+            $homeUpcoming[] = [
+                'kind' => 'mass',
+                'title' => trim((string) ($service['title'] ?? 'Mass')) ?: 'Mass',
+                'type' => 'Mass · ' . $church['destination_name'],
+                'date' => $date,
+                'time' => $serviceDateTime->format('g:i A'),
+                'location' => $church['address'] ?? '',
+                'image' => home_img('church', $church['image'], $homeImageSubfolder),
+                'href' => 'pages/tourism/churches.php',
+                'sort' => $serviceDateTime->getTimestamp(),
+            ];
+        }
+    }
+}
+foreach ($homeUpcoming as &$upcomingItem) {
+    $upcomingItem['sort'] ??= strtotime($upcomingItem['date']);
+}
+unset($upcomingItem);
+usort($homeUpcoming, fn($a, $b) => $a['sort'] <=> $b['sort']);
+$homeUpcoming = array_slice($homeUpcoming, 0, 10);
 
 // ── Our Partners (mirrors admin/adminhomepage.php) ──
 $homePartners = [];
@@ -389,7 +438,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
         <div>
             <p class="home-eyebrow home-eyebrow-rust">UPCOMING</p>
             <h2 class="home-heading">Discover What's Next</h2>
-            <p class="home-upcoming-desc">Add more spice to your itinerary with these fiestas and events near you.</p>
+            <p class="home-upcoming-desc">See upcoming fiestas and Mass schedules around Malvar.</p>
         </div>
         <div class="home-upcoming-nav-group">
             <button type="button" class="home-carousel-nav" id="homeUpcomingPrev" aria-label="Previous">&#8249;</button>
@@ -398,12 +447,12 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
     <div class="home-upcoming-carousel reveal" id="homeUpcomingCarousel">
         <?php foreach ($homeUpcoming as $u):
-            $uImg = home_img('fiesta', $u['image'], $homeImageSubfolder);
-            $uDay = date('d', strtotime($u['celebration_date']));
-            $uMon = date('M', strtotime($u['celebration_date']));
-            $uYear = date('Y', strtotime($u['celebration_date']));
+            $uImg = $u['image'];
+            $uDay = date('d', strtotime($u['date']));
+            $uMon = date('M', strtotime($u['date']));
+            $uYear = date('Y', strtotime($u['date']));
         ?>
-            <a class="home-upcoming-card" href="pages/tourism/fiestas.php">
+            <a class="home-upcoming-card<?php echo $u['kind'] === 'mass' ? ' home-upcoming-card-mass' : ''; ?>" href="<?php echo htmlspecialchars($u['href']); ?>">
                 <div class="home-upcoming-media">
                     <?php if ($uImg): ?>
                         <img src="<?php echo htmlspecialchars($uImg); ?>" alt="" loading="lazy">
@@ -417,7 +466,8 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
                 </div>
                 <div class="home-upcoming-body">
                     <p class="home-upcoming-type"><?php echo htmlspecialchars(strtoupper($u['type'])); ?></p>
-                    <h3 class="home-upcoming-title"><?php echo htmlspecialchars($u['fiesta_name']); ?></h3>
+                    <h3 class="home-upcoming-title"><?php echo htmlspecialchars($u['title']); ?></h3>
+                    <?php if ($u['time'] !== ''): ?><p class="home-upcoming-time"><?php echo htmlspecialchars($u['time']); ?></p><?php endif; ?>
                     <p class="home-upcoming-loc"><?php echo htmlspecialchars($u['location']); ?></p>
                 </div>
             </a>

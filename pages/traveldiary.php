@@ -640,6 +640,9 @@ $canGenerateWrapped = count($wrappedEntries) > 0;
 $twCaptions = $canGenerateWrapped
     ? (ai_travel_wrapped_captions($conn, $userId, $wrappedPeriod, $wrappedLabel, $tw) ?? [])
     : [];
+$twLayout = in_array($twCaptions['layout'] ?? '', ['photo_journal', 'place_collector', 'timeline', 'map_explorer'], true)
+    ? $twCaptions['layout']
+    : 'editorial';
 
 $twMapPoints = td_wrapped_map_points($tw['distinctPlaces']);
 
@@ -1344,7 +1347,7 @@ usort($checklist, function ($a, $b) {
     <button type="button" class="tw-close" id="twClose" aria-label="Close">&times;</button>
 
     <?php if ($canGenerateWrapped): ?>
-    <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?>">
+    <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?> tw-layout-<?php echo htmlspecialchars($twLayout); ?>">
     <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
 
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>

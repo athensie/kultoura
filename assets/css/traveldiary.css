@@ -2742,6 +2742,25 @@ button.td-folder-pill:hover {
 .tw-theme-monthly .tw-slide-9 { background: #d6ebee; }
 .tw-theme-monthly .tw-slide-10 { background: #eaf5f7; }
 
+/* AI-selected recap layouts emphasize whichever part of this visitor's
+   diary is strongest, while keeping every variant usable on small screens. */
+.tw-layout-photo_journal .tw-slide-1 .tw-collage,
+.tw-layout-photo_journal .tw-slide-8 .tw-collage { max-width: 310px; gap: 9px; }
+.tw-layout-photo_journal .tw-slide-1 .tw-collage-photo,
+.tw-layout-photo_journal .tw-slide-8 .tw-collage-photo { padding: 5px 5px 12px; box-shadow: 0 10px 24px rgba(44,26,14,.22); }
+.tw-layout-photo_journal .tw-slide-1 { background-image: radial-gradient(circle at 50% 18%, rgba(255,255,255,.8), transparent 50%); }
+.tw-layout-place_collector .tw-slide-5 .tw-places-grid { gap: 10px; }
+.tw-layout-place_collector .tw-slide-5 .tw-place-card { border: 1px solid rgba(95,125,76,.2); box-shadow: 0 7px 18px rgba(44,26,14,.08); }
+.tw-layout-place_collector .tw-slide-5 .tw-place-photo { aspect-ratio: 4 / 3; }
+.tw-layout-place_collector .tw-slide-3 .tw-pick-row { padding: 11px 12px; border-radius: 12px; background: rgba(255,255,255,.42); }
+.tw-layout-timeline .tw-slide-4 .tw-slide-inner { align-items: stretch; text-align: left; }
+.tw-layout-timeline .tw-slide-4 .tw-title-2,
+.tw-layout-timeline .tw-slide-4 .tw-sub-2 { text-align: left; }
+.tw-layout-timeline .tw-slide-4 .tw-mini-timeline { border-left: 2px solid rgba(95,125,76,.3); margin-left: 13px; padding-left: 18px; }
+.tw-layout-map_explorer .tw-slide-7 .tw-map-wrap { max-width: 300px; }
+.tw-layout-map_explorer .tw-slide-7 .tw-map-leaflet { border-radius: 50%; border: 7px solid rgba(255,255,255,.7); box-shadow: 0 12px 28px rgba(44,26,14,.15); }
+.tw-layout-map_explorer .tw-slide-7 .tw-map-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+
 .tw-sub {
     font-size: 13.5px;
     color: rgba(44, 26, 14, 0.6);
