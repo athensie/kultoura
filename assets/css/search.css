@@ -253,3 +253,24 @@
         max-width: none;
     }
 }
+
+@media (max-width: 768px) {
+    .navbar-search.is-open .navbar-search-form {
+        position: fixed;
+        top: var(--navbar-h, 69px);
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+        margin-left: 0;
+        overflow: visible;
+    }
+    .navbar-search-form input {
+        width: 100%;
+        min-width: 0;
+    }
+    .navbar-search-dropdown {
+        top: calc(var(--navbar-h, 69px) + 48px);
+    }
+}
+

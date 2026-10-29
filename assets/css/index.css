@@ -2042,3 +2042,20 @@ a.home-partner-card { text-decoration: none; }
 .hero-bg-photo { position: absolute; }
 .brand-title-logo img { width: clamp(460px, 54vw, 760px); }
 .hero-text-col .cta-buttons .btn { font-size: 12px; padding: 16px 36px; }
+
+@media (max-width: 768px) {
+    .user-greeting-left {
+        gap: 5px;
+        font-size: 13px;
+        letter-spacing: 1px;
+    }
+    .navbar-greeting-text {
+        font-size: 15px;
+        letter-spacing: 0.5px;
+    }
+    .navbar-logo-icon-salakot {
+        width: 34px;
+        height: 34px;
+    }
+}
+
