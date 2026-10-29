@@ -89,6 +89,59 @@ function ktToggleSubcategoryField(which) {
   if (scheduleGroup) scheduleGroup.hidden = categorySelect.value !== 'church';
 }
 
+function ktScheduleRow(which, entry = {}) {
+  const wrap = document.getElementById(which + 'ChurchScheduleEntries');
+  if (!wrap) return;
+  const row = document.createElement('div');
+  row.className = 'church-schedule-row';
+  row.innerHTML = '<input class="form-input" type="date" data-schedule-field="date" aria-label="Schedule date">' +
+    '<input class="form-input" type="time" data-schedule-field="time" aria-label="Start time">' +
+    '<select class="filter-select" data-schedule-field="duration" aria-label="Duration"><option value="30">30 minutes</option><option value="60">1 hour</option><option value="90">1 hour 30 minutes</option><option value="120">2 hours</option><option value="180">3 hours</option></select>' +
+    '<input class="form-input church-schedule-title" type="text" maxlength="120" data-schedule-field="title" placeholder="Schedule title" aria-label="Schedule title">' +
+    '<button type="button" class="btn-ghost church-schedule-remove" aria-label="Remove schedule entry">Remove</button>';
+  row.querySelector('[data-schedule-field="date"]').value = entry.date || '';
+  row.querySelector('[data-schedule-field="time"]').value = entry.time || '';
+  row.querySelector('[data-schedule-field="duration"]').value = String(entry.duration || 60);
+  row.querySelector('[data-schedule-field="title"]').value = entry.title || '';
+  row.querySelector('.church-schedule-remove').addEventListener('click', () => row.remove());
+  wrap.appendChild(row);
+}
+
+function ktAddChurchScheduleEntry(which) { ktScheduleRow(which); }
+
+function ktLoadChurchSchedule(which, raw) {
+  const wrap = document.getElementById(which + 'ChurchScheduleEntries');
+  if (wrap) wrap.replaceChildren();
+  let entries = [];
+  try { entries = JSON.parse(raw || '[]'); } catch (_) { /* old free-text value: leave it for manual replacement */ }
+  if (Array.isArray(entries)) entries.forEach(entry => ktScheduleRow(which, entry));
+}
+
+function ktScheduleRowsHtml(raw) {
+  let entries;
+  try { entries = JSON.parse(raw || '[]'); } catch (_) { entries = null; }
+  if (!Array.isArray(entries)) return raw || '';
+  return entries.map(entry => {
+    const date = new Date(entry.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const [hour, minute] = (entry.time || '00:00').split(':').map(Number);
+    const time = new Date(2000, 0, 1, hour, minute).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const duration = Number(entry.duration) < 60 ? entry.duration + ' min' : (Number(entry.duration) % 60 ? Math.floor(entry.duration / 60) + ' hr ' + entry.duration % 60 + ' min' : entry.duration / 60 + ' hr');
+    return `<div class="church-schedule-event"><strong>${date} · ${time}</strong><span>${duration}</span><div>${String(entry.title || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</div></div>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  [['add', 'addDestinationForm'], ['edit', 'editDestinationForm']].forEach(([which, formId]) => {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.addEventListener('submit', function () {
+      const rows = [...document.querySelectorAll('#' + which + 'ChurchScheduleEntries .church-schedule-row')];
+      const entries = rows.map(row => Object.fromEntries([...row.querySelectorAll('[data-schedule-field]')].map(input => [input.dataset.scheduleField, input.value.trim()])));
+      document.getElementById(which + 'ChurchScheduleData').value = JSON.stringify(entries);
+    });
+  });
+});
+
 /* ---------- ADD ---------- */
 function openAddDestination() {
   document.getElementById('addDestinationForm').reset();
@@ -125,7 +178,7 @@ function openViewDestination(btn) {
   const scheduleText = d.schedule || '';
   scheduleWrap.hidden = d.category !== 'church' || !scheduleText;
   document.getElementById('vdScheduleMonth').textContent = d.scheduleMonth || '';
-  document.getElementById('vdScheduleText').textContent = scheduleText;
+  document.getElementById('vdScheduleText').innerHTML = ktScheduleRowsHtml(scheduleText);
 
   const categoryEl = document.getElementById('vdCategory');
   categoryEl.textContent = categoryLabels[d.category] || d.category || '—';
@@ -161,7 +214,7 @@ function openEditDestination(btn) {
   document.getElementById('editDestinationLocationInput').value = d.location || '';
   document.getElementById('editDestinationDescInput').value = d.desc || '';
   document.getElementById('editChurchScheduleMonth').value = d.scheduleMonth || '';
-  document.getElementById('editChurchScheduleText').value = d.schedule || '';
+  ktLoadChurchSchedule('edit', d.schedule || '');
 
   const categorySelect = document.getElementById('editDestinationCategoryInput');
   if (categorySelect) categorySelect.value = d.category || 'nature';

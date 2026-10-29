@@ -248,7 +248,7 @@ $stmt->close();
         <p class="p-modal-desc" id="ktVdDesc"></p>
         <div class="church-schedule-view" id="ktVdScheduleWrap" hidden>
             <p class="p-fact-label" id="ktVdScheduleMonth"></p>
-            <p class="p-fact-value" id="ktVdScheduleText"></p>
+            <div class="church-schedule-events" id="ktVdScheduleText"></div>
         </div>
         <div class="p-modal-facts" id="ktVdFacts"></div>
         <div class="p-modal-actions">
@@ -345,7 +345,30 @@ function ktOpenViewDetails(btn) {
     const scheduleWrap = document.getElementById('ktVdScheduleWrap');
     scheduleWrap.hidden = !schedule;
     document.getElementById('ktVdScheduleMonth').textContent = schedule ? 'Schedule for ' + (btn.dataset.scheduleMonth || 'this month') : '';
-    document.getElementById('ktVdScheduleText').textContent = schedule;
+    const scheduleText = document.getElementById('ktVdScheduleText');
+    scheduleText.replaceChildren();
+    let entries;
+    try { entries = JSON.parse(schedule); } catch (_) { entries = null; }
+    if (Array.isArray(entries)) {
+        entries.forEach(entry => {
+            const event = document.createElement('div');
+            event.className = 'church-schedule-event';
+            const date = document.createElement('strong');
+            date.textContent = new Date(entry.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+            const start = (entry.time || '00:00').split(':').map(Number);
+            const time = document.createElement('span');
+            time.textContent = new Date(2000, 0, 1, start[0], start[1]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+            const mins = Number(entry.duration) || 0;
+            const duration = document.createElement('span');
+            duration.textContent = mins < 60 ? mins + ' min' : (mins % 60 ? Math.floor(mins / 60) + ' hr ' + mins % 60 + ' min' : mins / 60 + ' hr');
+            const title = document.createElement('div');
+            title.textContent = entry.title || '';
+            event.append(date, time, duration, title);
+            scheduleText.appendChild(event);
+        });
+    } else {
+        scheduleText.textContent = schedule;
+    }
 
     let facts = '';
     if (btn.dataset.tag) facts += `<div><p class="p-fact-label">Address</p><p class="p-fact-value">${btn.dataset.tag}</p></div>`;

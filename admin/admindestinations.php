@@ -730,7 +730,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         <div id="vdScheduleWrap" hidden style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:16px;">
             <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Church Schedule</div>
             <div id="vdScheduleMonth" style="font-size:.8rem;color:var(--gold);margin-bottom:8px;"></div>
-            <div id="vdScheduleText" style="font-size:.85rem;color:rgba(245,237,216,.75);line-height:1.6;white-space:pre-line;"></div>
+            <div id="vdScheduleText" class="church-schedule-list"></div>
         </div>
         <div style="display:flex;gap:10px;margin-bottom:18px;">
             <div style="flex:1;background:rgba(255,255,255,.04);border-radius:8px;padding:12px;text-align:center;">
