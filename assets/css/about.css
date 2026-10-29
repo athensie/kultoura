@@ -381,3 +381,12 @@
     .a-section-header h2 { font-size: 1.35rem; }
     .a-cta { flex-direction: column; align-items: flex-start; text-align: left; }
 }
+
+/* Barabara display type for the About title and its story section headings. */
+.a-page-title,
+.a-section-header h2 {
+    font-family: 'Barabara', 'Fraunces', Georgia, serif;
+    text-transform: uppercase;
+    letter-spacing: 0.035em;
+}
+

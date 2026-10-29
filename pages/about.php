@@ -258,16 +258,6 @@ unset($sec);
     </section>
     <?php endforeach; ?>
 
-    <div class="a-cta">
-        <span class="a-cta-leaf a-cta-leaf-1" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
-        <span class="a-cta-leaf a-cta-leaf-2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
-        <div class="a-cta-text">
-            <h3>See Malvar for yourself!</h3>
-            <p>From cultural heritage to nature escapes, discover unforgettable places and stories that make Malvar special.</p>
-        </div>
-        <a href="tourism.php" class="a-cta-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg><span>Explore Malvar</span></a>
-    </div>
-
 </main>
 
 <!-- ── Footer ── -->
