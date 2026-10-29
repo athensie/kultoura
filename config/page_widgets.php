@@ -292,7 +292,7 @@ if (!function_exists('kt_page_widget_render_from')) {
             <?php if (!empty($hasAnyPhoto)): ?>
             <div class="pw-gallery">
                 <?php if (!empty($photos[1]['src'])): ?>
-                    <div class="pw-gallery-main">
+                    <div class="pw-gallery-main" role="button" tabindex="0" onclick="this.classList.toggle('is-caption-open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                         <img src="<?php echo htmlspecialchars($photos[1]['src']); ?>" alt="" loading="lazy">
                         <?php if (!empty($photos[1]['caption']) || !empty($photos[1]['description'])): ?>
                             <div class="pw-strip-caption-wrap">
@@ -303,7 +303,7 @@ if (!function_exists('kt_page_widget_render_from')) {
                     </div>
                 <?php endif; ?>
                 <?php foreach ([2, 3, 4, 5] as $n): if (empty($photos[$n]['src'])) continue; ?>
-                    <div class="pw-gallery-strip">
+                    <div class="pw-gallery-strip" role="button" tabindex="0" onclick="this.classList.toggle('is-caption-open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                         <img src="<?php echo htmlspecialchars($photos[$n]['src']); ?>" alt="" loading="lazy">
                         <?php if (!empty($photos[$n]['caption']) || !empty($photos[$n]['description'])): ?>
                             <div class="pw-strip-caption-wrap">

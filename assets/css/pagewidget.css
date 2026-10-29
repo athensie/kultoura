@@ -237,3 +237,17 @@
        permanently hidden. */
     .pw-strip-caption-wrap { opacity: 1; }
 }
+
+@media (max-width: 900px) {
+    .pw-strip-caption-wrap {
+        opacity: 0;
+        padding: 24px 10px 9px;
+    }
+    .pw-gallery-main.is-caption-open .pw-strip-caption-wrap,
+    .pw-gallery-strip.is-caption-open .pw-strip-caption-wrap {
+        opacity: 1;
+    }
+    .pw-strip-caption { font-size: 12px; }
+    .pw-strip-description { font-size: 10px; line-height: 1.35; }
+}
+

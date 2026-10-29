@@ -171,8 +171,6 @@ $heroPhotoGroups = [
         'icon'  => 'home',
         'slots' => [
             'home_hero_bg' => ['label' => 'Hero Background Photo', 'hint' => 'The full-width background photo behind the "Welcome to KulToura" hero. Leave empty to keep the green gradient.', 'url' => BASE_URL . '/index.php', 'highlight' => '.hero'],
-            'home_hero_1'  => ['label' => 'Hero Photo 1', 'hint' => 'The top photo in the landing page collage.', 'url' => BASE_URL . '/index.php', 'highlight' => '.hero-photo-1'],
-            'home_hero_2'  => ['label' => 'Hero Photo 2', 'hint' => 'The second, smaller photo in the landing page collage.', 'url' => BASE_URL . '/index.php', 'highlight' => '.hero-photo-2'],
         ],
     ],
     'About Page' => [
