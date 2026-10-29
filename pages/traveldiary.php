@@ -496,6 +496,7 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
             'lng'         => $item['lng'],
             'verb'        => $itemTypeVerbs[$item['itemType']] ?? 'Visited',
             'visitedDate' => $e['visited_date'],
+            'note'        => $e['note'] ?? '',
             'photos'      => $photosByEntry[(int) $e['entry_id']] ?? [],
         ];
     }

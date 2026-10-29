@@ -520,14 +520,46 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         'places_visited'      => array_slice(array_column($stats['distinctPlaces'], 'name'), 0, 8),
     ];
 
+    // Ground the recap in the visitor's own diary notes and photo
+    // captions. Send short text snippets only; never send image data.
+    $moments = [];
+    foreach ($stats['timeline'] ?? [] as $visit) {
+        $note = trim((string) ($visit['note'] ?? ''));
+        $photoCaptions = [];
+        foreach ($visit['photos'] ?? [] as $photo) {
+            $caption = trim((string) ($photo['caption'] ?? ''));
+            if ($caption !== '') $photoCaptions[] = mb_substr($caption, 0, 160);
+        }
+        if ($note === '' && !$photoCaptions) continue;
+        $moments[] = [
+            'place' => $visit['name'],
+            'date' => $visit['visitedDate'],
+            'note' => mb_substr($note, 0, 240),
+            'photo_captions' => array_slice($photoCaptions, 0, 2),
+        ];
+        if (count($moments) >= 8) break;
+    }
+    $facts['personal_moments'] = $moments;
+    $voices = [
+        'a thoughtful keepsake, warm and reflective',
+        'a lively field journal, bright and conversational',
+        'a local culture notebook, vivid and observant',
+        'a photo-album storyteller, concise and sensory',
+        'a playful travel postcard, light and specific',
+        'a quiet year-in-review, simple and heartfelt',
+    ];
+    $voiceSeed = hash('sha256', $userId . '|' . $period . '|' . json_encode($facts, JSON_UNESCAPED_UNICODE));
+    $facts['writing_voice'] = $voices[hexdec(substr($voiceSeed, 0, 7)) % count($voices)];
+
     $prompt = "You are writing the short captions for one visitor's personal \"Travel Wrapped\" recap on "
         . "KULTOURA, a tourism site for Malvar, Batangas, Philippines (a Spotify-Wrapped-style slideshow of "
         . "their own travel diary). Here are THIS visitor's real stats for \"{$periodLabel}\" — use only these "
         . "facts, never invent a place name or number that isn't given:\n"
         . json_encode($facts) . "\n\n"
-        . "Write warm, upbeat, specific captions that reference their actual places/numbers where it fits "
-        . "naturally — avoid generic filler that could apply to anyone. Keep every field short (it's a caption, "
-        . "not a paragraph) and avoid repeating the same place name in more than two fields. "
+        . "Write captions in the supplied writing_voice. Make this recap distinct from a generic travel "
+        . "template: vary sentence openings and rhythm, and use personal_moments when present. Keep every field short (it's a caption, "
+        . "not a paragraph) and avoid repeating the same place name in more than two fields. Reference only "
+        . "supplied facts, places, notes, and captions; do not invent feelings, companions, weather, or events. "
         . "Respond with ONLY this JSON shape, no other text: "
         . '{"title_sub": "<two short lines, \\n between them>", '
         . '"numbers_sub": "<one sentence>", "numbers_footer": "<under 8 words>", '
