@@ -127,10 +127,12 @@
    background-size: contain if you want a different crop. */
 .p-card-media {
     position: relative;
-    height: 150px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
     background-color: #ded6c6;
     background-size: cover;
-    background-position: center top;
+    background-position: center 20%;
     background-repeat: no-repeat;
 }
 
