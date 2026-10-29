@@ -39,6 +39,8 @@ $stmt->bind_param('i', $currentUserId);
 $stmt->execute();
 $result = $stmt->get_result();
 while ($row = $result->fetch_assoc()) {
+    $scheduleMonth = $row['schedule_month'] ?? '';
+    $hasCurrentSchedule = $scheduleMonth !== '' && substr($scheduleMonth, 0, 7) >= date('Y-m');
     $spots[] = [
         'id'          => (int) $row['destination_id'],
         'name'        => $row['destination_name'],
@@ -48,6 +50,8 @@ while ($row = $result->fetch_assoc()) {
         'image'       => $row['image'],
         'isFavorited' => (bool) $row['is_favorited'],
         'gmaps'       => $row['google_maps'] ?? '',
+        'scheduleMonth' => $hasCurrentSchedule ? date('F Y', strtotime($scheduleMonth)) : '',
+        'schedule'      => $hasCurrentSchedule ? ($row['schedule_text'] ?? '') : '',
     ];
 }
 $stmt->close();
@@ -63,7 +67,7 @@ $stmt->close();
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/churches.css">
+    <link rel="stylesheet" href="../../assets/css/churches.css?v=20261029">
 </head>
 <body>
 
@@ -206,8 +210,10 @@ $stmt->close();
                             data-desc="<?= htmlspecialchars($item['desc']) ?>"
                             data-image="<?= htmlspecialchars($item['image']) ?>"
                             data-gmaps="<?= htmlspecialchars($item['gmaps']) ?>"
+                            data-schedule-month="<?= htmlspecialchars($item['scheduleMonth'], ENT_QUOTES) ?>"
+                            data-schedule="<?= htmlspecialchars($item['schedule'], ENT_QUOTES) ?>"
                             data-favorited="<?= $item['isFavorited'] ? '1' : '0' ?>"
-                            onclick="event.stopPropagation(); ktOpenViewDetails(this)">View Details</button>
+                            onclick="event.stopPropagation(); ktOpenViewDetails(this)"><?= $item['schedule'] !== '' ? 'Details &amp; Schedule' : 'View Details' ?></button>
                         <button type="button" class="p-btn p-btn-outline"
                             data-name="<?= htmlspecialchars($item['name']) ?>"
                             data-gmaps="<?= htmlspecialchars($item['gmaps']) ?>"
@@ -240,6 +246,10 @@ $stmt->close();
         <p class="p-modal-eyebrow" id="ktVdCategory"></p>
         <h3 class="p-modal-title" id="ktVdName"></h3>
         <p class="p-modal-desc" id="ktVdDesc"></p>
+        <div class="church-schedule-view" id="ktVdScheduleWrap" hidden>
+            <p class="p-fact-label" id="ktVdScheduleMonth"></p>
+            <p class="p-fact-value" id="ktVdScheduleText"></p>
+        </div>
         <div class="p-modal-facts" id="ktVdFacts"></div>
         <div class="p-modal-actions">
             <button type="button" class="p-btn p-btn-primary" id="ktVdFavBtn" onclick="ktToggleFavorite(document.getElementById('ktViewDetailsModal').dataset.itemId)">
@@ -330,6 +340,12 @@ function ktOpenViewDetails(btn) {
     document.getElementById('ktVdCategory').textContent = btn.dataset.category || '';
     document.getElementById('ktVdName').textContent = btn.dataset.name || '';
     document.getElementById('ktVdDesc').textContent = btn.dataset.desc || 'No description available yet.';
+
+    const schedule = btn.dataset.schedule || '';
+    const scheduleWrap = document.getElementById('ktVdScheduleWrap');
+    scheduleWrap.hidden = !schedule;
+    document.getElementById('ktVdScheduleMonth').textContent = schedule ? 'Schedule for ' + (btn.dataset.scheduleMonth || 'this month') : '';
+    document.getElementById('ktVdScheduleText').textContent = schedule;
 
     let facts = '';
     if (btn.dataset.tag) facts += `<div><p class="p-fact-label">Address</p><p class="p-fact-value">${btn.dataset.tag}</p></div>`;

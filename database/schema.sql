@@ -79,6 +79,8 @@ CREATE TABLE `destination` (
   `image` varchar(255) DEFAULT NULL,
   `opening_hours` varchar(100) DEFAULT NULL,
   `google_maps` varchar(255) DEFAULT NULL,
+  `schedule_month` date DEFAULT NULL,
+  `schedule_text` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`destination_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

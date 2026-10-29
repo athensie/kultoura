@@ -40,6 +40,15 @@ if (!function_exists('kt_requests_ensure_schema')) {
         // Give every content table a status an item can be archived into,
         // without disturbing whatever that column already means.
         kt_requests_ensure_enum_value($conn, 'destination', 'status', 'archived', "ENUM('active','pending','inactive','archived') NOT NULL DEFAULT 'active'");
+        foreach ([
+            'schedule_month' => 'DATE NULL',
+            'schedule_text'  => 'TEXT NULL',
+        ] as $column => $definition) {
+            $res = $conn->query("SHOW COLUMNS FROM destination LIKE '" . $conn->real_escape_string($column) . "'");
+            if (!$res || $res->num_rows === 0) {
+                $conn->query("ALTER TABLE destination ADD COLUMN `$column` $definition");
+            }
+        }
         kt_requests_ensure_status_column($conn, 'products');
         kt_requests_ensure_status_column($conn, 'restaurants');
         kt_requests_ensure_status_column($conn, 'fiestas');
@@ -551,14 +560,16 @@ if (!function_exists('kt_apply_destination')) {
         }
 
         $subcategory = ($d['category'] === 'nature' && !empty($d['subcategory'])) ? $d['subcategory'] : null;
+        $scheduleMonth = ($d['category'] === 'church') ? ($d['schedule_month'] ?? null) : null;
+        $scheduleText = ($d['category'] === 'church' && !empty($d['schedule_text'])) ? $d['schedule_text'] : null;
         $image = $d['image'] ?? null;
 
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO destination (destination_name, address, category, subcategory, status, description, image, google_maps)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO destination (destination_name, address, category, subcategory, status, description, image, google_maps, schedule_month, schedule_text)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->bind_param('ssssssss', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $image, $d['google_maps']);
+            $stmt->bind_param('ssssssssss', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $image, $d['google_maps'], $scheduleMonth, $scheduleText);
             $stmt->execute();
             $stmt->close();
             return $name;
@@ -567,14 +578,14 @@ if (!function_exists('kt_apply_destination')) {
         // update
         if ($image !== null) {
             $stmt = $conn->prepare(
-                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, image=?, google_maps=? WHERE destination_id=?"
+                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, image=?, google_maps=?, schedule_month=?, schedule_text=? WHERE destination_id=?"
             );
-            $stmt->bind_param('ssssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $image, $d['google_maps'], $id);
+            $stmt->bind_param('ssssssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $image, $d['google_maps'], $scheduleMonth, $scheduleText, $id);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, google_maps=? WHERE destination_id=?"
+                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, google_maps=?, schedule_month=?, schedule_text=? WHERE destination_id=?"
             );
-            $stmt->bind_param('sssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $d['google_maps'], $id);
+            $stmt->bind_param('sssssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $d['google_maps'], $scheduleMonth, $scheduleText, $id);
         }
         $stmt->execute();
         $stmt->close();

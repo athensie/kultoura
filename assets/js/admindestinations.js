@@ -84,6 +84,9 @@ function ktToggleSubcategoryField(which) {
   const isNature = categorySelect.value === 'nature';
   group.hidden = !isNature;
   if (!isNature && select) select.value = ''; // don't silently carry a stale subcategory into a non-Nature save
+
+  const scheduleGroup = document.getElementById(which === 'add' ? 'addChurchScheduleGroup' : 'editChurchScheduleGroup');
+  if (scheduleGroup) scheduleGroup.hidden = categorySelect.value !== 'church';
 }
 
 /* ---------- ADD ---------- */
@@ -118,6 +121,12 @@ function openViewDestination(btn) {
   document.getElementById('vdReviews').textContent = d.reviews || '0';
   document.getElementById('vdViews').textContent = d.views || '0';
 
+  const scheduleWrap = document.getElementById('vdScheduleWrap');
+  const scheduleText = d.schedule || '';
+  scheduleWrap.hidden = d.category !== 'church' || !scheduleText;
+  document.getElementById('vdScheduleMonth').textContent = d.scheduleMonth || '';
+  document.getElementById('vdScheduleText').textContent = scheduleText;
+
   const categoryEl = document.getElementById('vdCategory');
   categoryEl.textContent = categoryLabels[d.category] || d.category || '—';
   categoryEl.className = 'category-badge ' + (d.category || '');
@@ -151,6 +160,8 @@ function openEditDestination(btn) {
   document.getElementById('editDestinationNameInput').value = d.name || '';
   document.getElementById('editDestinationLocationInput').value = d.location || '';
   document.getElementById('editDestinationDescInput').value = d.desc || '';
+  document.getElementById('editChurchScheduleMonth').value = d.scheduleMonth || '';
+  document.getElementById('editChurchScheduleText').value = d.schedule || '';
 
   const categorySelect = document.getElementById('editDestinationCategoryInput');
   if (categorySelect) categorySelect.value = d.category || 'nature';

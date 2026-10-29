@@ -157,8 +157,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         'description'       => $_POST['description'] ?? '',
         'google_maps'       => $_POST['google_maps'] ?? '',
         'image'             => $imagePath,
+        'schedule_month'    => null,
+        'schedule_text'     => null,
         'archive_note'      => $_POST['archive_note'] ?? '',
     ];
+
+    if (in_array($entityAction, ['create', 'update'], true) && $data['category'] === 'church') {
+        $scheduleMonthInput = trim((string) ($_POST['schedule_month'] ?? ''));
+        $scheduleText = trim((string) ($_POST['schedule_text'] ?? ''));
+        if ($scheduleText !== '' && $scheduleMonthInput === '') {
+            $_SESSION['admin_flash'] = 'Choose a month for the church schedule.';
+            header("Location: " . BASE_URL . "/admin/admindestinations.php");
+            exit;
+        }
+        if ($scheduleText !== '') {
+            $monthDate = DateTimeImmutable::createFromFormat('!Y-m', $scheduleMonthInput);
+            if (!$monthDate || $monthDate->format('Y-m') !== $scheduleMonthInput || mb_strlen($scheduleText) > 5000) {
+                $_SESSION['admin_flash'] = 'Choose a valid month and keep the schedule under 5,000 characters.';
+                header("Location: " . BASE_URL . "/admin/admindestinations.php");
+                exit;
+            }
+            $data['schedule_month'] = $monthDate->format('Y-m-01');
+            $data['schedule_text'] = $scheduleText;
+        }
+    }
 
     // The archive form only posts action+id — look the name up so the
     // flash message and (if this becomes a request) its label read right.
@@ -429,6 +451,8 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                         data-views="<?php echo htmlspecialchars((string) ($d['views'] ?? 0)); ?>"
                                         data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                         data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
+                                        data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
+                                        data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
                                         onclick="openViewDestination(this)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                                     <button class="tbl-btn edit"
                                         data-id="<?php echo (int) $d['destination_id']; ?>"
@@ -439,6 +463,8 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                         data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
                                         data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                         data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
+                                        data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
+                                        data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
                                         onclick="openEditDestination(this)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
                                     <button class="tbl-btn delete"
                                         data-id="<?php echo (int) $d['destination_id']; ?>"
@@ -489,6 +515,8 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                 data-views="<?php echo htmlspecialchars((string) ($d['views'] ?? 0)); ?>"
                                 data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                 data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
+                                data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
+                                data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
                                 onclick="openViewDestination(this)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                             <button class="tbl-btn edit"
                                 data-id="<?php echo (int) $d['destination_id']; ?>"
@@ -499,6 +527,8 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                 data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
                                 data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
                                 data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
+                                data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
+                                data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
                                 onclick="openEditDestination(this)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
                             <button class="tbl-btn delete"
                                 data-id="<?php echo (int) $d['destination_id']; ?>"
@@ -552,6 +582,12 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                     <option value="Park">Park</option>
                     <option value="River / Falls">River / Falls</option>
                 </select>
+            </div>
+            <div class="form-group" id="addChurchScheduleGroup" hidden>
+                <label class="form-label">Church Schedule (one month)</label>
+                <input class="form-input" type="month" name="schedule_month" id="addChurchScheduleMonth">
+                <textarea class="form-textarea" name="schedule_text" rows="5" maxlength="5000" placeholder="Enter this month's service schedule, for example: Sundays — 8:00 AM Mass&#10;First Friday — 6:00 PM service"></textarea>
+                <div style="font-size:.7rem;color:rgba(245,237,216,.4);margin-top:4px;">Optional. Select a month and list its service dates and times. Visitors can view it in church details.</div>
             </div>
             <div class="form-group">
                 <label class="form-label">Address</label>
@@ -618,6 +654,12 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                     <option value="River / Falls">River / Falls</option>
                 </select>
             </div>
+            <div class="form-group" id="editChurchScheduleGroup" hidden>
+                <label class="form-label">Church Schedule (one month)</label>
+                <input class="form-input" type="month" name="schedule_month" id="editChurchScheduleMonth">
+                <textarea class="form-textarea" name="schedule_text" id="editChurchScheduleText" rows="5" maxlength="5000" placeholder="Enter this month's service schedule, for example: Sundays — 8:00 AM Mass&#10;First Friday — 6:00 PM service"></textarea>
+                <div style="font-size:.7rem;color:rgba(245,237,216,.4);margin-top:4px;">Optional. Select a month and list its service dates and times. Visitors can view it in church details.</div>
+            </div>
             <div class="form-group">
                 <label class="form-label">Address</label>
                 <div class="kt-map-field">
@@ -664,6 +706,11 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:16px;">
             <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Description</div>
             <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.6;" id="vdDesc">—</div>
+        </div>
+        <div id="vdScheduleWrap" hidden style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Church Schedule</div>
+            <div id="vdScheduleMonth" style="font-size:.8rem;color:var(--gold);margin-bottom:8px;"></div>
+            <div id="vdScheduleText" style="font-size:.85rem;color:rgba(245,237,216,.75);line-height:1.6;white-space:pre-line;"></div>
         </div>
         <div style="display:flex;gap:10px;margin-bottom:18px;">
             <div style="flex:1;background:rgba(255,255,255,.04);border-radius:8px;padding:12px;text-align:center;">
@@ -712,7 +759,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admindestinations.js?v=20261016"></script>
+<script src="../assets/js/admindestinations.js?v=20261029"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
