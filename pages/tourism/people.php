@@ -24,6 +24,19 @@ if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER B
     $people = $result->fetch_all(MYSQLI_ASSOC);
 }
 
+// Which people this user has already favorited (so hearts render filled).
+$favoritedIds = [];
+if ($isLoggedIn) {
+    $favUserId = (int) $_SESSION['user_id'];
+    $favStmt = $conn->prepare("SELECT item_id FROM favorites WHERE user_id = ? AND item_type = 'person'");
+    $favStmt->bind_param('i', $favUserId);
+    $favStmt->execute();
+    foreach ($favStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $fr) {
+        $favoritedIds[(int) $fr['item_id']] = true;
+    }
+    $favStmt->close();
+}
+
 // A readable ?person=slug URL (instead of just an id) when a card is
 // expanded — e.g. ?person=cj-panganiban. Appended with the id since
 // names aren't guaranteed unique.
@@ -227,10 +240,13 @@ if ($openPersonSlug !== '') {
                 $slug = kt_person_slug($item);
                 $achLines = array_values(array_filter(array_map('trim', explode("\n", (string) ($item['achievement'] ?? '')))));
                 $achPreview = $achLines[0] ?? '';
+                $isFav = isset($favoritedIds[(int) $item['person_id']]);
             ?>
             <article class="p-card">
                 <div class="p-card-media" <?= !empty($item['image']) ? 'style="background-image:url(\'' . htmlspecialchars($item['image']) . '\')"' : '' ?>>
-                    <button class="p-fav-btn" type="button" aria-label="Save to favorites" onclick="event.stopPropagation();">&#9825;</button>
+                    <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
+                            data-person-id="<?= (int) $item['person_id'] ?>"
+                            aria-label="<?= $isFav ? 'Remove from favorites' : 'Save to favorites' ?>"><?= $isFav ? '&#9829;' : '&#9825;' ?></button>
                     <?php if (!empty($item['title'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['title']) ?></span><?php endif; ?>
                 </div>
                 <div class="p-card-body">
@@ -254,6 +270,9 @@ if ($openPersonSlug !== '') {
     <p>© KULTOURA · Malvar, Batangas · <a href="index.php">Back to Home</a></p>
 </footer>
 
+<!-- ── Toast ── -->
+<div class="p-toast" id="pToast"></div>
+
 <script>
 <?php if ($openPerson !== null): ?>
 ktTrackItemView('person', <?php echo (int) $openPerson['person_id']; ?>);
@@ -269,6 +288,58 @@ function ktTrackItemView(type, id) {
         fetch('../track_item_view.php', { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, keepalive: true }).catch(() => {});
     }
 }
+
+/* ---------- FAVORITE BUTTON ---------- */
+let pToastTimer;
+function pShowToast(msg) {
+    const t = document.getElementById('pToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(pToastTimer);
+    pToastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.querySelectorAll('.p-fav-btn').forEach(function (btn) {
+    btn.addEventListener('click', async function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (btn.disabled) return;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('../favorites.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    action: 'toggle',
+                    item_type: 'person',
+                    item_id: btn.dataset.personId
+                })
+            });
+            const data = await res.json();
+
+            if (data.needsLogin) {
+                pShowToast(data.message || 'Please sign in to save favorites.');
+                setTimeout(() => { window.location.href = '../../auth/login.php'; }, 1500);
+                return;
+            }
+
+            if (data.success) {
+                btn.classList.toggle('is-favorited', data.favorited);
+                btn.innerHTML = data.favorited ? '&#9829;' : '&#9825;';
+                btn.setAttribute('aria-label', data.favorited ? 'Remove from favorites' : 'Save to favorites');
+                pShowToast(data.favorited ? 'Saved to favorites' : 'Removed from favorites');
+            } else {
+                pShowToast(data.message || 'Something went wrong.');
+            }
+        } catch (err) {
+            console.error('Favorite toggle failed:', err);
+            pShowToast('Something went wrong. Please try again.');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+});
 </script>
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js"></script>
