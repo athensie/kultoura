@@ -252,3 +252,6 @@
 .church-schedule-event strong { color: #1d3927; }
 .church-schedule-event span { margin-left: 8px; color: #5f7d4c; font-size: .82rem; }
 .church-schedule-event div { margin-top: 3px; }
+.church-next-schedule { display: grid; gap: 3px; margin: 10px 0 12px; padding: 10px 12px; border-left: 3px solid #5f7d4c; border-radius: 0 8px 8px 0; background: rgba(95, 125, 76, .09); color: #55483b; font-size: .82rem; line-height: 1.4; }
+.church-next-schedule strong { color: #31533a; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+.church-next-schedule span:first-of-type { font-weight: 700; }

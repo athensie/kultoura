@@ -41,6 +41,18 @@ $result = $stmt->get_result();
 while ($row = $result->fetch_assoc()) {
     $scheduleMonth = $row['schedule_month'] ?? '';
     $hasCurrentSchedule = $scheduleMonth !== '' && substr($scheduleMonth, 0, 7) >= date('Y-m');
+    $schedule = $hasCurrentSchedule ? ($row['schedule_text'] ?? '') : '';
+    $scheduleEntries = json_decode($schedule, true);
+    $nextSchedule = null;
+    if (is_array($scheduleEntries)) {
+        $now = new DateTimeImmutable();
+        foreach ($scheduleEntries as $entry) {
+            $dateTime = DateTimeImmutable::createFromFormat('!Y-m-d H:i', ($entry['date'] ?? '') . ' ' . ($entry['time'] ?? ''));
+            if ($dateTime && $dateTime >= $now && ($nextSchedule === null || $dateTime < $nextSchedule['dateTime'])) {
+                $nextSchedule = ['dateTime' => $dateTime, 'entry' => $entry];
+            }
+        }
+    }
     $spots[] = [
         'id'          => (int) $row['destination_id'],
         'name'        => $row['destination_name'],
@@ -51,7 +63,8 @@ while ($row = $result->fetch_assoc()) {
         'isFavorited' => (bool) $row['is_favorited'],
         'gmaps'       => $row['google_maps'] ?? '',
         'scheduleMonth' => $hasCurrentSchedule ? date('F Y', strtotime($scheduleMonth)) : '',
-        'schedule'      => $hasCurrentSchedule ? ($row['schedule_text'] ?? '') : '',
+        'schedule'      => $schedule,
+        'nextSchedule'  => $nextSchedule,
     ];
 }
 $stmt->close();
@@ -67,7 +80,7 @@ $stmt->close();
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/churches.css?v=20261029">
+    <link rel="stylesheet" href="../../assets/css/churches.css?v=20261030">
 </head>
 <body>
 
@@ -200,6 +213,17 @@ $stmt->close();
                     <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['name']) ?></h3>
                     <p class="p-card-location">📍 <?= htmlspecialchars($item['tag']) ?></p>
+                    <?php if ($item['schedule'] !== ''): ?>
+                    <div class="church-next-schedule">
+                        <strong>Next Mass</strong>
+                        <?php if ($item['nextSchedule']): ?>
+                            <span><?= htmlspecialchars($item['nextSchedule']['dateTime']->format('D, M j')) ?> · <?= htmlspecialchars($item['nextSchedule']['dateTime']->format('g:i A')) ?></span>
+                            <span><?= htmlspecialchars($item['nextSchedule']['entry']['title'] ?? 'Mass') ?></span>
+                        <?php else: ?>
+                            <span>No upcoming Mass scheduled this month.</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                     <p class="p-card-desc"><?= htmlspecialchars($item['desc']) ?></p>
                     <div class="p-card-actions">
                         <button type="button" class="p-btn p-btn-primary"
