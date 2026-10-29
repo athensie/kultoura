@@ -219,7 +219,7 @@ foreach ($rows as $r) {
                     <?php endif; ?>
                     <button class="p-fav-btn <?= !empty($item['favorited']) ? 'is-favorited' : '' ?>" type="button"
                             data-item-id="<?= (int) $item['id'] ?>" data-item-type="product"
-                            onclick="event.stopPropagation(); toggleFavorite(this)" aria-label="Save to favorites">&#9825;</button>
+                            onclick="event.stopPropagation(); toggleFavorite(this)" aria-label="Save to favorites"><?= !empty($item['favorited']) ? '&#9829;' : '&#9825;' ?></button>
                     <span class="p-tag-pill"><?= htmlspecialchars($item['tag']) ?></span>
                 </div>
                 <div class="p-card-body">
@@ -401,6 +401,7 @@ function openViewDetails(id) {
     const favBtn = document.getElementById('vdFavBtn');
     favBtn.dataset.itemId = item.id;
     favBtn.classList.toggle('is-favorited', !!item.favorited);
+    favBtn.innerHTML = item.favorited ? '&#9829;' : '&#9825;';
     document.getElementById('vdFavLabel').textContent = item.favorited ? '♥ Saved to Favorites' : '♡ Add to Favorites';
 
     let facts = '';
@@ -437,6 +438,7 @@ function toggleFavorite(btn) {
             if (data.success) {
                 document.querySelectorAll(`[data-item-id="${itemId}"][data-item-type="${itemType}"]`).forEach(el => {
                     el.classList.toggle('is-favorited', data.favorited);
+                    el.innerHTML = data.favorited ? '&#9829;' : '&#9825;';
                 });
                 const item = findProduct(parseInt(itemId, 10));
                 if (item) item.favorited = data.favorited;

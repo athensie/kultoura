@@ -97,11 +97,12 @@
     margin: 0;
 }
 
-/* Card grid (for when the admin has added products) */
+/* Card grid */
 .p-card-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
+    align-items: stretch;
 }
 
 @media (max-width: 1024px) {
@@ -121,6 +122,8 @@
     flex-direction: column;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
     transition: all 0.22s;
+    cursor: pointer;
+    min-width: 0;
 }
 
 .p-card:hover {
@@ -129,16 +132,34 @@
     box-shadow: 0 6px 20px rgba(139, 46, 26, 0.1);
 }
 
+/* FIX: the image box has a fixed shape and clips its contents, and the
+   <img> inside is forced to fill it. Before, the <img> rendered at its
+   natural size and spilled over the card text. */
 .p-card-media {
     position: relative;
-    height: 150px;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    flex-shrink: 0;
     background: #ded6c6;
+}
+
+.p-card-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }
 
 .p-fav-btn {
     position: absolute;
     top: 12px;
     left: 12px;
+    z-index: 2;
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -150,6 +171,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.p-fav-btn:hover {
+    background: rgba(139, 46, 26, 0.85);
+    transform: scale(1.08);
 }
 
 .p-fav-btn.is-favorited {
@@ -160,6 +187,7 @@
     position: absolute;
     top: 12px;
     right: 12px;
+    z-index: 2;
     background: rgba(44, 26, 14, 0.75);
     color: #fff;
     font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -189,7 +217,7 @@
     font-family: Georgia, serif;
     font-size: 18px;
     color: #2c1a0e;
-    margin-bottom: 8px;
+    margin: 0 0 8px;
 }
 
 .p-card-desc {
@@ -198,12 +226,26 @@
     line-height: 1.55;
     color: rgba(44, 26, 14, 0.6);
     flex: 1;
-    margin: 0 0 18px;
+    margin: 0 0 14px;
+    /* keep cards an even height: show at most 3 lines of description */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.p-card-price {
+    font-family: Georgia, serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #8b2e1a;
+    margin: 0 0 14px;
 }
 
 .p-card-actions {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .p-btn {
