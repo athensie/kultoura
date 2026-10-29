@@ -247,7 +247,8 @@
     color: #5f7d4c;
     font-weight: 700;
 }
-.church-schedule-view .p-fact-value {
-    white-space: pre-line;
-    line-height: 1.55;
-}
+.church-schedule-events { display: grid; gap: 9px; }
+.church-schedule-event { padding: 10px 12px; border-radius: 8px; background: rgba(44, 26, 14, .045); color: #55483b; font-size: .9rem; line-height: 1.45; }
+.church-schedule-event strong { color: #1d3927; }
+.church-schedule-event span { margin-left: 8px; color: #5f7d4c; font-size: .82rem; }
+.church-schedule-event div { margin-top: 3px; }

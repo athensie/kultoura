@@ -120,7 +120,7 @@ function ktLoadChurchSchedule(which, raw) {
 function ktScheduleRowsHtml(raw) {
   let entries;
   try { entries = JSON.parse(raw || '[]'); } catch (_) { entries = null; }
-  if (!Array.isArray(entries)) return raw || '';
+  if (!Array.isArray(entries)) return String(raw || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   return entries.map(entry => {
     const date = new Date(entry.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     const [hour, minute] = (entry.time || '00:00').split(':').map(Number);
@@ -145,6 +145,7 @@ document.addEventListener('DOMContentLoaded', function () {
 /* ---------- ADD ---------- */
 function openAddDestination() {
   document.getElementById('addDestinationForm').reset();
+  ktLoadChurchSchedule('add', '[]');
   const addGoogleMaps = document.getElementById('addGoogleMaps');
   if (addGoogleMaps) addGoogleMaps.value = '';
   ktToggleSubcategoryField('add');

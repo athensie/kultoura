@@ -779,7 +779,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admindestinations.js?v=20261029"></script>
+<script src="../assets/js/admindestinations.js?v=20261030"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
