@@ -164,21 +164,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     if (in_array($entityAction, ['create', 'update'], true) && $data['category'] === 'church') {
         $scheduleMonthInput = trim((string) ($_POST['schedule_month'] ?? ''));
-        $scheduleText = trim((string) ($_POST['schedule_text'] ?? ''));
-        if ($scheduleText !== '' && $scheduleMonthInput === '') {
+        $scheduleJson = trim((string) ($_POST['schedule_entries'] ?? ''));
+        if ($scheduleJson !== '' && $scheduleMonthInput === '') {
             $_SESSION['admin_flash'] = 'Choose a month for the church schedule.';
             header("Location: " . BASE_URL . "/admin/admindestinations.php");
             exit;
         }
-        if ($scheduleText !== '') {
+        if ($scheduleJson !== '') {
             $monthDate = DateTimeImmutable::createFromFormat('!Y-m', $scheduleMonthInput);
-            if (!$monthDate || $monthDate->format('Y-m') !== $scheduleMonthInput || mb_strlen($scheduleText) > 5000) {
-                $_SESSION['admin_flash'] = 'Choose a valid month and keep the schedule under 5,000 characters.';
+            $entries = json_decode($scheduleJson, true);
+            if (!$monthDate || $monthDate->format('Y-m') !== $scheduleMonthInput || !is_array($entries) || count($entries) > 100) {
+                $_SESSION['admin_flash'] = 'Choose a valid month and schedule entries.';
                 header("Location: " . BASE_URL . "/admin/admindestinations.php");
                 exit;
             }
+            $validatedEntries = [];
+            foreach ($entries as $entry) {
+                $date = (string) ($entry['date'] ?? '');
+                $time = (string) ($entry['time'] ?? '');
+                $duration = (int) ($entry['duration'] ?? 0);
+                $title = trim((string) ($entry['title'] ?? ''));
+                $dateObject = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+                if (!$dateObject || $dateObject->format('Y-m-d') !== $date || $dateObject->format('Y-m') !== $scheduleMonthInput || !preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $time) || !in_array($duration, [30, 60, 90, 120, 180], true) || $title === '' || mb_strlen($title) > 120) {
+                    $_SESSION['admin_flash'] = 'Each schedule entry needs a valid date in the selected month, time, duration, and title (up to 120 characters).';
+                    header("Location: " . BASE_URL . "/admin/admindestinations.php");
+                    exit;
+                }
+                $validatedEntries[] = ['date' => $date, 'time' => $time, 'duration' => $duration, 'title' => $title];
+            }
+            usort($validatedEntries, fn($a, $b) => [$a['date'], $a['time']] <=> [$b['date'], $b['time']]);
             $data['schedule_month'] = $monthDate->format('Y-m-01');
-            $data['schedule_text'] = $scheduleText;
+            $data['schedule_text'] = json_encode($validatedEntries, JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -586,7 +602,9 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             <div class="form-group" id="addChurchScheduleGroup" hidden>
                 <label class="form-label">Church Schedule (one month)</label>
                 <input class="form-input" type="month" name="schedule_month" id="addChurchScheduleMonth">
-                <textarea class="form-textarea" name="schedule_text" rows="5" maxlength="5000" placeholder="Enter this month's service schedule, for example: Sundays — 8:00 AM Mass&#10;First Friday — 6:00 PM service"></textarea>
+                <input type="hidden" name="schedule_entries" id="addChurchScheduleData">
+                <div class="church-schedule-entries" id="addChurchScheduleEntries"></div>
+                <button type="button" class="btn-ghost" onclick="ktAddChurchScheduleEntry('add')">+ Add schedule entry</button>
                 <div style="font-size:.7rem;color:rgba(245,237,216,.4);margin-top:4px;">Optional. Select a month and list its service dates and times. Visitors can view it in church details.</div>
             </div>
             <div class="form-group">
@@ -657,7 +675,9 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             <div class="form-group" id="editChurchScheduleGroup" hidden>
                 <label class="form-label">Church Schedule (one month)</label>
                 <input class="form-input" type="month" name="schedule_month" id="editChurchScheduleMonth">
-                <textarea class="form-textarea" name="schedule_text" id="editChurchScheduleText" rows="5" maxlength="5000" placeholder="Enter this month's service schedule, for example: Sundays — 8:00 AM Mass&#10;First Friday — 6:00 PM service"></textarea>
+                <input type="hidden" name="schedule_entries" id="editChurchScheduleData">
+                <div class="church-schedule-entries" id="editChurchScheduleEntries"></div>
+                <button type="button" class="btn-ghost" onclick="ktAddChurchScheduleEntry('edit')">+ Add schedule entry</button>
                 <div style="font-size:.7rem;color:rgba(245,237,216,.4);margin-top:4px;">Optional. Select a month and list its service dates and times. Visitors can view it in church details.</div>
             </div>
             <div class="form-group">
