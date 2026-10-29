@@ -2018,3 +2018,22 @@ a.home-partner-card { text-decoration: none; }
 .home-newsletter-msg { margin-top: 10px; font-size: 13px; }
 .home-newsletter-msg.is-success { color: #9bb88a; }
 .home-newsletter-msg.is-error { color: #e08a7a; }
+/* Center the homepage hero content and keep its photo fixed during scroll. */
+.hero-content-split {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    padding: 90px 24px 150px;
+}
+.hero-text-col {
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: none;
+}
+.brand-title-logo img { margin-left: auto; margin-right: auto; }
+.hero-text-col .cta-buttons { justify-content: center; }
+.hero-bg-photo { position: fixed; }
