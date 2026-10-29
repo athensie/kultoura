@@ -318,8 +318,8 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         <div class="page-header animate">
             <div>
                 <div class="section-label">User Management</div>
-                <h1>Registered <em>Accounts</em></h1>
-                <p>Everyone with an account on KulToura — visitors and admins alike.</p>
+                <h1>Users &amp; <em>Admins</em></h1>
+                <p>View site users and admin accounts separately.</p>
             </div>
             <?php if ($isSuperAdmin): ?>
             <div class="header-actions">
@@ -337,7 +337,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
 
         <!-- ACCOUNT TYPE TABS -->
         <div class="status-tabs" style="display:flex;gap:8px;margin-bottom:18px;">
-            <a href="#" id="tabAllBtn" class="active" onclick="showAccountsTab('all', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:var(--gold,#C8A96E);color:#1a1812;font-weight:600;">All (<?php echo $totalAccounts; ?>)</a>
             <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Site Users (<?php echo $totalUsers; ?>)</a>
             <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
         </div>
@@ -368,7 +367,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
 
         <!-- FILTER ROW -->
         <div class="filter-row animate">
-            <input class="search-input" type="text" placeholder="Search by name, username, or email…" oninput="filterUsers(this.value)">
+            <input class="search-input" type="text" placeholder="Search by username…" oninput="filterUsers(this.value)">
             <select class="filter-select" id="roleFilter" onchange="filterByRole(this.value)">
                 <option value="all">All Roles</option>
                 <option value="user">User</option>
@@ -394,7 +393,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                 <table class="data-table" id="usersTable">
                     <thead>
                         <tr>
-                            <th>Account</th>
                             <th>Username</th>
                             <th>Role</th>
                             <th>Status</th>
@@ -406,15 +404,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                     <tbody>
                         <?php foreach ($accounts as $acc): ?>
                             <tr data-role="<?php echo $acc['roleClass']; ?>" data-tab="<?php echo $acc['source'] === 'admin' ? 'admin' : 'user'; ?>" data-online="<?php echo $acc['online'] ? 'active' : 'offline'; ?>">
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-mini-avatar" style="background:linear-gradient(135deg,#C9572A,#E8A842)"><i data-lucide="user" class="lucide" style="width:.9rem;height:.9rem;"></i></div>
-                                        <div>
-                                            <div><?php echo htmlspecialchars($acc['name']); ?></div>
-                                            <div class="user-email"><?php echo htmlspecialchars($acc['email']); ?></div>
-                                        </div>
-                                    </div>
-                                </td>
                                 <td><?php echo htmlspecialchars($acc['username']); ?></td>
                                 <td><span class="role-badge <?php echo $acc['roleClass']; ?>"><?php echo htmlspecialchars($acc['role']); ?></span></td>
                                 <td>
@@ -644,7 +633,7 @@ function showAccountsTab(tab, btn) {
     document.querySelectorAll('#usersTable tbody tr').forEach(function (row) {
         row.style.display = (tab === 'all' || row.dataset.tab === tab) ? '' : 'none';
     });
-    ['tabAllBtn', 'tabUsersBtn', 'tabAdminsBtn'].forEach(function (id) {
+    ['tabUsersBtn', 'tabAdminsBtn'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         var active = el === btn;
@@ -653,6 +642,7 @@ function showAccountsTab(tab, btn) {
         el.style.fontWeight = active ? '600' : 'normal';
     });
 }
+showAccountsTab('user', document.getElementById('tabUsersBtn'));
 </script>
 <?php if ($flashMessage): ?>
 <script>
