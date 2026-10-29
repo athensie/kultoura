@@ -2742,24 +2742,38 @@ button.td-folder-pill:hover {
 .tw-theme-monthly .tw-slide-9 { background: #d6ebee; }
 .tw-theme-monthly .tw-slide-10 { background: #eaf5f7; }
 
-/* AI-selected recap layouts emphasize whichever part of this visitor's
-   diary is strongest, while keeping every variant usable on small screens. */
-.tw-layout-photo_journal .tw-slide-1 .tw-collage,
-.tw-layout-photo_journal .tw-slide-8 .tw-collage { max-width: 310px; gap: 9px; }
-.tw-layout-photo_journal .tw-slide-1 .tw-collage-photo,
-.tw-layout-photo_journal .tw-slide-8 .tw-collage-photo { padding: 5px 5px 12px; box-shadow: 0 10px 24px rgba(44,26,14,.22); }
-.tw-layout-photo_journal .tw-slide-1 { background-image: radial-gradient(circle at 50% 18%, rgba(255,255,255,.8), transparent 50%); }
-.tw-layout-place_collector .tw-slide-5 .tw-places-grid { gap: 10px; }
-.tw-layout-place_collector .tw-slide-5 .tw-place-card { border: 1px solid rgba(95,125,76,.2); box-shadow: 0 7px 18px rgba(44,26,14,.08); }
-.tw-layout-place_collector .tw-slide-5 .tw-place-photo { aspect-ratio: 4 / 3; }
-.tw-layout-place_collector .tw-slide-3 .tw-pick-row { padding: 11px 12px; border-radius: 12px; background: rgba(255,255,255,.42); }
-.tw-layout-timeline .tw-slide-4 .tw-slide-inner { align-items: stretch; text-align: left; }
-.tw-layout-timeline .tw-slide-4 .tw-title-2,
-.tw-layout-timeline .tw-slide-4 .tw-sub-2 { text-align: left; }
-.tw-layout-timeline .tw-slide-4 .tw-mini-timeline { border-left: 2px solid rgba(95,125,76,.3); margin-left: 13px; padding-left: 18px; }
-.tw-layout-map_explorer .tw-slide-7 .tw-map-wrap { max-width: 300px; }
-.tw-layout-map_explorer .tw-slide-7 .tw-map-leaflet { border-radius: 50%; border: 7px solid rgba(255,255,255,.7); box-shadow: 0 12px 28px rgba(44,26,14,.15); }
-.tw-layout-map_explorer .tw-slide-7 .tw-map-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+/* Each Wrapped page gets its own AI-selected composition. These are
+   bounded layout variants chosen against the visitor's actual content. */
+.tw-slide-1.tw-layout-cover_collage .tw-collage { max-width: 310px; gap: 9px; }
+.tw-slide-1.tw-layout-cover_collage .tw-collage-photo { box-shadow: 0 10px 24px rgba(44,26,14,.22); }
+.tw-slide-1.tw-layout-cover_collage { background-image: radial-gradient(circle at 50% 18%, rgba(255,255,255,.8), transparent 50%); }
+.tw-slide-1.tw-layout-cover_type .tw-title-1 { font-size: 39px; letter-spacing: -.04em; }
+.tw-slide-2.tw-layout-stats_tiles .tw-stat-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tw-slide-2.tw-layout-stats_tiles .tw-stat-row { min-height: 76px; flex-direction: column; align-items: flex-start; gap: 5px; padding: 10px; }
+.tw-slide-2.tw-layout-stats_tiles .tw-stat-icon { width: 26px; height: 26px; }
+.tw-slide-3.tw-layout-picks_cards .tw-picks-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.tw-slide-3.tw-layout-picks_cards .tw-pick-row { min-height: 88px; align-items: flex-start; flex-direction: column; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.5); }
+.tw-slide-3.tw-layout-picks_cards .tw-pick-photo { width: 100%; height: 58px; order: -1; }
+.tw-slide-3.tw-layout-picks_cards .tw-pick-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
+.tw-slide-4.tw-layout-timeline_rail .tw-mini-timeline { border-left: 2px solid rgba(95,125,76,.3); margin-left: 13px; padding-left: 18px; }
+.tw-slide-4.tw-layout-timeline_cards .tw-mini-item { padding: 10px; border-radius: 12px; background: rgba(255,255,255,.5); box-shadow: 0 5px 14px rgba(44,26,14,.06); }
+.tw-slide-5.tw-layout-places_featured .tw-place-card:first-child { grid-column: 1 / -1; }
+.tw-slide-5.tw-layout-places_featured .tw-place-card:first-child .tw-place-photo { aspect-ratio: 16 / 9; }
+.tw-slide-5.tw-layout-places_featured .tw-place-card { box-shadow: 0 7px 18px rgba(44,26,14,.1); }
+.tw-slide-6.tw-layout-favorites_grid .tw-liked-stack { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tw-slide-6.tw-layout-favorites_grid .tw-liked-photo { height: 105px; }
+.tw-slide-6.tw-layout-favorites_grid .tw-liked-name { margin: 9px; font-size: 12px; }
+.tw-slide-7.tw-layout-map_focus .tw-map-wrap { max-width: 300px; }
+.tw-slide-7.tw-layout-map_focus .tw-map-leaflet { border-radius: 50%; border: 7px solid rgba(255,255,255,.7); box-shadow: 0 12px 28px rgba(44,26,14,.15); }
+.tw-slide-7.tw-layout-map_focus .tw-map-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.tw-slide-7.tw-layout-map_compact .tw-map-wrap { max-width: 205px; }
+.tw-slide-8.tw-layout-photos_story .tw-collage-big { max-width: 330px; grid-template-columns: 1.2fr 1fr; gap: 10px; }
+.tw-slide-8.tw-layout-photos_story .tw-collage-photo { box-shadow: 0 10px 24px rgba(44,26,14,.2); }
+.tw-slide-9.tw-layout-glance_strip .tw-scatter { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.tw-slide-9.tw-layout-glance_strip .tw-scatter-photo { position: relative; inset: auto; width: 100%; transform: none; }
+.tw-slide-9.tw-layout-glance_strip .tw-sticky-note { position: relative; inset: auto; width: auto; grid-column: 1 / -1; transform: none; }
+.tw-slide-10.tw-layout-closing_minimal .tw-quote { background: transparent; border-top: 1px solid rgba(44,26,14,.2); border-radius: 0; padding: 18px 8px; }
+.tw-slide-10.tw-layout-closing_minimal .tw-title-2 { font-size: 29px; }
 
 .tw-sub {
     font-size: 13.5px;

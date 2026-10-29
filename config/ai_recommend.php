@@ -540,6 +540,7 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         if (count($moments) >= 8) break;
     }
     $facts['personal_moments'] = $moments;
+    $facts['layout_version'] = 'slide-layouts-v1';
     $voices = [
         'a thoughtful keepsake, warm and reflective',
         'a lively field journal, bright and conversational',
@@ -560,11 +561,19 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         . "template: vary sentence openings and rhythm, and use personal_moments when present. Keep every field short (it's a caption, "
         . "not a paragraph) and avoid repeating the same place name in more than two fields. Reference only "
         . "supplied facts, places, notes, and captions; do not invent feelings, companions, weather, or events. "
-        . "Also choose one layout that best fits the visitor's actual recap: photo_journal when photos "
-        . "dominate, place_collector when many distinct places stand out, timeline when visit history "
-        . "is the strongest thread, or map_explorer when geographic breadth stands out. Return the layout "
-        . "as exactly one of those four values. Respond with ONLY this JSON shape, no other text: "
-        . '{"layout":"<one of photo_journal, place_collector, timeline, map_explorer>", '
+        . "Design each Wrapped slide individually. Choose one of the listed layouts for every slide ID, "
+        . "based on that slide's content and this visitor's actual data. Do not use one layout for every slide. "
+        . "Allowed choices: slide 1 cover_collage|cover_type; 2 stats_rows|stats_tiles; 3 picks_editorial|picks_cards; "
+        . "4 timeline_rail|timeline_cards; 5 places_grid|places_featured; 6 favorites_stack|favorites_grid; "
+        . "7 map_focus|map_compact; 8 photos_grid|photos_story; 9 glance_scatter|glance_strip; "
+        . "10 closing_quote|closing_minimal. Replace every placeholder below with exactly one allowed value; "
+        . "do not include angle brackets or the word choose. Respond with ONLY this JSON shape, no other text: "
+        . '{"slide_layouts":{"1":"<choose cover_collage or cover_type>",'
+        . '"2":"<choose stats_rows or stats_tiles>","3":"<choose picks_editorial or picks_cards>",'
+        . '"4":"<choose timeline_rail or timeline_cards>","5":"<choose places_grid or places_featured>",'
+        . '"6":"<choose favorites_stack or favorites_grid>","7":"<choose map_focus or map_compact>",'
+        . '"8":"<choose photos_grid or photos_story>","9":"<choose glance_scatter or glance_strip>",'
+        . '"10":"<choose closing_quote or closing_minimal>"}, '
         . '"title_sub": "<two short lines, \\n between them>", '
         . '"numbers_sub": "<one sentence>", "numbers_footer": "<under 8 words>", '
         . '"timeline_sub": "<one sentence>", "timeline_footer": "<under 8 words>", '
@@ -598,10 +607,24 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
             $out[$key] = mb_substr(trim($parsed[$key]), 0, $maxLen);
         }
     }
-    $allowedLayouts = ['photo_journal', 'place_collector', 'timeline', 'map_explorer'];
-    if (isset($parsed['layout']) && in_array($parsed['layout'], $allowedLayouts, true)) {
-        $out['layout'] = $parsed['layout'];
+    $allowedLayouts = [
+        '1' => ['cover_collage', 'cover_type'],
+        '2' => ['stats_rows', 'stats_tiles'],
+        '3' => ['picks_editorial', 'picks_cards'],
+        '4' => ['timeline_rail', 'timeline_cards'],
+        '5' => ['places_grid', 'places_featured'],
+        '6' => ['favorites_stack', 'favorites_grid'],
+        '7' => ['map_focus', 'map_compact'],
+        '8' => ['photos_grid', 'photos_story'],
+        '9' => ['glance_scatter', 'glance_strip'],
+        '10' => ['closing_quote', 'closing_minimal'],
+    ];
+    $slideLayouts = [];
+    foreach ($allowedLayouts as $slide => $choices) {
+        $choice = $parsed['slide_layouts'][$slide] ?? '';
+        if (in_array($choice, $choices, true)) $slideLayouts[$slide] = $choice;
     }
+    if ($slideLayouts) $out['slide_layouts'] = $slideLayouts;
     return !empty($out) ? $out : null;
 }
 

@@ -640,9 +640,12 @@ $canGenerateWrapped = count($wrappedEntries) > 0;
 $twCaptions = $canGenerateWrapped
     ? (ai_travel_wrapped_captions($conn, $userId, $wrappedPeriod, $wrappedLabel, $tw) ?? [])
     : [];
-$twLayout = in_array($twCaptions['layout'] ?? '', ['photo_journal', 'place_collector', 'timeline', 'map_explorer'], true)
-    ? $twCaptions['layout']
-    : 'editorial';
+$twSlideLayoutDefaults = [
+    '1' => 'cover_type', '2' => 'stats_rows', '3' => 'picks_editorial', '4' => 'timeline_rail',
+    '5' => 'places_grid', '6' => 'favorites_stack', '7' => 'map_compact', '8' => 'photos_grid',
+    '9' => 'glance_scatter', '10' => 'closing_quote',
+];
+$twSlideLayouts = array_replace($twSlideLayoutDefaults, $twCaptions['slide_layouts'] ?? []);
 
 $twMapPoints = td_wrapped_map_points($tw['distinctPlaces']);
 
@@ -1347,7 +1350,7 @@ usort($checklist, function ($a, $b) {
     <button type="button" class="tw-close" id="twClose" aria-label="Close">&times;</button>
 
     <?php if ($canGenerateWrapped): ?>
-    <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?> tw-layout-<?php echo htmlspecialchars($twLayout); ?>">
+    <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?>">
     <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
 
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>
@@ -1371,7 +1374,7 @@ usort($checklist, function ($a, $b) {
     <div class="tw-slides" id="twSlides">
 
         <!-- Slide 1: Title -->
-        <div class="tw-slide tw-slide-1">
+        <div class="tw-slide tw-slide-1 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['1']); ?>">
             <div class="tw-slide-inner">
                 <div class="tw-brand">KULTOURA<span>MALVAR, BATANGAS</span></div>
                 <h1 class="tw-title-1">KULTOURA<br><span class="tw-accent-green">Wrapped</span><br><span class="tw-accent-gold"><?php echo htmlspecialchars($wrappedLabel); ?></span></h1>
@@ -1388,7 +1391,7 @@ usort($checklist, function ($a, $b) {
         </div>
 
         <!-- Slide 2: By the Numbers -->
-        <div class="tw-slide tw-slide-2">
+        <div class="tw-slide tw-slide-2 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['2']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">By the Numbers</h2>
                 <p class="tw-sub-2"><?php echo !empty($twCaptions['numbers_sub']) ? ai_wrapped_caption_html($twCaptions['numbers_sub']) : 'A look back at your amazing journey around Malvar.'; ?></p>
@@ -1404,7 +1407,7 @@ usort($checklist, function ($a, $b) {
         </div>
 
         <!-- Slide 3: Top Picks -->
-        <div class="tw-slide tw-slide-3">
+        <div class="tw-slide tw-slide-3 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['3']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Top Picks</h2>
                 <div class="tw-picks-list">
@@ -1457,7 +1460,7 @@ usort($checklist, function ($a, $b) {
         </div>
 
         <!-- Slide 4: Journey Timeline -->
-        <div class="tw-slide tw-slide-4">
+        <div class="tw-slide tw-slide-4 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['4']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Journey<br>Timeline</h2>
                 <p class="tw-sub-2"><?php echo !empty($twCaptions['timeline_sub']) ? ai_wrapped_caption_html($twCaptions['timeline_sub']) : 'Some highlights from your travel diary.'; ?></p>
@@ -1482,7 +1485,7 @@ usort($checklist, function ($a, $b) {
 
         <!-- Slide 5: Places You Explored -->
         <?php if (!empty($tw['distinctPlaces'])): ?>
-        <div class="tw-slide tw-slide-5">
+        <div class="tw-slide tw-slide-5 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['5']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Places You<br>Explored</h2>
                 <p class="tw-sub-2"><?php echo !empty($twCaptions['places_sub']) ? ai_wrapped_caption_html($twCaptions['places_sub']) : 'Here are the places you visited in Malvar.'; ?></p>
@@ -1502,7 +1505,7 @@ usort($checklist, function ($a, $b) {
 
         <!-- Slide 6: What You Liked -->
         <?php if (!empty($twFavoriteItems)): ?>
-        <div class="tw-slide tw-slide-6">
+        <div class="tw-slide tw-slide-6 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['6']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">What You Liked</h2>
                 <p class="tw-sub-2"><?php echo !empty($twCaptions['liked_sub']) ? ai_wrapped_caption_html($twCaptions['liked_sub']) : 'Your favorites say a lot about you!'; ?></p>
@@ -1520,7 +1523,7 @@ usort($checklist, function ($a, $b) {
 
         <!-- Slide 7: Your Travel Map -->
         <?php if (!empty($twMapPoints)): ?>
-        <div class="tw-slide tw-slide-7">
+        <div class="tw-slide tw-slide-7 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['7']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Travel<br>Map</h2>
                 <p class="tw-sub-2"><?php echo !empty($twCaptions['map_sub']) ? ai_wrapped_caption_html($twCaptions['map_sub']) : 'A map of the places you visited in Malvar.'; ?></p>
@@ -1538,7 +1541,7 @@ usort($checklist, function ($a, $b) {
 
         <!-- Slide 8: Your Photos -->
         <?php if (!empty($tw['photoMemories'])): $twPhotosSlide = td_wrapped_cycle($tw['photoMemories'], 4, 4); ?>
-        <div class="tw-slide tw-slide-8">
+        <div class="tw-slide tw-slide-8 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['8']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Photos</h2>
                 <p class="tw-sub-2"><?php echo !empty($twCaptions['photos_sub']) ? ai_wrapped_caption_html($twCaptions['photos_sub']) : 'A glimpse of the moments you captured.'; ?></p>
@@ -1553,7 +1556,7 @@ usort($checklist, function ($a, $b) {
 
         <!-- Slide 9: Memories at a Glance -->
         <?php if (!empty($tw['photoMemories'])): $twScatterPhotos = td_wrapped_cycle($tw['photoMemories'], 1, 3); ?>
-        <div class="tw-slide tw-slide-9">
+        <div class="tw-slide tw-slide-9 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['9']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Memories at<br>a Glance</h2>
                 <p class="tw-sub-2"><?php echo !empty($twCaptions['glance_sub']) ? ai_wrapped_caption_html($twCaptions['glance_sub']) : 'Small moments. Big stories.'; ?></p>
@@ -1568,7 +1571,7 @@ usort($checklist, function ($a, $b) {
         <?php endif; ?>
 
         <!-- Slide 10: Thank You -->
-        <div class="tw-slide tw-slide-10">
+        <div class="tw-slide tw-slide-10 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['10']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Here's to more <span class="tw-accent-green">adventures!</span></h2>
                 <p class="tw-thanks"><?php echo !empty($twCaptions['thanks_sub']) ? ai_wrapped_caption_html($twCaptions['thanks_sub']) : "Thank you for exploring Malvar with KULTOURA.<br>Let's make more memories together!"; ?></p>
