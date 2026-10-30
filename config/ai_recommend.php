@@ -513,12 +513,24 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         'total_photos'        => $stats['totalPhotos'],
         'categories_explored' => $stats['categoriesCompleted'],
         'favorite_category'   => $stats['favoriteCategory'],
+        'category_visits'     => $stats['categoryVisitCounts'] ?? [],
         'most_visited_place'  => $stats['mostVisited']['name'] ?? null,
         'first_place_visited' => $stats['firstPlaceVisited']['name'] ?? null,
         'latest_adventure'    => $stats['latestAdventure']['name'] ?? null,
         'longest_streak_days' => $stats['longestStreak'],
-        'places_visited'      => array_slice(array_column($stats['distinctPlaces'], 'name'), 0, 8),
+        'places_visited'      => array_map(static fn($place) => [
+            'name' => $place['name'],
+            'category' => $place['category'],
+            'visits' => $place['visitCount'] ?? 1,
+        ], array_slice($stats['distinctPlaces'], 0, 12)),
     ];
+
+    // A stable per-user tie-breaker lets AI vary the template for users
+    // with similar interaction patterns without changing it on refresh.
+    $facts['template_tie_breaker'] = hexdec(substr(hash(
+        'sha256',
+        $userId . '|' . $period . '|' . json_encode($facts['category_visits'])
+    ), 0, 7));
 
     // Ground the recap in the visitor's own diary notes and photo
     // captions. Send short text snippets only; never send image data.
@@ -561,6 +573,13 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         . "template: vary sentence openings and rhythm, and use personal_moments when present. Keep every field short (it's a caption, "
         . "not a paragraph) and avoid repeating the same place name in more than two fields. Reference only "
         . "supplied facts, places, notes, and captions; do not invent feelings, companions, weather, or events. "
+        . "Also choose one visual personality template that fits this visitor's strongest real interaction pattern. "
+        . "Use category_visits, place categories and names, visit counts, and personal_moments as evidence. "
+        . "Available templates: culture for churches, heritage, and local traditions; fiesta for repeated fiesta/event visits; "
+        . "sports for clear sports places or activities; coffee for repeated coffee-shop visits; food for repeated food or restaurant visits. "
+        . "Choose coffee only when coffee-shop evidence is clear; a generic restaurant visit alone is not enough. "
+        . "Choose sports only when sports activity is explicit. If one theme is clearly dominant, use it. "
+        . "When evidence is close, use template_tie_breaker to vary the choice; keep the choice grounded in the visitor's actual activity. "
         . "Design each Wrapped slide individually. Choose one of the listed layouts for every slide ID, "
         . "based on that slide's content and this visitor's actual data. Do not use one layout for every slide. "
         . "Allowed choices: slide 1 cover_collage|cover_type; 2 stats_rows|stats_tiles; 3 picks_editorial|picks_cards; "
@@ -568,7 +587,7 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         . "7 map_focus|map_compact; 8 photos_grid|photos_story; 9 glance_scatter|glance_strip; "
         . "10 closing_quote|closing_minimal. Replace every placeholder below with exactly one allowed value; "
         . "do not include angle brackets or the word choose. Respond with ONLY this JSON shape, no other text: "
-        . '{"slide_layouts":{"1":"<choose cover_collage or cover_type>",'
+        . '{"template":"<culture|fiesta|sports|coffee|food>", "slide_layouts":{"1":"<choose cover_collage or cover_type>",'
         . '"2":"<choose stats_rows or stats_tiles>","3":"<choose picks_editorial or picks_cards>",'
         . '"4":"<choose timeline_rail or timeline_cards>","5":"<choose places_grid or places_featured>",'
         . '"6":"<choose favorites_stack or favorites_grid>","7":"<choose map_focus or map_compact>",'
@@ -625,6 +644,10 @@ function ai_travel_wrapped_captions(mysqli $conn, int $userId, string $period, s
         if (in_array($choice, $choices, true)) $slideLayouts[$slide] = $choice;
     }
     if ($slideLayouts) $out['slide_layouts'] = $slideLayouts;
+    $allowedTemplates = ['culture', 'fiesta', 'sports', 'coffee', 'food'];
+    if (isset($parsed['template']) && in_array($parsed['template'], $allowedTemplates, true)) {
+        $out['template'] = $parsed['template'];
+    }
     return !empty($out) ? $out : null;
 }
 

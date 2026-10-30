@@ -418,11 +418,18 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
 
     $countByType = [];
     $countByCategory = [];
+    $categoryVisitCounts = [];
     foreach ($distinctKeys as $key) {
         $item = $catalog[$key] ?? null;
         if (!$item) continue;
         $countByType[$item['itemType']] = ($countByType[$item['itemType']] ?? 0) + 1;
         $countByCategory[$item['category']] = ($countByCategory[$item['category']] ?? 0) + 1;
+    }
+    foreach ($periodEntries as $entry) {
+        $key = $entry['item_type'] . '-' . $entry['item_id'];
+        $item = $catalog[$key] ?? null;
+        if (!$item) continue;
+        $categoryVisitCounts[$item['category']] = ($categoryVisitCounts[$item['category']] ?? 0) + 1;
     }
 
     $favoriteCategoryKey   = null;
@@ -517,6 +524,7 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         $distinctPlaces[] = [
             'name'        => $item['name'],
             'category'    => $item['category'],
+            'visitCount'  => count($visitsByItem[$key] ?? []),
             'badgeText'   => $item['badgeText'],
             'image'       => $item['image'],
             'lat'         => $item['lat'],
@@ -544,6 +552,7 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         'daysTraveled'          => count($distinctDates),
         'totalPhotos'           => $totalPhotos,
         'categoriesCompleted'   => count(array_filter($countByType, fn($c) => $c > 0)),
+        'categoryVisitCounts'   => $categoryVisitCounts,
         'favoriteCategory'      => $favoriteCategory,
         'favoriteCategoryKey'   => $favoriteCategoryKey,
         'favoriteCategoryImage' => $favoriteCategoryImage,
@@ -640,6 +649,28 @@ $canGenerateWrapped = count($wrappedEntries) > 0;
 $twCaptions = $canGenerateWrapped
     ? (ai_travel_wrapped_captions($conn, $userId, $wrappedPeriod, $wrappedLabel, $tw) ?? [])
     : [];
+$twTemplate = $twCaptions['template'] ?? '';
+$allowedWrappedTemplates = ['culture', 'fiesta', 'sports', 'coffee', 'food'];
+if (!in_array($twTemplate, $allowedWrappedTemplates, true)) {
+    // If AI is unavailable, use explicit repeat-visit evidence for a
+    // lightweight local fallback instead of always showing one theme.
+    $templateScores = [
+        'culture' => 0,
+        'fiesta' => (int) ($tw['categoryVisitCounts']['fiesta'] ?? 0),
+        'sports' => 0,
+        'coffee' => 0,
+        'food' => (int) ($tw['categoryVisitCounts']['restaurant'] ?? 0),
+    ];
+    foreach ($tw['timeline'] as $visit) {
+        $evidence = mb_strtolower(($visit['name'] ?? '') . ' ' . ($visit['note'] ?? ''));
+        if (preg_match('/coffee|cafe|café|espresso|barista/', $evidence)) $templateScores['coffee']++;
+        if (preg_match('/basketball|sports?|gym|court|volleyball|football/', $evidence)) $templateScores['sports']++;
+        if (preg_match('/church|chapel|heritage|historical|museum|culture|shrine/', $evidence)) $templateScores['culture']++;
+        if (preg_match('/food|restaurant|eatery|dining|kitchen|bakery/', $evidence)) $templateScores['food']++;
+    }
+    arsort($templateScores);
+    $twTemplate = (string) array_key_first($templateScores);
+}
 $twSlideLayoutDefaults = [
     '1' => 'cover_type', '2' => 'stats_rows', '3' => 'picks_editorial', '4' => 'timeline_rail',
     '5' => 'places_grid', '6' => 'favorites_stack', '7' => 'map_compact', '8' => 'photos_grid',
@@ -1350,7 +1381,7 @@ usort($checklist, function ($a, $b) {
     <button type="button" class="tw-close" id="twClose" aria-label="Close">&times;</button>
 
     <?php if ($canGenerateWrapped): ?>
-    <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?>">
+    <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?> tw-vibe-<?php echo htmlspecialchars($twTemplate); ?>">
     <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
 
     <div class="tw-vibe-picker" role="group" aria-label="Choose a Travel Wrapped background">
@@ -1360,6 +1391,11 @@ usort($checklist, function ($a, $b) {
         <button type="button" class="tw-vibe-option" data-tw-vibe="sunset" aria-label="Sunset lavender background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/sunset-lavender.png')"></button>
         <button type="button" class="tw-vibe-option" data-tw-vibe="neutral" aria-label="Neutral minimal background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/neutral-minimal.png')"></button>
         <button type="button" class="tw-vibe-option" data-tw-vibe="moonlit" aria-label="Moonlit night background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/moonlit-night.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="culture" aria-label="Culture lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/culture.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="fiesta" aria-label="Fiesta lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/fiesta.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="sports" aria-label="Sports fan background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/sports.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="coffee" aria-label="Coffee lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/coffee.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="food" aria-label="Food lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/food.png')"></button>
     </div>
 
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>

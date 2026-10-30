@@ -1133,26 +1133,25 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
 
     const vibeButtons = Array.from(overlay.querySelectorAll('[data-tw-vibe]'));
     const panel = overlay.querySelector('.tw-panel');
-    const allowedVibes = ['botanical', 'sky', 'sunset', 'neutral', 'moonlit'];
+    const allowedVibes = ['botanical', 'sky', 'sunset', 'neutral', 'moonlit', 'culture', 'fiesta', 'sports', 'coffee', 'food'];
 
-    function setWrappedVibe(vibe, save = true) {
+    function setWrappedVibe(vibe) {
         if (!panel || !allowedVibes.includes(vibe)) return;
         allowedVibes.forEach((name) => panel.classList.remove(`tw-vibe-${name}`));
         panel.classList.add(`tw-vibe-${vibe}`);
         vibeButtons.forEach((button) => {
             button.setAttribute('aria-pressed', String(button.dataset.twVibe === vibe));
         });
-        if (save) {
-            try { localStorage.setItem('kt-wrapped-vibe', vibe); } catch (err) {}
+        const selectedButton = vibeButtons.find((button) => button.dataset.twVibe === vibe);
+        const picker = selectedButton && selectedButton.parentElement;
+        if (selectedButton && picker && picker.classList.contains('tw-vibe-picker')) {
+            picker.scrollLeft = selectedButton.offsetLeft - picker.offsetLeft
+                - (picker.clientWidth - selectedButton.clientWidth) / 2;
         }
     }
 
-    let savedVibe = 'botanical';
-    try {
-        const storedVibe = localStorage.getItem('kt-wrapped-vibe');
-        if (allowedVibes.includes(storedVibe)) savedVibe = storedVibe;
-    } catch (err) {}
-    setWrappedVibe(savedVibe, false);
+    const aiSelectedVibe = allowedVibes.find((vibe) => panel && panel.classList.contains(`tw-vibe-${vibe}`)) || 'culture';
+    setWrappedVibe(aiSelectedVibe);
     vibeButtons.forEach((button) => {
         button.addEventListener('click', () => setWrappedVibe(button.dataset.twVibe));
     });
