@@ -1131,6 +1131,32 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
        with ?wrapped=weekly|monthly|yearly, then auto-opens below). */
     if (!overlay) return;
 
+    const vibeButtons = Array.from(overlay.querySelectorAll('[data-tw-vibe]'));
+    const panel = overlay.querySelector('.tw-panel');
+    const allowedVibes = ['botanical', 'sky', 'sunset', 'neutral', 'moonlit'];
+
+    function setWrappedVibe(vibe, save = true) {
+        if (!panel || !allowedVibes.includes(vibe)) return;
+        allowedVibes.forEach((name) => panel.classList.remove(`tw-vibe-${name}`));
+        panel.classList.add(`tw-vibe-${vibe}`);
+        vibeButtons.forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.twVibe === vibe));
+        });
+        if (save) {
+            try { localStorage.setItem('kt-wrapped-vibe', vibe); } catch (err) {}
+        }
+    }
+
+    let savedVibe = 'botanical';
+    try {
+        const storedVibe = localStorage.getItem('kt-wrapped-vibe');
+        if (allowedVibes.includes(storedVibe)) savedVibe = storedVibe;
+    } catch (err) {}
+    setWrappedVibe(savedVibe, false);
+    vibeButtons.forEach((button) => {
+        button.addEventListener('click', () => setWrappedVibe(button.dataset.twVibe));
+    });
+
     const slideCount = slidesEl ? slidesEl.children.length : 0;
     let current = 0;
 

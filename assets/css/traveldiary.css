@@ -2543,6 +2543,50 @@ button.td-folder-pill:hover {
     z-index: 10;
 }
 
+.tw-vibe-picker {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border: 1px solid rgba(44, 26, 14, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 4px 14px rgba(44, 26, 14, 0.12);
+    backdrop-filter: blur(8px);
+}
+
+.tw-vibe-label {
+    padding: 0 3px;
+    color: #2c1a0e;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.tw-vibe-option {
+    width: 25px;
+    height: 31px;
+    flex: 0 0 auto;
+    padding: 0;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    background-image: var(--tw-vibe-thumb);
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 0 0 1px rgba(44, 26, 14, 0.2);
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.tw-vibe-option:hover { transform: translateY(-2px); }
+.tw-vibe-option[aria-pressed="true"] { box-shadow: 0 0 0 2px #2c1a0e; }
+
 .tw-nav {
     position: absolute;
     top: 50%;
@@ -2777,6 +2821,35 @@ button.td-folder-pill:hover {
 .tw-slide-9.tw-layout-glance_strip .tw-sticky-note { position: relative; inset: auto; width: auto; grid-column: 1 / -1; transform: none; }
 .tw-slide-10.tw-layout-closing_minimal .tw-quote { background: transparent; border-top: 1px solid rgba(44,26,14,.2); border-radius: 0; padding: 18px 8px; }
 .tw-slide-10.tw-layout-closing_minimal .tw-title-2 { font-size: 29px; }
+
+/* User-selectable illustrated backdrops for every Wrapped slide. */
+.tw-panel.tw-vibe-botanical .tw-slide { background-image: url("../images/traveldiary/wrapped/botanical-cream.png"); }
+.tw-panel.tw-vibe-sky .tw-slide { background-image: url("../images/traveldiary/wrapped/sky-blue.png"); }
+.tw-panel.tw-vibe-sunset .tw-slide { background-image: url("../images/traveldiary/wrapped/sunset-lavender.png"); }
+.tw-panel.tw-vibe-neutral .tw-slide { background-image: url("../images/traveldiary/wrapped/neutral-minimal.png"); }
+.tw-panel.tw-vibe-moonlit .tw-slide { background-image: url("../images/traveldiary/wrapped/moonlit-night.png"); }
+.tw-panel[class*="tw-vibe-"] .tw-slide {
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.tw-panel.tw-vibe-moonlit .tw-slide-inner :is(
+    .tw-brand, .tw-brand span, .tw-title-1, .tw-title-2, .tw-accent-green, .tw-accent-gold,
+    .tw-sub, .tw-sub-2, .tw-footer-note, .tw-stat-num, .tw-stat-label, .tw-pick-label,
+    .tw-pick-value, .tw-mini-date, .tw-mini-verb, .tw-mini-name, .tw-thanks, .tw-quote,
+    .tw-brand-footer, .tw-brand-footer span, .tw-place-name, .tw-place-pin, .tw-liked-name,
+    .tw-liked-heart, .tw-map-legend-item
+) {
+    color: #fff8df !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.72);
+}
+
+.tw-panel.tw-vibe-moonlit .tw-slide-inner :is(
+    .tw-stat-row, .tw-pick-row, .tw-mini-item, .tw-place-card, .tw-liked-card, .tw-quote, .tw-sticky-note
+) {
+    background-color: rgba(7, 20, 17, 0.62);
+}
 
 .tw-sub {
     font-size: 13.5px;

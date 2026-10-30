@@ -1353,6 +1353,15 @@ usort($checklist, function ($a, $b) {
     <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?>">
     <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
 
+    <div class="tw-vibe-picker" role="group" aria-label="Choose a Travel Wrapped background">
+        <span class="tw-vibe-label">Vibe</span>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="botanical" aria-label="Botanical cream background" aria-pressed="true" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/botanical-cream.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="sky" aria-label="Sky blue background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/sky-blue.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="sunset" aria-label="Sunset lavender background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/sunset-lavender.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="neutral" aria-label="Neutral minimal background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/neutral-minimal.png')"></button>
+        <button type="button" class="tw-vibe-option" data-tw-vibe="moonlit" aria-label="Moonlit night background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/moonlit-night.png')"></button>
+    </div>
+
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>
     <button type="button" class="tw-nav tw-nav-next" id="twNext" aria-label="Next slide">&#8250;</button>
 
