@@ -2779,16 +2779,16 @@ button.td-folder-pill:hover {
 .tw-slide-10.tw-layout-closing_minimal .tw-title-2 { font-size: 29px; }
 
 /* User-selectable illustrated backdrops for every Wrapped slide. */
-.tw-panel.tw-vibe-botanical .tw-slide { background-image: url("../images/traveldiary/wrapped/botanical-cream.png"); }
-.tw-panel.tw-vibe-sky .tw-slide { background-image: url("../images/traveldiary/wrapped/sky-blue.png"); }
-.tw-panel.tw-vibe-sunset .tw-slide { background-image: url("../images/traveldiary/wrapped/sunset-lavender.png"); }
-.tw-panel.tw-vibe-neutral .tw-slide { background-image: url("../images/traveldiary/wrapped/neutral-minimal.png"); }
-.tw-panel.tw-vibe-moonlit .tw-slide { background-image: url("../images/traveldiary/wrapped/moonlit-night.png"); }
-.tw-panel.tw-vibe-culture .tw-slide { background-image: url("../images/traveldiary/wrapped/culture.png"); }
-.tw-panel.tw-vibe-fiesta .tw-slide { background-image: url("../images/traveldiary/wrapped/fiesta.png"); }
-.tw-panel.tw-vibe-sports .tw-slide { background-image: url("../images/traveldiary/wrapped/sports.png"); }
-.tw-panel.tw-vibe-coffee .tw-slide { background-image: url("../images/traveldiary/wrapped/coffee.png"); }
-.tw-panel.tw-vibe-food .tw-slide { background-image: url("../images/traveldiary/wrapped/food.png"); }
+.tw-panel.tw-vibe-botanical .tw-slide { background-image: url("../images/traveldiary/wrapped/botanical-cream.jpg"); }
+.tw-panel.tw-vibe-sky .tw-slide { background-image: url("../images/traveldiary/wrapped/sky-blue.jpg"); }
+.tw-panel.tw-vibe-sunset .tw-slide { background-image: url("../images/traveldiary/wrapped/sunset-lavender.jpg"); }
+.tw-panel.tw-vibe-neutral .tw-slide { background-image: url("../images/traveldiary/wrapped/neutral-minimal.jpg"); }
+.tw-panel.tw-vibe-moonlit .tw-slide { background-image: url("../images/traveldiary/wrapped/moonlit-night.jpg"); }
+.tw-panel.tw-vibe-culture .tw-slide { background-image: url("../images/traveldiary/wrapped/culture.jpg"); }
+.tw-panel.tw-vibe-fiesta .tw-slide { background-image: url("../images/traveldiary/wrapped/fiesta.jpg"); }
+.tw-panel.tw-vibe-sports .tw-slide { background-image: url("../images/traveldiary/wrapped/sports.jpg"); }
+.tw-panel.tw-vibe-coffee .tw-slide { background-image: url("../images/traveldiary/wrapped/coffee.jpg"); }
+.tw-panel.tw-vibe-food .tw-slide { background-image: url("../images/traveldiary/wrapped/food.jpg"); }
 .tw-panel[class*="tw-vibe-"] .tw-slide {
     background-size: cover;
     background-position: center bottom;
