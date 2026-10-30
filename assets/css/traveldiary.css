@@ -2634,9 +2634,11 @@ button.td-folder-pill:hover {
     width: 100%;
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .tw-slide-inner {
+    width: 100%;
     min-height: 100%;
     box-sizing: border-box;
     /* Extra bottom clearance so content doesn't sit under the floating
@@ -2751,9 +2753,10 @@ button.td-folder-pill:hover {
 .tw-slide-2.tw-layout-stats_tiles .tw-stat-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .tw-slide-2.tw-layout-stats_tiles .tw-stat-row { min-height: 76px; flex-direction: column; align-items: flex-start; gap: 5px; padding: 10px; }
 .tw-slide-2.tw-layout-stats_tiles .tw-stat-icon { width: 26px; height: 26px; }
-.tw-slide-3.tw-layout-picks_cards .tw-picks-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.tw-slide-3.tw-layout-picks_cards .tw-pick-row { min-height: 88px; align-items: flex-start; flex-direction: column; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.5); }
-.tw-slide-3.tw-layout-picks_cards .tw-pick-photo { width: 100%; height: 58px; order: -1; }
+.tw-slide-3.tw-layout-picks_cards .tw-picks-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.tw-slide-3.tw-layout-picks_cards .tw-pick-row { width: 100%; min-width: 0; min-height: 88px; box-sizing: border-box; align-items: flex-start; flex-direction: column; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.5); }
+.tw-slide-3.tw-layout-picks_cards .tw-pick-text { width: 100%; min-width: 0; }
+.tw-slide-3.tw-layout-picks_cards .tw-pick-photo { width: 100%; height: 58px; box-sizing: border-box; order: -1; }
 .tw-slide-3.tw-layout-picks_cards .tw-pick-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
 .tw-slide-4.tw-layout-timeline_rail .tw-mini-timeline { border-left: 2px solid rgba(95,125,76,.3); margin-left: 13px; padding-left: 18px; }
 .tw-slide-4.tw-layout-timeline_cards .tw-mini-item { padding: 10px; border-radius: 12px; background: rgba(255,255,255,.5); box-shadow: 0 5px 14px rgba(44,26,14,.06); }
