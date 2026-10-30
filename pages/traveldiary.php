@@ -650,7 +650,7 @@ $twCaptions = $canGenerateWrapped
     ? (ai_travel_wrapped_captions($conn, $userId, $wrappedPeriod, $wrappedLabel, $tw) ?? [])
     : [];
 $twTemplate = $twCaptions['template'] ?? '';
-$allowedWrappedTemplates = ['culture', 'fiesta', 'sports', 'coffee', 'food'];
+$allowedWrappedTemplates = ['culture', 'fiesta', 'sports', 'coffee', 'food', 'botanical', 'sky', 'sunset', 'neutral', 'moonlit'];
 if (!in_array($twTemplate, $allowedWrappedTemplates, true)) {
     // If AI is unavailable, use explicit repeat-visit evidence for a
     // lightweight local fallback instead of always showing one theme.
@@ -668,8 +668,17 @@ if (!in_array($twTemplate, $allowedWrappedTemplates, true)) {
         if (preg_match('/church|chapel|heritage|historical|museum|culture|shrine/', $evidence)) $templateScores['culture']++;
         if (preg_match('/food|restaurant|eatery|dining|kitchen|bakery/', $evidence)) $templateScores['food']++;
     }
-    arsort($templateScores);
-    $twTemplate = (string) array_key_first($templateScores);
+    if (max($templateScores) > 0) {
+        arsort($templateScores);
+        $twTemplate = (string) array_key_first($templateScores);
+    } else {
+        $generalTemplates = ['botanical', 'sky', 'sunset', 'neutral', 'moonlit'];
+        $templateSeed = hexdec(substr(hash(
+            'sha256',
+            $userId . '|' . $wrappedPeriod . '|' . json_encode($tw['categoryVisitCounts'])
+        ), 0, 7));
+        $twTemplate = $generalTemplates[$templateSeed % count($generalTemplates)];
+    }
 }
 $twSlideLayoutDefaults = [
     '1' => 'cover_type', '2' => 'stats_rows', '3' => 'picks_editorial', '4' => 'timeline_rail',
@@ -1383,20 +1392,6 @@ usort($checklist, function ($a, $b) {
     <?php if ($canGenerateWrapped): ?>
     <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?> tw-vibe-<?php echo htmlspecialchars($twTemplate); ?>">
     <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
-
-    <div class="tw-vibe-picker" role="group" aria-label="Choose a Travel Wrapped background">
-        <span class="tw-vibe-label">Vibe</span>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="botanical" aria-label="Botanical cream background" aria-pressed="true" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/botanical-cream.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="sky" aria-label="Sky blue background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/sky-blue.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="sunset" aria-label="Sunset lavender background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/sunset-lavender.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="neutral" aria-label="Neutral minimal background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/neutral-minimal.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="moonlit" aria-label="Moonlit night background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/moonlit-night.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="culture" aria-label="Culture lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/culture.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="fiesta" aria-label="Fiesta lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/fiesta.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="sports" aria-label="Sports fan background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/sports.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="coffee" aria-label="Coffee lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/coffee.png')"></button>
-        <button type="button" class="tw-vibe-option" data-tw-vibe="food" aria-label="Food lover background" aria-pressed="false" style="--tw-vibe-thumb: url('../images/traveldiary/wrapped/food.png')"></button>
-    </div>
 
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>
     <button type="button" class="tw-nav tw-nav-next" id="twNext" aria-label="Next slide">&#8250;</button>

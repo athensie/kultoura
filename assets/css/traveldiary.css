@@ -2543,54 +2543,6 @@ button.td-folder-pill:hover {
     z-index: 10;
 }
 
-.tw-vibe-picker {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 11;
-    max-width: calc(100% - 150px);
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    overflow-x: auto;
-    padding: 5px 8px;
-    border: 1px solid rgba(44, 26, 14, 0.1);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.82);
-    box-shadow: 0 4px 14px rgba(44, 26, 14, 0.12);
-    backdrop-filter: blur(8px);
-}
-
-.tw-vibe-label {
-    padding: 0 3px;
-    color: #2c1a0e;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.tw-vibe-option {
-    width: 20px;
-    height: 28px;
-    flex: 0 0 auto;
-    padding: 0;
-    border: 2px solid rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    background-image: var(--tw-vibe-thumb);
-    background-size: cover;
-    background-position: center;
-    box-shadow: 0 0 0 1px rgba(44, 26, 14, 0.2);
-    cursor: pointer;
-    transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-.tw-vibe-option:hover { transform: translateY(-2px); }
-.tw-vibe-option[aria-pressed="true"] { box-shadow: 0 0 0 2px #2c1a0e; }
-.tw-vibe-picker::-webkit-scrollbar { display: none; }
-
 .tw-nav {
     position: absolute;
     top: 50%;
@@ -2838,10 +2790,13 @@ button.td-folder-pill:hover {
 .tw-panel.tw-vibe-coffee .tw-slide { background-image: url("../images/traveldiary/wrapped/coffee.png"); }
 .tw-panel.tw-vibe-food .tw-slide { background-image: url("../images/traveldiary/wrapped/food.png"); }
 .tw-panel[class*="tw-vibe-"] .tw-slide {
-    background-size: 100% 100%;
-    background-position: center;
+    background-size: cover;
+    background-position: center bottom;
     background-repeat: no-repeat;
 }
+
+.tw-panel.tw-vibe-sports .tw-slide,
+.tw-panel.tw-vibe-moonlit .tw-slide { background-position: center top; }
 
 .tw-panel.tw-vibe-moonlit .tw-slide-inner :is(
     .tw-brand, .tw-brand span, .tw-title-1, .tw-title-2, .tw-accent-green, .tw-accent-gold,
