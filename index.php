@@ -212,7 +212,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
-    <link rel="stylesheet" href="assets/css/index.css?v=20261031-2">
+    <link rel="stylesheet" href="assets/css/index.css?v=20261031-3">
     <link rel="stylesheet" href="assets/css/search.css">
 </head>
 <body>
@@ -556,16 +556,21 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
 <section class="home-gallery">
     <div class="home-gallery-top reveal">
         <p class="home-eyebrow home-eyebrow-rust">EVENTS IN MALVAR</p>
-        <h2 class="home-heading">Moments We've Shared</h2>
+        <h2 class="home-heading home-heading-barabara">Moments We've Shared</h2>
     </div>
     <div class="home-gallery-grid reveal">
         <?php foreach ($homeEventGallery as $g): ?>
-            <div class="home-gallery-tile">
+            <button type="button" class="home-gallery-tile" aria-label="View moment: <?php echo htmlspecialchars($g['caption']); ?>" data-gallery-image="<?php echo htmlspecialchars($g['image']); ?>" data-gallery-caption="<?php echo htmlspecialchars($g['caption']); ?>">
                 <img src="<?php echo htmlspecialchars($g['image']); ?>" alt="" loading="lazy">
-                <span class="home-gallery-caption"><?php echo htmlspecialchars($g['caption']); ?></span>
-            </div>
+                <span class="home-gallery-overlay"><span class="home-gallery-view-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="home-gallery-caption"><?php echo htmlspecialchars($g['caption']); ?></span></span>
+            </button>
         <?php endforeach; ?>
     </div>
+    <dialog class="home-gallery-dialog" id="homeGalleryDialog" aria-label="Event moment">
+        <button type="button" class="home-gallery-dialog-close" aria-label="Close photo">&times;</button>
+        <img id="homeGalleryDialogImage" src="" alt="">
+        <p id="homeGalleryDialogCaption"></p>
+    </dialog>
 </section>
 <?php endif; ?>
 <footer class="home-footer">

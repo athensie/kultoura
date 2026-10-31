@@ -82,3 +82,23 @@ function toggleFooterAccordion(heading) {
     }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
     revealEls.forEach((el) => observer.observe(el));
 })();
+(() => {
+    const dialog = document.getElementById('homeGalleryDialog');
+    const dialogImage = document.getElementById('homeGalleryDialogImage');
+    const dialogCaption = document.getElementById('homeGalleryDialogCaption');
+    if (!dialog || !dialogImage || !dialogCaption) return;
+
+    document.querySelectorAll('.home-gallery-tile').forEach(tile => {
+        tile.addEventListener('click', () => {
+            dialogImage.src = tile.dataset.galleryImage || '';
+            dialogImage.alt = tile.dataset.galleryCaption || 'Event moment';
+            dialogCaption.textContent = tile.dataset.galleryCaption || '';
+            dialog.showModal();
+        });
+    });
+
+    dialog.querySelector('.home-gallery-dialog-close')?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => {
+        if (event.target === dialog) dialog.close();
+    });
+})();
