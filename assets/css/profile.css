@@ -66,6 +66,9 @@ body {
 .profile-check input { margin: 3px 0 0; accent-color: #315f46; }
 .profile-form button { justify-self: stretch; padding: 15px 22px; border: 0; border-radius: 999px; background: #194332; color: #fff; font-size: .95rem; font-weight: 700; cursor: pointer; }
 .profile-form button:hover { background: #244a35; }
+.profile-password-section { margin-top: 34px; padding-top: 28px; border-top: 1px solid #e6ded4; }
+.profile-password-section h2 { margin: 0; color: #2c1a0e; font: 700 clamp(1.45rem, 3vw, 1.8rem)/1.15 Georgia, 'Times New Roman', serif; }
+.profile-password-section .profile-intro { margin-bottom: 22px; }
 .profile-alert { margin: 0 0 20px; padding: 12px 14px; border-radius: 10px; font-size: .9rem; line-height: 1.45; }
 .profile-alert-error { border: 1px solid #e4b5aa; background: #fff0ec; color: #8e2e1b; }
 .profile-alert-success { border: 1px solid #b9d1bb; background: #eff8ef; color: #315f36; }

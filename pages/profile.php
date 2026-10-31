@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
+require_once __DIR__ . '/../config/password_policy.php';
 if (!isset($_SESSION['user_id']) || strtolower((string) ($_SESSION['role'] ?? '')) !== 'user') {
     header('Location: ../auth/login.php');
     exit;
@@ -14,41 +15,81 @@ $success = $_SESSION['profile_success'] ?? '';
 unset($_SESSION['profile_error'], $_SESSION['profile_success']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
-    $fullname = trim((string) ($_POST['fullname'] ?? ''));
-    $username = trim((string) ($_POST['username'] ?? ''));
-    $email = trim((string) ($_POST['email'] ?? ''));
-    $promotionalEmail = isset($_POST['promotional_email']) ? 1 : 0;
-    if ($fullname === '' || mb_strlen($fullname) > 100) {
-        $error = 'Enter your name (up to 100 characters).';
-    } elseif (!preg_match('/^[A-Za-z0-9_]{4,20}$/', $username)) {
-        $error = 'Username must be 4–20 characters and use only letters, numbers, or underscores.';
-    } elseif (strlen($email) > 100 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Enter a valid email address (up to 100 characters).';
-    } else {
-        try {
-            $stmt = $conn->prepare(
-                'UPDATE users SET fullname = ?, username = ?, email = ?, promotional_email = ? WHERE id = ?'
-            );
-            $stmt->bind_param('sssii', $fullname, $username, $email, $promotionalEmail, $userId);
+    if (($_POST['action'] ?? '') === 'change_password') {
+        $currentPassword = (string) ($_POST['current_password'] ?? '');
+        $newPassword = (string) ($_POST['new_password'] ?? '');
+        $confirmPassword = (string) ($_POST['confirm_new_password'] ?? '');
+
+        $stmt = $conn->prepare('SELECT password FROM users WHERE id = ? LIMIT 1');
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $passwordHash = $stmt->get_result()->fetch_assoc()['password'] ?? '';
+        $stmt->close();
+
+        if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+            $error = 'Enter your current password and complete both new password fields.';
+        } elseif ($passwordHash === '' || !password_verify($currentPassword, $passwordHash)) {
+            $error = 'Your current password is incorrect.';
+        } elseif (!kt_password_meets_policy($newPassword)) {
+            $error = 'New password must be at least 8 characters long and include an uppercase letter and a special character.';
+        } elseif ($newPassword !== $confirmPassword) {
+            $error = 'The new passwords do not match.';
+        } elseif (password_verify($newPassword, $passwordHash)) {
+            $error = 'Choose a new password that is different from your current password.';
+        } else {
+            $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare('UPDATE users SET password = ? WHERE id = ?');
+            $stmt->bind_param('si', $newPasswordHash, $userId);
             $stmt->execute();
             $stmt->close();
-            $_SESSION['username'] = $username;
-            $_SESSION['user_name'] = $fullname;
-            $_SESSION['profile_success'] = 'Your profile has been updated.';
+            $_SESSION['profile_success'] = 'Your password has been changed.';
             header('Location: profile.php');
             exit;
-        } catch (mysqli_sql_exception $e) {
-            $error = $e->getCode() === 1062
-                ? 'That username or email address is already in use.'
-                : 'We could not save your profile. Please try again.';
         }
+
+        // Keep the account form populated when password validation fails.
+        $stmt = $conn->prepare('SELECT fullname, username, email, promotional_email FROM users WHERE id = ? LIMIT 1');
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $profile = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+    } else {
+        $fullname = trim((string) ($_POST['fullname'] ?? ''));
+        $username = trim((string) ($_POST['username'] ?? ''));
+        $email = trim((string) ($_POST['email'] ?? ''));
+        $promotionalEmail = isset($_POST['promotional_email']) ? 1 : 0;
+        if ($fullname === '' || mb_strlen($fullname) > 100) {
+            $error = 'Enter your name (up to 100 characters).';
+        } elseif (!preg_match('/^[A-Za-z0-9_]{4,20}$/', $username)) {
+            $error = 'Username must be 4–20 characters and use only letters, numbers, or underscores.';
+        } elseif (strlen($email) > 100 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Enter a valid email address (up to 100 characters).';
+        } else {
+            try {
+                $stmt = $conn->prepare(
+                    'UPDATE users SET fullname = ?, username = ?, email = ?, promotional_email = ? WHERE id = ?'
+                );
+                $stmt->bind_param('sssii', $fullname, $username, $email, $promotionalEmail, $userId);
+                $stmt->execute();
+                $stmt->close();
+                $_SESSION['username'] = $username;
+                $_SESSION['user_name'] = $fullname;
+                $_SESSION['profile_success'] = 'Your profile has been updated.';
+                header('Location: profile.php');
+                exit;
+            } catch (mysqli_sql_exception $e) {
+                $error = $e->getCode() === 1062
+                    ? 'That username or email address is already in use.'
+                    : 'We could not save your profile. Please try again.';
+            }
+        }
+        $profile = [
+            'fullname' => $fullname,
+            'username' => $username,
+            'email' => $email,
+            'promotional_email' => $promotionalEmail,
+        ];
     }
-    $profile = [
-        'fullname' => $fullname,
-        'username' => $username,
-        'email' => $email,
-        'promotional_email' => $promotionalEmail,
-    ];
 } else {
     $stmt = $conn->prepare('SELECT fullname, username, email, promotional_email FROM users WHERE id = ? LIMIT 1');
     $stmt->bind_param('i', $userId);
@@ -189,6 +230,7 @@ while ($dateRow = $dateRows->fetch_assoc()) {
             <?php if ($success !== ''): ?><div class="profile-alert profile-alert-success" role="status"><?php echo profile_escape($success); ?></div><?php endif; ?>
             <form method="post" action="profile.php" class="profile-form">
                 <?php echo csrf_field(); ?>
+                <input type="hidden" name="action" value="update_profile">
                 <label>
                     <span>Full name</span>
                     <input type="text" name="fullname" maxlength="100" autocomplete="name" required value="<?php echo profile_escape((string) ($profile['fullname'] ?? '')); ?>">
@@ -208,6 +250,29 @@ while ($dateRow = $dateRows->fetch_assoc()) {
                 </label>
                 <button type="submit">Save changes</button>
             </form>
+            <section class="profile-password-section" aria-labelledby="password-heading">
+                <p class="profile-eyebrow">ACCOUNT SECURITY</p>
+                <h2 id="password-heading">Change your password</h2>
+                <p class="profile-intro">Enter your current password, then choose a new one.</p>
+                <form method="post" action="profile.php" class="profile-form profile-password-form">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="change_password">
+                    <label>
+                        <span>Current password</span>
+                        <input type="password" name="current_password" autocomplete="current-password" required>
+                    </label>
+                    <label>
+                        <span>New password</span>
+                        <input type="password" name="new_password" minlength="8" autocomplete="new-password" required>
+                        <small>At least 8 characters, with an uppercase letter and a special character.</small>
+                    </label>
+                    <label>
+                        <span>Confirm new password</span>
+                        <input type="password" name="confirm_new_password" minlength="8" autocomplete="new-password" required>
+                    </label>
+                    <button type="submit">Update password</button>
+                </form>
+            </section>
             </div>
         </section>
     </main>
