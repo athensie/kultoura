@@ -1,0 +1,53 @@
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #f0ebe3;
+    color: #2c1a0e;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px clamp(20px, 6vw, 80px);
+    background: #16261b;
+}
+
+.profile-header a { color: #f5efe3; text-decoration: none; }
+.profile-brand { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: .12em; }
+.profile-back { font-size: .9rem; }
+
+.profile-main { display: grid; place-items: start center; padding: 64px 20px; }
+.profile-card {
+    width: min(100%, 560px);
+    padding: clamp(28px, 6vw, 48px);
+    border: 1px solid rgba(44, 26, 14, .09);
+    border-radius: 22px;
+    background: #fffdfa;
+    box-shadow: 0 18px 50px rgba(44, 26, 14, .08);
+}
+
+.profile-eyebrow { margin: 0 0 10px; color: #a43b21; font-size: .75rem; font-weight: 700; letter-spacing: .18em; }
+.profile-card h1 { margin: 0; font: 700 clamp(2rem, 6vw, 2.7rem)/1.1 Georgia, 'Times New Roman', serif; }
+.profile-intro { margin: 12px 0 28px; color: #776c62; }
+.profile-form { display: grid; gap: 20px; }
+.profile-form > label:not(.profile-check) { display: grid; gap: 8px; font-size: .9rem; font-weight: 700; }
+.profile-form input:not([type="checkbox"]) { width: 100%; padding: 13px 14px; border: 1px solid #d8cfc3; border-radius: 10px; background: #fff; color: #2c1a0e; font: inherit; }
+.profile-form input:focus { outline: 3px solid rgba(47, 102, 144, .18); border-color: #2f6690; }
+.profile-form small { color: #776c62; font-weight: 400; }
+.profile-check { display: flex; align-items: flex-start; gap: 10px; color: #51463d; font-size: .9rem; line-height: 1.5; }
+.profile-check input { margin: 3px 0 0; accent-color: #315f46; }
+.profile-form button { justify-self: start; padding: 13px 22px; border: 0; border-radius: 999px; background: #315f46; color: #fff; font-size: .95rem; font-weight: 700; cursor: pointer; }
+.profile-form button:hover { background: #244a35; }
+.profile-alert { margin: 0 0 20px; padding: 12px 14px; border-radius: 10px; font-size: .9rem; line-height: 1.45; }
+.profile-alert-error { border: 1px solid #e4b5aa; background: #fff0ec; color: #8e2e1b; }
+.profile-alert-success { border: 1px solid #b9d1bb; background: #eff8ef; color: #315f36; }
+
+@media (max-width: 520px) {
+    .profile-header { padding-inline: 18px; }
+    .profile-main { padding: 34px 14px; }
+    .profile-back { font-size: .8rem; }
+}

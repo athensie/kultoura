@@ -10,6 +10,28 @@ $pageWidget = kt_page_widget_get($conn, 'products');
 analytics_track($conn, 'products');
 
 $productsHeroPhoto = sitecontent_get_photo($conn, 'products_hero');
+// Older photo rows may contain a relative path. Since this page is nested
+// under /pages/tourism, the browser would otherwise look under the wrong
+// directory and render a broken image. Ignore stale local files so the
+// regular hero background can show instead.
+if ($productsHeroPhoto !== null) {
+    $productsHeroPhoto = trim($productsHeroPhoto);
+    if ($productsHeroPhoto !== '' && !preg_match('~^https?://~i', $productsHeroPhoto)) {
+        if ($productsHeroPhoto[0] !== '/') {
+            $productsHeroPhoto = '/kultoura/' . ltrim($productsHeroPhoto, '/');
+        }
+        if (str_starts_with($productsHeroPhoto, '/kultoura/')) {
+            $relativePhotoPath = substr($productsHeroPhoto, strlen('/kultoura/'));
+            $localPhotoPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR
+                . str_replace('/', DIRECTORY_SEPARATOR, $relativePhotoPath);
+            if (!is_file($localPhotoPath)) {
+                $productsHeroPhoto = null;
+            }
+        }
+    } elseif ($productsHeroPhoto === '') {
+        $productsHeroPhoto = null;
+    }
+}
 
 // Logged for foryou.php's "Because You Explored" recommendations.
 $_SESSION['history'][] = 'product';
@@ -131,6 +153,7 @@ foreach ($rows as $r) {
                 <div class="mega-column">
                     <a href="../foryou.php">For You</a>
                     <a href="../traveldiary.php">Travel Diary</a>
+                    <?php if ($isLoggedIn): ?><a href="../profile.php">My Profile</a><?php endif; ?>
                     <a href="../favorites.php">Favorites</a>
                     <a href="../mostpopular.php">Most Popular</a>
                     <a href="../about.php">About</a>

@@ -303,6 +303,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
                     <div class="mega-column">
                         <a href="pages/foryou.php">For You</a>
                         <a href="pages/traveldiary.php">Travel Diary</a>
+                        <?php if ($isLoggedIn): ?><a href="pages/profile.php">My Profile</a><?php endif; ?>
                         <a href="pages/favorites.php">Favorites</a>
                         <a href="pages/mostpopular.php">Most Popular</a>
                         <a href="pages/about.php">About</a>

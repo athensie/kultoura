@@ -642,7 +642,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
             <div class="mega-menu mega-menu-simple">
                 <div class="mega-column">
                     <a href="foryou.php">For You</a>
-                    <a href="traveldiary.php">Travel Diary</a>
+                    <a href="traveldiary.php">Travel Diary</a><?php if ($isLoggedIn): ?><a href="profile.php">My Profile</a><?php endif; ?>
                     <a href="favorites.php">Favorites</a>
                     <a href="mostpopular.php">Most Popular</a>
                     <a href="about.php">About</a>

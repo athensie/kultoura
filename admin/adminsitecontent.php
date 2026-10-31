@@ -79,10 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // ---- Hero / singleton photo slots (home_hero_1, home_hero_2, home_hero_bg, about_hero) ----
+    // ---- Hero / singleton photo slots ----
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
-        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero'], true)) {
+        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero', 'products_hero'], true)) {
             if (!empty($_POST['remove_image'])) {
                 $stmt = $conn->prepare("INSERT INTO site_photos (photo_key, image) VALUES (?, NULL) ON DUPLICATE KEY UPDATE image = NULL");
                 $stmt->bind_param('s', $key);
@@ -177,6 +177,12 @@ $heroPhotoGroups = [
         'icon'  => 'info',
         'slots' => [
             'about_hero' => ['label' => 'Hero Photo', 'hint' => 'The full-width background photo behind "About / Malvar".', 'url' => BASE_URL . '/pages/about.php', 'highlight' => '.a-hero'],
+        ],
+    ],
+    'Products Page' => [
+        'icon'  => 'shopping-bag',
+        'slots' => [
+            'products_hero' => ['label' => 'Hero Photo', 'hint' => 'The full-width photo behind the Local Products heading. Remove it to use the page background.', 'url' => BASE_URL . '/pages/tourism/products.php', 'highlight' => '.t-hero'],
         ],
     ],
 ];
