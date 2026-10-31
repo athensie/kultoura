@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id']) || strtolower((string) ($_SESSION['role'] ?? ''
 }
 
 $userId = (int) $_SESSION['user_id'];
+$isLoggedIn = true;
+$navUserName = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '', ENT_QUOTES, 'UTF-8');
 $error = $_SESSION['profile_error'] ?? '';
 $success = $_SESSION['profile_success'] ?? '';
 unset($_SESSION['profile_error'], $_SESSION['profile_success']);
@@ -131,12 +133,42 @@ while ($dateRow = $dateRows->fetch_assoc()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile – KULTOURA</title>
+    <link rel="stylesheet" href="../assets/css/index.css">
+    <link rel="stylesheet" href="../assets/css/search.css">
+    <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/profile.css">
 </head>
 <body>
-    <header class="profile-header">
-        <a href="../index.php" class="profile-brand">KULTOURA</a>
-        <a href="../index.php" class="profile-back">Back to exploring</a>
+    <header class="navbar navbar-solid">
+        <div class="user-greeting-left user-greeting-name">
+            <span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../assets/images/salakot.png?v=20261008" alt=""></span>
+            <span class="navbar-greeting-text">Mabuhay, <?php echo $navUserName; ?></span>
+        </div>
+        <nav class="nav-links">
+            <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
+            <div class="dropdown">
+                <a href="tourism.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg></span><span>EXPLORE MALVAR ▾</span></a>
+                <div class="mega-menu">
+                    <div class="mega-column"><h4>Local Products</h4><a href="tourism/products.php">Products</a></div>
+                    <div class="mega-column"><h4>Local Destinations</h4><a href="tourism/nature.php">Nature</a><a href="tourism/industry.php">Industry Zone</a><a href="tourism/resort.php">Resort</a><a href="tourism/churches.php">Churches</a></div>
+                    <div class="mega-column"><h4>Culture &amp; Services</h4><a href="tourism/fiestas.php">Fiestas</a><a href="tourism/people.php">People of Malvar</a><a href="tourism/services.php">Other Services</a></div>
+                </div>
+            </div>
+            <a href="tourism/restaurants.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg></span><span>RESTAURANTS</span></a>
+            <a href="tourism/accommodation.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M22 12v8M2 12h20M2 8h6a2 2 0 0 1 2 2v2M22 8h-6a2 2 0 0 0-2 2v2"/></svg></span><span>ACCOMMODATION</span></a>
+            <a href="tourism/banks.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M4 10v11M20 10v11M2 10h20L12 4zM8 14v4M12 14v4M16 14v4"/></svg></span><span>BANKS</span></a>
+            <div class="dropdown">
+                <a href="#" class="nav-item nav-active"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></span><span>MORE ▾</span></a>
+                <div class="mega-menu mega-menu-simple"><div class="mega-column"><a href="foryou.php">For You</a><a href="traveldiary.php">Travel Diary</a><a href="profile.php" class="nav-active">My Profile</a><a href="favorites.php">Favorites</a><a href="mostpopular.php">Most Popular</a><a href="about.php">About</a></div></div>
+            </div>
+            <a href="../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></span><span>SIGN OUT</span></a>
+        </nav>
+        <div class="navbar-search" data-api="search_api.php" data-results="search.php">
+            <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+            <form class="navbar-search-form" action="search.php" method="GET"><input type="search" name="q" class="navbar-search-input" placeholder="Search KulToura…" autocomplete="off"></form>
+            <div class="navbar-search-dropdown"></div>
+        </div>
+        <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false"><span></span><span></span><span></span></button>
     </header>
     <main class="profile-main">
         <section class="profile-card">
@@ -156,9 +188,13 @@ while ($dateRow = $dateRows->fetch_assoc()) {
                     <div class="profile-stat"><strong><?php echo number_format($stats['photos']); ?></strong><span>Travel photos</span></div>
                     <div class="profile-stat profile-stat-streak"><strong><?php echo number_format($stats['streak']); ?> <small><?php echo $stats['streak'] === 1 ? 'day' : 'days'; ?></small></strong><span>Longest visit streak</span></div>
                 </div>
-                <div class="profile-summary-links">
-                    <a href="traveldiary.php">Open Travel Diary <span aria-hidden="true">→</span></a>
-                    <a href="favorites.php">View favorites <span aria-hidden="true">→</span></a>
+                <div class="profile-summary-links" aria-label="Quick links">
+                    <a class="profile-shortcut" href="traveldiary.php" aria-label="Open Travel Diary" title="Open Travel Diary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5z"/><path d="M5 4.5v17M9 7h7M9 11h7"/></svg>
+                    </a>
+                    <a class="profile-shortcut" href="favorites.php" aria-label="View favorites" title="View favorites">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+                    </a>
                 </div>
             </aside>
             <div class="profile-edit">
@@ -193,5 +229,7 @@ while ($dateRow = $dateRows->fetch_assoc()) {
             </div>
         </section>
     </main>
+    <script src="../assets/js/navbar.js"></script>
+    <script src="../assets/js/navbar-search.js"></script>
 </body>
 </html>

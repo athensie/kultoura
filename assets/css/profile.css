@@ -8,18 +8,6 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
-.profile-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px clamp(20px, 6vw, 80px);
-    background: #16261b;
-}
-
-.profile-header a { color: #f5efe3; text-decoration: none; }
-.profile-brand { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: .12em; }
-.profile-back { font-size: .9rem; }
-
 .profile-main { display: grid; place-items: start center; padding: 54px clamp(20px, 6vw, 80px); }
 .profile-card {
     display: grid;
@@ -63,9 +51,11 @@ body {
 .profile-stat strong small { font: 500 .78rem Arial, Helvetica, sans-serif; }
 .profile-stat > span { color: #776c62; font-size: .76rem; }
 .profile-stat-streak { grid-column: 1 / -1; min-height: 62px; }
-.profile-summary-links { display: flex; width: 100%; flex-wrap: wrap; gap: 10px 20px; margin-top: 20px; text-align: left; }
-.profile-summary-links a { color: #315f46; font-size: .84rem; font-weight: 700; text-decoration: none; }
-.profile-summary-links a:hover { text-decoration: underline; }
+.profile-summary-links { display: flex; width: 100%; justify-content: center; gap: 14px; margin-top: 20px; }
+.profile-shortcut { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid #d8ded0; border-radius: 50%; background: #f4f6f0; color: #194332; transition: background .2s, color .2s, transform .2s; }
+.profile-shortcut svg { width: 21px; height: 21px; }
+.profile-shortcut:hover { transform: translateY(-2px); background: #194332; color: #fff; }
+.profile-shortcut:focus-visible { outline: 3px solid rgba(47, 102, 144, .35); outline-offset: 3px; }
 .profile-edit { min-width: 0; padding: 6px 12px 4px clamp(28px, 4vw, 64px); border-left: 1px solid #e6ded4; }
 .profile-eyebrow { margin: 0 0 10px; color: #a43b21; font-size: .75rem; font-weight: 700; letter-spacing: .18em; }
 .profile-card h1 { margin: 0; font: 700 clamp(2rem, 6vw, 2.7rem)/1.1 Georgia, 'Times New Roman', serif; }
@@ -84,9 +74,7 @@ body {
 .profile-alert-success { border: 1px solid #b9d1bb; background: #eff8ef; color: #315f36; }
 
 @media (max-width: 520px) {
-    .profile-header { padding-inline: 18px; }
     .profile-main { padding: 28px 14px; }
-    .profile-back { font-size: .8rem; }
 }
 
 @media (max-width: 800px) {
