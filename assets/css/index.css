@@ -864,14 +864,33 @@ body {
 .home-upcoming {
     background: #fff;
     padding: 90px 48px 100px;
+    display: grid;
+    grid-template-columns: minmax(0, 1200px) 270px;
+    justify-content: center;
+    align-items: start;
+    column-gap: 36px;
 }
 .home-upcoming-top {
-    max-width: 1200px;
-    margin: 0 auto 36px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
+    display: contents;
+}
+.home-upcoming-top > div {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 32px;
+}
+.home-upcoming-top .home-schedule-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 90px;
+    align-self: start;
+}
+.home-upcoming-carousel {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    max-width: none;
+    margin: 0;
 }
 .home-upcoming-desc {
     font-size: 14px;
@@ -1000,6 +1019,9 @@ body {
 .home-upcoming-time { font-size: 13px; font-weight: 700; color: #5f7d4c; margin: 0 0 5px; }
 .home-upcoming-card-mass .home-upcoming-media { background: linear-gradient(145deg, #31533a, #8a7451); }
 .home-upcoming-card-mass .home-upcoming-type { color: #8b3a3a; }
+@media (max-width: 1600px) and (min-width: 901px) {
+    .home-upcoming { grid-template-columns: minmax(0, 1fr) 250px; }
+}
 @media (max-width: 700px) {
     .home-upcoming-top { flex-direction: column; align-items: flex-start; }
     .home-upcoming-card { flex-basis: 200px; }
@@ -1876,6 +1898,10 @@ a.home-partner-card { text-decoration: none; }
 @media (max-width: 900px) {
     .home-instagram-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .home-schedule-panel { flex-basis: 250px; }
+    .home-upcoming { display: block; }
+    .home-upcoming-top { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; max-width: 1200px; margin: 0 auto 36px; }
+    .home-upcoming-top .home-schedule-panel { position: static; width: min(100%, 350px); }
+    .home-upcoming-carousel { max-width: 1200px; margin: 0 auto; }
 }
 @media (max-width: 600px) {
     .home-foryou { padding: 64px 18px 52px; }
