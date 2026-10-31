@@ -61,7 +61,8 @@ foreach ($topPages as &$tp) {
 }
 unset($tp);
 $itemTypeLabels = ['nature' => 'Nature', 'resort' => 'Resort', 'industry' => 'Industry', 'product' => 'Product', 'restaurant' => 'Restaurant', 'fiesta' => 'Fiesta', 'person' => 'Person'];
-$topItems = analytics_top_items($conn, 6, $periodStartSql);
+// People can have page views, but they are not places. Keep them out of this ranking.
+$topItems = analytics_top_items($conn, 6, $periodStartSql, ['person']);
 $conversionItems = analytics_conversion_top_items($conn, 8, 3);
 $topSearches = analytics_top_searches($conn, 6);
 $zeroResultSearches = analytics_zero_result_searches($conn, 6);

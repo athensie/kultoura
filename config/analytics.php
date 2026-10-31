@@ -212,10 +212,13 @@ function analytics_item_views_bulk(mysqli $conn, string $itemType): array
     $stmt->close();
     return $counts;
 }
-function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = null): array
+function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = null, array $excludeTypes = []): array
 {
     $results = [];
     foreach (analytics_item_types() as $slug => $meta) {
+        if (in_array($slug, $excludeTypes, true)) {
+            continue;
+        }
         $sql = "SELECT t.{$meta['id_col']} AS id, t.{$meta['name_col']} AS name, COUNT(v.view_id) AS views
                 FROM {$meta['table']} t
                 INNER JOIN item_views v ON v.item_type = '$slug' AND v.item_id = t.{$meta['id_col']}
