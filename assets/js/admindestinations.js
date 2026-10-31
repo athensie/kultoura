@@ -156,7 +156,7 @@ function openViewDestination(btn) {
   if (mapLink) {
     const saved = d.googleMaps || '';
     if (saved.includes(',')) {
-      mapLink.href = 'https:
+      mapLink.href = 'https://www.google.com/maps?q=' + encodeURIComponent(saved);
       mapLink.style.display = 'inline-block';
     } else {
       mapLink.style.display = 'none';

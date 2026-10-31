@@ -168,7 +168,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-    <link rel="stylesheet" href="../assets/css/admindestinations.css">
+    <link rel="stylesheet" href="../assets/css/admindestinations.css?v=20261031-1">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
@@ -314,16 +314,18 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                     <?php foreach ($destinations as $d): ?>
                         <tr data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>">
                             <td>
-                                <?php if (!empty($d['image'])): ?>
-                                    <img src="<?php echo htmlspecialchars($d['image']); ?>" alt="" style="width:28px;height:28px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">
-                                <?php endif; ?>
-                                <?php echo htmlspecialchars($d['destination_name']); ?>
+                                <div class="destination-name-cell">
+                                    <?php if (!empty($d['image'])): ?>
+                                        <img class="destination-thumb" src="<?php echo htmlspecialchars($d['image']); ?>" alt="">
+                                    <?php endif; ?>
+                                    <span><?php echo htmlspecialchars($d['destination_name']); ?></span>
+                                </div>
                             </td>
                             <td><span class="category-badge <?php echo htmlspecialchars($d['category'] ?? ''); ?>"><?php echo htmlspecialchars($categoryLabels[$d['category']] ?? ucfirst($d['category'] ?? '—')); ?></span></td>
                             <td><?php echo htmlspecialchars($d['address']); ?></td>
                             <td><?php echo (int) ($destinationViews[(int) $d['destination_id']] ?? 0); ?></td>
                             <td>
-                                <div class="table-actions">
+                                <div class="table-actions destination-table-actions">
                                     <button class="tbl-btn view"
                                         data-id="<?php echo (int) $d['destination_id']; ?>"
                                         data-image="<?php echo htmlspecialchars($d['image'] ?? ''); ?>"
@@ -624,7 +626,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admindestinations.js?v=20261030"></script>
+<script src="../assets/js/admindestinations.js?v=20261031-1"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
