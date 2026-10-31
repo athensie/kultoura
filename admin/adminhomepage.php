@@ -84,6 +84,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             header("Location: adminhomepage.php");
             exit;
         }
+        if ($verb === 'create') {
+            $liveCountResult = $conn->query("SELECT COUNT(*) AS total FROM event_gallery WHERE status = 'live'");
+            $pendingCountResult = $conn->query("SELECT COUNT(*) AS total FROM admin_change_requests WHERE entity_type = 'event_photo' AND action = 'create' AND status = 'pending'");
+            $liveCountRow = $liveCountResult ? $liveCountResult->fetch_assoc() : [];
+            $pendingCountRow = $pendingCountResult ? $pendingCountResult->fetch_assoc() : [];
+            $liveCount = (int) ($liveCountRow['total'] ?? 0);
+            $pendingCount = (int) ($pendingCountRow['total'] ?? 0);
+            if ($liveCount + $pendingCount >= 6) {
+                $_SESSION['admin_flash'] = 'The event gallery is limited to 6 photos. Archive a photo or resolve a pending add request before adding another.';
+                header("Location: adminhomepage.php");
+                exit;
+            }
+        }
         $image = kt_homepage_handle_image_upload('image_file', 'events', 'event')
             ?? ($verb === 'update' ? trim($_POST['existing_image'] ?? '') : '');
         if ($verb === 'create' && $image === '') {
@@ -118,6 +131,11 @@ $eventPhotos = [];
 if ($result = $conn->query("SELECT * FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC")) {
     $eventPhotos = $result->fetch_all(MYSQLI_ASSOC);
 }
+$pendingEventPhotoAdds = 0;
+if ($result = $conn->query("SELECT COUNT(*) AS total FROM admin_change_requests WHERE entity_type = 'event_photo' AND action = 'create' AND status = 'pending'")) {
+    $pendingEventPhotoAdds = (int) ($result->fetch_assoc()['total'] ?? 0);
+}
+$gallerySlotsUsed = count($eventPhotos) + $pendingEventPhotoAdds;
 $pendingPartners = [];
 $pendingEventPhotos = [];
 foreach (kt_requests_list($conn, 'pending') as $req) {
@@ -273,8 +291,12 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </div>
         <div class="admin-tab-panel animate" id="homeTab-gallery" hidden>
             <div class="header-actions-row">
-                <p class="tab-sub">Photos of events hosted in Malvar, shown as a gallery grid on the homepage.</p>
-                <button type="button" class="btn-primary" onclick="openModal('addEventPhotoModal')"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Photo</button>
+                <p class="tab-sub">Event photos shown on the homepage. <?php echo min($gallerySlotsUsed, 6); ?> of 6 photo slots are used, including pending requests.</p>
+                <?php if ($gallerySlotsUsed < 6): ?>
+                    <button type="button" class="btn-primary" onclick="openModal('addEventPhotoModal')"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Photo</button>
+                <?php else: ?>
+                    <span class="btn-ghost" aria-disabled="true">Maximum 6 photos reached</span>
+                <?php endif; ?>
             </div>
             <div class="grid-view-panel">
                 <?php if (empty($eventPhotos)): ?>

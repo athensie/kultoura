@@ -837,6 +837,7 @@ body {
     background: #e9e2d0;
 }
 .home-instagram-media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; }
+.home-gallery-media img { object-fit: contain; background: #e9e2d0; transform: none !important; }
 .home-instagram-post:hover .home-instagram-media img { transform: scale(1.035); }
 .home-instagram-category {
     position: absolute;

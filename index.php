@@ -201,7 +201,7 @@ if ($result = $conn->query("SELECT name, logo, website_url, description FROM par
     $homePartners = $result->fetch_all(MYSQLI_ASSOC);
 }
 $homeEventGallery = [];
-if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC LIMIT 18")) {
+if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC LIMIT 6")) {
     $homeEventGallery = $result->fetch_all(MYSQLI_ASSOC);
 }
 ?>
