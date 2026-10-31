@@ -1871,11 +1871,6 @@ a.home-partner-card { text-decoration: none; }
 }
 .brand-title-logo { width: 100%; display: flex; justify-content: center; }
 .brand-title-logo img { display: block; margin: 0 auto; }
-.home-foryou *,
-.home-upcoming *,
-.home-news *,
-.home-about *,
-.home-partners * { font-family: 'Barabara', Georgia, serif !important; }
 .home-instagram-media img,
 .home-upcoming-media img { object-position: center 40%; }
 @media (max-width: 900px) {
