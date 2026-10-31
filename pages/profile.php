@@ -65,6 +65,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (strlen($email) > 100 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Enter a valid email address (up to 100 characters).';
         } else {
+            $stmt = $conn->prepare('SELECT fullname, username, email, promotional_email FROM users WHERE id = ? LIMIT 1');
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $savedProfile = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            if (!$savedProfile) {
+                $_SESSION = [];
+                header('Location: ../auth/login.php');
+                exit;
+            }
+
+            $hasChanges = $fullname !== (string) $savedProfile['fullname']
+                || $username !== (string) $savedProfile['username']
+                || $email !== (string) $savedProfile['email']
+                || $promotionalEmail !== (int) $savedProfile['promotional_email'];
+
+            if (!$hasChanges) {
+                $_SESSION['profile_success'] = 'No changes to save. Your profile is already up to date.';
+                header('Location: profile.php');
+                exit;
+            }
+
             try {
                 $stmt = $conn->prepare(
                     'UPDATE users SET fullname = ?, username = ?, email = ?, promotional_email = ? WHERE id = ?'
