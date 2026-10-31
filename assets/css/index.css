@@ -869,7 +869,7 @@ body {
     max-width: 1200px;
     margin: 0 auto 36px;
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 24px;
 }
