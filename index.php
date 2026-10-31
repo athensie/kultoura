@@ -26,6 +26,7 @@ kt_homepage_content_ensure_schema($conn);
 analytics_track($conn, 'home');
 $siteName = "KULTOURA";
 $isLoggedIn = isset($_SESSION['user_id']);
+$isAdmin = in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
 $homeImageSubfolder = [
     'product'       => 'products',
@@ -269,6 +270,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
                     </div>
                 </div>
             </div>
+            <?php if ($isAdmin): ?><a href="admin/admindashboard.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><span>ADMIN</span></a><?php endif; ?>
             <?php if ($isLoggedIn): ?><a href="auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
         </nav>
 <div class="navbar-search" data-api="pages/search_api.php" data-results="pages/search.php">

@@ -16,6 +16,7 @@ include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
+require_once '../config/csrf.php';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
 $validPeriods = ['today', 'week', 'month', 'year'];
@@ -54,6 +55,10 @@ if (!empty($categoryCounts)) {
 }
 $topCategoryCount = $categoryCounts[$topCategory] ?? 0;
 $totalPageViews = analytics_total_views($conn, $periodStartSql);
+$demoViewCount = 0;
+if ($demoResult = $conn->query("SELECT COUNT(*) AS total FROM page_views WHERE referrer_host = 'demo-seed.kultoura.local'")) {
+    $demoViewCount = (int) ($demoResult->fetch_assoc()['total'] ?? 0);
+}
 $topPages = analytics_page_breakdown($conn, $periodStartSql, 5);
 $topPagesMax = !empty($topPages) ? max(array_column($topPages, 'views')) : 0;
 foreach ($topPages as &$tp) {
@@ -148,6 +153,36 @@ if ($weekdayStmt) {
     $weekdayStmt->close();
 }
 $weekdayMax = max(1, max($weekdayCounts));
+$hourlyCounts = array_fill(0, 24, 0);
+$hourlyStmt = $conn->prepare("SELECT HOUR(viewed_at) visit_hour, COUNT(*) views FROM page_views WHERE viewed_at >= ? GROUP BY HOUR(viewed_at)");
+if ($hourlyStmt) {
+    $hourlyStmt->bind_param('s', $periodStartSql);
+    $hourlyStmt->execute();
+    foreach ($hourlyStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $hourlyRow) {
+        $hourlyCounts[(int) $hourlyRow['visit_hour']] = (int) $hourlyRow['views'];
+    }
+    $hourlyStmt->close();
+}
+$hourlyMax = max(1, max($hourlyCounts));
+$hasHourlyData = array_sum($hourlyCounts) > 0;
+$signupStmt = $conn->prepare("SELECT DATE_FORMAT(created_at, '%Y-%m') signup_month, COUNT(*) total FROM users WHERE created_at >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 5 MONTH) GROUP BY DATE_FORMAT(created_at, '%Y-%m')");
+$signupCounts = [];
+if ($signupStmt) {
+    $signupStmt->execute();
+    foreach ($signupStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $signupRow) {
+        $signupCounts[$signupRow['signup_month']] = (int) $signupRow['total'];
+    }
+    $signupStmt->close();
+}
+$signupTrend = [];
+$signupMax = 1;
+for ($monthOffset = 5; $monthOffset >= 0; $monthOffset--) {
+    $monthDate = new DateTimeImmutable('first day of this month -' . $monthOffset . ' months');
+    $monthKey = $monthDate->format('Y-m');
+    $signupTrend[] = ['label' => $monthDate->format('M'), 'value' => $signupCounts[$monthKey] ?? 0];
+    $signupMax = max($signupMax, $signupCounts[$monthKey] ?? 0);
+}
+$hasSignupData = array_sum(array_column($signupTrend, 'value')) > 0;
 $trafficSources = analytics_traffic_sources($conn, $periodStartSql);
 $newSignups = 0;
 $stmt = $conn->prepare("SELECT COUNT(*) c FROM users WHERE created_at >= ?");
@@ -164,6 +199,7 @@ $stmt->close();
 $projectedNextMonth = null;
 $projectedGrowthPct = null;
 $monthsWithData = array_filter($monthlyVisitors, fn($m) => $m['value'] > 0);
+$canLoadDemoHistory = count($monthsWithData) < 3 && $demoViewCount === 0;
 $totalRecentViews = array_sum(array_column($monthlyVisitors, 'value'));
 if (count($monthsWithData) >= 3 && $totalRecentViews >= 10) {
     $n = count($monthlyVisitors);
@@ -391,6 +427,19 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
 <div class="main-content">
     <div class="dash-wrapper">
+        <div class="admin-site-switch-row"><a class="admin-site-switch" href="<?php echo BASE_URL; ?>/index.php"><i data-lucide="external-link" class="lucide"></i> View user site</a></div>
+        <?php if (!empty($_SESSION['flash_message'])): ?>
+            <div class="analytics-seed-notice"><?php echo htmlspecialchars($_SESSION['flash_message']); unset($_SESSION['flash_message']); ?></div>
+        <?php endif; ?>
+        <?php if ($demoViewCount > 0): ?>
+            <div class="analytics-seed-notice is-demo">This dashboard includes <?php echo number_format($demoViewCount); ?> labeled sample page views. They are not real visitors and affect the totals and forecast.
+                <form method="post" action="<?php echo BASE_URL; ?>/admin/analytics_demo_seed.php" onsubmit="return confirm('Remove the sample page views and recalculate analytics from real data only?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="mode" value="remove">
+                    <button class="analytics-demo-seed-button" type="submit">Remove sample history</button>
+                </form>
+            </div>
+        <?php endif; ?>
         <div class="page-header">
             <div>
                 <div class="section-label">Tourism Insights</div>
@@ -754,6 +803,36 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <?php endif; ?>
             </div>
         </div>
+        <div class="charts-2col animate">
+            <div class="chart-box">
+                <h4>Visits by Hour <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
+                <?php if (!$hasHourlyData): ?>
+                    <div class="chart-empty"><i data-lucide="clock-3" class="lucide"></i><div class="chart-empty-title">No hourly visit data yet</div><div class="chart-empty-sub">This graph shows when visitors browse during the selected period.</div></div>
+                <?php else: ?>
+                    <div class="daily-views-chart hourly-views-chart">
+                        <?php foreach ($hourlyCounts as $hour => $count): $height = $count > 0 ? max(5, (int) round($count / $hourlyMax * 100)) : 0; ?>
+                            <div class="daily-views-column" title="<?php echo sprintf('%02d:00 — %d views', $hour, $count); ?>">
+                                <span class="daily-views-value"><?php echo $count ?: ''; ?></span>
+                                <div class="daily-views-track"><div class="daily-views-bar" style="height:<?php echo $height; ?>%"></div></div>
+                                <span class="daily-views-label"><?php echo $hour % 3 === 0 ? sprintf('%02d', $hour) : ''; ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="chart-box">
+                <h4>New Visitor Accounts <span class="chart-sub">&mdash; last 6 months</span></h4>
+                <?php if (!$hasSignupData): ?>
+                    <div class="chart-empty"><i data-lucide="user-plus" class="lucide"></i><div class="chart-empty-title">No new accounts yet</div><div class="chart-empty-sub">Monthly visitor registrations will appear here as people join.</div></div>
+                <?php else: ?>
+                    <div class="month-chart">
+                        <?php foreach ($signupTrend as $signupMonth): ?>
+                            <div class="month-row"><span class="month-label"><?php echo htmlspecialchars($signupMonth['label']); ?></span><div class="month-track"><div class="month-fill" style="width:<?php echo (int) round($signupMonth['value'] / $signupMax * 100); ?>%"></div></div><span class="month-val"><?php echo (int) $signupMonth['value']; ?></span></div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
         </div>
         <div class="analytics-section" data-category="predictive">
         <div class="alabel-desc">
@@ -769,6 +848,13 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                         <i data-lucide="line-chart" class="lucide"></i>
                         <div class="chart-empty-title">Not enough history yet</div>
                         <div class="chart-empty-sub">Once at least 3 months of page views have been logged, a projection will appear here.</div>
+                        <?php if ($canLoadDemoHistory): ?>
+                            <form class="analytics-demo-seed-form" method="post" action="<?php echo BASE_URL; ?>/admin/analytics_demo_seed.php" onsubmit="return confirm('Load clearly labeled demo page views into this database? These are sample visits, not real visitor activity, and will be included in analytics totals until removed.');">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="mode" value="load">
+                                <button class="analytics-demo-seed-button" type="submit">Load sample history</button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 <?php else: ?>
                     <div class="forecast-box">
