@@ -120,6 +120,34 @@ foreach ($categoryShare as $c) {
 $donutGradient = !empty($donutStops) ? implode(', ', $donutStops) : '#333 0% 100%';
 $monthlyVisitors = analytics_monthly_trend($conn, 6);
 $hasMonthlyData = array_sum(array_column($monthlyVisitors, 'value')) > 0;
+$dailyVisitorCounts = [];
+$dailyStmt = $conn->prepare("SELECT DATE(viewed_at) visit_date, COUNT(*) views FROM page_views WHERE viewed_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) GROUP BY DATE(viewed_at)");
+if ($dailyStmt) {
+    $dailyStmt->execute();
+    foreach ($dailyStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $dailyRow) {
+        $dailyVisitorCounts[$dailyRow['visit_date']] = (int) $dailyRow['views'];
+    }
+    $dailyStmt->close();
+}
+$dailyVisitors = [];
+for ($dayOffset = 13; $dayOffset >= 0; $dayOffset--) {
+    $date = new DateTimeImmutable('-' . $dayOffset . ' days');
+    $dateKey = $date->format('Y-m-d');
+    $dailyVisitors[] = ['label' => $date->format('M j'), 'value' => $dailyVisitorCounts[$dateKey] ?? 0];
+}
+$dailyVisitorsMax = max(1, max(array_column($dailyVisitors, 'value')));
+$hasDailyData = array_sum(array_column($dailyVisitors, 'value')) > 0;
+$weekdayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+$weekdayCounts = array_fill(1, 7, 0);
+$weekdayStmt = $conn->prepare("SELECT DAYOFWEEK(viewed_at) weekday, COUNT(*) views FROM page_views WHERE viewed_at >= DATE_SUB(CURDATE(), INTERVAL 89 DAY) GROUP BY DAYOFWEEK(viewed_at)");
+if ($weekdayStmt) {
+    $weekdayStmt->execute();
+    foreach ($weekdayStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $weekdayRow) {
+        $weekdayCounts[(int) $weekdayRow['weekday']] = (int) $weekdayRow['views'];
+    }
+    $weekdayStmt->close();
+}
+$weekdayMax = max(1, max($weekdayCounts));
 $trafficSources = analytics_traffic_sources($conn, $periodStartSql);
 $newSignups = 0;
 $stmt = $conn->prepare("SELECT COUNT(*) c FROM users WHERE created_at >= ?");
@@ -681,6 +709,48 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                         </div>
                     </div>
                     <?php kt_render_chart_insight($chartInsights, 'user_activity'); ?>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div class="charts-2col animate">
+            <div class="chart-box">
+                <h4>Daily Page Views <span class="chart-sub">&mdash; last 14 days</span></h4>
+                <?php if (!$hasDailyData): ?>
+                    <div class="chart-empty">
+                        <i data-lucide="activity" class="lucide"></i>
+                        <div class="chart-empty-title">No daily visits yet</div>
+                        <div class="chart-empty-sub">This graph will fill as visitors browse the public pages.</div>
+                    </div>
+                <?php else: ?>
+                    <div class="daily-views-chart">
+                        <?php foreach ($dailyVisitors as $day): $height = $day['value'] > 0 ? max(5, (int) round($day['value'] / $dailyVisitorsMax * 100)) : 0; ?>
+                            <div class="daily-views-column" title="<?php echo htmlspecialchars($day['label'] . ': ' . $day['value'] . ' views'); ?>">
+                                <span class="daily-views-value"><?php echo $day['value'] ?: ''; ?></span>
+                                <div class="daily-views-track"><div class="daily-views-bar" style="height:<?php echo $height; ?>%"></div></div>
+                                <span class="daily-views-label"><?php echo htmlspecialchars($day['label']); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="chart-box">
+                <h4>Visits by Day of Week <span class="chart-sub">&mdash; last 90 days</span></h4>
+                <?php if (array_sum($weekdayCounts) === 0): ?>
+                    <div class="chart-empty">
+                        <i data-lucide="calendar-days" class="lucide"></i>
+                        <div class="chart-empty-title">No weekday pattern yet</div>
+                        <div class="chart-empty-sub">A weekly browsing pattern will appear as page views are recorded.</div>
+                    </div>
+                <?php else: ?>
+                    <div class="weekday-views-chart">
+                        <?php foreach ($weekdayLabels as $index => $weekdayLabel): $count = $weekdayCounts[$index + 1]; ?>
+                            <div class="bar-row">
+                                <span class="bar-name"><?php echo htmlspecialchars(substr($weekdayLabel, 0, 3)); ?></span>
+                                <div class="bar-track"><div class="bar-fill" style="width:<?php echo (int) round($count / $weekdayMax * 100); ?>%"></div></div>
+                                <span class="bar-pct"><?php echo $count; ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
