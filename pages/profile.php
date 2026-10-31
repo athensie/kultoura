@@ -263,12 +263,16 @@ while ($dateRow = $dateRows->fetch_assoc()) {
                     </label>
                     <label>
                         <span>New password</span>
-                        <input type="password" name="new_password" minlength="8" autocomplete="new-password" required>
-                        <small>At least 8 characters, with an uppercase letter and a special character.</small>
+                        <input type="password" id="profileNewPassword" name="new_password" minlength="8" pattern="^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$" title="At least 8 characters, including one uppercase letter and one special character." autocomplete="new-password" required>
+                        <ul class="profile-password-requirements" id="profilePasswordRequirements" aria-label="Password requirements">
+                            <li data-rule="length"><span aria-hidden="true"></span>Minimum 8 characters</li>
+                            <li data-rule="uppercase"><span aria-hidden="true"></span>One uppercase letter</li>
+                            <li data-rule="special"><span aria-hidden="true"></span>One special character</li>
+                        </ul>
                     </label>
                     <label>
                         <span>Confirm new password</span>
-                        <input type="password" name="confirm_new_password" minlength="8" autocomplete="new-password" required>
+                        <input type="password" id="profileConfirmPassword" name="confirm_new_password" minlength="8" autocomplete="new-password" required>
                     </label>
                     <button type="submit">Update password</button>
                 </form>
@@ -278,5 +282,6 @@ while ($dateRow = $dateRows->fetch_assoc()) {
     </main>
     <script src="../assets/js/navbar.js"></script>
     <script src="../assets/js/navbar-search.js"></script>
+    <script src="../assets/js/profile.js"></script>
 </body>
 </html>
