@@ -88,7 +88,7 @@ function toggleFooterAccordion(heading) {
     const dialogCaption = document.getElementById('homeGalleryDialogCaption');
     if (!dialog || !dialogImage || !dialogCaption) return;
 
-    document.querySelectorAll('.home-gallery-tile').forEach(tile => {
+    document.querySelectorAll('.home-gallery-media').forEach(tile => {
         tile.addEventListener('click', () => {
             dialogImage.src = tile.dataset.galleryImage || '';
             dialogImage.alt = tile.dataset.galleryCaption || 'Event moment';

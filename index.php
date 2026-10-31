@@ -212,7 +212,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
-    <link rel="stylesheet" href="assets/css/index.css?v=20261031-3">
+    <link rel="stylesheet" href="assets/css/index.css?v=20261031-4">
     <link rel="stylesheet" href="assets/css/search.css">
 </head>
 <body>
@@ -560,10 +560,19 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
     <div class="home-gallery-grid reveal">
         <?php foreach ($homeEventGallery as $g): ?>
-            <button type="button" class="home-gallery-tile" aria-label="View moment: <?php echo htmlspecialchars($g['caption']); ?>" data-gallery-image="<?php echo htmlspecialchars($g['image']); ?>" data-gallery-caption="<?php echo htmlspecialchars($g['caption']); ?>">
-                <img src="<?php echo htmlspecialchars($g['image']); ?>" alt="" loading="lazy">
-                <span class="home-gallery-overlay"><span class="home-gallery-view-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="home-gallery-caption"><?php echo htmlspecialchars($g['caption']); ?></span></span>
-            </button>
+            <article class="home-instagram-post home-gallery-post">
+                <div class="home-instagram-post-head">
+                    <span class="home-instagram-avatar" aria-hidden="true">K</span>
+                    <div class="home-instagram-account"><strong>kultoura</strong><span>Events in Malvar · Malvar, Batangas</span></div>
+                    <span class="home-instagram-more" aria-hidden="true">•••</span>
+                </div>
+                <button type="button" class="home-instagram-media home-gallery-media" aria-label="Open event moment: <?php echo htmlspecialchars($g['caption']); ?>" data-gallery-image="<?php echo htmlspecialchars($g['image']); ?>" data-gallery-caption="<?php echo htmlspecialchars($g['caption']); ?>">
+                    <img src="<?php echo htmlspecialchars($g['image']); ?>" alt="" loading="lazy">
+                    <span class="home-instagram-category" style="--post-accent:#8b2e1a">MOMENT</span>
+                    <span class="home-gallery-open-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                </button>
+                <div class="home-instagram-caption"><p><strong>kultoura</strong> <?php echo htmlspecialchars($g['caption']); ?></p></div>
+            </article>
         <?php endforeach; ?>
     </div>
     <dialog class="home-gallery-dialog" id="homeGalleryDialog" aria-label="Event moment">
@@ -621,7 +630,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
 </footer>
 <script src="assets/js/navbar.js"></script>
 <script src="assets/js/navbar-search.js"></script>
-<script src="assets/js/home.js"></script>
+<script src="assets/js/home.js?v=20261031-2"></script>
 </body>
 </html>
 <?php
