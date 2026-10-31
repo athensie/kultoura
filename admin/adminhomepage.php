@@ -84,31 +84,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             header("Location: adminhomepage.php");
             exit;
         }
-        if ($verb === 'create') {
-            $liveCountResult = $conn->query("SELECT COUNT(*) AS total FROM event_gallery WHERE status = 'live'");
-            $pendingCountResult = $conn->query("SELECT COUNT(*) AS total FROM admin_change_requests WHERE entity_type = 'event_photo' AND action = 'create' AND status = 'pending'");
-            $liveCountRow = $liveCountResult ? $liveCountResult->fetch_assoc() : [];
-            $pendingCountRow = $pendingCountResult ? $pendingCountResult->fetch_assoc() : [];
-            $liveCount = (int) ($liveCountRow['total'] ?? 0);
-            $pendingCount = (int) ($pendingCountRow['total'] ?? 0);
-            if ($liveCount + $pendingCount >= 6) {
-                $_SESSION['admin_flash'] = 'The event gallery is limited to 6 photos. Archive a photo or resolve a pending add request before adding another.';
-                header("Location: adminhomepage.php");
-                exit;
+        $selectedIndexes = [];
+        $selectedFiles = $_FILES['image_files'] ?? null;
+        if (is_array($selectedFiles['name'] ?? null)) {
+            foreach ($selectedFiles['name'] as $index => $name) {
+                if (($selectedFiles['error'][$index] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) $selectedIndexes[] = $index;
             }
         }
-        $image = kt_homepage_handle_image_upload('image_file', 'events', 'event')
-            ?? ($verb === 'update' ? trim($_POST['existing_image'] ?? '') : '');
-        if ($verb === 'create' && $image === '') {
-            $_SESSION['admin_flash'] = 'Please upload a photo.';
+        if (count($selectedIndexes) > 6) {
+            $_SESSION['admin_flash'] = 'Each event card can contain up to 6 photos.';
+            header("Location: adminhomepage.php");
+            exit;
+        }
+        $images = kt_homepage_handle_image_uploads('image_files', 'events', 'event');
+        if ($selectedIndexes && $images === null) {
+            $_SESSION['admin_flash'] = 'One or more photos could not be uploaded. Use valid image files and try again.';
+            header("Location: adminhomepage.php");
+            exit;
+        }
+        if ($verb === 'create' && !$images) {
+            $_SESSION['admin_flash'] = 'Please upload at least one photo.';
             header("Location: adminhomepage.php");
             exit;
         }
         $data = [
-            'image'   => $image,
+            'image'   => $images[0] ?? null,
             'caption' => $caption,
             'status'  => 'live',
         ];
+        if ($images !== null) $data['images'] = $images;
         $label = $caption;
     }
     if ($isSuperAdmin) {
@@ -131,11 +135,6 @@ $eventPhotos = [];
 if ($result = $conn->query("SELECT * FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC")) {
     $eventPhotos = $result->fetch_all(MYSQLI_ASSOC);
 }
-$pendingEventPhotoAdds = 0;
-if ($result = $conn->query("SELECT COUNT(*) AS total FROM admin_change_requests WHERE entity_type = 'event_photo' AND action = 'create' AND status = 'pending'")) {
-    $pendingEventPhotoAdds = (int) ($result->fetch_assoc()['total'] ?? 0);
-}
-$gallerySlotsUsed = count($eventPhotos) + $pendingEventPhotoAdds;
 $pendingPartners = [];
 $pendingEventPhotos = [];
 foreach (kt_requests_list($conn, 'pending') as $req) {
@@ -291,12 +290,8 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </div>
         <div class="admin-tab-panel animate" id="homeTab-gallery" hidden>
             <div class="header-actions-row">
-                <p class="tab-sub">Event photos shown on the homepage. <?php echo min($gallerySlotsUsed, 6); ?> of 6 photo slots are used, including pending requests.</p>
-                <?php if ($gallerySlotsUsed < 6): ?>
-                    <button type="button" class="btn-primary" onclick="openModal('addEventPhotoModal')"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Photo</button>
-                <?php else: ?>
-                    <span class="btn-ghost" aria-disabled="true">Maximum 6 photos reached</span>
-                <?php endif; ?>
+                <p class="tab-sub">Each event post can include up to 6 photos in its swipeable gallery.</p>
+                <button type="button" class="btn-primary" onclick="openModal('addEventPhotoModal')"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Event Post</button>
             </div>
             <div class="grid-view-panel">
                 <?php if (empty($eventPhotos)): ?>
@@ -306,11 +301,12 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                         <div class="chart-empty-sub">Photos added here show up in the homepage's event gallery.</div>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($eventPhotos as $g): ?>
+                    <?php foreach ($eventPhotos as $g): $storedImages = json_decode((string) ($g['images_json'] ?? ''), true); $storedImageCount = is_array($storedImages) && $storedImages ? min(count($storedImages), 6) : 1; ?>
                         <div class="grid-card">
                             <div class="grid-card-media"><img src="<?php echo htmlspecialchars($g['image']); ?>" alt=""></div>
                             <div class="grid-card-body">
                                 <div class="grid-card-title"><?php echo htmlspecialchars($g['caption']); ?></div>
+                                <div class="grid-card-sub"><?php echo $storedImageCount; ?> photo<?php echo $storedImageCount === 1 ? '' : 's'; ?> in this post</div>
                             </div>
                             <div class="grid-card-actions">
                                 <button type="button" class="tbl-btn edit" onclick="openEditEventPhoto(<?php echo (int) $g['id']; ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
@@ -405,14 +401,15 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
 <div class="modal-overlay" id="addEventPhotoModal" onclick="closeModalOutside(event, 'addEventPhotoModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addEventPhotoModal')"><i data-lucide="x" class="lucide"></i></button>
-        <div class="modal-title">Add Event Photo</div>
-        <div class="modal-sub">Captions can be up to 50 words and appear below the event photo.</div>
+        <div class="modal-title">Add Event Post</div>
+        <div class="modal-sub">Choose up to six photos for one swipeable event post. Captions can be up to 50 words.</div>
         <form method="POST" action="adminhomepage.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="add_event_photo">
             <?php echo csrf_field(); ?>
             <div class="form-group">
-                <label class="form-label">Photo</label>
-                <input class="form-input" type="file" name="image_file" accept="image/*" required>
+                <label class="form-label">Photos (up to 6 per post)</label>
+                <input class="form-input" type="file" name="image_files[]" accept="image/*" multiple required data-photo-limit="6">
+                <small class="caption-word-count" data-photo-count>0 / 6 photos selected</small>
             </div>
             <div class="form-group">
                 <label class="form-label">Caption</label>
@@ -429,16 +426,15 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
 <div class="modal-overlay" id="editEventPhotoModal" onclick="closeModalOutside(event, 'editEventPhotoModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editEventPhotoModal')"><i data-lucide="x" class="lucide"></i></button>
-        <div class="modal-title">Edit Event Photo</div>
+        <div class="modal-title">Edit Event Post</div>
         <form method="POST" action="adminhomepage.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="edit_event_photo">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="editEventPhotoId">
-            <input type="hidden" name="existing_image" id="editEventPhotoExistingImage">
             <div class="form-group">
-                <label class="form-label">Replace Photo</label>
-                <input class="form-input" type="file" name="image_file" accept="image/*">
-                <p class="image-current-hint">Leave empty to keep the current photo.</p>
+                <label class="form-label">Replace photos (up to 6 for this post)</label>
+                <input class="form-input" type="file" id="editEventPhotoImages" name="image_files[]" accept="image/*" multiple data-photo-limit="6">
+                <small class="caption-word-count" id="editEventPhotoImageHint" data-photo-count>Choose new photos to replace the current set. Leave empty to keep it.</small>
             </div>
             <div class="form-group">
                 <label class="form-label">Caption</label>

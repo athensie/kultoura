@@ -89,11 +89,34 @@ function toggleFooterAccordion(heading) {
     if (!dialog || !dialogImage || !dialogCaption) return;
 
     document.querySelectorAll('.home-gallery-media').forEach(tile => {
+        let images = [];
+        try {
+            images = JSON.parse(tile.dataset.galleryImages || '[]');
+        } catch (error) {
+            images = [];
+        }
+        if (!images.length && tile.dataset.galleryImage) images = [tile.dataset.galleryImage];
+        let index = 0;
+
         tile.addEventListener('click', () => {
-            dialogImage.src = tile.dataset.galleryImage || '';
+            dialogImage.src = images[index] || tile.dataset.galleryImage || '';
             dialogImage.alt = tile.dataset.galleryCaption || 'Event moment';
             dialogCaption.textContent = tile.dataset.galleryCaption || '';
             dialog.showModal();
+        });
+
+        const card = tile.closest('.home-gallery-post');
+        const count = card?.querySelector('.home-gallery-count');
+        card?.querySelectorAll('[data-gallery-step]').forEach(button => {
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                if (images.length < 2) return;
+                index = (index + Number(button.dataset.galleryStep) + images.length) % images.length;
+                const image = tile.querySelector('img');
+                image.src = images[index];
+                tile.dataset.galleryImage = images[index];
+                if (count) count.textContent = `${index + 1} / ${images.length}`;
+            });
         });
     });
 

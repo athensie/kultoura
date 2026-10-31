@@ -33,7 +33,13 @@ function openEditEventPhoto(id) {
     document.getElementById('editEventPhotoId').value = g.id;
     document.getElementById('editEventPhotoCaption').value = g.caption || '';
     updateCaptionWordCount(document.getElementById('editEventPhotoCaption'));
-    document.getElementById('editEventPhotoExistingImage').value = g.image || '';
+    let images = [];
+    try { images = JSON.parse(g.images_json || '[]'); } catch (error) { images = []; }
+    if (!images.length && g.image) images = [g.image];
+    const imageHint = document.getElementById('editEventPhotoImageHint');
+    const imageInput = document.getElementById('editEventPhotoImages');
+    if (imageInput) imageInput.value = '';
+    if (imageHint) imageHint.textContent = `Current set: ${images.length} photo${images.length === 1 ? '' : 's'}. Choose new photos to replace it, or leave empty to keep it.`;
     openModal('editEventPhotoModal');
 }
 function confirmArchive(entityType, id, label) {
@@ -67,5 +73,29 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('textarea[data-word-limit="50"]').forEach(field => {
         updateCaptionWordCount(field);
         field.addEventListener('input', () => updateCaptionWordCount(field));
+    });
+    document.querySelectorAll('input[type="file"][data-photo-limit]').forEach(field => {
+        const counter = field.parentElement.querySelector('[data-photo-count]');
+        const limit = Number(field.dataset.photoLimit || 6);
+        const update = () => {
+            const count = field.files ? field.files.length : 0;
+            field.setCustomValidity(count > limit ? `Each event card can contain up to ${limit} photos.` : '');
+            if (counter) {
+                counter.textContent = count
+                    ? `${count} / ${limit} new photos selected`
+                    : field.id === 'editEventPhotoImages'
+                        ? 'Choose new photos to replace the current set. Leave empty to keep it.'
+                        : `0 / ${limit} photos selected`;
+                counter.classList.toggle('is-over-limit', count > limit);
+            }
+        };
+        field.addEventListener('change', update);
+        field.closest('form')?.addEventListener('submit', event => {
+            update();
+            if (field.validationMessage) {
+                event.preventDefault();
+                field.reportValidity();
+            }
+        });
     });
 });

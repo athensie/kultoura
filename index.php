@@ -201,7 +201,7 @@ if ($result = $conn->query("SELECT name, logo, website_url, description FROM par
     $homePartners = $result->fetch_all(MYSQLI_ASSOC);
 }
 $homeEventGallery = [];
-if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC LIMIT 6")) {
+if ($result = $conn->query("SELECT image, caption, images_json FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC LIMIT 18")) {
     $homeEventGallery = $result->fetch_all(MYSQLI_ASSOC);
 }
 ?>
@@ -212,7 +212,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
-    <link rel="stylesheet" href="assets/css/index.css?v=20261031-4">
+    <link rel="stylesheet" href="assets/css/index.css?v=20261031-5">
     <link rel="stylesheet" href="assets/css/search.css">
 </head>
 <body>
@@ -560,17 +560,31 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
     <div class="home-gallery-grid reveal">
         <?php foreach ($homeEventGallery as $g): ?>
+            <?php
+                $galleryImages = json_decode((string) ($g['images_json'] ?? ''), true);
+                if (!is_array($galleryImages) || !$galleryImages) $galleryImages = [$g['image']];
+                $galleryImages = array_slice(array_values(array_filter($galleryImages, 'is_string')), 0, 6);
+                if (!$galleryImages) $galleryImages = [$g['image']];
+                $galleryImagesJson = htmlspecialchars(json_encode($galleryImages, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]', ENT_QUOTES);
+            ?>
             <article class="home-instagram-post home-gallery-post">
                 <div class="home-instagram-post-head">
                     <span class="home-instagram-avatar" aria-hidden="true">K</span>
                     <div class="home-instagram-account"><strong>kultoura</strong><span>Events in Malvar · Malvar, Batangas</span></div>
                     <span class="home-instagram-more" aria-hidden="true">•••</span>
                 </div>
-                <button type="button" class="home-instagram-media home-gallery-media" aria-label="Open event moment: <?php echo htmlspecialchars($g['caption']); ?>" data-gallery-image="<?php echo htmlspecialchars($g['image']); ?>" data-gallery-caption="<?php echo htmlspecialchars($g['caption']); ?>">
-                    <img src="<?php echo htmlspecialchars($g['image']); ?>" alt="" loading="lazy">
+                <button type="button" class="home-instagram-media home-gallery-media" aria-label="Open event moment: <?php echo htmlspecialchars($g['caption']); ?>" data-gallery-images="<?php echo $galleryImagesJson; ?>" data-gallery-image="<?php echo htmlspecialchars($galleryImages[0]); ?>" data-gallery-caption="<?php echo htmlspecialchars($g['caption']); ?>">
+                    <img src="<?php echo htmlspecialchars($galleryImages[0]); ?>" alt="" loading="lazy">
                     <span class="home-instagram-category" style="--post-accent:#8b2e1a">MOMENT</span>
                     <span class="home-gallery-open-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
                 </button>
+                <?php if (count($galleryImages) > 1): ?>
+                    <div class="home-gallery-carousel" aria-label="Event photos">
+                        <button type="button" class="home-gallery-step" data-gallery-step="-1" aria-label="Previous photo">‹</button>
+                        <span class="home-gallery-count">1 / <?php echo count($galleryImages); ?></span>
+                        <button type="button" class="home-gallery-step" data-gallery-step="1" aria-label="Next photo">›</button>
+                    </div>
+                <?php endif; ?>
                 <div class="home-instagram-caption"><p><strong>kultoura</strong> <?php echo htmlspecialchars($g['caption']); ?></p></div>
             </article>
         <?php endforeach; ?>
@@ -630,7 +644,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
 </footer>
 <script src="assets/js/navbar.js"></script>
 <script src="assets/js/navbar-search.js"></script>
-<script src="assets/js/home.js?v=20261031-2"></script>
+<script src="assets/js/home.js?v=20261031-3"></script>
 </body>
 </html>
 <?php

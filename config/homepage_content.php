@@ -25,6 +25,7 @@ if (!function_exists('kt_homepage_content_ensure_schema')) {
             "CREATE TABLE IF NOT EXISTS event_gallery (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 image VARCHAR(255) NOT NULL,
+                images_json TEXT NULL,
                 caption TEXT NOT NULL,
                 status ENUM('live','archived') NOT NULL DEFAULT 'live',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -33,6 +34,10 @@ if (!function_exists('kt_homepage_content_ensure_schema')) {
         $captionColumn = $conn->query("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_gallery' AND COLUMN_NAME = 'caption' LIMIT 1");
         if ($captionColumn && ($captionType = $captionColumn->fetch_assoc()) && strtolower($captionType['DATA_TYPE']) !== 'text') {
             $conn->query("ALTER TABLE event_gallery MODIFY caption TEXT NOT NULL");
+        }
+        $imagesColumn = $conn->query("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_gallery' AND COLUMN_NAME = 'images_json' LIMIT 1");
+        if ($imagesColumn && !$imagesColumn->fetch_assoc()) {
+            $conn->query("ALTER TABLE event_gallery ADD COLUMN images_json TEXT NULL AFTER image");
         }
         $conn->query(
             "CREATE TABLE IF NOT EXISTS fb_videos (
@@ -79,6 +84,45 @@ if (!function_exists('kt_homepage_handle_image_upload')) {
             return (defined('BASE_URL') ? BASE_URL : '/kultoura') . '/assets/uploads/' . $subfolder . '/' . $filename;
         }
         return null;
+    }
+}
+if (!function_exists('kt_homepage_handle_image_uploads')) {
+    function kt_homepage_handle_image_uploads(string $fieldName, string $subfolder, string $prefix, int $limit = 6): ?array
+    {
+        if (empty($_FILES[$fieldName]) || !is_array($_FILES[$fieldName]['name'] ?? null)) return null;
+        $files = $_FILES[$fieldName];
+        $selectedIndexes = [];
+        foreach ($files['name'] as $index => $name) {
+            if (($files['error'][$index] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) $selectedIndexes[] = $index;
+        }
+        if (!$selectedIndexes) return null;
+        if (count($selectedIndexes) > $limit) return null;
+
+        $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        $uploadDir = __DIR__ . '/../assets/uploads/' . $subfolder . '/';
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) return null;
+        $uploadedUrls = [];
+        $uploadedPaths = [];
+        foreach ($selectedIndexes as $index) {
+            $originalName = (string) ($files['name'][$index] ?? '');
+            $tmpName = (string) ($files['tmp_name'][$index] ?? '');
+            $error = (int) ($files['error'][$index] ?? UPLOAD_ERR_NO_FILE);
+            $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            if ($error !== UPLOAD_ERR_OK || !in_array($ext, $allowedExt, true) || !$tmpName || @getimagesize($tmpName) === false) {
+                foreach ($uploadedPaths as $path) @unlink($path);
+                return null;
+            }
+            $safeName = preg_replace('/[^a-z0-9_-]/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
+            $filename = uniqid($prefix . '_', true) . '_' . $safeName . '.' . $ext;
+            $targetPath = $uploadDir . $filename;
+            if (!move_uploaded_file($tmpName, $targetPath)) {
+                foreach ($uploadedPaths as $path) @unlink($path);
+                return null;
+            }
+            $uploadedPaths[] = $targetPath;
+            $uploadedUrls[] = (defined('BASE_URL') ? BASE_URL : '/kultoura') . '/assets/uploads/' . $subfolder . '/' . $filename;
+        }
+        return $uploadedUrls;
     }
 }
 if (!function_exists('kt_fb_video_embed_url')) {

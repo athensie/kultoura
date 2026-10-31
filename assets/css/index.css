@@ -1356,7 +1356,7 @@ a.home-partner-card { text-decoration: none; }
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 24px;
 }
-.home-gallery-post { text-align: left; }
+.home-gallery-post { text-align: left; background: #fff; border-radius: 18px; border-color: rgba(44, 26, 14, .12); box-shadow: 0 14px 34px rgba(44, 26, 14, .12); }
 .home-gallery-media {
     border: 0;
     padding: 0;
@@ -1364,6 +1364,11 @@ a.home-partner-card { text-decoration: none; }
     text-align: left;
 }
 .home-gallery-media:focus-visible { outline: 3px solid #8b2e1a; outline-offset: 3px; }
+.home-gallery-media img { object-fit: contain; background: #f8f6f0; transform: none !important; }
+.home-gallery-carousel { display: flex; justify-content: center; align-items: center; gap: 14px; padding: 9px 12px 0; color: rgba(44,26,14,.65); }
+.home-gallery-step { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid rgba(44,26,14,.14); border-radius: 50%; background: #fff; color: #2c1a0e; font-size: 22px; line-height: 1; cursor: pointer; transition: background .18s, transform .18s; }
+.home-gallery-step:hover { background: #f0ebd8; transform: scale(1.06); }
+.home-gallery-count { min-width: 40px; text-align: center; font-size: 11px; font-weight: 600; }
 .home-gallery-open-mark {
     position: absolute;
     right: 12px;

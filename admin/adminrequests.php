@@ -4,6 +4,7 @@ define('BASE_URL', '/kultoura');
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
+require_once __DIR__ . '/../config/homepage_content.php';
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
@@ -16,6 +17,7 @@ $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Super Admin';
 $reviewerId = (int) $_SESSION['user_id'];
 kt_requests_ensure_schema($conn);
+kt_homepage_content_ensure_schema($conn);
 $entityLabels = [
     'destination'   => 'Destination',
     'product'       => 'Product',
@@ -45,19 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     if (!$request || $request['status'] !== 'pending') {
         $_SESSION['admin_flash'] = 'That request is no longer pending.';
     } elseif ($formAction === 'approve') {
-        $galleryFull = false;
-        if ($request['entity_type'] === 'event_photo' && $request['action'] === 'create') {
-            $galleryCount = $conn->query("SELECT COUNT(*) AS total FROM event_gallery WHERE status = 'live'");
-            $galleryCountRow = $galleryCount ? $galleryCount->fetch_assoc() : [];
-            $galleryFull = (int) ($galleryCountRow['total'] ?? 0) >= 6;
-        }
-        if ($galleryFull) {
-            $_SESSION['admin_flash'] = 'The event gallery already has 6 live photos. Archive one before approving this request.';
-        } else {
-            kt_apply_entity_change($conn, $request['entity_type'], $request['action'], $request['entity_id'], $request['payload']);
-            kt_requests_resolve($conn, $requestId, 'approved', $reviewerId);
-            $_SESSION['admin_flash'] = 'Request approved and applied.';
-        }
+        kt_apply_entity_change($conn, $request['entity_type'], $request['action'], $request['entity_id'], $request['payload']);
+        kt_requests_resolve($conn, $requestId, 'approved', $reviewerId);
+        $_SESSION['admin_flash'] = 'Request approved and applied.';
     } elseif ($formAction === 'reject') {
         $note = trim($_POST['review_note'] ?? '') ?: null;
         kt_requests_resolve($conn, $requestId, 'rejected', $reviewerId, $note);

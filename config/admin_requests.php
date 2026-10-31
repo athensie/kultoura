@@ -648,10 +648,21 @@ if (!function_exists('kt_apply_event_photo')) {
         }
         $image = $d['image'] ?? null;
         if ($action === 'create') {
-            $stmt = $conn->prepare("INSERT INTO event_gallery (image, caption, status) VALUES (?, ?, ?)");
-            $stmt->bind_param('sss', $image, $caption, $d['status']);
+            $images = array_slice(array_values($d['images'] ?? [$image]), 0, 6);
+            if (!$images) $images = [$image];
+            $imagesJson = json_encode($images, JSON_UNESCAPED_SLASHES);
+            $image = $images[0];
+            $stmt = $conn->prepare("INSERT INTO event_gallery (image, images_json, caption, status) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param('ssss', $image, $imagesJson, $caption, $d['status']);
+        } elseif (is_array($d['images'] ?? null)) {
+            $images = array_slice(array_values($d['images']), 0, 6);
+            if (!$images) $images = [$image];
+            $imagesJson = json_encode($images, JSON_UNESCAPED_SLASHES);
+            $image = $images[0];
+            $stmt = $conn->prepare("UPDATE event_gallery SET image=?, images_json=?, caption=?, status=? WHERE id=?");
+            $stmt->bind_param('ssssi', $image, $imagesJson, $caption, $d['status'], $id);
         } elseif ($image !== null) {
-            $stmt = $conn->prepare("UPDATE event_gallery SET image=?, caption=?, status=? WHERE id=?");
+            $stmt = $conn->prepare("UPDATE event_gallery SET image=?, images_json=NULL, caption=?, status=? WHERE id=?");
             $stmt->bind_param('sssi', $image, $caption, $d['status'], $id);
         } else {
             $stmt = $conn->prepare("UPDATE event_gallery SET caption=?, status=? WHERE id=?");
