@@ -666,7 +666,7 @@ body {
     margin: 0 auto 56px;
 }
 .home-foryou-intro { max-width: 460px; }
-.home-heading-barabara { font-family: 'Barabara', Georgia, serif; }
+.home-heading-barabara { font-family: 'Barabara', Georgia, serif; text-transform: uppercase; }
 .home-foryou-desc {
     font-size: 14.5px;
     color: rgba(44, 26, 14, 0.6);
