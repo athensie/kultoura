@@ -666,6 +666,7 @@ body {
     margin: 0 auto 56px;
 }
 .home-foryou-intro { max-width: 460px; }
+.home-heading-barabara { font-family: 'Barabara', Georgia, serif; }
 .home-foryou-desc {
     font-size: 14.5px;
     color: rgba(44, 26, 14, 0.6);
@@ -788,6 +789,72 @@ body {
     transition: background 0.2s, transform 0.2s;
 }
 .home-carousel-nav:hover { background: #f0ebd8; transform: scale(1.08); }
+.home-instagram-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.home-instagram-post {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(44, 26, 14, 0.1);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(44, 26, 14, 0.08);
+}
+.home-instagram-post-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 54px;
+    padding: 10px 14px;
+    color: #2c1a0e;
+}
+.home-instagram-avatar {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 50%;
+    background: #1c3322;
+    color: #f0ebd8;
+    font-family: Georgia, serif;
+    font-weight: 700;
+}
+.home-instagram-account { display: grid; gap: 2px; min-width: 0; font-size: 12px; }
+.home-instagram-account strong { font-size: 13px; }
+.home-instagram-account span { color: rgba(44, 26, 14, 0.58); font-size: 11px; }
+.home-instagram-more { margin-left: auto; font-weight: 700; letter-spacing: 2px; }
+.home-instagram-media {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: #e9e2d0;
+}
+.home-instagram-media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; }
+.home-instagram-post:hover .home-instagram-media img { transform: scale(1.035); }
+.home-instagram-category {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--post-accent, #5f7d4c);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+.home-instagram-caption { padding: 14px 16px 16px; color: #2c1a0e; }
+.home-instagram-caption p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; }
+.home-instagram-caption p strong { margin-right: 4px; }
+.home-instagram-caption a { color: #5f7d4c; font-size: 12px; font-weight: 700; text-decoration: none; }
+.home-instagram-caption a:hover { text-decoration: underline; }
 .home-no-results {
     text-align: center;
     font-size: 13px;
@@ -811,6 +878,33 @@ body {
     color: rgba(44, 26, 14, 0.6);
     margin: 0;
 }
+.home-schedule-panel {
+    flex: 0 0 270px;
+    padding: 16px;
+    border: 1px solid rgba(44, 26, 14, 0.1);
+    border-radius: 14px;
+    background: #faf7f2;
+    box-shadow: 0 8px 24px rgba(44, 26, 14, 0.06);
+}
+.home-schedule-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; color: #2c1a0e; }
+.home-schedule-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #e9e2d0; color: #5f7d4c; }
+.home-schedule-icon svg { display: block; width: 19px; height: 19px; }
+.home-schedule-heading div { display: grid; gap: 2px; }
+.home-schedule-heading strong { font-size: 13px; }
+.home-schedule-heading span { color: rgba(44, 26, 14, 0.58); font-size: 11px; }
+.home-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; }
+.home-calendar-weekday { padding: 4px 0; color: rgba(44, 26, 14, 0.52); font-size: 9px; font-weight: 700; }
+.home-calendar-day { position: relative; display: grid; place-items: center; aspect-ratio: 1; border-radius: 50%; color: #2c1a0e; font-size: 10px; }
+.home-calendar-day.is-empty { visibility: hidden; }
+.home-calendar-day.is-today { background: #1c3322; color: #fff; font-weight: 700; }
+.home-calendar-day.has-schedule:not(.is-today) { background: #e9e2d0; font-weight: 700; }
+.home-calendar-day i { position: absolute; bottom: 2px; width: 3px; height: 3px; border-radius: 50%; background: #8b2e1a; }
+.home-schedule-list { display: grid; gap: 8px; margin-top: 14px; }
+.home-schedule-item { display: flex; align-items: center; gap: 9px; padding: 8px; border-radius: 9px; background: #fff; color: #2c1a0e; text-decoration: none; }
+.home-schedule-item time { display: grid; min-width: 32px; text-align: center; line-height: 1; }
+.home-schedule-item time strong { font-size: 16px; }
+.home-schedule-item time span { margin-top: 3px; color: #8b2e1a; font-size: 9px; font-weight: 700; }
+.home-schedule-item > span { font-size: 11px; line-height: 1.35; }
 .home-upcoming-nav-group {
     display: flex;
     gap: 10px;
@@ -1777,3 +1871,15 @@ a.home-partner-card { text-decoration: none; }
 }
 .brand-title-logo { width: 100%; display: flex; justify-content: center; }
 .brand-title-logo img { display: block; margin: 0 auto; }
+@media (max-width: 900px) {
+    .home-instagram-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .home-schedule-panel { flex-basis: 250px; }
+}
+@media (max-width: 600px) {
+    .home-foryou { padding: 64px 18px 52px; }
+    .home-foryou-top { margin-bottom: 28px; }
+    .home-instagram-grid { grid-template-columns: minmax(0, 1fr); max-width: 420px; gap: 18px; }
+    .home-instagram-media { aspect-ratio: 4 / 5; }
+    .home-upcoming-top { align-items: stretch; }
+    .home-schedule-panel { flex-basis: auto; width: 100%; }
+}
