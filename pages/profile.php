@@ -73,6 +73,57 @@ function profile_escape(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
+
+$nameParts = preg_split('/\s+/u', trim((string) ($profile['fullname'] ?? '')), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+$profileInitials = '';
+foreach (array_slice($nameParts, 0, 2) as $part) {
+    $profileInitials .= mb_strtoupper(mb_substr($part, 0, 1));
+}
+$profileInitials = $profileInitials !== '' ? $profileInitials : 'KT';
+
+$stats = ['visits' => 0, 'places' => 0, 'favorites' => 0, 'photos' => 0, 'streak' => 0];
+
+$stmt = $conn->prepare(
+    "SELECT COUNT(*) AS visits, COUNT(DISTINCT CONCAT(item_type, ':', item_id)) AS places
+     FROM diary_entries WHERE user_id = ?"
+);
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$visitStats = $stmt->get_result()->fetch_assoc() ?: [];
+$stmt->close();
+$stats['visits'] = (int) ($visitStats['visits'] ?? 0);
+$stats['places'] = (int) ($visitStats['places'] ?? 0);
+
+$stmt = $conn->prepare('SELECT COUNT(*) AS total FROM favorites WHERE user_id = ?');
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$stats['favorites'] = (int) ($stmt->get_result()->fetch_assoc()['total'] ?? 0);
+$stmt->close();
+
+$stmt = $conn->prepare(
+    'SELECT COUNT(*) AS total FROM diary_photos p
+     INNER JOIN diary_entries d ON d.entry_id = p.entry_id WHERE d.user_id = ?'
+);
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$stats['photos'] = (int) ($stmt->get_result()->fetch_assoc()['total'] ?? 0);
+$stmt->close();
+
+$stmt = $conn->prepare('SELECT DISTINCT visited_date FROM diary_entries WHERE user_id = ? ORDER BY visited_date ASC');
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$dateRows = $stmt->get_result();
+$stmt->close();
+$currentStreak = 0;
+$previousDate = null;
+while ($dateRow = $dateRows->fetch_assoc()) {
+    $date = new DateTimeImmutable($dateRow['visited_date']);
+    $currentStreak = $previousDate !== null && $previousDate->diff($date)->days === 1
+        ? $currentStreak + 1
+        : 1;
+    $stats['streak'] = max($stats['streak'], $currentStreak);
+    $previousDate = $date;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -89,6 +140,28 @@ function profile_escape(string $value): string
     </header>
     <main class="profile-main">
         <section class="profile-card">
+            <aside class="profile-summary">
+                <div class="profile-avatar" aria-label="Profile initials"><?php echo profile_escape($profileInitials); ?></div>
+                <h2><?php echo profile_escape((string) ($profile['fullname'] ?? '')); ?></h2>
+                <p class="profile-username">@<?php echo profile_escape((string) ($profile['username'] ?? '')); ?></p>
+                <p class="profile-email"><span class="profile-email-icon" aria-hidden="true">✉</span><?php echo profile_escape((string) ($profile['email'] ?? '')); ?></p>
+                <div class="profile-stats-heading">
+                    <p class="profile-eyebrow">YOUR TRAVEL AT A GLANCE</p>
+                    <span>Stats from your Travel Diary</span>
+                </div>
+                <div class="profile-stats">
+                    <div class="profile-stat"><strong><?php echo number_format($stats['places']); ?></strong><span>Places explored</span></div>
+                    <div class="profile-stat"><strong><?php echo number_format($stats['visits']); ?></strong><span>Visits logged</span></div>
+                    <div class="profile-stat"><strong><?php echo number_format($stats['favorites']); ?></strong><span>Favorites</span></div>
+                    <div class="profile-stat"><strong><?php echo number_format($stats['photos']); ?></strong><span>Travel photos</span></div>
+                    <div class="profile-stat profile-stat-streak"><strong><?php echo number_format($stats['streak']); ?> <small><?php echo $stats['streak'] === 1 ? 'day' : 'days'; ?></small></strong><span>Longest visit streak</span></div>
+                </div>
+                <div class="profile-summary-links">
+                    <a href="traveldiary.php">Open Travel Diary <span aria-hidden="true">→</span></a>
+                    <a href="favorites.php">View favorites <span aria-hidden="true">→</span></a>
+                </div>
+            </aside>
+            <div class="profile-edit">
             <p class="profile-eyebrow">YOUR ACCOUNT</p>
             <h1>Edit your profile</h1>
             <p class="profile-intro">Keep your account details up to date.</p>
@@ -117,6 +190,7 @@ function profile_escape(string $value): string
                 </label>
                 <button type="submit">Save changes</button>
             </form>
+            </div>
         </section>
     </main>
 </body>
