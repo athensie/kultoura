@@ -25,11 +25,15 @@ if (!function_exists('kt_homepage_content_ensure_schema')) {
             "CREATE TABLE IF NOT EXISTS event_gallery (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 image VARCHAR(255) NOT NULL,
-                caption VARCHAR(100) NOT NULL,
+                caption TEXT NOT NULL,
                 status ENUM('live','archived') NOT NULL DEFAULT 'live',
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
+        $captionColumn = $conn->query("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'event_gallery' AND COLUMN_NAME = 'caption' LIMIT 1");
+        if ($captionColumn && ($captionType = $captionColumn->fetch_assoc()) && strtolower($captionType['DATA_TYPE']) !== 'text') {
+            $conn->query("ALTER TABLE event_gallery MODIFY caption TEXT NOT NULL");
+        }
         $conn->query(
             "CREATE TABLE IF NOT EXISTS fb_videos (
                 id INT AUTO_INCREMENT PRIMARY KEY,

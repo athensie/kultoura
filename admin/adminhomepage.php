@@ -78,6 +78,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             header("Location: adminhomepage.php");
             exit;
         }
+        $captionWords = preg_split('/\s+/u', $caption, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if (count($captionWords) > 50) {
+            $_SESSION['admin_flash'] = 'Event gallery captions can be up to 50 words.';
+            header("Location: adminhomepage.php");
+            exit;
+        }
         $image = kt_homepage_handle_image_upload('image_file', 'events', 'event')
             ?? ($verb === 'update' ? trim($_POST['existing_image'] ?? '') : '');
         if ($verb === 'create' && $image === '') {
@@ -378,7 +384,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addEventPhotoModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add Event Photo</div>
-        <div class="modal-sub">A short caption works best — it's shown as bold overlay text on the photo, e.g. "EPIC" or "FIESTA".</div>
+        <div class="modal-sub">Captions can be up to 50 words and appear below the event photo.</div>
         <form method="POST" action="adminhomepage.php" enctype="multipart/form-data">
             <input type="hidden" name="form_action" value="add_event_photo">
             <?php echo csrf_field(); ?>
@@ -388,7 +394,8 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             </div>
             <div class="form-group">
                 <label class="form-label">Caption</label>
-                <input class="form-input" type="text" name="caption" maxlength="40" placeholder="e.g. Fiesta 2026" required>
+                <textarea class="form-input" name="caption" rows="3" placeholder="Describe this moment..." data-word-limit="50" required></textarea>
+                <small class="caption-word-count">0 / 50 words</small>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Photo</button>
@@ -413,7 +420,8 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             </div>
             <div class="form-group">
                 <label class="form-label">Caption</label>
-                <input class="form-input" type="text" name="caption" id="editEventPhotoCaption" maxlength="40" required>
+                <textarea class="form-input" name="caption" id="editEventPhotoCaption" rows="3" data-word-limit="50" required></textarea>
+                <small class="caption-word-count">0 / 50 words</small>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Save Changes</button>

@@ -133,6 +133,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .form-input { width: 100%; padding: 11px 16px; background: rgba(var(--overlay-rgb),.05); border: 1px solid rgba(var(--overlay-rgb),.1); border-radius: 8px; color: var(--cream); font-family: 'DM Sans', sans-serif; font-size: .86rem; outline: none; transition: border-color .3s; }
 .form-input::placeholder { color: rgba(var(--cream-rgb),.25); }
 .form-input:focus { border-color: rgba(201,87,42,.5); }
+textarea.form-input { resize: vertical; min-height: 82px; }
+.caption-word-count { display: block; margin-top: 6px; color: rgba(var(--cream-rgb),.4); font-size: .68rem; text-align: right; }
+.caption-word-count.is-over-limit { color: var(--text-danger,#E76E6E); }
 .image-current-hint { font-size: .7rem; color: rgba(var(--cream-rgb),.45); margin-top: 6px; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .3s; padding: 24px; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }

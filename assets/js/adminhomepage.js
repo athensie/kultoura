@@ -32,6 +32,7 @@ function openEditEventPhoto(id) {
     if (!g) return;
     document.getElementById('editEventPhotoId').value = g.id;
     document.getElementById('editEventPhotoCaption').value = g.caption || '';
+    updateCaptionWordCount(document.getElementById('editEventPhotoCaption'));
     document.getElementById('editEventPhotoExistingImage').value = g.image || '';
     openModal('editEventPhotoModal');
 }
@@ -50,3 +51,21 @@ function showToast(msg) {
     clearTimeout(_toastTimer);
     _toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
+function updateCaptionWordCount(field) {
+    if (!field) return;
+    const words = field.value.trim().split(/\s+/u).filter(Boolean);
+    const limit = Number(field.dataset.wordLimit || 50);
+    const count = words.length;
+    const counter = field.nextElementSibling;
+    field.setCustomValidity(count > limit ? `Event gallery captions can be up to ${limit} words.` : '');
+    if (counter && counter.classList.contains('caption-word-count')) {
+        counter.textContent = `${count} / ${limit} words`;
+        counter.classList.toggle('is-over-limit', count > limit);
+    }
+}
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('textarea[data-word-limit="50"]').forEach(field => {
+        updateCaptionWordCount(field);
+        field.addEventListener('input', () => updateCaptionWordCount(field));
+    });
+});
