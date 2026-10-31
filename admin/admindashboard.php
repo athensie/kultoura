@@ -16,7 +16,6 @@ include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
-require_once '../config/csrf.php';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
 $validPeriods = ['today', 'week', 'month', 'year'];
@@ -55,10 +54,6 @@ if (!empty($categoryCounts)) {
 }
 $topCategoryCount = $categoryCounts[$topCategory] ?? 0;
 $totalPageViews = analytics_total_views($conn, $periodStartSql);
-$demoViewCount = 0;
-if ($demoResult = $conn->query("SELECT COUNT(*) AS total FROM page_views WHERE referrer_host = 'demo-seed.kultoura.local'")) {
-    $demoViewCount = (int) ($demoResult->fetch_assoc()['total'] ?? 0);
-}
 $topPages = analytics_page_breakdown($conn, $periodStartSql, 5);
 $topPagesMax = !empty($topPages) ? max(array_column($topPages, 'views')) : 0;
 foreach ($topPages as &$tp) {
@@ -126,7 +121,7 @@ $donutGradient = !empty($donutStops) ? implode(', ', $donutStops) : '#333 0% 100
 $monthlyVisitors = analytics_monthly_trend($conn, 6);
 $hasMonthlyData = array_sum(array_column($monthlyVisitors, 'value')) > 0;
 $dailyVisitorCounts = [];
-$dailyStmt = $conn->prepare("SELECT DATE(viewed_at) visit_date, COUNT(*) views FROM page_views WHERE viewed_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) GROUP BY DATE(viewed_at)");
+$dailyStmt = $conn->prepare("SELECT DATE(viewed_at) visit_date, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) GROUP BY DATE(viewed_at)");
 if ($dailyStmt) {
     $dailyStmt->execute();
     foreach ($dailyStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $dailyRow) {
@@ -144,7 +139,7 @@ $dailyVisitorsMax = max(1, max(array_column($dailyVisitors, 'value')));
 $hasDailyData = array_sum(array_column($dailyVisitors, 'value')) > 0;
 $weekdayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 $weekdayCounts = array_fill(1, 7, 0);
-$weekdayStmt = $conn->prepare("SELECT DAYOFWEEK(viewed_at) weekday, COUNT(*) views FROM page_views WHERE viewed_at >= DATE_SUB(CURDATE(), INTERVAL 89 DAY) GROUP BY DAYOFWEEK(viewed_at)");
+$weekdayStmt = $conn->prepare("SELECT DAYOFWEEK(viewed_at) weekday, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= DATE_SUB(CURDATE(), INTERVAL 89 DAY) GROUP BY DAYOFWEEK(viewed_at)");
 if ($weekdayStmt) {
     $weekdayStmt->execute();
     foreach ($weekdayStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $weekdayRow) {
@@ -154,7 +149,7 @@ if ($weekdayStmt) {
 }
 $weekdayMax = max(1, max($weekdayCounts));
 $hourlyCounts = array_fill(0, 24, 0);
-$hourlyStmt = $conn->prepare("SELECT HOUR(viewed_at) visit_hour, COUNT(*) views FROM page_views WHERE viewed_at >= ? GROUP BY HOUR(viewed_at)");
+$hourlyStmt = $conn->prepare("SELECT HOUR(viewed_at) visit_hour, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY HOUR(viewed_at)");
 if ($hourlyStmt) {
     $hourlyStmt->bind_param('s', $periodStartSql);
     $hourlyStmt->execute();
@@ -183,6 +178,24 @@ for ($monthOffset = 5; $monthOffset >= 0; $monthOffset--) {
     $signupMax = max($signupMax, $signupCounts[$monthKey] ?? 0);
 }
 $hasSignupData = array_sum(array_column($signupTrend, 'value')) > 0;
+$trendCounts = [];
+$trendStart = (new DateTimeImmutable('today'))->modify('-89 days');
+$trendStmt = $conn->prepare("SELECT DATE(viewed_at) visit_date, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DATE(viewed_at)");
+if ($trendStmt) {
+    $trendStartSql = $trendStart->format('Y-m-d 00:00:00');
+    $trendStmt->bind_param('s', $trendStartSql);
+    $trendStmt->execute();
+    foreach ($trendStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $trendRow) {
+        $trendCounts[$trendRow['visit_date']] = (int) $trendRow['views'];
+    }
+    $trendStmt->close();
+}
+$trafficTrend = [];
+for ($dayOffset = 89; $dayOffset >= 0; $dayOffset--) {
+    $trendDate = (new DateTimeImmutable('today'))->modify('-' . $dayOffset . ' days');
+    $trendKey = $trendDate->format('Y-m-d');
+    $trafficTrend[] = ['label' => $trendDate->format('M j'), 'value' => $trendCounts[$trendKey] ?? 0];
+}
 $trafficSources = analytics_traffic_sources($conn, $periodStartSql);
 $newSignups = 0;
 $stmt = $conn->prepare("SELECT COUNT(*) c FROM users WHERE created_at >= ?");
@@ -199,7 +212,6 @@ $stmt->close();
 $projectedNextMonth = null;
 $projectedGrowthPct = null;
 $monthsWithData = array_filter($monthlyVisitors, fn($m) => $m['value'] > 0);
-$canLoadDemoHistory = count($monthsWithData) < 3 && $demoViewCount === 0;
 $totalRecentViews = array_sum(array_column($monthlyVisitors, 'value'));
 if (count($monthsWithData) >= 3 && $totalRecentViews >= 10) {
     $n = count($monthlyVisitors);
@@ -247,10 +259,10 @@ $thisWeekStart = (new DateTime('monday this week'))->format('Y-m-d 00:00:00');
 $lastWeekStart = (new DateTime('monday last week'))->format('Y-m-d 00:00:00');
 $thisWeekCounts = [];
 $lastWeekCounts = [];
-if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE viewed_at >= '$thisWeekStart' GROUP BY page")) {
+if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= '$thisWeekStart' GROUP BY page")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) $thisWeekCounts[$r['page']] = (int) $r['c'];
 }
-if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE viewed_at >= '$lastWeekStart' AND viewed_at < '$thisWeekStart' GROUP BY page")) {
+if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= '$lastWeekStart' AND viewed_at < '$thisWeekStart' GROUP BY page")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) $lastWeekCounts[$r['page']] = (int) $r['c'];
 }
 $pageLabels = analytics_page_labels();
@@ -372,6 +384,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="../assets/css/admindashboard.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
@@ -428,18 +441,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
 <div class="main-content">
     <div class="dash-wrapper">
         <div class="admin-site-switch-row"><a class="admin-site-switch" href="<?php echo BASE_URL; ?>/index.php"><i data-lucide="external-link" class="lucide"></i> View user site</a></div>
-        <?php if (!empty($_SESSION['flash_message'])): ?>
-            <div class="analytics-seed-notice"><?php echo htmlspecialchars($_SESSION['flash_message']); unset($_SESSION['flash_message']); ?></div>
-        <?php endif; ?>
-        <?php if ($demoViewCount > 0): ?>
-            <div class="analytics-seed-notice is-demo">This dashboard includes <?php echo number_format($demoViewCount); ?> labeled sample page views. They are not real visitors and affect the totals and forecast.
-                <form method="post" action="<?php echo BASE_URL; ?>/admin/analytics_demo_seed.php" onsubmit="return confirm('Remove the sample page views and recalculate analytics from real data only?');">
-                    <?php echo csrf_field(); ?>
-                    <input type="hidden" name="mode" value="remove">
-                    <button class="analytics-demo-seed-button" type="submit">Remove sample history</button>
-                </form>
-            </div>
-        <?php endif; ?>
         <div class="page-header">
             <div>
                 <div class="section-label">Tourism Insights</div>
@@ -453,6 +454,19 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <a href="?period=year" class="period-btn<?php echo $period === 'year' ? ' active' : ''; ?>">This Year</a>
             </div>
         </div>
+        <section class="traffic-overview chart-box animate" aria-labelledby="trafficOverviewTitle">
+            <div class="traffic-overview-header">
+                <div><span class="section-label">Audience activity</span><h2 id="trafficOverviewTitle">Traffic overview</h2><p>Daily page views across the last 90 days</p></div>
+                <div class="traffic-range-switch" role="group" aria-label="Chart date range">
+                    <button type="button" class="traffic-range-button" data-days="7">7D</button>
+                    <button type="button" class="traffic-range-button" data-days="30">30D</button>
+                    <button type="button" class="traffic-range-button is-active" data-days="90">90D</button>
+                </div>
+            </div>
+            <div class="traffic-chart-summary"><strong><?php echo number_format(array_sum(array_column($trafficTrend, 'value'))); ?></strong><span>page views in the last 90 days</span></div>
+            <div class="traffic-chart-wrap"><canvas id="trafficOverviewChart" aria-label="Daily page views trend chart" role="img"></canvas></div>
+            <script type="application/json" id="trafficOverviewData"><?php echo json_encode($trafficTrend, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+        </section>
         <div class="analytics-filter-bar" id="analyticsFilterBar">
             <button type="button" class="analytics-filter-pill is-active" data-filter="all">All</button>
             <button type="button" class="analytics-filter-pill" data-filter="descriptive">Descriptive</button>
@@ -848,13 +862,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                         <i data-lucide="line-chart" class="lucide"></i>
                         <div class="chart-empty-title">Not enough history yet</div>
                         <div class="chart-empty-sub">Once at least 3 months of page views have been logged, a projection will appear here.</div>
-                        <?php if ($canLoadDemoHistory): ?>
-                            <form class="analytics-demo-seed-form" method="post" action="<?php echo BASE_URL; ?>/admin/analytics_demo_seed.php" onsubmit="return confirm('Load clearly labeled demo page views into this database? These are sample visits, not real visitor activity, and will be included in analytics totals until removed.');">
-                                <?php echo csrf_field(); ?>
-                                <input type="hidden" name="mode" value="load">
-                                <button class="analytics-demo-seed-button" type="submit">Load sample history</button>
-                            </form>
-                        <?php endif; ?>
                     </div>
                 <?php else: ?>
                     <div class="forecast-box">

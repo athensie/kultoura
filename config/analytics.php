@@ -78,9 +78,9 @@ function analytics_active_users(mysqli $conn, int $minutes = 5): int
 }
 function analytics_total_views(mysqli $conn, ?string $sinceSql = null): int
 {
-    $sql = "SELECT COUNT(*) c FROM page_views";
+    $sql = "SELECT COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')";
     if ($sinceSql) {
-        $stmt = $conn->prepare($sql . " WHERE viewed_at >= ?");
+        $stmt = $conn->prepare($sql . " AND viewed_at >= ?");
         $stmt->bind_param('s', $sinceSql);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -93,9 +93,9 @@ function analytics_total_views(mysqli $conn, ?string $sinceSql = null): int
 function analytics_page_breakdown(mysqli $conn, ?string $sinceSql = null, int $limit = 6): array
 {
     $labels = analytics_page_labels();
-    $sql = "SELECT page, COUNT(*) c FROM page_views";
+    $sql = "SELECT page, COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')";
     if ($sinceSql) {
-        $stmt = $conn->prepare($sql . " WHERE viewed_at >= ? GROUP BY page ORDER BY c DESC LIMIT ?");
+        $stmt = $conn->prepare($sql . " AND viewed_at >= ? GROUP BY page ORDER BY c DESC LIMIT ?");
         $stmt->bind_param('si', $sinceSql, $limit);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -118,7 +118,8 @@ function analytics_monthly_trend(mysqli $conn, int $months = 6): array
     $stmt = $conn->prepare(
         "SELECT DATE_FORMAT(viewed_at, '%Y-%m') ym, COUNT(*) c
          FROM page_views
-         WHERE viewed_at >= DATE_SUB(DATE_FORMAT(NOW(), '%Y-%m-01'), INTERVAL ? MONTH)
+         WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')
+           AND viewed_at >= DATE_SUB(DATE_FORMAT(NOW(), '%Y-%m-01'), INTERVAL ? MONTH)
          GROUP BY ym"
     );
     $lookback = $months - 1;
@@ -144,9 +145,9 @@ function analytics_monthly_trend(mysqli $conn, int $months = 6): array
 }
 function analytics_traffic_sources(mysqli $conn, ?string $sinceSql = null, int $limit = 5): array
 {
-    $sql = "SELECT referrer_host, COUNT(*) c FROM page_views";
+    $sql = "SELECT referrer_host, COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')";
     if ($sinceSql) {
-        $stmt = $conn->prepare($sql . " WHERE viewed_at >= ? GROUP BY referrer_host ORDER BY c DESC LIMIT ?");
+        $stmt = $conn->prepare($sql . " AND viewed_at >= ? GROUP BY referrer_host ORDER BY c DESC LIMIT ?");
         $stmt->bind_param('si', $sinceSql, $limit);
     } else {
         $stmt = $conn->prepare($sql . " GROUP BY referrer_host ORDER BY c DESC LIMIT ?");
