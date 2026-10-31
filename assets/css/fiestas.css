@@ -1,26 +1,18 @@
-/* ── fiestas.css — page-specific styles for fiestas.php ── */
-/* Reuses index.css (navbar) and tourism.css (hero, .t-* layout) as-is. */
-/* All selectors here are prefixed with p- so nothing collides with either file. */
-
-/* ── Page layout: calendar (left) + content (right) ── */
 .p-page-layout {
     display: flex;
     align-items: flex-start;
     gap: 32px;
 }
-
 .p-calendar-col {
     width: 300px;
     flex-shrink: 0;
     position: sticky;
     top: 24px;
 }
-
 .p-content-col {
     flex: 1;
     min-width: 0;
 }
-
 @media (max-width: 900px) {
     .p-page-layout {
         flex-direction: column;
@@ -30,8 +22,6 @@
         position: static;
     }
 }
-
-/* ── Small calendar widget ── */
 .p-calendar-wrap {
     background: #faf7f2;
     border: 1px solid rgba(44, 26, 14, 0.1);
@@ -39,21 +29,18 @@
     padding: 20px;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
-
 .p-calendar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 16px;
 }
-
 .p-calendar-month {
     font-family: Georgia, serif;
     font-size: 15px;
     color: #2c1a0e;
     font-weight: 700;
 }
-
 .p-calendar-nav {
     width: 26px;
     height: 26px;
@@ -67,17 +54,14 @@
     background: #f0ebe3;
     transition: background 0.2s;
 }
-
 .p-calendar-nav:hover {
     background: #e5dccb;
 }
-
 .p-calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
 }
-
 .p-calendar-weekday {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 10px;
@@ -88,7 +72,6 @@
     padding-bottom: 6px;
     text-transform: uppercase;
 }
-
 .p-calendar-day {
     aspect-ratio: 1 / 1;
     display: flex;
@@ -100,29 +83,24 @@
     border-radius: 50%;
     position: relative;
 }
-
 .p-calendar-blank {
     visibility: hidden;
 }
-
 .p-calendar-day.is-today {
     background: #2c1a0e;
     color: #fff;
     font-weight: 700;
 }
-
 .p-calendar-day.has-event {
     background: rgba(139, 46, 26, 0.12);
     color: #8b2e1a;
     font-weight: 700;
     cursor: default;
 }
-
 .p-calendar-day.has-event.is-today {
     background: #8b2e1a;
     color: #fff;
 }
-
 .p-calendar-day.has-event::after {
     content: '';
     position: absolute;
@@ -132,11 +110,9 @@
     border-radius: 50%;
     background: #8b2e1a;
 }
-
 .p-calendar-day.has-event.is-today::after {
     background: #fff;
 }
-
 .p-calendar-legend {
     display: flex;
     align-items: center;
@@ -146,7 +122,6 @@
     font-size: 11px;
     color: rgba(44, 26, 14, 0.55);
 }
-
 .p-calendar-dot {
     width: 8px;
     height: 8px;
@@ -154,11 +129,9 @@
     background: #8b2e1a;
     display: inline-block;
 }
-
 .p-search-row {
     margin-bottom: 52px;
 }
-
 .p-search-bar {
     display: flex;
     align-items: center;
@@ -170,7 +143,6 @@
     max-width: 640px;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
-
 .p-search-bar input[type="text"] {
     flex: 1;
     border: none;
@@ -181,7 +153,6 @@
     background: transparent;
     color: #2c1a0e;
 }
-
 .p-category-select {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -191,33 +162,24 @@
     background: #f0ebe3;
     color: #2c1a0e;
 }
-
-/* Mobile: the select doesn't shrink past its content width, so above
-   ~360px it was forcing .p-search-bar (and the whole page) to scroll
-   horizontally. Stack the input and select instead of squeezing them
-   onto one line. */
 @media (max-width: 640px) {
     .p-search-bar {
         flex-wrap: wrap;
         border-radius: 20px;
         padding: 10px;
     }
-
     .p-search-bar input[type="text"] {
         flex: 1 1 100%;
         padding: 8px 6px;
     }
-
     .p-category-select {
         flex: 1 1 100%;
         width: 100%;
     }
 }
-
 .p-month-filter {
     margin-bottom: 40px;
 }
-
 .p-month-filter-label {
     font-size: 12px;
     font-weight: 700;
@@ -226,13 +188,11 @@
     color: rgba(44, 26, 14, 0.55);
     margin: 0 0 10px;
 }
-
 .p-month-pills {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
-
 .p-month-pill {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -252,7 +212,6 @@
     border-color: #2c1a0e;
     color: #f0ebe3;
 }
-
 .p-month-clear {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 12.5px;
@@ -265,8 +224,6 @@
     text-decoration: underline;
 }
 .p-month-clear:hover { color: #2c1a0e; }
-
-/* Empty state */
 .p-empty-state {
     text-align: center;
     padding: 64px 24px;
@@ -274,37 +231,30 @@
     border: 1px dashed rgba(44, 26, 14, 0.15);
     border-radius: 12px;
 }
-
 .p-empty-icon {
     font-size: 32px;
     margin: 0 0 12px;
 }
-
 .p-empty-state h3 {
     font-family: Georgia, serif;
     font-size: 19px;
     color: #2c1a0e;
     margin-bottom: 8px;
 }
-
 .p-empty-state p {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     color: rgba(44, 26, 14, 0.55);
     margin: 0;
 }
-
-/* Card grid (for when the admin has added products) */
 .p-card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 20px;
 }
-
 @media (max-width: 640px) {
     .p-card-grid { grid-template-columns: 1fr; }
 }
-
 .p-card {
     background: #faf7f2;
     border: 1px solid rgba(44, 26, 14, 0.1);
@@ -315,13 +265,11 @@
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
     transition: all 0.22s;
 }
-
 .p-card:hover {
     border-color: rgba(139, 46, 26, 0.25);
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(139, 46, 26, 0.1);
 }
-
 .p-card-media {
     position: relative;
     height: 150px;
@@ -329,7 +277,6 @@
     overflow: hidden;
     flex-shrink: 0;
 }
-
 .p-card-media img,
 .p-card-img {
     width: 100%;
@@ -337,7 +284,6 @@
     object-fit: contain;
     display: block;
 }
-
 .p-fav-btn {
     position: absolute;
     top: 12px;
@@ -356,16 +302,13 @@
     flex-shrink: 0;
     transition: background 0.2s;
 }
-
 .p-fav-btn:hover {
     background: rgba(44, 26, 14, 0.75);
 }
-
 .p-fav-btn.is-favorited {
     background: #8b2e1a;
     color: #fff;
 }
-
 .p-tag-pill {
     position: absolute;
     top: 12px;
@@ -380,14 +323,12 @@
     padding: 6px 12px;
     border-radius: 14px;
 }
-
 .p-card-body {
     padding: 18px 18px 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
 }
-
 .p-card-category {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 11px;
@@ -397,14 +338,12 @@
     margin: 0 0 6px;
     text-transform: uppercase;
 }
-
 .p-card-title {
     font-family: Georgia, serif;
     font-size: 18px;
     color: #2c1a0e;
     margin-bottom: 8px;
 }
-
 .p-card-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -413,12 +352,10 @@
     flex: 1;
     margin: 0 0 18px;
 }
-
 .p-card-actions {
     display: flex;
     gap: 10px;
 }
-
 .p-btn {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 12px;
@@ -431,29 +368,21 @@
     appearance: none;
     display: inline-block;
 }
-
 .p-btn-primary {
     background: #8b2e1a;
     color: #fff;
     border: 1px solid #8b2e1a;
 }
-
 .p-btn-primary:hover {
     background: #a83520;
     border-color: #a83520;
 }
-
 .p-btn-outline {
     background: #fff;
     color: #2c1a0e;
     border: 1px solid rgba(44, 26, 14, 0.15);
 }
-
 .p-btn-outline:hover {
     border-color: #8b2e1a;
     color: #8b2e1a;
 }
-
-/* View Details / Navigate modal, Navigate map, and Toast styles now live in
-   tourism.css (.p-modal-*, .p-nav-*, .p-toast) so every listing page shares
-   the exact same popup look. */

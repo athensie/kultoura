@@ -4,30 +4,16 @@ require_once '../config/dbmain.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
 require_once '../config/page_widgets.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
@@ -35,39 +21,23 @@ kt_requests_ensure_schema($conn);
 kt_page_widgets_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
 $pageChoices = kt_page_widget_pages();
-
-/*
- |--------------------------------------------------------------------
- | PAGE WIDGETS — one admin-customizable promo banner per tourism page
- |--------------------------------------------------------------------
- | Singleton per page_slug (the table's UNIQUE key): "Add" on a page
- | that already has a row (even an archived one) quietly becomes an
- | update instead of a duplicate insert, so re-adding after archiving
- | just works. Goes through the same Admin/Super Admin approval queue
- | as the rest of the site (see config/admin_requests.php).
- */
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     csrf_verify();
     $formAction = $_POST['form_action'];
-
     $verb = match ($formAction) {
         'add_page_widget'    => 'create',
         'edit_page_widget'   => 'update',
         'delete_page_widget' => 'archive',
         default               => null,
     };
-
     if (!$verb) {
         $_SESSION['admin_flash'] = 'Unrecognized action.';
         header("Location: adminpagewidgets.php");
         exit;
     }
-
     $id = ($verb === 'update' || $verb === 'archive') ? (int) ($_POST['id'] ?? 0) : null;
-
     if ($verb === 'archive') {
         $data = ['archive_note' => $_POST['archive_note'] ?? ''];
         $stmt = $conn->prepare("SELECT page_slug FROM page_widgets WHERE id = ?");
@@ -83,10 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             header("Location: adminpagewidgets.php");
             exit;
         }
-
-        // Re-adding a widget for a page that already has a (possibly
-        // archived) row updates that row instead of hitting the
-        // UNIQUE(page_slug) constraint with a second insert.
         if ($verb === 'create') {
             $existing = $conn->prepare("SELECT id FROM page_widgets WHERE page_slug = ?");
             $existing->bind_param('s', $pageSlug);
@@ -98,13 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                 $id = (int) $existingRow['id'];
             }
         }
-
-        // Headline/subtext are no longer admin-typed — the banner always
-        // shows that page's own title/description (kt_page_widget_page_meta()),
-        // these columns are just kept populated to satisfy the NOT NULL
-        // schema without a migration.
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['title' => $pageSlug, 'description' => ''];
-
         $data = [
             'page_slug'        => $pageSlug,
             'bg_color'         => trim($_POST['bg_color'] ?? '') ?: '#8b2e1a',
@@ -136,7 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         ];
         $label = $pageChoices[$pageSlug];
     }
-
     if ($isSuperAdmin) {
         kt_apply_entity_change($conn, 'page_widget', $verb, $id, $data);
         $_SESSION['admin_flash'] = $verb === 'archive'
@@ -146,25 +105,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         kt_requests_create($conn, 'page_widget', $verb, $id, $data, $label, (int) $_SESSION['user_id'], $adminName);
         $_SESSION['admin_flash'] = 'Your request to ' . ($verb === 'archive' ? 'archive' : $verb) . ' the "' . $label . '" widget was submitted for Super Admin approval.';
     }
-
     header("Location: adminpagewidgets.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | READ
- |--------------------------------------------------------------------
- */
 $widgetsBySlug = [];
 if ($result = $conn->query("SELECT * FROM page_widgets WHERE status = 'live'")) {
     foreach ($result->fetch_all(MYSQLI_ASSOC) as $w) {
         $widgetsBySlug[$w['page_slug']] = $w;
     }
 }
-
-// Same "show the admin their own pending submissions" pattern as
-// admin/adminhomepage.php — adminrequests.php is Super Admin only.
 $pendingWidgets = [];
 foreach (kt_requests_list($conn, 'pending') as $req) {
     if (!$isSuperAdmin && (int) $req['requested_by'] !== (int) $_SESSION['user_id']) {
@@ -182,7 +131,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page Widgets – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -191,10 +139,8 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminhomepage.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/adminhomepage.css') ?: time(); ?>">
     <link rel="stylesheet" href="../assets/css/adminpagewidgets.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/adminpagewidgets.css') ?: time(); ?>">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
@@ -202,18 +148,14 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -224,7 +166,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php" class="active"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -235,7 +176,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -254,14 +194,9 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">Content Management</div>
@@ -269,7 +204,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <p>A customizable promo banner + photo strip, one per tourism page.</p>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -281,7 +215,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
         <div class="pw-admin-list">
             <?php foreach ($pageChoices as $slug => $label):
                 $w = $widgetsBySlug[$slug] ?? null;
@@ -322,7 +255,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 </div>
             <?php endforeach; ?>
         </div>
-
         <?php if (!empty($pendingWidgets)): ?>
             <h3 class="pending-heading">Pending Super Admin Approval</h3>
             <div class="pw-admin-list">
@@ -338,11 +270,8 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
-
     </div>
 </div>
-
-<!-- ADD WIDGET MODAL -->
 <div class="modal-overlay" id="addWidgetModal" onclick="closeModalOutside(event, 'addWidgetModal')">
     <div class="modal-card pw-modal-card">
         <button class="modal-close" onclick="closeModal('addWidgetModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -352,7 +281,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <input type="hidden" name="form_action" value="add_page_widget">
             <input type="hidden" name="page_slug" id="addWidgetPageSlug">
             <?php echo csrf_field(); ?>
-
             <p class="pw-form-section">Left Text Panel</p>
             <div class="form-group">
                 <label class="form-label">Panel Background Color</label>
@@ -362,13 +290,11 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <label class="form-label">Panel Text</label>
                 <textarea class="form-input" name="card1_text" rows="2" maxlength="300" placeholder="e.g. Curated picks from Malvar's local favorites."></textarea>
             </div>
-
             <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
                 <label class="form-label">This is where the page's title appears</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
             </div>
-
             <p class="pw-form-section">Grid Pictures (up to 4)</p>
             <p class="pw-form-hint">Select up to 4 photos at once — they fill the grid above (left-bottom, top-right, bottom-right, and the small bottom-right panel), separate from the photo strip below it.</p>
             <div class="form-group">
@@ -379,7 +305,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <label class="form-label">Caption for the 4th photo (e.g. "Powered by KulToura")</label>
                 <input class="form-input" type="text" name="card2_text" maxlength="60">
             </div>
-
             <p class="pw-form-section">Photo Strip Pictures (up to 5)</p>
             <p class="pw-form-hint">Select up to 5 different photos at once for the expanding strip below the grid, in the order you picked them. Caption/description are optional.</p>
             <div class="form-group">
@@ -398,7 +323,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 </div>
             </div>
             <?php endfor; ?>
-
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Widget</button>
                 <button type="button" class="btn-ghost" onclick="closeModal('addWidgetModal')">Cancel</button>
@@ -406,8 +330,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- EDIT WIDGET MODAL -->
 <div class="modal-overlay" id="editWidgetModal" onclick="closeModalOutside(event, 'editWidgetModal')">
     <div class="modal-card pw-modal-card">
         <button class="modal-close" onclick="closeModal('editWidgetModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -418,7 +340,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <input type="hidden" name="id" id="editWidgetId">
             <input type="hidden" name="page_slug" id="editWidgetPageSlug">
             <?php echo csrf_field(); ?>
-
             <p class="pw-form-section">Left Text Panel</p>
             <div class="form-group">
                 <label class="form-label">Panel Background Color</label>
@@ -428,14 +349,12 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <label class="form-label">Panel Text</label>
                 <textarea class="form-input" name="card1_text" id="editWidgetCard1Text" rows="2" maxlength="300"></textarea>
             </div>
-
             <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
                 <label class="form-label">Replace (where the page's title appears)</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current photo.</p>
             </div>
-
             <p class="pw-form-section">Grid Pictures (up to 4)</p>
             <p class="pw-form-hint">Select up to 4 photos at once to replace these (left-bottom, top-right, bottom-right, bottom-right panel), separate from the photo strip below. Leave empty to keep them as they are.</p>
             <div class="form-group">
@@ -446,7 +365,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <label class="form-label">Caption for the 4th photo (e.g. "Powered by KulToura")</label>
                 <input class="form-input" type="text" name="card2_text" id="editWidgetCard2Text" maxlength="60">
             </div>
-
             <p class="pw-form-section">Photo Strip Pictures (up to 5)</p>
             <p class="pw-form-hint">Select up to 5 different photos at once to replace these, in order (Photo 1, Photo 2, …). Leave this empty to keep all 5 exactly as they are — selecting just 1 or 2 replaces only those positions.</p>
             <div class="form-group">
@@ -465,7 +383,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 </div>
             </div>
             <?php endfor; ?>
-
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Save Changes</button>
                 <button type="button" class="btn-ghost" onclick="closeModal('editWidgetModal')">Cancel</button>
@@ -473,8 +390,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- ARCHIVE CONFIRM MODAL -->
 <div class="modal-overlay" id="archiveModal" onclick="closeModalOutside(event, 'archiveModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div class="modal-title" id="archiveTitle">Archive Widget?</div>
@@ -494,10 +409,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
     window.pageWidgetsData = <?php echo json_encode(array_values($widgetsBySlug), JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]'; ?>;
     window.pageWidgetLabels = <?php echo json_encode($pageChoices, JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}'; ?>;
@@ -511,6 +423,5 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
 <script src="../assets/js/adminhomepage.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/adminhomepage.js') ?: time(); ?>"></script>
 <script src="../assets/js/adminpagewidgets.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/adminpagewidgets.js') ?: time(); ?>"></script>
 <script>initSidebarCollapse();</script>
-
 </body>
 </html>

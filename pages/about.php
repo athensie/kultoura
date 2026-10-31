@@ -6,19 +6,8 @@ kt_maintenance_gate($conn);
 include '../config/sitecontent.php';
 include '../config/analytics.php';
 analytics_track($conn, 'about');
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-/* ============================================================
-   SECTION PHOTOS
-   ------------------------------------------------------------
-   Real catalog photos to illustrate the hero and each section
-   below — same image-subfolder convention used by
-   pages/traveldiary.php and index.php. Every lookup degrades to
-   null gracefully (see about_fetch_row) so a sparse catalog never
-   renders a broken <img>; the CSS just drops the photo column.
-============================================================ */
 $aboutImageSubfolder = [
     'product'    => 'products',
     'restaurant' => 'food',
@@ -48,7 +37,6 @@ function about_photo(?array $row, array $subfolders): ?array
     if (!$row) return null;
     return ['name' => $row['name'], 'image' => about_img($row['category'], $row['image'], $subfolders)];
 }
-
 $natureRows     = about_fetch_rows($conn, "SELECT destination_name AS name, image, category FROM destination WHERE status = 'active' AND category = 'nature' ORDER BY destination_id ASC LIMIT 3");
 $industryRows   = about_fetch_rows($conn, "SELECT destination_name AS name, image, category FROM destination WHERE status = 'active' AND category = 'industry' ORDER BY destination_id ASC LIMIT 1");
 $anyDestRows    = about_fetch_rows($conn, "SELECT destination_name AS name, image, category FROM destination WHERE status = 'active' ORDER BY destination_id ASC LIMIT 3");
@@ -56,29 +44,16 @@ $fiestaRows     = about_fetch_rows($conn, "SELECT fiesta_name AS name, image, 'f
 $personRows     = about_fetch_rows($conn, "SELECT fullname AS name, image, 'person' AS category FROM people WHERE status = 'active' ORDER BY person_id ASC LIMIT 1");
 $productRows    = about_fetch_rows($conn, "SELECT product_name AS name, image, 'product' AS category FROM products WHERE status = 'active' ORDER BY product_id ASC LIMIT 1");
 $restaurantRows = about_fetch_rows($conn, "SELECT restaurant_name AS name, image, 'restaurant' AS category FROM restaurants WHERE status = 'active' ORDER BY restaurant_id ASC LIMIT 1");
-
 $heroPhoto      = about_photo($natureRows[0] ?? $anyDestRows[0] ?? $industryRows[0] ?? null, $aboutImageSubfolder);
 $historyPhoto   = about_photo($anyDestRows[0] ?? $industryRows[0] ?? $productRows[0] ?? null, $aboutImageSubfolder);
 $geographyPhoto = about_photo($natureRows[0] ?? $anyDestRows[0] ?? null, $aboutImageSubfolder);
 $economyPhoto   = about_photo($industryRows[0] ?? $productRows[0] ?? $restaurantRows[0] ?? $anyDestRows[1] ?? null, $aboutImageSubfolder);
 $culturePhoto   = about_photo($fiestaRows[0] ?? $personRows[0] ?? $anyDestRows[2] ?? null, $aboutImageSubfolder);
 $naturePhoto    = about_photo($natureRows[1] ?? $natureRows[0] ?? $anyDestRows[2] ?? $anyDestRows[0] ?? null, $aboutImageSubfolder);
-
-// Admin-curated hero photo (Admin → Site Content) takes priority over the
-// automatic destination-photo fallback above.
 $adminAboutHero = sitecontent_get_photo($conn, 'about_hero');
 if ($adminAboutHero) {
     $heroPhoto = ['name' => 'Malvar, Batangas', 'image' => $adminAboutHero];
 }
-
-/* ============================================================
-   ABOUT SECTIONS (admin-managed via Admin → Site Content)
-   ------------------------------------------------------------
-   Each row picks its own admin-uploaded photo if it has one;
-   otherwise the original 5 seeded sections fall back to the
-   catalog photos derived above, and any brand-new section an
-   admin adds just renders without a photo until they add one.
-============================================================ */
 $autoSectionPhotoByTitle = [
     'history'               => $historyPhoto,
     'geography'              => $geographyPhoto,
@@ -86,7 +61,6 @@ $autoSectionPhotoByTitle = [
     'culture & festivals'   => $culturePhoto,
     'nature & attractions'  => $naturePhoto,
 ];
-
 $iconSvgs = sitecontent_icons();
 $aboutSections = sitecontent_get_about_sections($conn);
 foreach ($aboutSections as &$sec) {
@@ -112,16 +86,12 @@ unset($sec);
     <link rel="stylesheet" href="../assets/css/about.css">
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -163,8 +133,6 @@ unset($sec);
         </div>
             <?php if ($isLoggedIn): ?><a href="../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="search_api.php" data-results="search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -177,10 +145,7 @@ unset($sec);
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
-<!-- ── Page Hero ── -->
 <section class="a-hero<?php echo $heroPhoto ? '' : ' a-hero-no-photo'; ?>">
     <?php if ($heroPhoto): ?>
         <img class="a-hero-photo" src="<?php echo htmlspecialchars($heroPhoto['image']); ?>" alt="<?php echo htmlspecialchars($heroPhoto['name']); ?>">
@@ -196,8 +161,6 @@ unset($sec);
         </p>
     </div>
 </section>
-
-<!-- ── Quick Facts card (pulled up over the hero's bottom edge via negative margin — sits in normal flow, so it sizes itself instead of relying on guessed padding) ── -->
 <div class="a-facts-wrap">
     <div class="a-facts">
         <div class="a-fact">
@@ -232,11 +195,7 @@ unset($sec);
         </div>
     </div>
 </div>
-
-<!-- ── Content ── -->
 <main class="a-main">
-
-    <!-- ABOUT SECTIONS (admin-managed: Admin → Site Content) -->
     <?php foreach ($aboutSections as $sec): ?>
     <section class="a-section" id="<?php echo htmlspecialchars($sec['slug']); ?>">
         <?php if ($sec['photo']): ?>
@@ -257,10 +216,7 @@ unset($sec);
         </div>
     </section>
     <?php endforeach; ?>
-
 </main>
-
-<!-- ── Footer ── -->
 <footer class="a-footer">
     <p>© <?php echo date('Y'); ?> KulToura. All rights reserved.</p>
     <div class="a-footer-social">
@@ -270,10 +226,8 @@ unset($sec);
     </div>
     <p class="a-footer-tag">Promoting culture. Preserving heritage. Inspiring journeys.</p>
 </footer>
-
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/navbar-search.js"></script>
 <script src="../assets/js/about.js"></script>
-
 </body>
 </html>

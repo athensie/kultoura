@@ -1,82 +1,45 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | DATABASE
- |--------------------------------------------------------------------
- */
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
 require_once __DIR__ . '/../config/password_policy.php';
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | ADD / EDIT / DEACTIVATE (handled right here — no separate actions file)
- |--------------------------------------------------------------------
- | Every account row is tagged with 'source' => 'admin' or 'user', so
- | we know which table to write back to. Account management isn't part
- | of the 6-area request/approval workflow — a plain Admin can view
- | this page but every mutation here is Super Admin-only.
- | "Delete" deactivates (status = 'Inactive') rather than removing the
- | row — consistent with the rest of the panel, nothing is ever deleted.
- */
 $flashMessage = null;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
-
     if (!$isSuperAdmin) {
         $flashMessage = 'Only a Super Admin can manage accounts.';
     } else {
         $formAction = $_POST['form_action'] ?? '';
         $source     = $_POST['source'] ?? '';
         $id         = (int) ($_POST['id'] ?? 0);
-
         if ($formAction === 'add_admin') {
             $firstName = trim($_POST['first_name'] ?? '');
             $lastName  = trim($_POST['last_name'] ?? '');
             $username  = trim($_POST['username'] ?? '');
             $email     = trim($_POST['email'] ?? '');
             $password  = (string) ($_POST['password'] ?? '');
-
             if ($firstName === '' || $username === '' || $email === '') {
                 $flashMessage = 'Please fill in first name, username, and email.';
             } elseif (!kt_password_meets_policy($password)) {
                 $flashMessage = 'Password must be at least 8 characters, with 1 uppercase letter and 1 special character.';
             } else {
                 $hash = password_hash($password, PASSWORD_DEFAULT);
-                $role = 'Admin'; // in-app account creation only ever grants "Admin" — Super Admin stays CLI-only
+                $role = 'Admin';
                 $stmt = $conn->prepare(
                     "INSERT INTO admins (first_name, last_name, username, email, password, role) VALUES (?, ?, ?, ?, ?, ?)"
                 );
@@ -89,9 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             }
         }
-
         if ($formAction === 'delete' && $id > 0) {
-            // Toggles, so the same button reactivates a deactivated account.
             if ($source === 'admin') {
                 $stmt = $conn->prepare("UPDATE admins SET status = IF(status = 'Inactive', 'Active', 'Inactive') WHERE admin_id = ?");
             } elseif ($source === 'user') {
@@ -106,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $flashMessage = 'Account status updated.';
             }
         }
-
         if ($formAction === 'edit' && $id > 0) {
             if ($source === 'admin') {
                 $firstName = trim($_POST['first_name'] ?? '');
@@ -114,7 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $username  = trim($_POST['username'] ?? '');
                 $email     = trim($_POST['email'] ?? '');
                 $adminRoleField = trim($_POST['admin_role'] ?? 'Admin');
-
                 if ($firstName !== '' && $username !== '' && $email !== '') {
                     $stmt = $conn->prepare(
                         "UPDATE admins SET first_name=?, last_name=?, username=?, email=?, role=? WHERE admin_id=?"
@@ -131,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $username = trim($_POST['username'] ?? '');
                 $email    = trim($_POST['email'] ?? '');
                 $promo    = ((int) ($_POST['promotional_email'] ?? 0)) === 1 ? 1 : 0;
-
                 if ($fullname !== '' && $username !== '' && $email !== '') {
                     $stmt = $conn->prepare(
                         "UPDATE users SET fullname=?, username=?, email=?, promotional_email=? WHERE id=?"
@@ -147,19 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
-/*
- |--------------------------------------------------------------------
- | ACCOUNTS DATA (Users + Admins combined)
- |--------------------------------------------------------------------
- | Two separate, independent queries — one per table. Each row keeps
- | its own role straight from its own table (no cross-referencing by
- | email). "Active" means last_activity was within the last 5 minutes.
- */
 $accounts = [];
 $onlineThreshold = date('Y-m-d H:i:s', strtotime('-5 minutes'));
-
-// ---- Admin accounts ----
 $adminAccounts = [];
 $adminResult = $conn->query("SELECT admin_id, first_name, last_name, username, email, role, status, last_activity, created_at FROM admins ORDER BY created_at DESC");
 if ($adminResult) {
@@ -172,9 +119,7 @@ if ($adminResult) {
             $roleLabel = 'Admin';
             $roleClass = 'admin';
         }
-
         $isOnline = !empty($a['last_activity']) && $a['last_activity'] >= $onlineThreshold;
-
         $row = [
             'source'      => 'admin',
             'id'          => (int) $a['admin_id'],
@@ -194,14 +139,11 @@ if ($adminResult) {
         $accounts[] = $row;
     }
 }
-
-// ---- Regular user accounts ----
 $userAccounts = [];
 $userResult = $conn->query("SELECT id, fullname, username, email, promotional_email, status, last_activity, created_at FROM users ORDER BY created_at DESC");
 if ($userResult) {
     foreach ($userResult->fetch_all(MYSQLI_ASSOC) as $u) {
         $isOnline = !empty($u['last_activity']) && $u['last_activity'] >= $onlineThreshold;
-
         $row = [
             'source'      => 'user',
             'id'          => (int) $u['id'],
@@ -221,9 +163,7 @@ if ($userResult) {
         $accounts[] = $row;
     }
 }
-
 usort($accounts, fn($a, $b) => strtotime($b['created_at']) <=> strtotime($a['created_at']));
-
 $totalAccounts    = count($accounts);
 $totalAdmins      = count(array_filter($accounts, fn($acc) => $acc['source'] === 'admin'));
 $totalUsers       = count(array_filter($accounts, fn($acc) => $acc['source'] === 'user'));
@@ -237,7 +177,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Users – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -246,27 +185,21 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminusers.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -277,7 +210,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php" class="active"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -288,7 +220,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -307,14 +238,9 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">User Management</div>
@@ -327,21 +253,16 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
             </div>
             <?php endif; ?>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
             <span>You're signed in as <strong>Admin</strong> — account management is Super Admin-only. You can view accounts here but not edit or deactivate them.</span>
         </div>
         <?php endif; ?>
-
-        <!-- ACCOUNT TYPE TABS -->
         <div class="status-tabs" style="display:flex;gap:8px;margin-bottom:18px;">
             <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Site Users (<?php echo $totalUsers; ?>)</a>
             <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
         </div>
-
-        <!-- KPI ROW -->
         <div class="mini-kpi-row animate" style="grid-template-columns: repeat(5, 1fr); max-width: 900px;">
             <div class="mini-kpi">
                 <div class="mini-kpi-num"><?php echo htmlspecialchars((string) $totalAccounts); ?></div>
@@ -364,8 +285,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                 <div class="mini-kpi-label">Subscribed to Emails</div>
             </div>
         </div>
-
-        <!-- FILTER ROW -->
         <div class="filter-row animate">
             <input class="search-input" type="text" placeholder="Search by username…" oninput="filterUsers(this.value)">
             <select class="filter-select" id="roleFilter" onchange="filterByRole(this.value)">
@@ -380,8 +299,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                 <option value="offline">Offline</option>
             </select>
         </div>
-
-        <!-- ACCOUNTS TABLE -->
         <div class="data-table-wrap animate">
             <?php if (empty($accounts)): ?>
                 <div class="chart-empty">
@@ -458,11 +375,8 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
             <?php endif; ?>
         </div>
         <div class="pagination" id="usersPagination"></div>
-
     </div>
 </div>
-
-<!-- VIEW ACCOUNT MODAL -->
 <div class="modal-overlay" id="viewAccountModal" onclick="closeModalOutside(event, 'viewAccountModal')">
     <div class="modal-card" style="max-width:480px;">
         <button class="modal-close" onclick="closeModal('viewAccountModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -492,8 +406,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         </div>
     </div>
 </div>
-
-<!-- EDIT ACCOUNT MODAL -->
 <div class="modal-overlay" id="editAccountModal" onclick="closeModalOutside(event, 'editAccountModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editAccountModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -504,8 +416,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
             <input type="hidden" name="source" id="editSource" value="">
             <input type="hidden" name="id" id="editId" value="">
             <?php echo csrf_field(); ?>
-
-            <!-- ADMIN FIELDS -->
             <div id="editAdminFields" style="display:none;">
                 <div class="form-row">
                     <div class="form-group">
@@ -525,8 +435,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                     </select>
                 </div>
             </div>
-
-            <!-- USER FIELDS -->
             <div id="editUserFields" style="display:none;">
                 <div class="form-group">
                     <label class="form-label">Full Name</label>
@@ -540,8 +448,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                     </select>
                 </div>
             </div>
-
-            <!-- SHARED FIELDS -->
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Username</label>
@@ -552,7 +458,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                     <input class="form-input" type="email" name="email" id="editEmail" placeholder="Email address" required>
                 </div>
             </div>
-
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>
                 <button type="button" class="btn-ghost" onclick="closeModal('editAccountModal')">Cancel</button>
@@ -560,8 +465,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         </form>
     </div>
 </div>
-
-<!-- DEACTIVATE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event, 'deleteModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div class="modal-title" id="deleteTitle">Deactivate Account?</div>
@@ -578,8 +481,6 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         </form>
     </div>
 </div>
-
-<!-- ADD ADMIN MODAL -->
 <div class="modal-overlay" id="addAdminModal" onclick="closeModalOutside(event, 'addAdminModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addAdminModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -619,10 +520,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
@@ -660,6 +558,5 @@ document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo
         }
     })();
 </script>
-
 </body>
 </html>

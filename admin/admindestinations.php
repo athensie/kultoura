@@ -4,43 +4,16 @@ include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- | Keep this in sync with admindashboard.php / login.php / auth.php.
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- | Same guard as admindashboard.php: only admin / super admin may view.
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | SCHEMA — retire the Pending/Inactive statuses
- |--------------------------------------------------------------------
- | Destinations no longer have an admin-picked Active/Pending/Inactive
- | state — every saved destination is just live, or hidden by archiving
- | it. One-time flip of any pre-existing 'pending'/'inactive' rows to
- | 'active' so nothing is left stranded with no UI left to manage it.
- | Guarded with a static flag, same pattern as kt_people_ensure_schema().
- */
 function kt_destinations_ensure_schema(mysqli $conn): void
 {
     static $done = false;
@@ -48,111 +21,46 @@ function kt_destinations_ensure_schema(mysqli $conn): void
     $done = true;
     $conn->query("UPDATE destination SET status = 'active' WHERE status NOT IN ('active', 'archived')");
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
 kt_destinations_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | ONE SHARED TABLE FOR ALL THREE PUBLIC PAGES
- |--------------------------------------------------------------------
- | industry.php, nature.php, and resort.php all read from this same
- | `destination` table, filtered by `category`. Matches the actual
- | columns in kultoura_db.destination:
- |
- |   destination_id    INT AUTO_INCREMENT PRIMARY KEY
- |   destination_name  VARCHAR(100)
- |   category           ENUM('nature','industry','resort')
- |   status             ENUM('active','pending','inactive')
- |   views              INT
- |   favorited          TINYINT(1)
- |   address            VARCHAR(255)
- |   description         TEXT
- |   image               VARCHAR(255)
- |   opening_hours       VARCHAR(100)
- |   google_maps         VARCHAR(255)
- |   created_at          TIMESTAMP
- |
- | NOTE: this assumes dbmain.php gives you a mysqli connection in $conn.
- | If your dbmain.php exposes a different variable name (e.g. $pdo),
- | swap it in below.
- */
-
-/*
- |--------------------------------------------------------------------
- | IMAGE UPLOAD HELPER
- |--------------------------------------------------------------------
- | Saves an uploaded file into /assets/uploads/destinations/ and
- | returns the relative path to store in the database, or null if
- | no file was uploaded (or the upload failed).
- */
 function handleDestinationImageUpload(): ?string
 {
     if (empty($_FILES['image']['name']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
-
     $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $allowed, true)) {
         return null;
     }
-
-    // Confirm it's actually an image, not just a renamed file (e.g. a
-    // .php file with a .jpg extension) — the extension check above
-    // alone doesn't inspect the actual file content.
     if (@getimagesize($_FILES['image']['tmp_name']) === false) {
         return null;
     }
-
     $uploadDir = __DIR__ . '/../assets/uploads/destinations/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
-
     $filename = uniqid('dest_', true) . '.' . $ext;
     if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $filename)) {
-        // Path stored in the DB, relative to the site root, for use in <img src="...">
         return BASE_URL . '/assets/uploads/destinations/' . $filename;
     }
-
     return null;
 }
-
-/*
- |--------------------------------------------------------------------
- | HANDLE ADD / EDIT / DELETE — right here, no separate actions file
- |--------------------------------------------------------------------
- | The three modals below all POST back to this same page. We process
- | the request before any HTML is echoed, then redirect (POST/Redirect/GET)
- | so refreshing the page doesn't resubmit the form.
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     csrf_verify();
     $formAction = $_POST['action'];
-    // "delete" is kept as the form's historical field value, but it has
-    // never actually deleted anything since this workflow shipped — it
-    // archives (see kt_apply_destination in config/admin_requests.php).
     $entityAction = $formAction === 'delete' ? 'archive' : $formAction;
     $id = isset($_POST['id']) && $_POST['id'] !== '' ? (int) $_POST['id'] : null;
-
-    // Only Nature destinations currently have a subcategory (Park /
-    // River & Falls) — anything else is stored as NULL regardless of
-    // what was posted, so stray form state can't leak a subcategory
-    // onto a category that doesn't use one.
     $imagePath = in_array($entityAction, ['create', 'update'], true) ? handleDestinationImageUpload() : null;
-
     $data = [
         'destination_name' => $_POST['name'] ?? '',
         'address'           => $_POST['location'] ?? '',
         'category'          => $_POST['category'] ?? '',
         'subcategory'       => $_POST['subcategory'] ?? '',
-        // No more admin-picked Active/Pending/Inactive — a destination is
-        // just live once saved, or hidden by archiving it instead.
         'status'            => 'active',
         'description'       => $_POST['description'] ?? '',
         'google_maps'       => $_POST['google_maps'] ?? '',
@@ -161,7 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         'schedule_text'     => null,
         'archive_note'      => $_POST['archive_note'] ?? '',
     ];
-
     if (in_array($entityAction, ['create', 'update'], true) && $data['category'] === 'church') {
         $scheduleMonthInput = trim((string) ($_POST['schedule_month'] ?? ''));
         $scheduleJson = trim((string) ($_POST['schedule_entries'] ?? ''));
@@ -197,9 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $data['schedule_text'] = json_encode($validatedEntries, JSON_UNESCAPED_UNICODE);
         }
     }
-
-    // The archive form only posts action+id — look the name up so the
-    // flash message and (if this becomes a request) its label read right.
     if ($entityAction === 'archive' && $data['destination_name'] === '' && $id) {
         $stmt = $conn->prepare("SELECT destination_name FROM destination WHERE destination_id = ?");
         $stmt->bind_param('i', $id);
@@ -208,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->close();
         $data['destination_name'] = $row['destination_name'] ?? '';
     }
-
     if ($isSuperAdmin) {
         kt_apply_entity_change($conn, 'destination', $entityAction, $id, $data);
         $_SESSION['admin_flash'] = $entityAction === 'archive' ? 'Destination archived.' : 'Destination saved.';
@@ -217,25 +120,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         kt_requests_create($conn, 'destination', $entityAction, $id, $data, $label, (int) $_SESSION['user_id'], $adminName);
         $_SESSION['admin_flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $label . '" was submitted for Super Admin approval.';
     }
-
     header("Location: " . BASE_URL . "/admin/admindestinations.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | DESTINATIONS DATA (for the table below)
- |--------------------------------------------------------------------
- */
 $destinations = [];
 $result = $conn->query("SELECT * FROM destination WHERE status != 'archived' ORDER BY created_at DESC");
 if ($result) {
     $destinations = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// Real per-place view counts (see config/analytics.php) — destination_id
-// is unique across the whole table regardless of category, so merging
-// the three category buckets by id is safe.
 $destinationViews = array_merge(
     analytics_item_views_bulk($conn, 'nature'),
     analytics_item_views_bulk($conn, 'resort'),
@@ -245,7 +137,6 @@ $destinationViews = array_merge(
     analytics_item_views_bulk($conn, 'service'),
     analytics_item_views_bulk($conn, 'church')
 );
-
 $categoryLabels = [
     'nature'        => 'Nature',
     'industry'      => 'Industry Zone',
@@ -255,7 +146,6 @@ $categoryLabels = [
     'service'       => 'Other Services',
     'church'        => 'Churches',
 ];
-
 $totalCount     = count($destinations);
 $totalViews     = array_sum(array_map(fn($d) => $destinationViews[(int) $d['destination_id']] ?? 0, $destinations));
 $favoritedCount = count(array_filter($destinations, fn($d) => !empty($d['favorited'])));
@@ -268,7 +158,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Destinations – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -277,34 +166,25 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/admindestinations.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
-
-    <!-- Free address picker: Leaflet (map) + OpenStreetMap tiles + Nominatim
-         search — no API key, no billing account required. -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php" class="active"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -315,7 +195,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -326,7 +205,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -345,14 +223,9 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header">
             <div>
                 <div class="section-label">Content Management</div>
@@ -369,7 +242,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <button class="btn-primary" onclick="openAddDestination()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Destination</button>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -381,8 +253,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
-        <!-- MINI KPI ROW -->
         <div class="mini-kpi-row animate">
             <div class="mini-kpi">
                 <div class="mini-kpi-num"><?php echo (int) $totalCount; ?></div>
@@ -401,8 +271,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <div class="mini-kpi-label">Added This Month</div>
             </div>
         </div>
-
-        <!-- FILTERS -->
         <div class="filter-row">
             <input class="search-input" type="text" id="destSearch" placeholder="Search destinations…" oninput="filterDestinations(this.value)">
             <select class="filter-select" id="destCategoryFilter" onchange="filterByCategory(this.value)">
@@ -420,8 +288,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <button type="button" class="view-btn" data-view="grid" onclick="setView('grid')" aria-label="Grid view"><i data-lucide="layout-grid" class="lucide"></i></button>
             </div>
         </div>
-
-        <!-- TABLE -->
         <div class="data-table-wrap">
             <table class="data-table" id="destinationsTable">
                 <thead>
@@ -494,8 +360,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 </tbody>
             </table>
         </div>
-
-        <!-- GRID VIEW -->
         <div class="grid-view-panel" id="destinationsGrid">
             <?php if (empty($destinations)): ?>
                 <div class="table-empty grid-empty">
@@ -555,23 +419,17 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-
         <div class="pagination" id="destinationsPagination"></div>
-
     </div>
 </div>
-
-<!-- ADD DESTINATION MODAL -->
 <div class="modal-overlay" id="addDestinationModal" onclick="closeModalOutside(event, 'addDestinationModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addDestinationModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add New Destination</div>
         <div class="modal-sub">Fill in the details to create a new destination listing.</div>
-
         <form id="addDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="create">
             <?php echo csrf_field(); ?>
-
             <div class="form-group">
                 <label class="form-label">Destination Name</label>
                 <input class="form-input" type="text" name="name" placeholder="e.g. Malvar Rice Terraces" required>
@@ -625,7 +483,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <label class="form-label">Image</label>
                 <input class="form-input" type="file" name="image" accept="image/png, image/jpeg, image/webp, image/gif">
             </div>
-
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Destination</button>
                 <button type="button" class="btn-ghost" onclick="closeModal('addDestinationModal')">Cancel</button>
@@ -633,19 +490,15 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </form>
     </div>
 </div>
-
-<!-- EDIT DESTINATION MODAL -->
 <div class="modal-overlay" id="editDestinationModal" onclick="closeModalOutside(event, 'editDestinationModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editDestinationModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Destination</div>
         <div class="modal-sub" id="editDestinationName">Editing: —</div>
-
         <form id="editDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="editDestinationId" value="">
-
             <div class="form-group">
                 <label class="form-label">Destination Name</label>
                 <input class="form-input" type="text" name="name" id="editDestinationNameInput" placeholder="Destination name" required>
@@ -700,7 +553,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <input class="form-input" type="file" name="image" accept="image/png, image/jpeg, image/webp, image/gif">
                 <div style="font-size:.7rem;color:rgba(245,237,216,.4);margin-top:4px;">Leave empty to keep the current image.</div>
             </div>
-
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>
                 <button type="button" class="btn-ghost" onclick="closeModal('editDestinationModal')">Cancel</button>
@@ -708,8 +560,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </form>
     </div>
 </div>
-
-<!-- VIEW DESTINATION MODAL -->
 <div class="modal-overlay" id="viewDestinationModal" onclick="closeModalOutside(event,'viewDestinationModal')">
     <div class="modal-card" style="max-width:520px;">
         <button class="modal-close" onclick="closeModal('viewDestinationModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -748,8 +598,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </div>
     </div>
 </div>
-
-<!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteDestinationModal" onclick="closeModalOutside(event, 'deleteDestinationModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div style="font-size:3rem; margin-bottom:12px;">🗄️</div>
@@ -770,10 +618,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
@@ -784,6 +629,5 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
 <?php endif; ?>
-
 </body>
 </html>

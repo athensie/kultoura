@@ -6,45 +6,28 @@ kt_maintenance_gate($conn);
 include '../config/analytics.php';
 include '../config/sitecontent.php';
 analytics_track($conn, 'favorites');
-
 $favoritesHeroPhoto = sitecontent_get_photo($conn, 'favorites_hero');
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-/*
- |--------------------------------------------------------------------
- | AJAX: TOGGLE A FAVORITE (called from the heart button on
- | products.php, restaurants.php, and any other listing page)
- |--------------------------------------------------------------------
- | POST action=toggle, item_type, item_id -> JSON { success, favorited }
- | This runs BEFORE the "must be logged in" redirect below, since it's
- | called via fetch() from pages guests can still browse.
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle') {
     header('Content-Type: application/json');
-
     if (!$isLoggedIn) {
         echo json_encode(['success' => false, 'needsLogin' => true, 'message' => 'Please sign in to save favorites.']);
         exit;
     }
-
     $toggleUserId = (int) $_SESSION['user_id'];
     $toggleType   = $_POST['item_type'] ?? '';
     $toggleId     = (int) ($_POST['item_id'] ?? 0);
     $validTypes   = ['product', 'restaurant', 'destination', 'fiesta', 'person'];
-
     if (!in_array($toggleType, $validTypes, true) || $toggleId <= 0) {
         echo json_encode(['success' => false, 'message' => 'Invalid item.']);
         exit;
     }
-
     $stmt = $conn->prepare("SELECT favorite_id FROM favorites WHERE user_id = ? AND item_type = ? AND item_id = ?");
     $stmt->bind_param('isi', $toggleUserId, $toggleType, $toggleId);
     $stmt->execute();
     $existing = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-
     if ($existing) {
         $stmt = $conn->prepare("DELETE FROM favorites WHERE favorite_id = ?");
         $stmt->bind_param('i', $existing['favorite_id']);
@@ -60,24 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     }
     exit;
 }
-
 if (!$isLoggedIn) {
     header("Location: ../auth/login.php");
     exit;
 }
-
 $userId = (int) $_SESSION['user_id'];
-
-/*
- |--------------------------------------------------------------------
- | REMOVE A FAVORITE (posts back to this same page)
- |--------------------------------------------------------------------
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remove') {
     $removeType = $_POST['item_type'] ?? '';
     $removeId   = (int) ($_POST['item_id'] ?? 0);
     $validTypes = ['product', 'restaurant', 'destination', 'fiesta', 'person'];
-
     if (in_array($removeType, $validTypes, true) && $removeId > 0) {
         $stmt = $conn->prepare(
             "DELETE FROM favorites WHERE user_id = ? AND item_type = ? AND item_id = ?"
@@ -89,51 +63,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remov
     } else {
         $_SESSION['flash'] = 'Something went wrong — invalid item.';
     }
-
     header("Location: favorites.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | FLASH MESSAGE (set above after a remove, then redirected here)
- |--------------------------------------------------------------------
- */
 $flashMessage = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
-
-/*
- |--------------------------------------------------------------------
- | FAVORITES DATA
- |--------------------------------------------------------------------
- | The `favorites` table just links a user to an item_type + item_id.
- | We fetch the ids first, then batch-fetch the real item details
- | from whichever table each item_type maps to.
- |
- | Run this once if the table doesn't exist yet:
- |
- |   CREATE TABLE `favorites` (
- |     `favorite_id` int(11) NOT NULL AUTO_INCREMENT,
- |     `user_id` int(11) NOT NULL,
- |     `item_type` enum('product','restaurant','destination','fiesta','person') NOT NULL,
- |     `item_id` int(11) NOT NULL,
- |     `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
- |     PRIMARY KEY (`favorite_id`),
- |     UNIQUE KEY `uniq_favorite` (`user_id`,`item_type`,`item_id`)
- |   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
- */
 $favoriteRows = [];
 $stmt = $conn->prepare("SELECT * FROM favorites WHERE user_id = ? ORDER BY created_at DESC");
 $stmt->bind_param('i', $userId);
 $stmt->execute();
 $favoriteRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
-
 $idsByType = [];
 foreach ($favoriteRows as $r) {
     $idsByType[$r['item_type']][] = (int) $r['item_id'];
 }
-
 $typeMap = [
     'product'     => ['table' => 'products',    'idCol' => 'product_id',     'nameCol' => 'product_name'],
     'restaurant'  => ['table' => 'restaurants',  'idCol' => 'restaurant_id',  'nameCol' => 'restaurant_name'],
@@ -141,7 +85,6 @@ $typeMap = [
     'fiesta'      => ['table' => 'fiestas',      'idCol' => 'fiesta_id',      'nameCol' => 'fiesta_name'],
     'person'      => ['table' => 'people',       'idCol' => 'person_id',      'nameCol' => 'fullname'],
 ];
-
 $typeLabels = [
     'product'     => 'Product',
     'restaurant'  => 'Restaurant',
@@ -149,16 +92,6 @@ $typeLabels = [
     'fiesta'      => 'Fiesta',
     'person'      => 'Person',
 ];
-
-/*
- |--------------------------------------------------------------------
- | Upload subfolder per item type.
- |--------------------------------------------------------------------
- | 'food' and 'destinations' are confirmed from the actual project
- | structure; 'products', 'fiestas', and 'people' are a best guess
- | matching the table name and unverified — check those if a saved
- | product/fiesta/person's picture doesn't show up here.
- */
 $imageSubfolder = [
     'product'     => 'products',
     'restaurant'  => 'food',
@@ -166,8 +99,7 @@ $imageSubfolder = [
     'fiesta'      => 'fiestas',
     'person'      => 'people',
 ];
-
-$itemDetails = []; // item_type => [ id => row ]
+$itemDetails = [];
 foreach ($idsByType as $type => $ids) {
     if (!isset($typeMap[$type]) || empty($ids)) {
         continue;
@@ -185,10 +117,6 @@ foreach ($idsByType as $type => $ids) {
         $itemDetails[$type][(int) $row[$map['idCol']]] = $row;
     }
 }
-
-// Destination favorites route to a specific mega-menu page based on category.
-// Keys match the raw `category` ENUM values in the `destination` table
-// (nature / industry / resort) — NOT the ucfirst()'d display labels.
 $destinationPageByCategory = [
     'nature'        => 'nature.php',
     'resort'        => 'resort.php',
@@ -198,22 +126,15 @@ $destinationPageByCategory = [
     'service'       => 'services.php',
     'church'        => 'churches.php',
 ];
-
 $favorites = [];
 foreach ($favoriteRows as $r) {
     $type = $r['item_type'];
     $id   = (int) $r['item_id'];
-
     if (!isset($typeMap[$type]) || !isset($itemDetails[$type][$id])) {
-        continue; // source item was deleted — skip the orphaned favorite
+        continue;
     }
-
     $map  = $typeMap[$type];
     $item = $itemDetails[$type][$id];
-
-    // All 5 item types live under pages/tourism/ (destination's category
-    // maps to nature/industry/resort there too) — this page (favorites.php)
-    // sits one level up, so every link needs the 'tourism/' prefix.
     $viewPage = 'tourism/' . match ($type) {
         'product'     => 'products.php',
         'restaurant'  => 'restaurants.php',
@@ -222,20 +143,11 @@ foreach ($favoriteRows as $r) {
         'destination' => $destinationPageByCategory[$item['category']] ?? 'tourism.php',
         default       => 'tourism.php',
     };
-
-    // basename() strips any accidentally-stored path/URL prefix down to
-    // just the filename, then we build the real working src ourselves —
-    // same fix already applied to tourism.php's hub tiles and
-    // restaurants.php's cards.
     $rawImage = $item['image'] ?? '';
     $imageSrc = '';
     if ($rawImage !== '') {
         $imageSrc = '../assets/uploads/' . ($imageSubfolder[$type] ?? $type) . '/' . basename($rawImage);
     }
-
-    // Coordinates for the Navigate map: product/restaurant/fiesta store
-    // separate latitude/longitude columns; destination stores one combined
-    // "lat,lng" google_maps string instead; person has no location at all.
     $lat = null;
     $lng = null;
     if (!empty($item['latitude']) && !empty($item['longitude'])) {
@@ -248,7 +160,6 @@ foreach ($favoriteRows as $r) {
             $lng = (float) $gLng;
         }
     }
-
     $favorites[] = [
         'type'     => $type,
         'typeLabel'=> $typeLabels[$type],
@@ -278,16 +189,12 @@ foreach ($favoriteRows as $r) {
     <link rel="stylesheet" href="../assets/css/favorites.css">
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -329,8 +236,6 @@ foreach ($favoriteRows as $r) {
         </div>
             <?php if ($isLoggedIn): ?><a href="../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="search_api.php" data-results="search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -343,10 +248,7 @@ foreach ($favoriteRows as $r) {
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
-<!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $favoritesHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($favoritesHeroPhoto): ?>
         <img class="t-hero-photo" src="<?php echo htmlspecialchars($favoritesHeroPhoto); ?>" alt="">
@@ -363,10 +265,7 @@ foreach ($favoriteRows as $r) {
         </p>
     </div>
 </section>
-
-<!-- ── Favorites List ── -->
 <main class="f-main">
-
     <div class="f-toolbar">
         <input class="f-search" type="text" id="favSearch" placeholder="Search your favorites…" oninput="filterFavorites(this.value)">
         <select class="f-filter" id="favTypeFilter" onchange="filterFavoritesByType(this.value)">
@@ -378,7 +277,6 @@ foreach ($favoriteRows as $r) {
             <option value="person">People</option>
         </select>
     </div>
-
     <?php if (empty($favorites)): ?>
         <div class="f-empty">
             <div class="f-empty-heart">♡</div>
@@ -424,8 +322,6 @@ foreach ($favoriteRows as $r) {
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
-
-    <!-- ── View Details Popup (shared .p-modal-* styles in tourism.css) ── -->
 <style>
 .p-btn { font-family:'Helvetica Neue', Arial, sans-serif; font-size:12px; font-weight:700; letter-spacing:.3px; text-decoration:none; padding:9px 16px; border-radius:24px; cursor:pointer; display:inline-block; }
 .p-btn-primary { background:#8b2e1a; color:#fff; border:1px solid #8b2e1a; }
@@ -433,7 +329,6 @@ foreach ($favoriteRows as $r) {
 .p-btn-outline { background:#fff; color:#2c1a0e; border:1px solid rgba(44,26,14,.15); }
 .p-btn-outline:hover { border-color:#8b2e1a; color:#8b2e1a; }
 </style>
-
 <div class="p-modal-overlay" id="ktViewDetailsModal" data-item-id="" data-item-type="" onclick="if(event.target===this) ktCloseModal('ktViewDetailsModal')">
     <div class="p-modal-card">
         <button class="p-modal-close" onclick="ktCloseModal('ktViewDetailsModal')" aria-label="Close">&times;</button>
@@ -452,8 +347,6 @@ foreach ($favoriteRows as $r) {
         </div>
     </div>
 </div>
-
-<!-- ── Navigate Modal ── -->
 <div class="p-modal-overlay" id="ktNavigateModal" onclick="if(event.target===this) ktCloseModal('ktNavigateModal')">
     <div class="p-modal-card p-modal-card-wide">
         <button class="p-modal-close" onclick="ktCloseModal('ktNavigateModal')" aria-label="Close">&times;</button>
@@ -466,24 +359,17 @@ foreach ($favoriteRows as $r) {
         </div>
     </div>
 </div>
-
 </main>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-
-<!-- ── TOAST ── -->
 <div class="f-toast" id="favToast"></div>
-
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/navbar-search.js"></script>
 <script src="../assets/js/favorites.js"></script>
 <script>
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }
-
 function ktOpenViewDetails(el) {
     const d = el.dataset;
     const imgEl = document.getElementById('ktVdImage');
@@ -492,17 +378,13 @@ function ktOpenViewDetails(el) {
     document.getElementById('ktVdCategory').textContent = d.category || '';
     document.getElementById('ktVdName').textContent = d.name || '';
     document.getElementById('ktVdDesc').textContent = d.desc || 'No description available yet.';
-
     let facts = '';
     if (d.tag) facts += `<div><p class="p-fact-label">Address</p><p class="p-fact-value">${d.tag}</p></div>`;
     document.getElementById('ktVdFacts').innerHTML = facts;
-
     document.getElementById('ktVdFullPageLink').href = d.viewPage || '#';
-
     const modal = document.getElementById('ktViewDetailsModal');
     modal.dataset.itemId = d.id || '';
     modal.dataset.itemType = d.type || '';
-
     const navName = d.name || '';
     const navLat = d.lat || '';
     const navLng = d.lng || '';
@@ -510,10 +392,8 @@ function ktOpenViewDetails(el) {
         ktCloseModal('ktViewDetailsModal');
         setTimeout(() => ktOpenNavigate(navName, navLat, navLng), 200);
     };
-
     ktShowModal('ktViewDetailsModal');
 }
-
 /* ---------- NAVIGATE (Google Maps embed) ---------- */
 function ktHaversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -524,36 +404,29 @@ function ktHaversineKm(lat1, lon1, lat2, lon2) {
               Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
 function ktOpenNavigate(name, lat, lng) {
     document.getElementById('ktNavName').textContent = name || 'this location';
     const distanceEl = document.getElementById('ktNavDistance');
     const frame = document.getElementById('ktNavFrame');
     const directLink = document.getElementById('ktNavDirectLink');
-
     const destLat = parseFloat(lat);
     const destLng = parseFloat(lng);
     const hasCoords = !isNaN(destLat) && !isNaN(destLng);
-
     ktShowModal('ktNavigateModal');
-
     if (!hasCoords) {
         distanceEl.textContent = "This location hasn't been mapped yet.";
         frame.src = '';
         directLink.style.display = 'none';
         return;
     }
-
     frame.src = 'https://www.google.com/maps?q=' + destLat + ',' + destLng + '&z=15&output=embed';
     directLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng;
     directLink.style.display = 'inline-block';
     distanceEl.textContent = 'Locating you…';
-
     if (!navigator.geolocation) {
         distanceEl.textContent = "Your browser doesn't support location — showing the destination only.";
         return;
     }
-
     navigator.geolocation.getCurrentPosition(function (pos) {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
@@ -565,13 +438,11 @@ function ktOpenNavigate(name, lat, lng) {
         distanceEl.textContent = 'Enable location access in your browser to see distance and directions.';
     }, { enableHighAccuracy: true, timeout: 10000 });
 }
-
 async function ktUnfavoriteFromModal() {
     const modal = document.getElementById('ktViewDetailsModal');
     const itemId = modal.dataset.itemId;
     const itemType = modal.dataset.itemType;
     if (!itemId || !itemType) return;
-
     try {
         const res = await fetch('favorites.php', {
             method: 'POST',
@@ -579,7 +450,6 @@ async function ktUnfavoriteFromModal() {
             body: new URLSearchParams({ action: 'toggle', item_type: itemType, item_id: itemId })
         });
         const data = await res.json();
-
         if (data.needsLogin) {
             showFavToast(data.message || 'Please sign in to manage favorites.');
             return;
@@ -589,7 +459,6 @@ async function ktUnfavoriteFromModal() {
             const card = document.querySelector('.f-card[data-fav-key="' + itemType + '-' + itemId + '"]');
             if (card) card.remove();
             showFavToast('Removed from favorites');
-
             const grid = document.getElementById('favGrid');
             if (grid && !grid.querySelector('.f-card')) {
                 location.reload();
@@ -606,6 +475,5 @@ async function ktUnfavoriteFromModal() {
 document.addEventListener('DOMContentLoaded', function () { showFavToast(<?php echo json_encode($flashMessage); ?>); });
 </script>
 <?php endif; ?>
-
 </body>
 </html>

@@ -1,35 +1,21 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
-
 define('BASE_URL', '/kultoura');
-
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL — Super Admin only. A plain Admin is the one filing
- | these requests, so they never get to review their own (or anyone
- | else's) — redirect them back to the dashboard instead.
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 if (!kt_is_super_admin()) {
     header("Location: " . BASE_URL . "/admin/admindashboard.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Super Admin';
 $reviewerId = (int) $_SESSION['user_id'];
-
 kt_requests_ensure_schema($conn);
-
 $entityLabels = [
     'destination'   => 'Destination',
     'product'       => 'Product',
@@ -51,19 +37,11 @@ $fieldLabels = [
     'audience' => 'Audience', 'scheduled_at' => 'Scheduled For', 'icon_key' => 'Icon',
     'remove_image' => 'Remove Image',
 ];
-
-/*
- |--------------------------------------------------------------------
- | APPROVE / REJECT
- |--------------------------------------------------------------------
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     csrf_verify();
     $formAction = $_POST['form_action'];
-
     $requestId = (int) ($_POST['request_id'] ?? 0);
     $request = $requestId > 0 ? kt_requests_find($conn, $requestId) : null;
-
     if (!$request || $request['status'] !== 'pending') {
         $_SESSION['admin_flash'] = 'That request is no longer pending.';
     } elseif ($formAction === 'approve') {
@@ -75,14 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         kt_requests_resolve($conn, $requestId, 'rejected', $reviewerId, $note);
         $_SESSION['admin_flash'] = 'Request rejected.';
     }
-
     header("Location: " . BASE_URL . "/admin/adminrequests.php");
     exit;
 }
-
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
-
 $requestedStatus = $_GET['status'] ?? 'pending';
 $statusFilter = in_array($requestedStatus, ['pending', 'approved', 'rejected'], true) ? $requestedStatus : 'pending';
 $requests = kt_requests_list($conn, $statusFilter);
@@ -95,7 +70,6 @@ $pendingCount = kt_requests_pending_count($conn);
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Requests – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -104,10 +78,8 @@ $pendingCount = kt_requests_pending_count($conn);
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminusers.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
@@ -133,18 +105,14 @@ $pendingCount = kt_requests_pending_count($conn);
     </style>
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -155,7 +123,6 @@ $pendingCount = kt_requests_pending_count($conn);
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -164,7 +131,6 @@ $pendingCount = kt_requests_pending_count($conn);
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -183,13 +149,9 @@ $pendingCount = kt_requests_pending_count($conn);
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
         <div class="page-header animate">
             <div>
                 <div class="section-label">Content Approval</div>
@@ -197,13 +159,11 @@ $pendingCount = kt_requests_pending_count($conn);
                 <p>Review the actual content an Admin wants to add, change, or archive before it goes live.</p>
             </div>
         </div>
-
         <div class="status-tabs">
             <a href="?status=pending" class="<?php echo $statusFilter === 'pending' ? 'active' : ''; ?>">Pending<?php echo $pendingCount > 0 ? ' (' . $pendingCount . ')' : ''; ?></a>
             <a href="?status=approved" class="<?php echo $statusFilter === 'approved' ? 'active' : ''; ?>">Approved</a>
             <a href="?status=rejected" class="<?php echo $statusFilter === 'rejected' ? 'active' : ''; ?>">Rejected</a>
         </div>
-
         <?php if (empty($requests)): ?>
             <div class="chart-empty">
                 <i data-lucide="inbox" class="lucide"></i>
@@ -229,11 +189,9 @@ $pendingCount = kt_requests_pending_count($conn);
                             </div>
                         </div>
                     </div>
-
                     <?php
                     $currentRow = $r['action'] === 'update' ? kt_fetch_entity_current($conn, $r['entity_type'], $r['entity_id'] !== null ? (int) $r['entity_id'] : null) : null;
                     ?>
-
                     <?php if ($r['action'] !== 'archive' && !empty($r['payload'])): ?>
                         <?php if ($r['action'] === 'update'): ?>
                             <p style="font-size:.72rem;color:rgba(245,237,216,.4);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Fields highlighted below are what this request actually changes</p>
@@ -268,7 +226,6 @@ $pendingCount = kt_requests_pending_count($conn);
                     <?php elseif ($r['action'] === 'archive'): ?>
                         <p style="font-size:.82rem;color:rgba(245,237,216,.6);margin-bottom:14px;">This will hide "<?php echo htmlspecialchars($r['entity_label']); ?>" from the public site. It stays in the database and can be restored later.</p>
                     <?php endif; ?>
-
                     <?php if ($r['status'] === 'pending'): ?>
                         <div class="req-actions">
                             <form method="POST" style="display:inline;">
@@ -288,12 +245,9 @@ $pendingCount = kt_requests_pending_count($conn);
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
-
     </div>
 </div>
-
 <div class="toast" id="toast"></div>
-
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
@@ -308,6 +262,5 @@ $pendingCount = kt_requests_pending_count($conn);
         else { document.addEventListener('DOMContentLoaded', function () { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
     })();
 </script>
-
 </body>
 </html>

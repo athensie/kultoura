@@ -1,11 +1,6 @@
-/* ── churches.css — page-specific styles for churches.php ── */
-/* Reuses index.css (navbar) and tourism.css (hero, .t-* layout) as-is. */
-/* All selectors here are prefixed with p- so nothing collides with either file. */
-
 .p-search-row {
     margin-bottom: 52px;
 }
-
 .p-search-bar {
     display: flex;
     align-items: center;
@@ -17,7 +12,6 @@
     max-width: 640px;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
-
 .p-search-bar input[type="text"] {
     flex: 1;
     border: none;
@@ -28,7 +22,6 @@
     background: transparent;
     color: #2c1a0e;
 }
-
 .p-category-select {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -38,38 +31,27 @@
     background: #f0ebe3;
     color: #2c1a0e;
 }
-
-/* Mobile: the select doesn't shrink past its content width, so above
-   ~360px it was forcing .p-search-bar (and the whole page) to scroll
-   horizontally. Stack the input and select instead of squeezing them
-   onto one line. */
 @media (max-width: 640px) {
     .p-search-bar {
         flex-wrap: wrap;
         border-radius: 20px;
         padding: 10px;
     }
-
     .p-search-bar input[type="text"] {
         flex: 1 1 100%;
         padding: 8px 6px;
     }
-
     .p-category-select {
         flex: 1 1 100%;
         width: 100%;
     }
 }
-
-/* Shown when a live search matches nothing */
 .p-search-empty {
     margin: 16px 4px 0;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     color: rgba(44, 26, 14, 0.55);
 }
-
-/* Empty state */
 .p-empty-state {
     text-align: center;
     padding: 64px 24px;
@@ -77,41 +59,33 @@
     border: 1px dashed rgba(44, 26, 14, 0.15);
     border-radius: 12px;
 }
-
 .p-empty-icon {
     font-size: 32px;
     margin: 0 0 12px;
 }
-
 .p-empty-state h3 {
     font-family: Georgia, serif;
     font-size: 19px;
     color: #2c1a0e;
     margin-bottom: 8px;
 }
-
 .p-empty-state p {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     color: rgba(44, 26, 14, 0.55);
     margin: 0;
 }
-
-/* Card grid (for when the admin has added listings) */
 .p-card-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
 }
-
 @media (max-width: 1024px) {
     .p-card-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
 @media (max-width: 640px) {
     .p-card-grid { grid-template-columns: 1fr; }
 }
-
 .p-card {
     background: #faf7f2;
     border: 1px solid rgba(44, 26, 14, 0.1);
@@ -122,19 +96,16 @@
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
     transition: all 0.22s;
 }
-
 .p-card:hover {
     border-color: rgba(139, 46, 26, 0.25);
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(139, 46, 26, 0.1);
 }
-
 .p-card-media {
     position: relative;
     height: 150px;
     background: #ded6c6;
 }
-
 .p-fav-btn {
     position: absolute;
     top: 12px;
@@ -151,11 +122,9 @@
     align-items: center;
     justify-content: center;
 }
-
 .p-fav-btn.is-favorited {
     background: #8b2e1a;
 }
-
 .p-card-location {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 12px;
@@ -165,14 +134,12 @@
     align-items: center;
     gap: 4px;
 }
-
 .p-card-body {
     padding: 18px 18px 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
 }
-
 .p-card-category {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 11px;
@@ -182,14 +149,12 @@
     margin: 0 0 6px;
     text-transform: uppercase;
 }
-
 .p-card-title {
     font-family: Georgia, serif;
     font-size: 18px;
     color: #2c1a0e;
     margin-bottom: 8px;
 }
-
 .p-card-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -198,12 +163,10 @@
     flex: 1;
     margin: 0 0 18px;
 }
-
 .p-card-actions {
     display: flex;
     gap: 10px;
 }
-
 .p-btn {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 12px;
@@ -214,24 +177,20 @@
     border-radius: 24px;
     cursor: pointer;
 }
-
 .p-btn-primary {
     background: #8b2e1a;
     color: #fff;
     border: 1px solid #8b2e1a;
 }
-
 .p-btn-primary:hover {
     background: #a83520;
     border-color: #a83520;
 }
-
 .p-btn-outline {
     background: #fff;
     color: #2c1a0e;
     border: 1px solid rgba(44, 26, 14, 0.15);
 }
-
 .p-btn-outline:hover {
     border-color: #8b2e1a;
     color: #8b2e1a;

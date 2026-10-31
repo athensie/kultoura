@@ -4,24 +4,7 @@ require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/analytics.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- | Mirrors admineventandfiesta.php — anchors redirects regardless of
- | which folder this script is called from.
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | IMAGE UPLOAD
- |--------------------------------------------------------------------
- | Same validation/storage pattern as adminfoodanddining.php's
- | kt_handle_image_upload(). Returns null if no file was uploaded, so
- | the caller can fall back to keeping the existing image on edit.
- */
 function kt_person_handle_image_upload(string $fieldName = 'image_file'): ?string
 {
     if (empty($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
@@ -30,7 +13,6 @@ function kt_person_handle_image_upload(string $fieldName = 'image_file'): ?strin
     if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
-
     $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     $originalName = $_FILES[$fieldName]['name'];
     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
@@ -40,47 +22,26 @@ function kt_person_handle_image_upload(string $fieldName = 'image_file'): ?strin
     if (@getimagesize($_FILES[$fieldName]['tmp_name']) === false) {
         return null;
     }
-
     $uploadDir = __DIR__ . '/../assets/uploads/people/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
-
     $safeName = preg_replace('/[^a-z0-9_-]/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
     $filename = uniqid('person_', true) . '_' . $safeName . '.' . $ext;
-
     if (move_uploaded_file($_FILES[$fieldName]['tmp_name'], $uploadDir . $filename)) {
         return BASE_URL . '/assets/uploads/people/' . $filename;
     }
-
     return null;
 }
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | SCHEMA — widen `achievement` to TEXT
- |--------------------------------------------------------------------
- | It started as VARCHAR(255) (one line). Widened so an admin can list
- | several achievements (one per line). Guarded with a static flag,
- | same pattern as kt_page_widgets_ensure_schema().
- */
 function kt_people_ensure_schema(mysqli $conn): void
 {
     static $done = false;
@@ -88,30 +49,18 @@ function kt_people_ensure_schema(mysqli $conn): void
     $done = true;
     $conn->query("ALTER TABLE people MODIFY achievement TEXT NULL");
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
 kt_people_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | PEOPLE OF MALVAR — DB ACTIONS (add / edit / delete)
- |--------------------------------------------------------------------
- | Handled inline, same as admineventandfiesta.php — no separate
- | *_actions.php file. `people` table columns: person_id, fullname,
- | title, achievement, description, image, created_at.
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $action = $_POST['action'] ?? '';
-
     if ($action === 'add' || $action === 'edit' || $action === 'delete') {
         $id = (int) ($_POST['person_id'] ?? 0);
         $entityAction = $action === 'add' ? 'create' : ($action === 'edit' ? 'update' : 'archive');
-
         if ($entityAction === 'archive') {
             $data = ['archive_note' => $_POST['archive_note'] ?? ''];
             $stmt = $conn->prepare("SELECT fullname AS name FROM people WHERE person_id = ?");
@@ -134,14 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description' => trim($_POST['desc'] ?? ''),
                 'image'       => $image ?: null,
             ];
-
             if ($fullname === '') {
                 $_SESSION['flash'] = $entityAction === 'create' ? 'Full name is required.' : 'Could not update — full name is required.';
                 header('Location: adminpeople.php');
                 exit;
             }
         }
-
         if ($isSuperAdmin) {
             kt_apply_entity_change($conn, 'person', $entityAction, $id > 0 ? $id : null, $data);
             $_SESSION['flash'] = $entityAction === 'archive' ? '"' . $fullname . '" archived.' : ('"' . $fullname . '" ' . ($entityAction === 'create' ? 'added' : 'updated') . '.');
@@ -149,32 +96,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             kt_requests_create($conn, 'person', $entityAction, $id > 0 ? $id : null, $data, $fullname, (int) $_SESSION['user_id'], $adminName);
             $_SESSION['flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $fullname . '" was submitted for Super Admin approval.';
         }
-
         if (!empty($photoAttemptFailed)) {
             $_SESSION['flash'] .= ' Note: the photo didn\'t upload (file too large or not a supported image type) — everything else was saved.';
         }
-
         header('Location: adminpeople.php');
         exit;
     }
 }
-
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
-
-/*
- |--------------------------------------------------------------------
- | PEOPLE OF MALVAR — FETCH
- |--------------------------------------------------------------------
- */
 $people = [];
 if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER BY fullname ASC")) {
     $people = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// Real per-place view counts (see config/analytics.php).
 $peopleViews = analytics_item_views_bulk($conn, 'person');
-
 $totalPeople = count($people);
 $withTitle   = count(array_filter($people, fn($p) => trim((string) $p['title']) !== ''));
 $addedThisMonth = count(array_filter($people, function ($p) {
@@ -189,7 +124,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>People of Malvar – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -198,28 +132,22 @@ $addedThisMonth = count(array_filter($people, function ($p) {
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminpeople.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -230,7 +158,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -241,7 +168,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -260,14 +186,9 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">Content Management</div>
@@ -284,7 +205,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <button class="btn-primary" onclick="openAddPerson()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Profile</button>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -296,8 +216,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
-        <!-- KPI ROW -->
         <div class="mini-kpi-row animate">
             <div class="mini-kpi">
                 <div class="mini-kpi-num"><?php echo htmlspecialchars((string) $totalPeople); ?></div>
@@ -312,8 +230,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <div class="mini-kpi-label">Added This Month</div>
             </div>
         </div>
-
-        <!-- FILTER ROW -->
         <div class="filter-row animate">
             <input class="search-input" type="text" placeholder="Search people…" oninput="filterPeople(this.value)">
             <div class="view-toggle">
@@ -321,8 +237,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <button type="button" class="view-btn" data-view="grid" onclick="setView('grid')" aria-label="Grid view"><i data-lucide="layout-grid" class="lucide"></i></button>
             </div>
         </div>
-
-        <!-- PEOPLE TABLE -->
         <div class="data-table-wrap animate">
             <?php if (empty($people)): ?>
                 <div class="chart-empty">
@@ -365,8 +279,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 </table>
             <?php endif; ?>
         </div>
-
-        <!-- GRID VIEW -->
         <div class="grid-view-panel" id="peopleGrid">
             <?php if (empty($people)): ?>
                 <div class="chart-empty grid-empty">
@@ -405,13 +317,9 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-
         <div class="pagination" id="peoplePagination"></div>
-
     </div>
 </div>
-
-<!-- ADD PERSON MODAL -->
 <div class="modal-overlay" id="addPersonModal" onclick="closeModalOutside(event, 'addPersonModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addPersonModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -448,8 +356,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         </form>
     </div>
 </div>
-
-<!-- EDIT PERSON MODAL -->
 <div class="modal-overlay" id="editPersonModal" onclick="closeModalOutside(event, 'editPersonModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editPersonModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -489,8 +395,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         </form>
     </div>
 </div>
-
-<!-- VIEW PERSON MODAL -->
 <div class="modal-overlay" id="viewPersonModal" onclick="closeModalOutside(event, 'viewPersonModal')">
     <div class="modal-card" style="max-width:480px;">
         <button class="modal-close" onclick="closeModal('viewPersonModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -509,8 +413,6 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         </div>
     </div>
 </div>
-
-<!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event, 'deleteModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div class="modal-title" id="deleteTitle">Archive Item?</div>
@@ -530,10 +432,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
     // A top-level const in a classic script does NOT become window.peopleData
     // — it stays in the script's own lexical scope, invisible to functions
@@ -563,6 +462,5 @@ $addedThisMonth = count(array_filter($people, function ($p) {
     });
     <?php endif; ?>
 </script>
-
 </body>
 </html>

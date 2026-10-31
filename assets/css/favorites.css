@@ -1,11 +1,8 @@
-/* KulToura — Favorites page (f- prefix, following the tourism.php t- pattern) */
-
 .f-main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 48px 32px 96px;
 }
-
 .f-toolbar {
     display: flex;
     gap: 12px;
@@ -13,7 +10,6 @@
     margin-bottom: 32px;
     flex-wrap: wrap;
 }
-
 .f-search {
     flex: 1;
     min-width: 220px;
@@ -28,7 +24,6 @@
 }
 .f-search::placeholder { color: rgba(34, 26, 16, 0.35); }
 .f-search:focus { border-color: rgba(200, 169, 110, 0.6); }
-
 .f-filter {
     padding: 11px 18px;
     border-radius: 999px;
@@ -40,13 +35,11 @@
     outline: none;
 }
 .f-filter option { background: #fff; color: #221a10; }
-
 .f-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 20px;
 }
-
 .f-card {
     background: rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.08);
@@ -62,7 +55,6 @@
     border-color: rgba(200, 169, 110, 0.4);
     background: rgba(0, 0, 0, 0.08);
 }
-
 .f-card-media {
     width: 100%;
     height: 150px;
@@ -75,7 +67,6 @@
     object-fit: cover;
     display: block;
 }
-
 .f-card-body {
     padding: 20px;
     display: flex;
@@ -83,13 +74,11 @@
     gap: 10px;
     flex: 1;
 }
-
 .f-card-top {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
 }
-
 .f-badge {
     font-size: 0.62rem;
     letter-spacing: 1.5px;
@@ -99,9 +88,7 @@
     padding: 4px 10px;
     border-radius: 999px;
 }
-
 .f-remove-form { margin: 0; }
-
 .f-heart-btn {
     background: none;
     border: none;
@@ -115,13 +102,11 @@
     color: #e05252;
     transform: scale(1.15);
 }
-
 .f-card-title {
     font-size: 1.1rem;
     color: #221a10;
     margin: 0;
 }
-
 .f-card-desc {
     font-size: 0.85rem;
     color: rgba(34, 26, 16, 0.55);
@@ -129,7 +114,6 @@
     margin: 0;
     flex: 1;
 }
-
 .f-card-link {
     align-self: flex-start;
     font-size: 0.82rem;
@@ -139,8 +123,6 @@
     transition: opacity 0.2s;
 }
 .f-card-link:hover { opacity: 0.75; }
-
-/* EMPTY STATE */
 .f-empty {
     text-align: center;
     padding: 80px 20px;
@@ -174,8 +156,6 @@
     transition: opacity 0.2s;
 }
 .f-empty-cta:hover { opacity: 0.85; }
-
-/* TOAST */
 .f-toast {
     position: fixed;
     bottom: 32px;
@@ -193,7 +173,6 @@
     white-space: nowrap;
 }
 .f-toast.show { transform: translateX(-50%) translateY(0); }
-
 @media (max-width: 640px) {
     .f-main { padding: 32px 16px 64px; }
     .f-grid { grid-template-columns: 1fr; }

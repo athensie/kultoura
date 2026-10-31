@@ -1,27 +1,14 @@
-// KulToura Admin — Homepage Content (Partners / Event Gallery)
-// partnersData / eventPhotosData are injected server-side by
-// adminhomepage.php via window.partnersData = <?php echo json_encode(...); ?>
-// — a top-level const/let would NOT become a window property in a classic
-// script, so these are assigned onto window explicitly (same gotcha fixed
-// elsewhere in this codebase, e.g. adminfoodanddining.js's listingsData).
-
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof lucide !== 'undefined') lucide.createIcons();
     const flash = window.__adminFlash;
     if (flash) showToast(flash);
 });
-
-// SIDEBAR
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
 }
-
-// MODALS
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
-
-// TABS
 function ktSwitchHomeTab(tab) {
     document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.tab === tab);
@@ -30,9 +17,6 @@ function ktSwitchHomeTab(tab) {
         panel.hidden = panel.id !== `homeTab-${tab}`;
     });
 }
-
-// EDIT — populate the edit modal's fields from the matching row in the
-// server-injected data array, then open it.
 function openEditPartner(id) {
     const p = (window.partnersData || []).find((row) => Number(row.id) === id);
     if (!p) return;
@@ -43,7 +27,6 @@ function openEditPartner(id) {
     document.getElementById('editPartnerExistingLogo').value = p.logo || '';
     openModal('editPartnerModal');
 }
-
 function openEditEventPhoto(id) {
     const g = (window.eventPhotosData || []).find((row) => Number(row.id) === id);
     if (!g) return;
@@ -52,17 +35,12 @@ function openEditEventPhoto(id) {
     document.getElementById('editEventPhotoExistingImage').value = g.image || '';
     openModal('editEventPhotoModal');
 }
-
-// ARCHIVE — one shared confirm modal/form for both content types, its
-// form_action set to match whichever type triggered it.
 function confirmArchive(entityType, id, label) {
     document.getElementById('archiveIdInput').value = id;
     document.getElementById('archiveFormAction').value = `delete_${entityType}`;
     document.getElementById('archiveTitle').textContent = `Archive "${label}"?`;
     openModal('archiveModal');
 }
-
-// TOAST
 let _toastTimer;
 function showToast(msg) {
     const t = document.getElementById('toast');

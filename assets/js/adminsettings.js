@@ -1,8 +1,3 @@
-/* =========================================================
-   KULTOURA — ADMIN DASHBOARD (SETTINGS) — SCRIPTS
-   ========================================================= */
-
-/* ---------- TOAST ---------- */
 let toastTimer = null;
 function showToast(msg) {
   const toast = document.getElementById('toast');
@@ -12,19 +7,12 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
-
-/* ---------- SETTING TOGGLES ---------- */
-// Flips the switch immediately for a responsive feel, fires the real
-// request to the backend, then rolls the switch back if the save
-// actually failed — so the UI never silently lies about saved state.
 async function toggleSetting(btn) {
   const key = btn.dataset.key;
   const wasOn = btn.classList.contains('on');
   const newValue = !wasOn;
-
   btn.classList.toggle('on');
   btn.classList.add('loading');
-
   try {
     const response = await fetch('/kultoura/admin/settings_actions.php', {
       method: 'POST',
@@ -36,20 +24,16 @@ async function toggleSetting(btn) {
         csrf_token: KT_CSRF_TOKEN,
       }),
     });
-
     if (!response.ok) throw new Error('Request failed');
-
     showToast(formatSettingLabel(key) + (newValue ? ' enabled.' : ' disabled.'));
   } catch (err) {
     console.error(err);
-    // Roll back the visual state — the save didn't actually happen.
     btn.classList.toggle('on');
     showToast('Could not save that change. Try again.');
   } finally {
     btn.classList.remove('loading');
   }
 }
-
 function formatSettingLabel(key) {
   const labels = {
     public_access: 'Public access',
@@ -62,8 +46,6 @@ function formatSettingLabel(key) {
   };
   return labels[key] || 'Setting';
 }
-
-/* ---------- MODALS ---------- */
 function openModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.classList.add('open');
@@ -75,22 +57,14 @@ function closeModal(id) {
 function closeModalOutside(event, id) {
   if (event.target.id === id) closeModal(id);
 }
-
-/* ---------- CHANGE PASSWORD ---------- */
-// Submitting doesn't change the password right away — it emails the
-// admin an Approve/Reject link (see settings_actions.php). On success
-// the modal swaps its form for a "check your email" panel instead of
-// just closing, so it's clear nothing has changed yet.
 function openChangePasswordModal() {
   document.getElementById('changePasswordForm').hidden = false;
   document.getElementById('changePasswordPending').hidden = true;
   openModal('changePasswordModal');
 }
-
 async function submitChangePassword(event) {
   event.preventDefault();
   const form = event.target;
-
   try {
     const response = await fetch('/kultoura/admin/settings_actions.php', {
       method: 'POST',
@@ -101,7 +75,6 @@ async function submitChangePassword(event) {
         csrf_token: KT_CSRF_TOKEN,
       }),
     });
-
     const data = await response.json();
     if (data.success) {
       form.reset();
@@ -118,13 +91,9 @@ async function submitChangePassword(event) {
   }
   return false;
 }
-
-/* ---------- MOBILE SIDEBAR TOGGLE ---------- */
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
-
-/* ---------- LUCIDE ICONS INIT ---------- */
 (function initLucide() {
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();

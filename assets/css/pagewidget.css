@@ -1,16 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
-
-/* KulToura — Page Widget (admin-customizable bento-style photo grid)
-   Shared across every tourism subpage via config/page_widgets.php's
-   kt_page_widget_render(). A contained card (not full-bleed) with an
-   asymmetric photo grid: a colored text panel, a center photo carrying
-   the page's title, two supporting photos, and a small "powered by"
-   style panel. */
-
 .pw-widget {
     padding: 32px 48px 8px;
 }
-
 .pw-grid {
     max-width: 1300px;
     margin: 0 auto;
@@ -28,7 +19,6 @@
     border-radius: 20px;
     box-shadow: 0 16px 40px rgba(44, 26, 14, 0.08);
 }
-
 .pw-cell {
     position: relative;
     border-radius: 14px;
@@ -42,7 +32,6 @@
     height: 100%;
     object-fit: cover;
 }
-
 .pw-cell-panel {
     grid-area: panel;
     display: flex;
@@ -57,11 +46,9 @@
     color: #fff;
     margin: 0;
 }
-
 .pw-cell-photo { grid-area: photo; }
 .pw-cell-topright { grid-area: topright; }
 .pw-cell-botleft { grid-area: botleft; }
-
 .pw-cell-center {
     grid-area: center;
     background: #2c1a0e;
@@ -69,18 +56,15 @@
     flex-direction: column;
     justify-content: flex-end;
 }
-
 .pw-center-scrim {
     position: absolute;
     inset: 0;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 45%, rgba(0, 0, 0, 0.55) 100%);
 }
-
 .pw-center-text {
     position: relative;
     padding: 24px 26px;
 }
-
 .pw-center-eyebrow {
     font-size: 11px;
     font-weight: 700;
@@ -89,11 +73,7 @@
     color: rgba(255, 255, 255, 0.8);
     margin: 0 0 8px;
 }
-
 .pw-center-headline {
-    /* 'Barabara' is declared in index.css (loaded before this file on
-       every tourism page) and only defines uppercase letters — lowercase
-       would silently fall back to the next font, so this is uppercased. */
     font-family: 'Barabara', 'Playfair Display', Georgia, serif;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -104,15 +84,12 @@
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
     margin: 0;
 }
-
 .pw-cell-logo {
     grid-area: logo;
     background: #fff;
     display: flex;
     align-items: flex-end;
 }
-/* Full photo like the other grid cells (not a shrunk-down logo mark) —
-   .pw-cell's base rule already covers position/object-fit for the <img>. */
 .pw-logo-caption {
     position: relative;
     z-index: 1;
@@ -126,10 +103,6 @@
     padding: 5px 9px;
     border-radius: 6px;
 }
-
-/* Expanding photo strip, shown below the bento grid — up to five equal-
-   width tiles that "grow" on hover via flex-grow (no JS: the hovered
-   tile grows, the rest shrink back to make room). */
 .pw-gallery {
     max-width: 1300px;
     margin: 20px auto 32px;
@@ -138,7 +111,6 @@
     height: 300px;
     padding: 0 14px;
 }
-
 .pw-gallery-main,
 .pw-gallery-strip {
     position: relative;
@@ -148,7 +120,6 @@
     transition: flex-grow 0.45s cubic-bezier(0.4, 0.1, 0.2, 1);
     cursor: pointer;
 }
-
 .pw-gallery-main img,
 .pw-gallery-strip img {
     position: absolute;
@@ -157,15 +128,10 @@
     height: 100%;
     object-fit: cover;
 }
-
 .pw-gallery-main:hover,
 .pw-gallery-strip:hover {
     flex-grow: 2.4;
 }
-
-/* Caption as a heading + description over a bottom gradient scrim (not
-   a pill badge) — same treatment on every strip tile, only shown on
-   hover (pairs with the tile growing on hover above). */
 .pw-strip-caption-wrap {
     position: absolute;
     left: 0;
@@ -214,7 +180,6 @@
         min-height: 150px;
     }
     .pw-cell-center { min-height: 280px; }
-
     .pw-gallery {
         height: auto;
         overflow-x: auto;
@@ -232,12 +197,8 @@
     }
     .pw-gallery-main:hover,
     .pw-gallery-strip:hover { flex-grow: 0; }
-
-    /* No real hover on touch — captions stay visible instead of being
-       permanently hidden. */
     .pw-strip-caption-wrap { opacity: 1; }
 }
-
 @media (max-width: 900px) {
     .pw-strip-caption-wrap {
         opacity: 0;
@@ -250,4 +211,3 @@
     .pw-strip-caption { font-size: 12px; }
     .pw-strip-description { font-size: 10px; line-height: 1.35; }
 }
-

@@ -4,62 +4,27 @@ require_once '../config/dbmain.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
 require_once '../config/homepage_content.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
 kt_homepage_content_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | HOMEPAGE CONTENT — Partners, Event Gallery
- |--------------------------------------------------------------------
- | Small, independent content types that only ever appear on index.php.
- | Each goes through the same Admin/Super Admin approval queue as the
- | rest of the content tables (see config/admin_requests.php): a plain
- | Admin's submission is held for review, a Super Admin's applies
- | immediately. "Archive" (never a real delete) just flips status to
- | 'archived', matching every other content type on the site.
- |
- | A Facebook Videos type used to live here too — removed (not worth
- | fighting Facebook's embed restrictions for). config/admin_requests.php
- | and config/homepage_content.php still carry its backend pieces
- | (kt_apply_fb_video(), the fb_videos table, kt_fb_video_embed_url())
- | deliberately left in place and harmless, purely so approving any
- | already-pending fb_video request from before removal doesn't error.
- */
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     csrf_verify();
     $formAction = $_POST['form_action'];
-
     [$entityType, $verb] = (function () use ($formAction) {
         foreach (['partner', 'event_photo'] as $type) {
             foreach (['add' => 'create', 'edit' => 'update', 'delete' => 'archive'] as $prefix => $action) {
@@ -68,15 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         }
         return [null, null];
     })();
-
     if (!$entityType) {
         $_SESSION['admin_flash'] = 'Unrecognized action.';
         header("Location: adminhomepage.php");
         exit;
     }
-
     $id = ($verb === 'update' || $verb === 'archive') ? (int) ($_POST['id'] ?? 0) : null;
-
     if ($verb === 'archive') {
         $data = ['archive_note' => $_POST['archive_note'] ?? ''];
         $meta = kt_entity_meta($entityType);
@@ -130,7 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         ];
         $label = $caption;
     }
-
     if ($isSuperAdmin) {
         kt_apply_entity_change($conn, $entityType, $verb, $id, $data);
         $_SESSION['admin_flash'] = $verb === 'archive'
@@ -140,33 +101,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         kt_requests_create($conn, $entityType, $verb, $id, $data, $label, (int) $_SESSION['user_id'], $adminName);
         $_SESSION['admin_flash'] = 'Your request to ' . ($verb === 'archive' ? 'archive' : $verb) . ' "' . $label . '" was submitted for Super Admin approval.';
     }
-
     header("Location: adminhomepage.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | READ
- |--------------------------------------------------------------------
- */
 $partners = [];
 if ($result = $conn->query("SELECT * FROM partners WHERE status = 'live' ORDER BY created_at DESC")) {
     $partners = $result->fetch_all(MYSQLI_ASSOC);
 }
-
 $eventPhotos = [];
 if ($result = $conn->query("SELECT * FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC")) {
     $eventPhotos = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// Pending submissions — a plain Admin otherwise has no way to see what
-// they just submitted anywhere (adminrequests.php is Super Admin only),
-// so each tab also lists its own type's pending requests below the live
-// grid: every pending one for a Super Admin (same set adminrequests.php
-// shows), or just this Admin's own for anyone else. Shown read-only
-// (no edit/archive — there's no real row yet to act on) with a pending
-// badge, so "I added it" always has somewhere to see it.
 $pendingPartners = [];
 $pendingEventPhotos = [];
 foreach (kt_requests_list($conn, 'pending') as $req) {
@@ -187,7 +132,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Homepage Content – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -196,31 +140,22 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
-    <!-- ?v=<mtime> so a deploy is never masked by a stale cached copy —
-         this file has no Cache-Control/Expires header, so without the
-         URL itself changing a reload can still show an old version. -->
     <link rel="stylesheet" href="../assets/css/adminhomepage.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/adminhomepage.css') ?: time(); ?>">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -231,7 +166,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php" class="active"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -242,7 +176,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -261,14 +194,9 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">Content Management</div>
@@ -276,7 +204,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 <p>Partner logos and the event photo gallery shown on the homepage.</p>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -288,14 +215,10 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
-        <!-- TABS -->
         <div class="admin-tabs animate">
             <button type="button" class="admin-tab-btn active" data-tab="partners" onclick="ktSwitchHomeTab('partners')"><i data-lucide="handshake" class="lucide" style="width:.85rem;height:.85rem;"></i> Partners</button>
             <button type="button" class="admin-tab-btn" data-tab="gallery" onclick="ktSwitchHomeTab('gallery')"><i data-lucide="images" class="lucide" style="width:.85rem;height:.85rem;"></i> Event Gallery</button>
         </div>
-
-        <!-- PARTNERS TAB -->
         <div class="admin-tab-panel animate" id="homeTab-partners">
             <div class="header-actions-row">
                 <p class="tab-sub">Brand/business logos shown in the "Our Partners" section.</p>
@@ -342,8 +265,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 </div>
             <?php endif; ?>
         </div>
-
-        <!-- EVENT GALLERY TAB -->
         <div class="admin-tab-panel animate" id="homeTab-gallery" hidden>
             <div class="header-actions-row">
                 <p class="tab-sub">Photos of events hosted in Malvar, shown as a gallery grid on the homepage.</p>
@@ -387,11 +308,8 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                 </div>
             <?php endif; ?>
         </div>
-
     </div>
 </div>
-
-<!-- ADD PARTNER MODAL -->
 <div class="modal-overlay" id="addPartnerModal" onclick="closeModalOutside(event, 'addPartnerModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addPartnerModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -423,8 +341,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- EDIT PARTNER MODAL -->
 <div class="modal-overlay" id="editPartnerModal" onclick="closeModalOutside(event, 'editPartnerModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editPartnerModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -458,8 +374,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- ADD EVENT PHOTO MODAL -->
 <div class="modal-overlay" id="addEventPhotoModal" onclick="closeModalOutside(event, 'addEventPhotoModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addEventPhotoModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -483,8 +397,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- EDIT EVENT PHOTO MODAL -->
 <div class="modal-overlay" id="editEventPhotoModal" onclick="closeModalOutside(event, 'editEventPhotoModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editEventPhotoModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -510,8 +422,6 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- ARCHIVE CONFIRM MODAL (shared by both types) -->
 <div class="modal-overlay" id="archiveModal" onclick="closeModalOutside(event, 'archiveModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div class="modal-title" id="archiveTitle">Archive Item?</div>
@@ -531,10 +441,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
     window.partnersData = <?php echo json_encode($partners, JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]'; ?>;
     window.eventPhotosData = <?php echo json_encode($eventPhotos, JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]'; ?>;
@@ -547,6 +454,5 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminhomepage.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/adminhomepage.js') ?: time(); ?>"></script>
 <script>initSidebarCollapse();</script>
-
 </body>
 </html>

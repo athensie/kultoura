@@ -1,59 +1,32 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/csrf.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- | Keep this in sync with admindashboard.php / login.php / auth.php.
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- | Same guard as the rest of the admin panel: admin / super admin only.
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
-
 include '../config/dbmain.php';
 include '../config/announcements.php';
 require_once '../config/admin_requests.php';
 require_once '../config/mailer.php';
 require_once '../config/newsletter.php';
-
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
-
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
-
-/*
- |--------------------------------------------------------------------
- | ANNOUNCEMENTS DATA — real query.
- |--------------------------------------------------------------------
- */
 $announcements = [];
 if ($result = $conn->query("SELECT * FROM announcements WHERE status != 'archived' ORDER BY created_at DESC")) {
     $announcements = $result->fetch_all(MYSQLI_ASSOC);
 }
-
 $totalCount    = count($announcements);
 $liveCount     = count(array_filter($announcements, fn($a) => $a['status'] === 'live'));
 $scheduledCount = count(array_filter($announcements, fn($a) => $a['status'] === 'scheduled'));
@@ -66,7 +39,6 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Announcements – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -75,27 +47,21 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminannouncements.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -106,7 +72,6 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -117,7 +82,6 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -136,14 +100,9 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">Site Communication</div>
@@ -151,7 +110,6 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                 <p>Publish updates, alerts, and event notices to KulToura visitors.</p>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -163,8 +121,6 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
-        <!-- MINI KPI ROW -->
         <div class="mini-kpi-row animate">
             <div class="mini-kpi">
                 <div class="mini-kpi-num"><?php echo (int) $totalCount; ?></div>
@@ -183,17 +139,13 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                 <div class="mini-kpi-label">Drafts</div>
             </div>
         </div>
-
-        <!-- COMPOSER -->
         <div class="announce-box animate">
             <h3><i data-lucide="megaphone" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> New Announcement</h3>
-
             <form id="announceForm" action="<?php echo BASE_URL; ?>/admin/announcements_actions.php" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="create">
                 <?php echo csrf_field(); ?>
                 <input type="hidden" name="type" id="announceTypeInput" value="info">
                 <input type="hidden" name="status" id="announceStatusInput" value="live">
-
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Title</label>
@@ -207,18 +159,15 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                         </select>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Message</label>
                     <textarea class="form-textarea" name="body" placeholder="Write your announcement here…" id="announceBody" required></textarea>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Image (optional)</label>
                     <input class="form-input" type="file" name="image_file" accept="image/png,image/jpeg,image/webp,image/gif">
                     <div class="image-current-hint">Shown on the homepage News card if this announcement goes live.</div>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Type</label>
                     <div class="type-selector">
@@ -229,7 +178,6 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                         <button type="button" class="type-chip" onclick="selectType(this, 'maintenance')"><i data-lucide="wrench" class="lucide" style="width:.75rem;height:.75rem;"></i> Maintenance</button>
                     </div>
                 </div>
-
                 <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
                     <button type="submit" class="btn-primary" onclick="document.getElementById('announceStatusInput').value='live'"><i data-lucide="send" class="lucide" style="width:.85rem;height:.85rem;"></i> Publish Now</button>
                     <button type="button" class="btn-ghost" onclick="openScheduleModal()"><i data-lucide="calendar-clock" class="lucide" style="width:.85rem;height:.85rem;"></i> Schedule</button>
@@ -237,10 +185,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                 </div>
             </form>
         </div>
-
-        <!-- PUBLISHED LIST -->
         <div class="alabel-desc">Published <span class="analytics-tag">History</span></div>
-
         <div class="data-table-wrap animate">
             <table class="data-table" id="announcementsTable">
                 <thead>
@@ -306,11 +251,8 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
             </table>
         </div>
         <div class="pagination" id="announcementsPagination"></div>
-
     </div>
 </div>
-
-<!-- SCHEDULE MODAL -->
 <div class="modal-overlay" id="scheduleModal" onclick="closeModalOutside(event,'scheduleModal')">
     <div class="modal-card" style="max-width:400px;">
         <button class="modal-close" onclick="closeModal('scheduleModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -334,20 +276,16 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         </div>
     </div>
 </div>
-
-<!-- EDIT ANNOUNCEMENT MODAL -->
 <div class="modal-overlay" id="editAnnouncementModal" onclick="closeModalOutside(event,'editAnnouncementModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editAnnouncementModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Announcement</div>
         <div class="modal-sub" id="editAnnSubtitle">Editing published announcement</div>
-
         <form id="editAnnouncementForm" action="<?php echo BASE_URL; ?>/admin/announcements_actions.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="id" id="editAnnId" value="">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="existing_image" id="editAnnExistingImage" value="">
-
             <div class="form-group">
                 <label class="form-label">Title</label>
                 <input class="form-input" type="text" name="title" id="editAnnTitle" required>
@@ -389,8 +327,6 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         </form>
     </div>
 </div>
-
-<!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteAnnouncementModal" onclick="closeModalOutside(event, 'deleteAnnouncementModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div style="font-size:3rem; margin-bottom:12px;">🗄️</div>
@@ -411,10 +347,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
@@ -427,7 +360,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 <?php endif; ?>
 </script>
-
 </body>
 </html>
 <?php

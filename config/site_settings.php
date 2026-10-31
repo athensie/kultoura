@@ -1,14 +1,4 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | SITE SETTINGS — key/value toggles (Public Access, Maintenance Mode,
- | notification preferences, etc.) managed from admin/adminsettings.php
- |--------------------------------------------------------------------
- | Same self-creating-table approach as config/login_throttle.php, so
- | a fresh database (including a brand-new Railway deploy) needs no
- | manual migration step before these toggles work.
- */
-
 if (!function_exists('site_settings_ensure_table')) {
     function site_settings_ensure_table(mysqli $conn): void
     {
@@ -20,9 +10,6 @@ if (!function_exists('site_settings_ensure_table')) {
         );
     }
 }
-
-// Merges saved values over the given defaults — any key without a row yet
-// (fresh table, or a newly-added toggle) just keeps its default.
 if (!function_exists('site_settings_get_all')) {
     function site_settings_get_all(mysqli $conn, array $defaults): array
     {
@@ -36,7 +23,6 @@ if (!function_exists('site_settings_get_all')) {
         return $settings;
     }
 }
-
 if (!function_exists('site_settings_set')) {
     function site_settings_set(mysqli $conn, string $key, bool $value): void
     {

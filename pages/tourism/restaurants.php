@@ -8,34 +8,15 @@ include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
 $pageWidget = kt_page_widget_get($conn, 'restaurants');
 analytics_track($conn, 'restaurants');
-
 $restaurantsHeroPhoto = sitecontent_get_photo($conn, 'restaurants_hero');
-
-// Logged for foryou.php's "Because You Explored" recommendations.
 $_SESSION['history'][] = 'restaurant';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
 $userId     = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
-
-/*
- |--------------------------------------------------------------------
- | RESTAURANTS — populated from listings the admin added/approved in
- | adminfoodanddining.php (only 'active' ones are shown here).
- |--------------------------------------------------------------------
- */
-// Matches the category choices in admin/adminfoodanddining.php's
-// $categoriesByType['restaurant'] — keep these two lists in sync.
 $categoryChoices = ['Restaurant', 'Karinderya', 'Cafe', 'Fast Food', 'Bulalo & Lomi House', 'Bakery', 'Milk Tea & Beverage Shop', 'Dessert Shop'];
 $q        = trim($_GET['q'] ?? '');
 $category = trim($_GET['category'] ?? '');
-
-// $q / $category above only pre-fill the search box and category select
-// (so a shared link like ?q=cafe still lands pre-filtered visually) — the
-// actual filtering happens client-side in JS against the full catalog,
-// so clearing the search box or switching categories can reveal items
-// without a round trip to the server.
 $sql  = "SELECT restaurant_id, restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, image, google_map
          FROM restaurants WHERE status = 'active' ORDER BY restaurant_name ASC";
 $rows = [];
@@ -43,8 +24,6 @@ $res  = $conn->query($sql);
 if ($res) {
     $rows = $res->fetch_all(MYSQLI_ASSOC);
 }
-
-// Which of these the logged-in user has already favorited.
 $favoritedIds = [];
 if ($isLoggedIn && !empty($rows)) {
     $ids          = array_column($rows, 'restaurant_id');
@@ -57,7 +36,6 @@ if ($isLoggedIn && !empty($rows)) {
     $stmt->close();
     $favoritedIds = array_column($favRows, 'item_id');
 }
-
 $restaurants = [];
 foreach ($rows as $r) {
     $restaurants[] = [
@@ -71,10 +49,6 @@ foreach ($rows as $r) {
         'lng'       => $r['longitude'],
         'contact'   => $r['contact_number'],
         'hours'     => $r['opening_hours'],
-        // basename() strips any accidentally-stored path/URL prefix (e.g. an
-        // older full path saved before the upload code was corrected) down
-        // to just the filename, so this always works with the current
-        // "../../assets/uploads/food/<filename>" convention below.
         'image'     => $r['image'] ? basename($r['image']) : null,
         'map'       => $r['google_map'],
         'favorited' => in_array((int) $r['restaurant_id'], $favoritedIds, true),
@@ -93,19 +67,14 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/restaurants.css">
-    <!-- View Details / Navigate modal styles are shared: .p-modal-*, .p-nav-* in tourism.css -->
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -146,11 +115,8 @@ foreach ($rows as $r) {
                 </div>
             </div>
         </div>
-
             <?php if ($isLoggedIn): ?><a href="../../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="../search_api.php" data-results="../search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -163,11 +129,8 @@ foreach ($rows as $r) {
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
 <?php if (!$pageWidget): ?>
-<!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $restaurantsHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($restaurantsHeroPhoto): ?>
         <img class="t-hero-photo" src="<?php echo htmlspecialchars($restaurantsHeroPhoto); ?>" alt="">
@@ -185,12 +148,8 @@ foreach ($rows as $r) {
     </div>
 </section>
 <?php endif; ?>
-
 <?php kt_page_widget_render_from($pageWidget, 'restaurants'); ?>
-
-<!-- ── Restaurants Grid ── -->
 <main class="t-main">
-
     <section class="p-search-row">
         <form class="p-search-bar" id="restaurantSearchForm" action="restaurants.php" method="get">
             <input type="text" name="q" id="restaurantSearchInput" placeholder="Search restaurants, cuisines, areas…" value="<?= htmlspecialchars($q) ?>" autocomplete="off">
@@ -203,7 +162,6 @@ foreach ($rows as $r) {
         </form>
         <p class="p-search-empty" id="restaurantSearchEmpty" hidden>No restaurants match your search.</p>
     </section>
-
     <section class="t-category" id="restaurants">
         <div class="t-category-header">
             <div>
@@ -212,7 +170,6 @@ foreach ($rows as $r) {
                 <p class="t-cat-desc" id="restaurantCatDesc">Where to eat around Malvar, from everyday carinderias to sit-down family spots.</p>
             </div>
         </div>
-
         <?php if (empty($restaurants)): ?>
         <div class="p-empty-state">
             <h3>No restaurants added yet</h3>
@@ -253,10 +210,7 @@ foreach ($rows as $r) {
         </div>
         <?php endif; ?>
     </section>
-
 </main>
-
-<!-- ── View Details Modal ── -->
 <div class="p-modal-overlay" id="viewDetailsModal" onclick="closeModalOutsideX(event, 'viewDetailsModal')">
     <div class="p-modal-card">
         <button class="p-modal-close" onclick="closeModalX('viewDetailsModal')">&times;</button>
@@ -276,8 +230,6 @@ foreach ($rows as $r) {
         </div>
     </div>
 </div>
-
-<!-- ── Navigate Modal ── -->
 <div class="p-modal-overlay" id="navigateModal" onclick="closeModalOutsideX(event, 'navigateModal')">
     <div class="p-modal-card p-modal-card-wide">
         <button class="p-modal-close" onclick="closeModalX('navigateModal')">&times;</button>
@@ -290,19 +242,14 @@ foreach ($rows as $r) {
         </div>
     </div>
 </div>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js"></script>
 <script>
 const restaurantsData = <?php echo json_encode($restaurants); ?>;
-
 function findProduct(id) { return restaurantsData.find(p => p.id === id); }
-
 /* ---------------- Live search + category filter ---------------- */
 /* Same approach as products.php: filters the already-loaded cards
    client-side (by name and category — not description), updating
@@ -318,7 +265,6 @@ function findProduct(id) { return restaurantsData.find(p => p.id === id); }
     const catTitle = document.getElementById('restaurantCatTitle');
     const catDesc = document.getElementById('restaurantCatDesc');
     if (!searchInput || !categorySelect || !grid) return;
-
     const CATEGORY_META = {
         'Restaurant': { label: 'Restaurant', desc: 'Full sit-down restaurants serving a wider menu.' },
         'Karinderya': { label: 'Karinderya', desc: 'Everyday carinderias serving home-style Filipino meals.' },
@@ -330,23 +276,19 @@ function findProduct(id) { return restaurantsData.find(p => p.id === id); }
         'Dessert Shop': { label: 'Dessert Shop', desc: 'Dessert shops for sweets and after-meal treats.' },
     };
     const GENERAL_META = { label: 'Restaurants', desc: 'Where to eat around Malvar, from everyday carinderias to sit-down family spots.' };
-
     function applyFilters() {
         const query = searchInput.value.trim().toLowerCase();
         const category = categorySelect.value;
         let visibleCount = 0;
         const visibleCategories = new Set();
-
         restaurantsData.forEach((item) => {
             const card = grid.querySelector('.p-card[data-id="' + item.id + '"]');
             if (!card) return;
-
             const matchesCategory = category === '' || category === 'All Categories' || item.category === category;
             const matchesQuery = query === ''
                 || (item.name || '').toLowerCase().includes(query)
                 || (item.category || '').toLowerCase().includes(query);
             const matches = matchesCategory && matchesQuery;
-
             if (matches) {
                 visibleCount++;
                 visibleCategories.add(item.category);
@@ -359,9 +301,7 @@ function findProduct(id) { return restaurantsData.find(p => p.id === id); }
                 card.style.display = 'none';
             }
         });
-
         if (emptyMsg) emptyMsg.hidden = visibleCount > 0;
-
         // Heading reflects what's actually showing: a single category
         // name when everything visible belongs to just one (whether
         // from the dropdown or a search that happens to narrow it
@@ -373,7 +313,6 @@ function findProduct(id) { return restaurantsData.find(p => p.id === id); }
         if (catTitle) catTitle.textContent = meta.label;
         if (catDesc) catDesc.textContent = meta.desc;
     }
-
     searchInput.addEventListener('input', applyFilters);
     categorySelect.addEventListener('change', applyFilters);
     if (form) {
@@ -382,14 +321,11 @@ function findProduct(id) { return restaurantsData.find(p => p.id === id); }
             applyFilters();
         });
     }
-
     applyFilters();
 })();
-
 function openModalX(id) { document.getElementById(id).classList.add('open'); }
 function closeModalX(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOutsideX(e, id) { if (e.target.id === id) closeModalX(id); }
-
 /* ---------------- Per-item view tracking (fire-and-forget) ---------------- */
 function ktTrackItemView(type, id) {
     if (!id) return;
@@ -401,46 +337,36 @@ function ktTrackItemView(type, id) {
         fetch('../track_item_view.php', { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, keepalive: true }).catch(() => {});
     }
 }
-
 /* ---------------- View Details ---------------- */
 function openViewDetails(id) {
     const item = findProduct(id);
     if (!item) return;
-
     ktTrackItemView('restaurant', id);
-
     document.getElementById('vdTag').textContent = item.category || '—';
     document.getElementById('vdTitle').textContent = item.name;
     document.getElementById('vdDesc').textContent = item.desc || '';
-
     const img = document.getElementById('vdImage');
     if (item.image) { img.src = '../../assets/uploads/food/' + item.image; img.style.display = ''; }
     else { img.style.display = 'none'; }
-
     const favBtn = document.getElementById('vdFavBtn');
     favBtn.dataset.itemId = item.id;
     favBtn.classList.toggle('is-favorited', !!item.favorited);
     favBtn.innerHTML = item.favorited ? '&#9829;' : '&#9825;';
     document.getElementById('vdFavLabel').textContent = item.favorited ? '♥ Saved to Favorites' : '♡ Add to Favorites';
-
     let facts = `<div><p class="p-fact-label">Address</p><p class="p-fact-value">${item.address || '—'}</p></div>`;
     if (item.contact) facts += `<div><p class="p-fact-label">Contact</p><p class="p-fact-value">${item.contact}</p></div>`;
     if (item.hours) facts += `<div><p class="p-fact-label">Opening Hours</p><p class="p-fact-value">${item.hours}</p></div>`;
     document.getElementById('vdFacts').innerHTML = facts;
-
     document.getElementById('vdNavigateBtn').onclick = function () {
         closeModalX('viewDetailsModal');
         openNavigate(item.id);
     };
-
     openModalX('viewDetailsModal');
 }
-
 /* ---------------- Favorites (used by card hearts + modal heart) ---------------- */
 function toggleFavorite(btn) {
     const itemId   = btn.dataset.itemId;
     const itemType = btn.dataset.itemType;
-
     fetch('../favorites.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -465,7 +391,6 @@ function toggleFavorite(btn) {
         })
         .catch(() => { /* network hiccup — leave the button state as-is */ });
 }
-
 /* ---------------- Navigate (Google Maps embed) ---------------- */
 function haversineKm(lat1, lng1, lat2, lng2) {
     const R = 6371;
@@ -476,40 +401,31 @@ function haversineKm(lat1, lng1, lat2, lng2) {
               Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
 function openNavigate(id) {
     const item = findProduct(id);
     if (!item) return;
-
     document.getElementById('navTitle').textContent = item.name;
     const distEl = document.getElementById('navDistance');
     const frame = document.getElementById('navFrame');
     const directLink = document.getElementById('navDirectLink');
-
     const hasCoords = !!(item.lat && item.lng);
-
     openModalX('navigateModal');
-
     if (!hasCoords) {
         distEl.textContent = "This location hasn't been mapped yet — the admin needs to set it when adding/editing the listing.";
         frame.src = '';
         directLink.style.display = 'none';
         return;
     }
-
     const destLat = parseFloat(item.lat);
     const destLng = parseFloat(item.lng);
-
     frame.src = 'https://www.google.com/maps?q=' + destLat + ',' + destLng + '&z=15&output=embed';
     directLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng;
     directLink.style.display = 'inline-block';
     distEl.textContent = 'Locating you…';
-
     if (!navigator.geolocation) {
         distEl.textContent = "Your browser doesn't support location — showing the destination only.";
         return;
     }
-
     navigator.geolocation.getCurrentPosition(function (pos) {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
@@ -522,6 +438,5 @@ function openNavigate(id) {
     }, { enableHighAccuracy: true, timeout: 10000 });
 }
 </script>
-
 </body>
 </html>

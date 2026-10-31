@@ -1,108 +1,41 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- | This page lives one folder deep (/kultoura/admin/admindashboard.php),
- | so a plain header("Location: index.php") would resolve relative to
- | /admin/ and break. Anchoring every redirect to a fixed base path
- | avoids that, regardless of which folder a script is called from.
- |
- | Change this if your project folder name/path is different.
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- | Only logged-in users with the "admin" or "super admin" role may
- | view this page. Anyone else (including guests) is bounced to
- | the real site root index.php — mirrors the redirect logic already
- | used in login.php.
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
-
-/*
- |--------------------------------------------------------------------
- | DATABASE CONNECTION
- |--------------------------------------------------------------------
- | Same connection admindestinations.php / adminfoodanddining.php use,
- | giving a mysqli handle in $conn.
- */
 include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | PERIOD SELECTOR
- |--------------------------------------------------------------------
- | This is a plain PHP page (no AJAX endpoint), so "Today / This Week /
- | This Month / This Year" works via a real query string + page reload
- | rather than a client-side-only toggle. See the "Recently Added"
- | block further down for the one panel this genuinely drives with
- | real data — the rest of the note there explains why the other
- | panels (Trending, Traffic Sources, Monthly Visitor Trend) can't be
- | period-filtered yet.
- */
 $validPeriods = ['today', 'week', 'month', 'year'];
 $period = $_GET['period'] ?? 'month';
 if (!in_array($period, $validPeriods, true)) {
     $period = 'month';
 }
 $periodLabels = ['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
-
 $periodStart = new DateTime('today');
 switch ($period) {
     case 'week':  $periodStart = new DateTime('monday this week'); break;
     case 'month': $periodStart = new DateTime('first day of this month'); break;
     case 'year':  $periodStart = new DateTime('first day of january this year'); break;
-    // 'today' keeps the default (today at midnight)
 }
 $periodStartSql = $periodStart->format('Y-m-d 00:00:00');
-
-/*
- |--------------------------------------------------------------------
- | ANALYTICS DATA — wired to the real tables behind Destinations,
- | Food & Dining, Fiestas, and (as of config/analytics.php) real
- | page-view logging across every public page.
- |--------------------------------------------------------------------
- */
-
-// Active Users — visitors with a heartbeat (config/dbmain.php stamps
-// this on every request from a logged-in session) in the last 5 minutes.
 $activeUsers = analytics_active_users($conn, 5);
-
-// Listed Destinations — currently-active destinations right now (a
-// snapshot total, not sliced by period — this answers "how many are
-// live", not "how many this month").
 $listedDestinations = 0;
 if ($res = $conn->query("SELECT COUNT(*) c FROM destination WHERE status = 'active'")) {
     $listedDestinations = (int) ($res->fetch_assoc()['c'] ?? 0);
 }
-
-// Most Popular Category — scoped to Food & Dining (Products +
-// Restaurants), matching the utensils icon on this card. Whichever
-// category has the most listings across both tables wins.
 $topCategory = '—';
 $categoryCounts = [];
 if ($res = $conn->query("SELECT category, COUNT(*) c FROM products WHERE category IS NOT NULL AND category <> '' GROUP BY category")) {
@@ -120,43 +53,18 @@ if (!empty($categoryCounts)) {
     $topCategory = array_key_first($categoryCounts);
 }
 $topCategoryCount = $categoryCounts[$topCategory] ?? 0;
-
-// Total Page Views — real, sitewide, period-aware. Every public page now
-// calls analytics_track() on load (see config/analytics.php).
 $totalPageViews = analytics_total_views($conn, $periodStartSql);
-
-// Most Viewed Pages — replaces the old "Top Destinations by Visits"
-// panel, which relied on a `destination.views` counter that nothing in
-// the codebase ever actually incremented (always 0). This is genuinely
-// real and period-aware, and it covers every content type, not just
-// destinations.
 $topPages = analytics_page_breakdown($conn, $periodStartSql, 5);
 $topPagesMax = !empty($topPages) ? max(array_column($topPages, 'views')) : 0;
 foreach ($topPages as &$tp) {
     $tp['pct'] = $topPagesMax > 0 ? (int) round($tp['views'] / $topPagesMax * 100) : 0;
 }
 unset($tp);
-
-// Most Viewed Places — real per-listing view counts (e.g. "how many
-// visitors did BFC have?"), joined back to actual names across every
-// catalog type. See config/analytics.php's item_views table, logged
-// whenever a visitor opens a listing's "View Details" action.
 $itemTypeLabels = ['nature' => 'Nature', 'resort' => 'Resort', 'industry' => 'Industry', 'product' => 'Product', 'restaurant' => 'Restaurant', 'fiesta' => 'Fiesta', 'person' => 'Person'];
 $topItems = analytics_top_items($conn, 6, $periodStartSql);
-
-// Favorites & Travel Diary Conversion — how many of a place's viewers
-// actually favorited it or logged a real visit, not just looked.
 $conversionItems = analytics_conversion_top_items($conn, 8, 3);
-
-// Search Insights — what visitors type into the search bar, and what
-// comes back with nothing (a direct signal of a catalog gap).
 $topSearches = analytics_top_searches($conn, 6);
 $zeroResultSearches = analytics_zero_result_searches($conn, 6);
-
-// Recently Added — genuinely period-aware, since created_at exists on
-// all four content tables. Pulls the newest listings across
-// Destinations, Products, Restaurants, and Fiestas within the
-// selected period.
 $trending = [];
 $recentUnion = [];
 if ($res = $conn->query("SELECT destination_name AS name, category AS sub, created_at FROM destination WHERE created_at >= '$periodStartSql' ORDER BY created_at DESC")) {
@@ -185,12 +93,9 @@ foreach ($recentUnion as $r) {
     $trending[] = [
         'name'   => $r['name'],
         'sub'    => $r['sub'],
-        'visits' => date('M j', strtotime($r['created_at'])), // repurposed: "added on" date, not a visit count
+        'visits' => date('M j', strtotime($r['created_at'])),
     ];
 }
-
-// Content Engagement by Category — real content mix across all four
-// tables (all-time share, not period-filtered — a composition metric).
 $categoryShare = [];
 $destCount = 0;    if ($r = $conn->query("SELECT COUNT(*) c FROM destination"))  $destCount    = (int) ($r->fetch_assoc()['c'] ?? 0);
 $prodCount = 0;    if ($r = $conn->query("SELECT COUNT(*) c FROM products"))     $prodCount    = (int) ($r->fetch_assoc()['c'] ?? 0);
@@ -205,9 +110,6 @@ if ($contentTotal > 0) {
         ['label' => 'Fiestas',      'pct' => (int) round($fiestaCount / $contentTotal * 100), 'color' => '#C8A96E'],
     ];
 }
-
-// Donut gradient stops for the Content Engagement chart (real CSS
-// conic-gradient, computed from $categoryShare above).
 $donutStops = [];
 $cursor = 0;
 foreach ($categoryShare as $c) {
@@ -216,52 +118,21 @@ foreach ($categoryShare as $c) {
     $donutStops[] = "{$c['color']} {$start}% {$cursor}%";
 }
 $donutGradient = !empty($donutStops) ? implode(', ', $donutStops) : '#333 0% 100%';
-
-// Monthly Visitor Trend — real, from the page_views log (last 6 months).
-// analytics_monthly_trend() always returns one row per month even when
-// its count is 0, so empty($monthlyVisitors) alone can't detect "no
-// data yet" — check whether any month actually has views instead.
 $monthlyVisitors = analytics_monthly_trend($conn, 6);
 $hasMonthlyData = array_sum(array_column($monthlyVisitors, 'value')) > 0;
-
-// Traffic Sources — real, from the page_views log's referrer, scoped to
-// the selected period.
 $trafficSources = analytics_traffic_sources($conn, $periodStartSql);
-
-// User Activity Summary — real counts for the selected period: new
-// visitor accounts created, and admin logins recorded.
 $newSignups = 0;
 $stmt = $conn->prepare("SELECT COUNT(*) c FROM users WHERE created_at >= ?");
 $stmt->bind_param('s', $periodStartSql);
 $stmt->execute();
 $newSignups = (int) ($stmt->get_result()->fetch_assoc()['c'] ?? 0);
 $stmt->close();
-
 $adminLogins = 0;
 $stmt = $conn->prepare("SELECT COUNT(*) c FROM admins WHERE last_login >= ?");
 $stmt->bind_param('s', $periodStartSql);
 $stmt->execute();
 $adminLogins = (int) ($stmt->get_result()->fetch_assoc()['c'] ?? 0);
 $stmt->close();
-
-/* ============================================================
-   PREDICTIVE ANALYTICS
-   ------------------------------------------------------------
-   Transparent trend math over the real page_views log — no
-   black-box model, so the number is always explainable: it's
-   just the average month-over-month change applied forward, and
-   week-over-week growth per page.
-============================================================ */
-
-// Next month's projected page views — a least-squares trend line over
-// the real monthly totals (all 6 months, zero-filled, in chronological
-// order). The old method averaged month-over-month % changes after
-// dropping zero-view months, which (a) compared non-adjacent months as
-// if they were consecutive, and (b) let a single jump between small
-// numbers (e.g. 2 views -> 6 views = "+200%") dominate the whole
-// forecast. A trend line over the full series — plus a minimum sample
-// size before showing a number at all — keeps the projection from
-// overreacting to sparse/noisy traffic.
 $projectedNextMonth = null;
 $projectedGrowthPct = null;
 $monthsWithData = array_filter($monthlyVisitors, fn($m) => $m['value'] > 0);
@@ -278,12 +149,7 @@ if (count($monthsWithData) >= 3 && $totalRecentViews >= 10) {
     $denominator = ($n * $sumXX) - ($sumX * $sumX);
     $slope = $denominator != 0 ? ((($n * $sumXY) - ($sumX * $sumY)) / $denominator) : 0;
     $intercept = ($sumY - ($slope * $sumX)) / $n;
-
     $projectedNextMonth = max(0, (int) round($intercept + ($slope * $n)));
-
-    // % change vs. the latest actual month (falling back to the series
-    // average if the latest month happens to be zero), clamped so a
-    // noisy trend line can't produce a triple-digit headline number.
     $latest = end($monthlyVisitors)['value'];
     $baseline = $latest > 0 ? $latest : ($sumY / $n);
     $projectedGrowthPct = $baseline > 0
@@ -291,12 +157,6 @@ if (count($monthsWithData) >= 3 && $totalRecentViews >= 10) {
         : 0;
     $projectedGrowthPct = max(-90, min(200, $projectedGrowthPct));
 }
-
-// When Gemini is configured, prefer a real AI forecast over the trend
-// line above — it can weigh recent momentum and seasonality in a way a
-// straight line can't. The trend line never goes away: it's still what
-// renders whenever AI isn't configured or the call fails, so the
-// section always has a number as long as there's enough real data.
 $forecastIsAI = false;
 $forecastInsight = null;
 if ($projectedNextMonth !== null) {
@@ -308,12 +168,6 @@ if ($projectedNextMonth !== null) {
         $forecastIsAI = true;
     }
 }
-
-// AI Monthly Summary — a short "what happened and why" narrative built
-// from the real stats already computed above. Descriptive (explains
-// numbers already on the page), not predictive — kept separate from
-// the forecast above. Returns null (section just doesn't render)
-// whenever AI isn't configured or the call fails.
 $monthlySummary = ai_monthly_summary($conn, [
     'total_page_views'        => $totalPageViews,
     'active_users_now'        => $activeUsers,
@@ -324,8 +178,6 @@ $monthlySummary = ai_monthly_summary($conn, [
     'projected_next_month_growth_pct' => $projectedGrowthPct,
     'top_searches'            => array_map(fn($s) => $s['query'], array_slice($topSearches, 0, 3)),
 ]);
-
-// Pages gaining momentum: this week's views vs last week's, per page.
 $trendingPages = [];
 $thisWeekStart = (new DateTime('monday this week'))->format('Y-m-d 00:00:00');
 $lastWeekStart = (new DateTime('monday last week'))->format('Y-m-d 00:00:00');
@@ -337,10 +189,6 @@ if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE viewed_at
 if ($res = $conn->query("SELECT page, COUNT(*) c FROM page_views WHERE viewed_at >= '$lastWeekStart' AND viewed_at < '$thisWeekStart' GROUP BY page")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) $lastWeekCounts[$r['page']] = (int) $r['c'];
 }
-// A page going from 1 view to 3 views is technically "+200%" but it's
-// noise, not momentum — require a minimum combined view count before a
-// page's week-over-week swing counts as a real trend, and cap the
-// displayed % so a small-number spike can't read as a huge one.
 $pageLabels = analytics_page_labels();
 $MIN_MOMENTUM_VIEWS = 5;
 foreach ($thisWeekCounts as $page => $count) {
@@ -351,7 +199,7 @@ foreach ($thisWeekCounts as $page => $count) {
     if ($prevCount > 0) {
         $growth = (int) round((($count - $prevCount) / $prevCount) * 100);
     } else {
-        $growth = 100; // brand-new activity this week, past the minimum-views gate above
+        $growth = 100;
     }
     if ($growth > 0) {
         $trendingPages[] = ['label' => $pageLabels[$page] ?? ucfirst($page), 'growth' => min($growth, 300), 'views' => $count];
@@ -359,16 +207,7 @@ foreach ($thisWeekCounts as $page => $count) {
 }
 usort($trendingPages, fn($a, $b) => $b['growth'] <=> $a['growth']);
 $trendingPages = array_slice($trendingPages, 0, 4);
-
-/* ============================================================
-   PRESCRIPTIVE ANALYTICS
-   ------------------------------------------------------------
-   Rule-based recommendations derived from the real numbers
-   above. Each one only appears if its condition is actually
-   true right now — nothing here is a fixed, static list.
-============================================================ */
 $recommendations = [];
-
 if ($activeUsers === 0) {
     $recommendations[] = ['icon' => 'users', 'level' => 'info',
         'text' => 'No visitors are active right now — consider timing social posts or announcements for higher-traffic hours.'];
@@ -406,12 +245,6 @@ if (empty($recommendations)) {
     $recommendations[] = ['icon' => 'check-circle', 'level' => 'good',
         'text' => 'No urgent issues detected right now — content mix and traffic look healthy for the current data.'];
 }
-
-// Prefer a real AI-reasoned action list over the rule-based one above
-// when Gemini is configured — it can connect patterns across stats
-// (e.g. a zero-result search matching a low-conversion listing) that
-// fixed if/then rules can't. The rule-based list never goes away: it's
-// still what renders whenever AI isn't configured or the call fails.
 $recommendationsAreAI = false;
 $aiActions = ai_recommended_actions($conn, [
     'active_users_now'      => $activeUsers,
@@ -431,11 +264,6 @@ if ($aiActions !== null) {
     $recommendations = $aiActions;
     $recommendationsAreAI = true;
 }
-
-// Per-chart "AI Interpretation & Solution" for every Descriptive chart
-// — one combined Gemini call (see ai_chart_insights()), not one call
-// per chart. A chart simply shows no insight box if AI isn't
-// configured, the call fails, or that key comes back missing.
 $chartInsights = ai_chart_insights($conn, [
     'most_viewed_pages' => ['title' => 'Most Viewed Pages', 'data' => $topPages],
     'recently_added' => ['title' => 'Recently Added', 'data' => array_map(fn($t) => ['name' => $t['name'], 'sub' => $t['sub']], $trending)],
@@ -449,7 +277,6 @@ $chartInsights = ai_chart_insights($conn, [
     'user_activity' => ['title' => 'User Activity Summary', 'data' => ['new_signups' => $newSignups, 'admin_logins' => $adminLogins, 'active_now' => $activeUsers]],
 ]);
 $chartInsightsAreAI = !empty($chartInsights);
-
 function kt_render_chart_insight(array $chartInsights, string $key): void
 {
     if (!isset($chartInsights[$key])) {
@@ -471,7 +298,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analytics – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -480,28 +306,22 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/admindashboard.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <style>.period-selector .period-btn { text-decoration: none; display: inline-block; }</style>
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php" class="active"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -512,7 +332,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -523,7 +342,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -542,14 +360,9 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header">
             <div>
                 <div class="section-label">Tourism Insights</div>
@@ -563,19 +376,14 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <a href="?period=year" class="period-btn<?php echo $period === 'year' ? ' active' : ''; ?>">This Year</a>
             </div>
         </div>
-
-        <!-- ANALYTICS TYPE FILTER -->
         <div class="analytics-filter-bar" id="analyticsFilterBar">
             <button type="button" class="analytics-filter-pill is-active" data-filter="all">All</button>
             <button type="button" class="analytics-filter-pill" data-filter="descriptive">Descriptive</button>
             <button type="button" class="analytics-filter-pill" data-filter="predictive">Predictive</button>
             <button type="button" class="analytics-filter-pill" data-filter="prescriptive">Prescriptive</button>
         </div>
-
-        <!-- 1. TRENDING & HIGHLY VISITED DESTINATIONS -->
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Trending &amp; Highly Visited Destinations <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
-
         <div class="kpi-grid animate">
             <div class="kpi-card accent-clay">
                 <div class="kpi-icon"><i data-lucide="users" class="lucide"></i></div>
@@ -602,7 +410,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <div class="kpi-change"><?php echo $totalPageViews > 0 ? 'Across every public page · ' . htmlspecialchars($periodLabels[$period]) : 'No page views logged yet'; ?></div>
             </div>
         </div>
-
         <div class="charts-2col animate">
             <div class="chart-box">
                 <h4>Most Viewed Pages &mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></h4>
@@ -625,7 +432,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                     <?php kt_render_chart_insight($chartInsights, 'most_viewed_pages'); ?>
                 <?php endif; ?>
             </div>
-
             <div class="chart-box">
                 <h4>Recently Added &mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></h4>
                 <?php if (empty($trending)): ?>
@@ -651,7 +457,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <?php endif; ?>
             </div>
         </div>
-
         <div class="chart-box chart-box-full animate">
             <h4>Most Viewed Places <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
             <?php if (empty($topItems)): ?>
@@ -677,9 +482,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             <?php endif; ?>
         </div>
         </div>
-
         <?php if ($monthlySummary): ?>
-        <!-- AI MONTHLY SUMMARY -->
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">
             AI Monthly Summary
@@ -692,8 +495,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         </div>
         </div>
         <?php endif; ?>
-
-        <!-- FAVORITES & TRAVEL DIARY CONVERSION -->
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Favorites &amp; Travel Diary Conversion <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
         <div class="chart-box chart-box-full animate">
@@ -729,8 +530,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             <?php endif; ?>
         </div>
         </div>
-
-        <!-- SEARCH INSIGHTS -->
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Search Insights <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
         <div class="charts-2col animate">
@@ -782,11 +581,8 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             </div>
         </div>
         </div>
-
-        <!-- 2. TOURIST ENGAGEMENT & INTERACTIONS -->
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Tourist Engagement &amp; Content Interactions <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
-
         <div class="charts-2col animate">
             <div class="chart-box">
                 <h4>Content Engagement by Category</h4>
@@ -812,7 +608,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                     <?php kt_render_chart_insight($chartInsights, 'category_engagement'); ?>
                 <?php endif; ?>
             </div>
-
             <div class="chart-box">
                 <h4>Traffic Sources</h4>
                 <?php if (empty($trafficSources)): ?>
@@ -838,11 +633,8 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             </div>
         </div>
         </div>
-
-        <!-- 3. VISUAL REPORTS -->
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Visual Reports &amp; Tourism Insights <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
-
         <div class="charts-2col animate">
             <div class="chart-box">
                 <h4>Monthly Visitor Trend</h4>
@@ -865,7 +657,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                     <?php kt_render_chart_insight($chartInsights, 'monthly_trend'); ?>
                 <?php endif; ?>
             </div>
-
             <div class="chart-box">
                 <h4>User Activity Summary &mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></h4>
                 <?php if ($newSignups === 0 && $adminLogins === 0 && $activeUsers === 0): ?>
@@ -894,15 +685,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             </div>
         </div>
         </div>
-
-        <!-- 4. PREDICTIVE ANALYTICS -->
         <div class="analytics-section" data-category="predictive">
         <div class="alabel-desc">
             Forecasts &amp; Momentum
             <span class="analytics-tag tag-predictive">Predictive</span>
             <?php if ($forecastIsAI): ?><span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?>
         </div>
-
         <div class="charts-2col animate">
             <div class="chart-box">
                 <h4>Next Month&rsquo;s Projected Views</h4>
@@ -926,7 +714,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                     </div>
                 <?php endif; ?>
             </div>
-
             <div class="chart-box">
                 <h4>Pages Gaining Momentum</h4>
                 <?php if (empty($trendingPages)): ?>
@@ -952,15 +739,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             </div>
         </div>
         </div>
-
-        <!-- 5. PRESCRIPTIVE ANALYTICS -->
         <div class="analytics-section" data-category="prescriptive">
         <div class="alabel-desc">
             Recommended Actions
             <span class="analytics-tag tag-prescriptive">Prescriptive</span>
             <?php if ($recommendationsAreAI): ?><span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?>
         </div>
-
         <div class="rec-list animate">
             <?php foreach ($recommendations as $rec): ?>
                 <div class="rec-row rec-<?php echo htmlspecialchars($rec['level']); ?>">
@@ -970,15 +754,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             <?php endforeach; ?>
         </div>
         </div>
-
     </div>
 </div>
-
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admindashboard.js"></script>
 <script>initSidebarCollapse();</script>
-
 </body>
 </html>

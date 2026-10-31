@@ -1,9 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
-
-// Same base path used in admin/admindashboard.php — keep these in sync.
 define('BASE_URL', '/kultoura');
-
 if (isset($_SESSION['user_id'])) {
     $role = strtolower($_SESSION['role'] ?? '');
     if (in_array($role, ['admin', 'super admin'], true)) {
@@ -13,15 +10,12 @@ if (isset($_SESSION['user_id'])) {
     }
     exit;
 }
-
 $error   = $_SESSION['error'] ?? '';
 $success = $_SESSION['success'] ?? '';
 $retry   = $_SESSION['login_retry'] ?? ['username' => '', 'password' => ''];
 $fieldErrors = $_SESSION['login_field_errors'] ?? [];
-
 unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESSION['login_field_errors']);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,10 +23,8 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In – KULTOURA</title>
-
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
-
     <style>
         /* ── "Continue with Google" ── */
         .auth-divider {
@@ -81,9 +73,7 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
     </style>
 </head>
 <body>
-
 <div class="auth-page">
-
     <header class="navbar">
         <nav class="nav-links">
             <a href="../index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
@@ -125,39 +115,29 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
                 </div>
             </div>
         </nav>
-
         <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
     </header>
-
     <main class="auth-content">
         <div class="auth-card">
-
             <div class="auth-brand">
                 <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
-
             <h2 class="auth-title">Welcome Back!</h2>
             <p class="auth-sub">Sign in to continue exploring Malvar</p>
-
             <?php if ($error): ?>
                 <div class="alert alert-error">
                     <?php echo htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
-
             <?php if ($success): ?>
                 <div class="alert alert-success">
                     <?php echo htmlspecialchars($success); ?>
                 </div>
             <?php endif; ?>
-
             <form action="auth.php" method="POST" class="auth-form">
-
                 <input type="hidden" name="action" value="login">
-
-                <!-- Username -->
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input
@@ -173,8 +153,6 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
                         required>
                     <p class="field-error" id="usernameError"<?php echo empty($fieldErrors['username']) ? ' hidden' : ''; ?>><?php echo htmlspecialchars($fieldErrors['username'] ?? ''); ?></p>
                 </div>
-
-                <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="pw-field">
@@ -186,39 +164,29 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
                             placeholder="Enter your password"
                             minlength="6"
                             required>
-
                         <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         </span>
                     </div>
                     <p class="field-error" id="passwordError"<?php echo empty($fieldErrors['password']) ? ' hidden' : ''; ?>><?php echo htmlspecialchars($fieldErrors['password'] ?? ''); ?></p>
                 </div>
-
                 <p class="auth-forgot"><a href="forgot-password.php">Forgot password?</a></p>
-
                 <button type="submit" class="auth-btn">
                     SIGN IN
                 </button>
-
             </form>
-
-            <!-- Continue with Google -->
             <div class="auth-divider">or</div>
             <a href="google.php?action=start" class="google-btn">
                 <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
                 <span>Continue with Google</span>
             </a>
-
             <p class="auth-switch">
                 Don't have an account?
                 <a href="signup.php">Sign Up</a>
             </p>
-
         </div>
     </main>
-
 </div>
-
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/index.js"></script>
 <script>
@@ -227,16 +195,13 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
     const usernameError = document.getElementById('usernameError');
     const passwordError = document.getElementById('passwordError');
     if (!usernameInput) return;
-
     function setError(el, message) {
         el.textContent = message || '';
         el.hidden = !message;
     }
-
     // Clears the error as soon as the user starts editing the field again.
     usernameInput.addEventListener('input', function () { setError(usernameError, ''); });
     document.getElementById('password').addEventListener('input', function () { setError(passwordError, ''); });
-
     usernameInput.addEventListener('blur', function () {
         const value = usernameInput.value.trim();
         if (!/^[A-Za-z0-9_]{3,20}$/.test(value)) return;
@@ -249,6 +214,5 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
     });
 })();
 </script>
-
 </body>
 </html>

@@ -1,13 +1,6 @@
-/* =========================================================
-   KULTOURA — ADMIN DASHBOARD (DESTINATIONS) — SCRIPTS
-   ========================================================= */
-
-/* ---------- MODAL HELPERS ---------- */
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
-
-/* ---------- TOAST ---------- */
 let toastTimer = null;
 function showToast(msg) {
   const toast = document.getElementById('toast');
@@ -17,21 +10,13 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
-
-/* ---------- ADDRESS PICKER (shared module — assets/js/kt-address-picker.js) ---------- */
 const KT_DEFAULT_CENTER = KtAddressPicker.DEFAULT_CENTER;
-
 let ktAddMap = null;
 let ktEditMap = null;
-
 function ktSetHiddenLatLng(hiddenElId, lat, lng) {
   const hidden = document.getElementById(hiddenElId);
   if (hidden) hidden.value = Number(lat).toFixed(6) + ',' + Number(lng).toFixed(6);
 }
-
-// Lazily creates each picker the first time its modal opens, and just
-// resets it on later opens (Leaflet renders wrong in a container that
-// was hidden with display:none at init time).
 function ktRefreshAddMap() {
   setTimeout(() => {
     if (!ktAddMap) {
@@ -48,7 +33,6 @@ function ktRefreshAddMap() {
     if (hidden) hidden.value = '';
   }, 150);
 }
-
 function ktRefreshEditMap(savedGoogleMaps) {
   setTimeout(() => {
     if (!ktEditMap) {
@@ -62,7 +46,6 @@ function ktRefreshEditMap(savedGoogleMaps) {
       ktEditMap.map.invalidateSize();
     }
     if (!ktEditMap) return;
-
     const parts = (savedGoogleMaps || '').split(',').map(Number);
     if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
       ktEditMap.setPosition(parts[0], parts[1], 16);
@@ -73,22 +56,17 @@ function ktRefreshEditMap(savedGoogleMaps) {
     }
   }, 150);
 }
-
-/* ---------- SUBCATEGORY (Nature only: Park / River & Falls) ---------- */
 function ktToggleSubcategoryField(which) {
   const categorySelect = document.getElementById(which === 'add' ? 'addCategoryInput' : 'editDestinationCategoryInput');
   const group = document.getElementById(which === 'add' ? 'addSubcategoryGroup' : 'editSubcategoryGroup');
   const select = document.getElementById(which === 'add' ? 'addSubcategoryInput' : 'editDestinationSubcategoryInput');
   if (!categorySelect || !group) return;
-
   const isNature = categorySelect.value === 'nature';
   group.hidden = !isNature;
-  if (!isNature && select) select.value = ''; // don't silently carry a stale subcategory into a non-Nature save
-
+  if (!isNature && select) select.value = '';
   const scheduleGroup = document.getElementById(which === 'add' ? 'addChurchScheduleGroup' : 'editChurchScheduleGroup');
   if (scheduleGroup) scheduleGroup.hidden = categorySelect.value !== 'church';
 }
-
 function ktScheduleRow(which, entry = {}) {
   const wrap = document.getElementById(which + 'ChurchScheduleEntries');
   if (!wrap) return;
@@ -106,17 +84,14 @@ function ktScheduleRow(which, entry = {}) {
   row.querySelector('.church-schedule-remove').addEventListener('click', () => row.remove());
   wrap.appendChild(row);
 }
-
 function ktAddChurchScheduleEntry(which) { ktScheduleRow(which); }
-
 function ktLoadChurchSchedule(which, raw) {
   const wrap = document.getElementById(which + 'ChurchScheduleEntries');
   if (wrap) wrap.replaceChildren();
   let entries = [];
-  try { entries = JSON.parse(raw || '[]'); } catch (_) { /* old free-text value: leave it for manual replacement */ }
+  try { entries = JSON.parse(raw || '[]'); } catch (_) {  }
   if (Array.isArray(entries)) entries.forEach(entry => ktScheduleRow(which, entry));
 }
-
 function ktScheduleRowsHtml(raw) {
   let entries;
   try { entries = JSON.parse(raw || '[]'); } catch (_) { entries = null; }
@@ -129,7 +104,6 @@ function ktScheduleRowsHtml(raw) {
     return `<div class="church-schedule-event"><strong>${date} · ${time}</strong><span>${duration}</span><div>${String(entry.title || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</div></div>`;
   }).join('');
 }
-
 document.addEventListener('DOMContentLoaded', function () {
   [['add', 'addDestinationForm'], ['edit', 'editDestinationForm']].forEach(([which, formId]) => {
     const form = document.getElementById(formId);
@@ -141,7 +115,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
-
 /* ---------- ADD ---------- */
 function openAddDestination() {
   document.getElementById('addDestinationForm').reset();
@@ -152,12 +125,10 @@ function openAddDestination() {
   openModal('addDestinationModal');
   ktRefreshAddMap();
 }
-
 /* ---------- VIEW ---------- */
 function openViewDestination(btn) {
   const d = btn.dataset;
   const categoryLabels = { nature: 'Nature', industry: 'Industry Zone', resort: 'Resort', accommodation: 'Accommodation', bank: 'Banks', service: 'Other Services', church: 'Churches' };
-
   const imgEl = document.getElementById('vdImage');
   if (imgEl) {
     if (d.image) {
@@ -167,48 +138,39 @@ function openViewDestination(btn) {
       imgEl.style.display = 'none';
     }
   }
-
   document.getElementById('vdIcon').textContent = d.icon || '📍';
   document.getElementById('vdName').textContent = d.name || '—';
   document.getElementById('vdLocation').textContent = d.location || '—';
   document.getElementById('vdDesc').textContent = d.desc || 'No description available.';
   document.getElementById('vdReviews').textContent = d.reviews || '0';
   document.getElementById('vdViews').textContent = d.views || '0';
-
   const scheduleWrap = document.getElementById('vdScheduleWrap');
   const scheduleText = d.schedule || '';
   scheduleWrap.hidden = d.category !== 'church' || !scheduleText;
   document.getElementById('vdScheduleMonth').textContent = d.scheduleMonth || '';
   document.getElementById('vdScheduleText').innerHTML = ktScheduleRowsHtml(scheduleText);
-
   const categoryEl = document.getElementById('vdCategory');
   categoryEl.textContent = categoryLabels[d.category] || d.category || '—';
   categoryEl.className = 'category-badge ' + (d.category || '');
-
   const mapLink = document.getElementById('vdMapLink');
   if (mapLink) {
     const saved = d.googleMaps || '';
     if (saved.includes(',')) {
-      mapLink.href = 'https://www.google.com/maps?q=' + encodeURIComponent(saved);
+      mapLink.href = 'https:
       mapLink.style.display = 'inline-block';
     } else {
       mapLink.style.display = 'none';
     }
   }
-
   const editBtn = document.getElementById('vdEditBtn');
   editBtn.onclick = () => {
     closeModal('viewDestinationModal');
     setTimeout(() => openEditDestination(btn), 200);
   };
-
   openModal('viewDestinationModal');
 }
-
-/* ---------- EDIT ---------- */
 function openEditDestination(btn) {
   const d = btn.dataset;
-
   document.getElementById('editDestinationName').textContent = 'Editing: ' + (d.name || '—');
   document.getElementById('editDestinationId').value = d.id || '';
   document.getElementById('editDestinationNameInput').value = d.name || '';
@@ -216,30 +178,20 @@ function openEditDestination(btn) {
   document.getElementById('editDestinationDescInput').value = d.desc || '';
   document.getElementById('editChurchScheduleMonth').value = d.scheduleMonth || '';
   ktLoadChurchSchedule('edit', d.schedule || '');
-
   const categorySelect = document.getElementById('editDestinationCategoryInput');
   if (categorySelect) categorySelect.value = d.category || 'nature';
   ktToggleSubcategoryField('edit');
   const subcategorySelect = document.getElementById('editDestinationSubcategoryInput');
   if (subcategorySelect) subcategorySelect.value = d.subcategory || '';
-
   openModal('editDestinationModal');
   ktRefreshEditMap(d.googleMaps || '');
 }
-
-/* ---------- DELETE ---------- */
 function confirmDeleteDestination(btn) {
   const d = btn.dataset;
   document.getElementById('deleteDestinationTitle').textContent = 'Archive "' + (d.name || 'this destination') + '"?';
   document.getElementById('deleteDestinationId').value = d.id || '';
   openModal('deleteDestinationModal');
 }
-
-/* ---------- SEARCH / FILTER ----------
-   Both the table rows (list view) and the grid cards (grid view) carry
-   matching data, so filters just apply to whichever elements exist —
-   whichever view is currently hidden stays correctly filtered for when
-   the user switches to it. */
 function filterDestinations(value) {
   const term = value.trim().toLowerCase();
   document.querySelectorAll('#destinationsTable tbody tr, #destinationsGrid .grid-card').forEach(item => {
@@ -248,7 +200,6 @@ function filterDestinations(value) {
     item.style.display = text.includes(term) ? '' : 'none';
   });
 }
-
 function filterByCategory(value) {
   document.querySelectorAll('#destinationsTable tbody tr, #destinationsGrid .grid-card').forEach(item => {
     if (item.id === 'destEmptyRow' || item.classList.contains('grid-empty')) return;
@@ -256,29 +207,19 @@ function filterByCategory(value) {
     item.style.display = (value === 'all' || rowCategory === value) ? '' : 'none';
   });
 }
-
-/* ---------- EXPORT AS EXCEL ---------- */
-// Reads straight from the rendered table (not a JS data mirror), so the
-// export always matches whatever PHP actually rendered on the page —
-// no risk of the export drifting out of sync with real data later.
 async function exportDestinationsExcel() {
   const btn = document.getElementById('exportExcelBtn');
   if (!btn) return;
-
   const rows = Array.from(document.querySelectorAll('#destinationsTable tbody tr'))
     .filter(r => r.id !== 'destEmptyRow' && r.style.display !== 'none');
-
   if (rows.length === 0) {
     showToast('No destinations to export yet.');
     return;
   }
-
   btn.classList.add('loading');
   const label = btn.querySelector('span');
   const originalLabel = label.textContent;
   label.textContent = 'Generating…';
-
-  // Lazily load SheetJS if not already loaded
   if (!window.XLSX) {
     try {
       await new Promise((resolve, reject) => {
@@ -296,31 +237,25 @@ async function exportDestinationsExcel() {
       return;
     }
   }
-
   try {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-
     const sheetRows = [
       ['KulToura — Destinations Export'],
       [`Generated: ${dateStr}`],
       [],
       ['#', 'Destination', 'Category', 'Address', 'Views'],
     ];
-
     rows.forEach((row, i) => {
       const cells = row.querySelectorAll('td');
       const name = cells[0]?.textContent.trim() || '';
       const category = cells[1]?.textContent.trim() || '';
       const address = cells[2]?.textContent.trim() || '';
       const views = cells[3]?.textContent.trim() || '';
-
       sheetRows.push([i + 1, name, category, address, views]);
     });
-
     sheetRows.push([]);
     sheetRows.push(['Total Destinations', rows.length]);
-
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
     ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 16 }, { wch: 28 }, { wch: 10 }];
@@ -329,7 +264,6 @@ async function exportDestinationsExcel() {
       { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Destinations');
-
     XLSX.writeFile(wb, `KulToura-Destinations-${now.toISOString().slice(0, 10)}.xlsx`);
     showToast('Export ready — check your downloads.');
   } catch (err) {
@@ -340,13 +274,9 @@ async function exportDestinationsExcel() {
     label.textContent = originalLabel;
   }
 }
-
-/* ---------- MOBILE SIDEBAR TOGGLE ---------- */
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
-
-/* ---------- LUCIDE ICONS INIT ---------- */
 (function initLucide() {
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();

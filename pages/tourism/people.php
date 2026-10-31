@@ -8,23 +8,15 @@ include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
 $pageWidget = kt_page_widget_get($conn, 'people');
 analytics_track($conn, 'people');
-
 $peopleHeroPhoto = sitecontent_get_photo($conn, 'people_hero');
-
-// Logged for foryou.php's "Because You Explored" recommendations.
 $_SESSION['history'][] = 'person';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-// People profiles are added by the admin via adminpeople.php.
 $people = [];
 if ($result = $conn->query("SELECT * FROM people WHERE status = 'active' ORDER BY fullname ASC")) {
     $people = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// Which people this user has already favorited (so hearts render filled).
 $favoritedIds = [];
 if ($isLoggedIn) {
     $favUserId = (int) $_SESSION['user_id'];
@@ -36,10 +28,6 @@ if ($isLoggedIn) {
     }
     $favStmt->close();
 }
-
-// A readable ?person=slug URL (instead of just an id) when a card is
-// expanded — e.g. ?person=cj-panganiban. Appended with the id since
-// names aren't guaranteed unique.
 function kt_person_slug(array $item): string
 {
     $base = strtolower(trim((string) ($item['fullname'] ?? '')));
@@ -47,7 +35,6 @@ function kt_person_slug(array $item): string
     $base = trim($base, '-');
     return ($base !== '' ? $base . '-' : '') . (int) $item['person_id'];
 }
-
 $openPersonSlug = isset($_GET['person']) ? trim((string) $_GET['person']) : '';
 $openPerson = null;
 if ($openPersonSlug !== '') {
@@ -73,16 +60,12 @@ if ($openPersonSlug !== '') {
     <link rel="stylesheet" href="../../assets/css/people.css">
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -123,11 +106,8 @@ if ($openPersonSlug !== '') {
                 </div>
             </div>
         </div>
-
             <?php if ($isLoggedIn): ?><a href="../../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="../search_api.php" data-results="../search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -140,12 +120,9 @@ if ($openPersonSlug !== '') {
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
 <?php if ($openPerson === null): ?>
 <?php if (!$pageWidget): ?>
-<!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $peopleHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($peopleHeroPhoto): ?>
         <img class="t-hero-photo" src="<?php echo htmlspecialchars($peopleHeroPhoto); ?>" alt="">
@@ -163,15 +140,10 @@ if ($openPersonSlug !== '') {
     </div>
 </section>
 <?php endif; ?>
-
 <?php kt_page_widget_render_from($pageWidget, 'people'); ?>
 <?php endif; ?>
-
-<!-- ── People Grid ── -->
 <main class="t-main">
-
     <?php if ($openPerson !== null): ?>
-    <!-- ── Full-page profile view ── -->
     <section class="t-category" id="people">
         <nav class="p-breadcrumb" aria-label="Breadcrumb">
             <a href="../../index.php">Home</a>
@@ -207,7 +179,6 @@ if ($openPersonSlug !== '') {
         </div>
     </section>
     <?php else: ?>
-
     <section class="p-search-row">
         <form class="p-search-bar" action="people.php" method="get">
             <input type="text" name="q" placeholder="Search names, roles, barangays…">
@@ -220,7 +191,6 @@ if ($openPersonSlug !== '') {
             </select>
         </form>
     </section>
-
     <section class="t-category" id="people">
         <div class="t-category-header">
             <div>
@@ -229,7 +199,6 @@ if ($openPersonSlug !== '') {
                 <p class="t-cat-desc">The individuals whose work and stories shape the Malvareño community.</p>
             </div>
         </div>
-
         <?php if (empty($people)): ?>
         <div class="p-empty-state">
             <h3>No profiles added yet</h3>
@@ -263,22 +232,15 @@ if ($openPersonSlug !== '') {
         <?php endif; ?>
     </section>
     <?php endif; ?>
-
 </main>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · <a href="index.php">Back to Home</a></p>
 </footer>
-
-<!-- ── Toast ── -->
 <div class="p-toast" id="pToast"></div>
-
 <script>
 <?php if ($openPerson !== null): ?>
 ktTrackItemView('person', <?php echo (int) $openPerson['person_id']; ?>);
 <?php endif; ?>
-
 function ktTrackItemView(type, id) {
     if (!id) return;
     const body = new URLSearchParams({ item_type: type, item_id: id }).toString();
@@ -289,7 +251,6 @@ function ktTrackItemView(type, id) {
         fetch('../track_item_view.php', { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, keepalive: true }).catch(() => {});
     }
 }
-
 /* ---------- FAVORITE BUTTON ---------- */
 let pToastTimer;
 function pShowToast(msg) {
@@ -299,14 +260,12 @@ function pShowToast(msg) {
     clearTimeout(pToastTimer);
     pToastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
-
 document.querySelectorAll('.p-fav-btn').forEach(function (btn) {
     btn.addEventListener('click', async function (e) {
         e.preventDefault();
         e.stopPropagation();
         if (btn.disabled) return;
         btn.disabled = true;
-
         try {
             const res = await fetch('../favorites.php', {
                 method: 'POST',
@@ -318,13 +277,11 @@ document.querySelectorAll('.p-fav-btn').forEach(function (btn) {
                 })
             });
             const data = await res.json();
-
             if (data.needsLogin) {
                 pShowToast(data.message || 'Please sign in to save favorites.');
                 setTimeout(() => { window.location.href = '../../auth/login.php'; }, 1500);
                 return;
             }
-
             if (data.success) {
                 btn.classList.toggle('is-favorited', data.favorited);
                 btn.innerHTML = data.favorited ? '&#9829;' : '&#9825;';
@@ -344,6 +301,5 @@ document.querySelectorAll('.p-fav-btn').forEach(function (btn) {
 </script>
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js"></script>
-
 </body>
 </html>

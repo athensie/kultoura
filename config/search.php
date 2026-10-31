@@ -1,15 +1,4 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | SITE-WIDE SEARCH — one function, every public content type
- |--------------------------------------------------------------------
- | Backs both the navbar search bar's live dropdown (search_api.php)
- | and the full results page (pages/search.php). Matches against the
- | same tables/status filters every public browse page already uses,
- | so a search result is never something a visitor couldn't otherwise
- | find by browsing — archived/pending/draft content stays out.
- */
-
 if (!function_exists('kt_search_image_subfolder')) {
     function kt_search_image_subfolder(string $category): string
     {
@@ -30,22 +19,16 @@ if (!function_exists('kt_search_image_subfolder')) {
         return $map[$category] ?? $category;
     }
 }
-
 if (!function_exists('kt_search_image_src')) {
     function kt_search_image_src(string $category, ?string $rawImage): string
     {
         if (empty($rawImage)) return '';
-        // Already-absolute paths (most admin uploads store these) pass
-        // through untouched; only a bare filename gets the folder prefix.
         if (str_starts_with($rawImage, '/') || str_starts_with($rawImage, 'http')) {
             return $rawImage;
         }
         return '/kultoura/assets/uploads/' . kt_search_image_subfolder($category) . '/' . basename($rawImage);
     }
 }
-
-// Destination categories link to their own public page; everything else
-// has one shared page.
 if (!function_exists('kt_search_link')) {
     function kt_search_link(string $type, string $category, int $id): string
     {
@@ -69,22 +52,13 @@ if (!function_exists('kt_search_link')) {
         return '/kultoura/pages/tourism/' . ($pages[$type] ?? '');
     }
 }
-
-/**
- * Searches every public content type for $query, returning a flat,
- * relevance-ordered (exact/starts-with matches first) array of:
- *   type, id, name, badgeText, category, image, link, snippet
- */
 if (!function_exists('kt_search_all')) {
     function kt_search_all(mysqli $conn, string $query, int $limitPerType = 8): array
     {
         $query = trim($query);
         if ($query === '') return [];
-
         $like = '%' . $conn->real_escape_string($query) . '%';
         $results = [];
-
-        // ---- Destinations (all 7 public categories share this table) ----
         $stmt = $conn->prepare(
             "SELECT destination_id, destination_name, category, description, image
              FROM destination WHERE status = 'active' AND (destination_name LIKE ? OR description LIKE ? OR address LIKE ?)
@@ -105,8 +79,6 @@ if (!function_exists('kt_search_all')) {
             ];
         }
         $stmt->close();
-
-        // ---- Products ----
         $stmt = $conn->prepare(
             "SELECT product_id, product_name, category, description, image
              FROM products WHERE status = 'active' AND (product_name LIKE ? OR description LIKE ? OR category LIKE ?)
@@ -127,8 +99,6 @@ if (!function_exists('kt_search_all')) {
             ];
         }
         $stmt->close();
-
-        // ---- Restaurants ----
         $stmt = $conn->prepare(
             "SELECT restaurant_id, restaurant_name, category, description, image
              FROM restaurants WHERE status = 'active' AND (restaurant_name LIKE ? OR description LIKE ? OR category LIKE ?)
@@ -149,8 +119,6 @@ if (!function_exists('kt_search_all')) {
             ];
         }
         $stmt->close();
-
-        // ---- Fiestas / Events ----
         $stmt = $conn->prepare(
             "SELECT fiesta_id, fiesta_name, type, description, image
              FROM fiestas WHERE status = 'active' AND (fiesta_name LIKE ? OR description LIKE ? OR location LIKE ?)
@@ -171,8 +139,6 @@ if (!function_exists('kt_search_all')) {
             ];
         }
         $stmt->close();
-
-        // ---- People of Malvar ----
         $stmt = $conn->prepare(
             "SELECT person_id, fullname, title, achievement, description, image
              FROM people WHERE status = 'active' AND (fullname LIKE ? OR title LIKE ? OR achievement LIKE ? OR description LIKE ?)
@@ -193,8 +159,6 @@ if (!function_exists('kt_search_all')) {
             ];
         }
         $stmt->close();
-
-        // ---- Live announcements ----
         $stmt = $conn->prepare(
             "SELECT id, title, body, image
              FROM announcements WHERE status = 'live' AND (title LIKE ? OR body LIKE ?)
@@ -215,9 +179,6 @@ if (!function_exists('kt_search_all')) {
             ];
         }
         $stmt->close();
-
-        // Exact/starts-with name matches first, then everything else —
-        // each in the DB's own alphabetical order within that tier.
         $needle = mb_strtolower($query);
         usort($results, function ($a, $b) use ($needle) {
             $rank = function ($r) use ($needle) {
@@ -228,7 +189,6 @@ if (!function_exists('kt_search_all')) {
             };
             return $rank($a) <=> $rank($b);
         });
-
         return $results;
     }
 }

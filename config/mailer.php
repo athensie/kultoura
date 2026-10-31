@@ -1,43 +1,19 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | OUTGOING EMAIL — used for the password-reset confirmation code
- |--------------------------------------------------------------------
- | Configured entirely through environment variables (never committed):
- |
- |   MAIL_TRANSPORT     smtp (default) | log | brevo
- |                      "log" writes the message to logs/mail.log
- |                      instead of sending — for local testing only.
- |   BREVO_API_KEY      if set (and transport is not log), sends through
- |                      Brevo's HTTPS API instead of SMTP.
- |   MAIL_HOST          SMTP server (default smtp.gmail.com)
- |   MAIL_PORT          587 (STARTTLS, default) or 465 (implicit TLS)
- |   MAIL_USERNAME      SMTP login (default: MAIL_FROM_ADDRESS)
- |   MAIL_PASSWORD      SMTP password / app password
- |   MAIL_FROM_ADDRESS  sender address (default kultouramalvar@gmail.com)
- |   MAIL_FROM_NAME     sender name (default KULTOURA)
- |
- | SMTP uses PHPMailer, vendored under lib/PHPMailer (no Composer needed).
- */
-
 require_once __DIR__ . '/../lib/PHPMailer/Exception.php';
 require_once __DIR__ . '/../lib/PHPMailer/PHPMailer.php';
 require_once __DIR__ . '/../lib/PHPMailer/SMTP.php';
-
 if (!function_exists('kt_send_mail')) {
     function kt_send_mail(string $to, string $subject, string $body, ?string $html = null): bool
     {
         $transport = strtolower(getenv('MAIL_TRANSPORT') ?: 'smtp');
         $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: 'kultouramalvar@gmail.com';
         $fromName = getenv('MAIL_FROM_NAME') ?: 'KULTOURA';
-
         if ($transport === 'log') {
             $dir = __DIR__ . '/../logs';
             if (!is_dir($dir)) mkdir($dir, 0755, true);
             $entry = "=== " . date('Y-m-d H:i:s') . " to: $to\nSubject: $subject\n\n$body\n\n";
             return file_put_contents($dir . '/mail.log', $entry, FILE_APPEND) !== false;
         }
-
         $brevoKey = getenv('BREVO_API_KEY') ?: '';
         if ($transport === 'brevo') {
             $payload = json_encode([
@@ -68,7 +44,6 @@ if (!function_exists('kt_send_mail')) {
             }
             return true;
         }
-
         $host = getenv('MAIL_HOST') ?: 'smtp.gmail.com';
         $port = (int) (getenv('MAIL_PORT') ?: 587);
         $user = getenv('MAIL_USERNAME') ?: $fromAddress;
@@ -77,7 +52,6 @@ if (!function_exists('kt_send_mail')) {
             error_log('Mail not configured: set MAIL_PASSWORD (and optionally MAIL_HOST, MAIL_USERNAME, MAIL_FROM_ADDRESS).');
             return false;
         }
-
         $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
         try {
             $mail->isSMTP();
@@ -91,7 +65,6 @@ if (!function_exists('kt_send_mail')) {
                 : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Timeout = 15;
             $mail->CharSet = 'UTF-8';
-
             $mail->setFrom($fromAddress, $fromName);
             $mail->addAddress($to);
             $mail->Subject = $subject;

@@ -1,18 +1,12 @@
-/* ── tourism.css — Warm Cream Theme ── */
-
 body {
     background: #f0ebe3 !important;
     color: #2c1a0e;
 }
-
-/* Navbar */
 .navbar-solid {
     background: #16261b !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: none;
 }
-
-/* ── Page Hero ── */
 .t-hero {
     position: relative;
     overflow: hidden;
@@ -20,13 +14,10 @@ body {
     background: #f0ebe3;
     border-bottom: 1px solid rgba(44, 26, 14, 0.1);
 }
-
 .t-hero::before { display: none; }
-
 .t-hero-has-photo {
     background: #2c1a0e;
 }
-
 .t-hero-photo {
     position: absolute;
     inset: 0;
@@ -35,18 +26,15 @@ body {
     object-fit: cover;
     z-index: 0;
 }
-
 .t-hero-scrim {
     position: absolute;
     inset: 0;
     background: linear-gradient(100deg, rgba(20, 12, 6, 0.85) 0%, rgba(20, 12, 6, 0.55) 45%, rgba(20, 12, 6, 0.2) 75%);
     z-index: 1;
 }
-
 .t-hero-has-photo .t-eyebrow { color: #e8b98f; }
 .t-hero-has-photo .t-page-title,
 .t-hero-has-photo .t-page-sub { color: #f5efe3; }
-
 .t-hero-orb {
     position: absolute;
     border-radius: 50%;
@@ -63,13 +51,11 @@ body {
     background: radial-gradient(circle, rgba(180, 130, 80, 0.08), transparent 70%);
     bottom: -80px; right: 5%;
 }
-
 .t-hero-inner {
     position: relative;
     z-index: 2;
     max-width: 760px;
 }
-
 .t-eyebrow {
     font-size: 11px;
     font-weight: 700;
@@ -78,7 +64,6 @@ body {
     margin-bottom: 14px;
     text-transform: uppercase;
 }
-
 .t-page-title {
     font-family: Georgia, 'Times New Roman', serif;
     font-size: clamp(44px, 7vw, 80px);
@@ -89,7 +74,6 @@ body {
     font-weight: 700;
     font-style: normal;
 }
-
 .t-page-title::after {
     content: '';
     display: block;
@@ -99,7 +83,6 @@ body {
     border-radius: 2px;
     margin-top: 20px;
 }
-
 .t-page-sub {
     font-size: 15px;
     color: rgba(44, 26, 14, 0.6);
@@ -109,30 +92,24 @@ body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-style: normal;
 }
-
-/* ── Main Hub ── */
 .t-main {
     width: 100%;
     margin: 0;
     padding: 72px 80px 100px;
     background: #f0ebe3;
 }
-
 .t-category { margin-bottom: 24px; }
-
 .t-category-header {
     display: flex;
     align-items: flex-start;
     gap: 20px;
     margin-bottom: 28px;
 }
-
 .t-cat-icon {
     font-size: 36px;
     flex-shrink: 0;
     margin-top: 4px;
 }
-
 .t-cat-label {
     font-size: 10px;
     font-weight: 700;
@@ -141,7 +118,6 @@ body {
     margin-bottom: 6px;
     text-transform: uppercase;
 }
-
 .t-cat-title {
     font-family: Georgia, serif;
     font-size: clamp(22px, 3vw, 34px);
@@ -150,21 +126,17 @@ body {
     font-weight: 700;
     letter-spacing: -0.2px;
 }
-
 .t-cat-desc {
     font-size: 14px;
     color: rgba(44, 26, 14, 0.58);
     line-height: 1.65;
     max-width: 500px;
 }
-
-/* Cards */
 .t-card-row {
     display: flex;
     gap: 14px;
     flex-wrap: wrap;
 }
-
 .t-card {
     flex: 1;
     min-width: 220px;
@@ -182,7 +154,6 @@ body {
     overflow: hidden;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
-
 .t-card-media {
     width: 100%;
     height: 150px;
@@ -190,14 +161,12 @@ body {
     background: linear-gradient(135deg, rgba(139, 46, 26, 0.12), rgba(159, 184, 138, 0.16));
     margin-bottom: 16px;
 }
-
 .t-card-media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .t-card::before {
     content: '';
     position: absolute;
@@ -208,20 +177,15 @@ body {
     transform-origin: bottom;
     transition: transform 0.28s ease;
 }
-
 .t-card:hover {
     border-color: rgba(139, 46, 26, 0.25);
     background: #fff;
     transform: translateX(4px);
     box-shadow: 0 4px 20px rgba(139, 46, 26, 0.1);
 }
-
 .t-card:hover::before { transform: scaleY(1); }
-
 .t-card-icon { font-size: 26px; flex-shrink: 0; }
-
 .t-card-body { flex: 1; padding: 0 20px; }
-
 .t-card-body h3 {
     font-size: 15px;
     font-weight: 700;
@@ -230,13 +194,11 @@ body {
     color: #2c1a0e;
     font-family: Georgia, serif;
 }
-
 .t-card-body p {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.55);
     line-height: 1.6;
 }
-
 .t-card-arrow {
     position: absolute;
     right: 20px;
@@ -247,17 +209,12 @@ body {
     transition: opacity 0.2s, transform 0.2s;
     flex-shrink: 0;
 }
-
 .t-card:hover .t-card-arrow { opacity: 1; transform: translateX(4px); }
-
-/* Divider */
 .t-divider {
     height: 1px;
     background: rgba(44, 26, 14, 0.1);
     margin: 52px 0;
 }
-
-/* Footer */
 .t-footer {
     text-align: center;
     padding: 28px 48px;
@@ -267,11 +224,8 @@ body {
     letter-spacing: 0.5px;
     background: #ece7df;
 }
-
 .t-footer a { color: #8b2e1a; text-decoration: none; }
 .t-footer a:hover { color: #a83520; }
-
-/* Responsive */
 @media (max-width: 768px) {
     .t-hero { padding: 72px 24px 52px; }
     .t-main { padding: 56px 16px 80px; }
@@ -279,10 +233,6 @@ body {
     .t-card-row { flex-direction: column; }
     .t-card { min-width: unset; }
 }
-
-/* ── Shared View Details / Navigate modals ── */
-/* Used by every tourism listing page (+ favorites.php) so the popups look */
-/* and behave identically no matter which card opened them. */
 .p-modal-overlay {
     display: none;
     position: fixed;
@@ -293,11 +243,9 @@ body {
     justify-content: center;
     padding: 20px;
 }
-
 .p-modal-overlay.open {
     display: flex;
 }
-
 .p-modal-card {
     background: #fff;
     color: #2c1a0e;
@@ -310,11 +258,9 @@ body {
     position: relative;
     box-shadow: 0 20px 60px rgba(44, 26, 14, 0.3);
 }
-
 .p-modal-card-wide {
     max-width: 620px;
 }
-
 .p-modal-close {
     position: absolute;
     top: 14px;
@@ -330,11 +276,9 @@ body {
     cursor: pointer;
     line-height: 1;
 }
-
 .p-modal-close:hover {
     background: #e5dccb;
 }
-
 .p-modal-media {
     width: 100%;
     height: 180px;
@@ -345,18 +289,15 @@ body {
     overflow: hidden;
     display: block;
 }
-
 .p-modal-media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 img.p-modal-media {
     object-fit: cover;
 }
-
 .p-modal-fav-icon {
     position: absolute;
     top: 12px;
@@ -373,11 +314,9 @@ img.p-modal-media {
     align-items: center;
     justify-content: center;
 }
-
 .p-modal-fav-icon.is-favorited {
     background: #8b2e1a;
 }
-
 .p-modal-eyebrow {
     text-transform: uppercase;
     letter-spacing: 1.5px;
@@ -386,21 +325,18 @@ img.p-modal-media {
     color: #8b2e1a;
     margin: 0 0 6px;
 }
-
 .p-modal-title {
     font-family: Georgia, serif;
     font-size: 22px;
     margin: 0 0 8px;
     color: #2c1a0e;
 }
-
 .p-modal-meta {
     font-size: 13px;
     color: rgba(44, 26, 14, 0.55);
     margin: 0 0 16px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
 }
-
 .p-modal-desc {
     font-size: 14px;
     line-height: 1.65;
@@ -408,7 +344,6 @@ img.p-modal-media {
     margin: 0 0 20px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
 }
-
 .p-modal-facts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -419,7 +354,6 @@ img.p-modal-media {
     padding: 14px 16px;
     margin-bottom: 18px;
 }
-
 .p-fact-label {
     font-size: 10px;
     letter-spacing: 1.5px;
@@ -427,26 +361,21 @@ img.p-modal-media {
     color: rgba(44, 26, 14, 0.4);
     margin-bottom: 3px;
 }
-
 .p-fact-value {
     font-size: 13.5px;
     color: #2c1a0e;
 }
-
 .p-modal-actions {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
 }
-
 .p-modal-fav-btn.is-favorited,
 .p-modal-actions .p-btn-outline.is-favorited {
     background: #8b2e1a;
     color: #fff;
     border-color: #8b2e1a;
 }
-
-/* ── Navigate map (Google Maps iframe embed) ── */
 .p-map-frame {
     width: 100%;
     height: 300px;
@@ -456,7 +385,6 @@ img.p-modal-media {
     background: #ded6c6;
     margin: 4px 0 16px;
 }
-
 .p-nav-distance {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
@@ -464,7 +392,6 @@ img.p-modal-media {
     font-weight: 700;
     margin: 0 0 14px;
 }
-
 .p-nav-status {
     display: flex;
     align-items: center;
@@ -476,27 +403,22 @@ img.p-modal-media {
     margin-bottom: 14px;
     flex-wrap: wrap;
 }
-
 .p-nav-status .p-nav-distance {
     margin: 0;
     font-size: 18px;
     color: #8b2e1a;
 }
-
 .p-nav-distance-label {
     font-size: 10px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: rgba(44, 26, 14, 0.4);
 }
-
 .p-nav-note {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.5);
     font-family: 'Helvetica Neue', Arial, sans-serif;
 }
-
-/* ── Toast ── */
 .p-toast {
     position: fixed;
     bottom: 24px;
@@ -513,7 +435,6 @@ img.p-modal-media {
     transition: all 0.25s;
     z-index: 2000;
 }
-
 .p-toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);

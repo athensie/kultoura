@@ -1,21 +1,4 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | ADMIN CHANGE REQUESTS — the Admin/Super Admin approval workflow
- |--------------------------------------------------------------------
- | Plain "Admin" accounts can no longer write directly to the 6
- | content tables (destination, products, restaurants, fiestas,
- | people, announcements, about_sections). Instead, their submitted
- | form data is stored here as a pending request; a "Super Admin"
- | reviews the actual proposed content in admin/adminrequests.php and
- | either approves it (which applies it for real, via the same
- | kt_apply_* functions the Super Admin's own direct edits use) or
- | rejects it (nothing is touched).
- |
- | "Archive" replaces "delete" everywhere — see kt_apply_* below,
- | none of which ever runs a DELETE statement.
- */
-
 if (!function_exists('kt_requests_ensure_schema')) {
     function kt_requests_ensure_schema(mysqli $conn): void
     {
@@ -36,9 +19,6 @@ if (!function_exists('kt_requests_ensure_schema')) {
                 reviewed_at DATETIME NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
-
-        // Give every content table a status an item can be archived into,
-        // without disturbing whatever that column already means.
         kt_requests_ensure_enum_value($conn, 'destination', 'status', 'archived', "ENUM('active','pending','inactive','archived') NOT NULL DEFAULT 'active'");
         foreach ([
             'schedule_month' => 'DATE NULL',
@@ -54,15 +34,11 @@ if (!function_exists('kt_requests_ensure_schema')) {
         kt_requests_ensure_status_column($conn, 'fiestas');
         kt_requests_ensure_status_column($conn, 'people');
         kt_requests_ensure_status_column($conn, 'about_sections');
-
-        // Admin/User account "archive" (see adminusers.php) — admins already
-        // has this column; users doesn't yet.
         try {
             $conn->query("ALTER TABLE users ADD COLUMN status ENUM('Active','Inactive') NOT NULL DEFAULT 'Active'");
         } catch (mysqli_sql_exception $e) {
             if ($e->getCode() !== 1060) { throw $e; }
         }
-
         $conn->query(
             "CREATE TABLE IF NOT EXISTS admin_notifications (
                 notification_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,12 +50,6 @@ if (!function_exists('kt_requests_ensure_schema')) {
                 INDEX (admin_id, is_read)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
-
-        // One optional note per currently-archived row, across every
-        // entity type — why it was archived. A side table instead of a
-        // column on each of the 10 content tables, since it only ever
-        // applies while a row is archived (see kt_archive_restore() /
-        // kt_archive_permanently_delete(), which delete it again).
         $conn->query(
             "CREATE TABLE IF NOT EXISTS archive_notes (
                 entity_type VARCHAR(30) NOT NULL,
@@ -93,18 +63,12 @@ if (!function_exists('kt_requests_ensure_schema')) {
         );
     }
 }
-
-// Records (or replaces) the reason an admin gave for archiving one row.
-// Called from kt_apply_entity_change() right before the archive itself,
-// using whichever admin is logged into the current request.
 if (!function_exists('kt_archive_note_save')) {
     function kt_archive_note_save(mysqli $conn, string $entityType, int $id, string $note): void
     {
         if (trim($note) === '') return;
-
         $adminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
         $adminName = $_SESSION['username'] ?? null;
-
         $stmt = $conn->prepare(
             "INSERT INTO archive_notes (entity_type, entity_id, note, archived_by, archived_by_name)
              VALUES (?, ?, ?, ?, ?)
@@ -116,9 +80,6 @@ if (!function_exists('kt_archive_note_save')) {
         $stmt->close();
     }
 }
-
-// The note (if any) left behind when a row was archived — shown in the
-// Archive page's item details.
 if (!function_exists('kt_archive_note_get')) {
     function kt_archive_note_get(mysqli $conn, string $entityType, int $id): ?array
     {
@@ -130,10 +91,6 @@ if (!function_exists('kt_archive_note_get')) {
         return $row ?: null;
     }
 }
-
-// Clears a row's archive note once it's no longer archived (restored,
-// or permanently deleted) — never shown for a row that isn't currently
-// sitting in the Archive.
 if (!function_exists('kt_archive_note_clear')) {
     function kt_archive_note_clear(mysqli $conn, string $entityType, int $id): void
     {
@@ -143,14 +100,6 @@ if (!function_exists('kt_archive_note_clear')) {
         $stmt->close();
     }
 }
-
-/*
- |--------------------------------------------------------------------
- | ENTITY METADATA — table/column/page for each of the 6 content
- | types, shared by the current-value lookup (for the request queue's
- | diff view) and by notification links.
- |--------------------------------------------------------------------
- */
 if (!function_exists('kt_entity_meta')) {
     function kt_entity_meta(string $entityType): ?array
     {
@@ -170,17 +119,6 @@ if (!function_exists('kt_entity_meta')) {
         return $map[$entityType] ?? null;
     }
 }
-
-/*
- |--------------------------------------------------------------------
- | ARCHIVE BROWSER — every content type that can be archived, with
- | enough extra detail (which column is its name/thumbnail, and what
- | "not archived" is actually called in that table — 'active' vs
- | 'live') to list and restore archived rows generically in
- | admin/adminrequests.php's Archive section. fb_video is deliberately
- | left out — that whole feature was removed (see admin/adminhomepage.php).
- |--------------------------------------------------------------------
- */
 if (!function_exists('kt_archive_types')) {
     function kt_archive_types(): array
     {
@@ -198,18 +136,11 @@ if (!function_exists('kt_archive_types')) {
         ];
     }
 }
-
-// All archived rows, grouped by type — only types that actually have at
-// least one archived row are included, so the Archive section doesn't
-// list a dozen empty categories.
 if (!function_exists('kt_archived_items_grouped')) {
     function kt_archived_items_grouped(mysqli $conn): array
     {
         $grouped = [];
         foreach (kt_archive_types() as $type => $meta) {
-            // SELECT * (not just id/name/image/created_at) so the Archive
-            // page's details view can show every real field a row has,
-            // not just the bare minimum the list row itself needs.
             $sql = "SELECT *, `{$meta['idCol']}` AS id, `{$meta['nameCol']}` AS name, `{$meta['imageCol']}` AS image
                      FROM `{$meta['table']}` WHERE status = 'archived' ORDER BY created_at DESC";
             $result = $conn->query($sql);
@@ -221,7 +152,6 @@ if (!function_exists('kt_archived_items_grouped')) {
                 $item['archive_note'] = kt_archive_note_get($conn, $type, (int) $item['id']);
             }
             unset($item);
-
             $grouped[$type] = [
                 'label' => $meta['label'],
                 'page'  => $meta['page'],
@@ -231,60 +161,41 @@ if (!function_exists('kt_archived_items_grouped')) {
         return $grouped;
     }
 }
-
-// Flips one archived row back to its "live" status. Generic across every
-// type in kt_archive_types() since they all archive the same way (a
-// plain status UPDATE, never a real delete) — restoring is just that
-// same flip, run in the opposite direction.
 if (!function_exists('kt_archive_restore')) {
     function kt_archive_restore(mysqli $conn, string $entityType, int $id): bool
     {
         $meta = kt_archive_types()[$entityType] ?? null;
         if (!$meta) return false;
-
         $stmt = $conn->prepare("UPDATE `{$meta['table']}` SET status = ? WHERE `{$meta['idCol']}` = ?");
         $stmt->bind_param('si', $meta['activeStatus'], $id);
         $ok = $stmt->execute();
         $stmt->close();
-
         if ($ok) {
             kt_archive_note_clear($conn, $entityType, $id);
         }
         return $ok;
     }
 }
-
-// Permanently removes an already-archived row — the one real DELETE in
-// the whole panel (everything else here is a soft status flip). Only
-// ever called from the Archive page on a row that's already archived,
-// so there's no live-site content to lose; the image file (if any) is
-// best-effort cleaned up too so uploads don't pile up forever, but a
-// failure to remove it never blocks the row delete itself.
 if (!function_exists('kt_archive_permanently_delete')) {
     function kt_archive_permanently_delete(mysqli $conn, string $entityType, int $id): bool
     {
         $meta = kt_archive_types()[$entityType] ?? null;
         if (!$meta) return false;
-
         $stmt = $conn->prepare("SELECT `{$meta['imageCol']}` AS image FROM `{$meta['table']}` WHERE `{$meta['idCol']}` = ? AND status = 'archived'");
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-
         if (!$row) {
-            return false; // not archived (or doesn't exist) — refuse to touch it
+            return false;
         }
-
         $stmt = $conn->prepare("DELETE FROM `{$meta['table']}` WHERE `{$meta['idCol']}` = ? AND status = 'archived'");
         $stmt->bind_param('i', $id);
         $ok = $stmt->execute() && $stmt->affected_rows > 0;
         $stmt->close();
-
         if ($ok) {
             kt_archive_note_clear($conn, $entityType, $id);
         }
-
         if ($ok && !empty($row['image'])) {
             $relative = preg_replace('#^/?kultoura/#', '', $row['image']);
             $path = __DIR__ . '/../' . $relative;
@@ -292,15 +203,9 @@ if (!function_exists('kt_archive_permanently_delete')) {
                 @unlink($path);
             }
         }
-
         return $ok;
     }
 }
-
-// The live row an 'update' or 'archive' request is based on, keyed the
-// same way as the request's payload — so the review queue can show
-// "current value -> proposed value" per field instead of just the new
-// state on its own.
 if (!function_exists('kt_fetch_entity_current')) {
     function kt_fetch_entity_current(mysqli $conn, string $entityType, ?int $entityId): ?array
     {
@@ -316,14 +221,6 @@ if (!function_exists('kt_fetch_entity_current')) {
         return $row ?: null;
     }
 }
-
-/*
- |--------------------------------------------------------------------
- | NOTIFICATIONS — a small per-admin feed, separate from the requests
- | themselves. A Super Admin is notified when an Admin files a new
- | request; the requesting Admin is notified when it's resolved.
- |--------------------------------------------------------------------
- */
 if (!function_exists('kt_notify')) {
     function kt_notify(mysqli $conn, int $adminId, string $message, ?string $link = null): void
     {
@@ -333,7 +230,6 @@ if (!function_exists('kt_notify')) {
         $stmt->close();
     }
 }
-
 if (!function_exists('kt_notify_super_admins')) {
     function kt_notify_super_admins(mysqli $conn, string $message, ?string $link = null, ?int $excludeAdminId = null): void
     {
@@ -346,7 +242,6 @@ if (!function_exists('kt_notify_super_admins')) {
         }
     }
 }
-
 if (!function_exists('kt_notifications_unread_count')) {
     function kt_notifications_unread_count(mysqli $conn, int $adminId): int
     {
@@ -358,7 +253,6 @@ if (!function_exists('kt_notifications_unread_count')) {
         return (int) ($row['c'] ?? 0);
     }
 }
-
 if (!function_exists('kt_notifications_list')) {
     function kt_notifications_list(mysqli $conn, int $adminId, int $limit = 20): array
     {
@@ -370,7 +264,6 @@ if (!function_exists('kt_notifications_list')) {
         return $rows;
     }
 }
-
 if (!function_exists('kt_notifications_mark_all_read')) {
     function kt_notifications_mark_all_read(mysqli $conn, int $adminId): void
     {
@@ -380,7 +273,6 @@ if (!function_exists('kt_notifications_mark_all_read')) {
         $stmt->close();
     }
 }
-
 if (!function_exists('kt_requests_ensure_status_column')) {
     function kt_requests_ensure_status_column(mysqli $conn, string $table): void
     {
@@ -391,38 +283,29 @@ if (!function_exists('kt_requests_ensure_status_column')) {
         }
     }
 }
-
 if (!function_exists('kt_requests_ensure_enum_value')) {
     function kt_requests_ensure_enum_value(mysqli $conn, string $table, string $column, string $value, string $newDefinitionSql): void
     {
         $res = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
         $row = $res ? $res->fetch_assoc() : null;
         if (!$row || stripos($row['Type'], "'$value'") !== false) {
-            return; // already has it (or the column doesn't exist — nothing to do)
+            return;
         }
         $conn->query("ALTER TABLE `$table` MODIFY `$column` $newDefinitionSql");
     }
 }
-
 if (!function_exists('kt_base_url')) {
     function kt_base_url(): string
     {
         return defined('BASE_URL') ? BASE_URL : '/kultoura';
     }
 }
-
 if (!function_exists('kt_is_super_admin')) {
     function kt_is_super_admin(): bool
     {
         return strtolower(trim($_SESSION['role'] ?? '')) === 'super admin';
     }
 }
-
-/*
- |--------------------------------------------------------------------
- | CREATE / LIST / RESOLVE a pending request
- |--------------------------------------------------------------------
- */
 if (!function_exists('kt_requests_create')) {
     function kt_requests_create(mysqli $conn, string $entityType, string $action, ?int $entityId, array $data, string $label, int $requestedBy, string $requestedByName): int
     {
@@ -435,7 +318,6 @@ if (!function_exists('kt_requests_create')) {
         $stmt->execute();
         $id = $stmt->insert_id;
         $stmt->close();
-
         $meta = kt_entity_meta($entityType);
         $verb = $action === 'archive' ? 'archive' : $action;
         kt_notify_super_admins(
@@ -443,11 +325,9 @@ if (!function_exists('kt_requests_create')) {
             "$requestedByName requested to $verb " . ($meta['label'] ?? $entityType) . " \"$label\"",
             kt_base_url() . '/admin/adminrequests.php'
         );
-
         return $id;
     }
 }
-
 if (!function_exists('kt_requests_pending_count')) {
     function kt_requests_pending_count(mysqli $conn): int
     {
@@ -455,7 +335,6 @@ if (!function_exists('kt_requests_pending_count')) {
         return $res ? (int) ($res->fetch_assoc()['c'] ?? 0) : 0;
     }
 }
-
 if (!function_exists('kt_requests_list')) {
     function kt_requests_list(mysqli $conn, string $status = 'pending'): array
     {
@@ -470,7 +349,6 @@ if (!function_exists('kt_requests_list')) {
         return $rows;
     }
 }
-
 if (!function_exists('kt_requests_find')) {
     function kt_requests_find(mysqli $conn, int $id): ?array
     {
@@ -485,19 +363,16 @@ if (!function_exists('kt_requests_find')) {
         return $row ?: null;
     }
 }
-
 if (!function_exists('kt_requests_resolve')) {
     function kt_requests_resolve(mysqli $conn, int $id, string $status, int $reviewerId, ?string $note = null): void
     {
         $request = kt_requests_find($conn, $id);
-
         $stmt = $conn->prepare(
             "UPDATE admin_change_requests SET status = ?, reviewed_by = ?, review_note = ?, reviewed_at = NOW() WHERE request_id = ?"
         );
         $stmt->bind_param('sisi', $status, $reviewerId, $note, $id);
         $stmt->execute();
         $stmt->close();
-
         if ($request) {
             $meta = kt_entity_meta($request['entity_type']);
             $verb = $request['action'] === 'archive' ? 'archive' : $request['action'];
@@ -512,23 +387,12 @@ if (!function_exists('kt_requests_resolve')) {
         }
     }
 }
-
-/*
- |--------------------------------------------------------------------
- | APPLY — the only place any of these 6 tables actually gets written.
- |--------------------------------------------------------------------
- | Called directly for a Super Admin's own edits, and again (with the
- | same $data shape) when a Super Admin approves a pending request.
- | Returns a short label for flash messages / the request queue.
- | $action is one of 'create' | 'update' | 'archive'.
- */
 if (!function_exists('kt_apply_entity_change')) {
     function kt_apply_entity_change(mysqli $conn, string $entityType, string $action, ?int $id, array $data): string
     {
         if ($action === 'archive' && $id !== null && !empty($data['archive_note'])) {
             kt_archive_note_save($conn, $entityType, $id, (string) $data['archive_note']);
         }
-
         switch ($entityType) {
             case 'destination':      return kt_apply_destination($conn, $action, $id, $data);
             case 'product':          return kt_apply_product($conn, $action, $id, $data);
@@ -546,7 +410,6 @@ if (!function_exists('kt_apply_entity_change')) {
         }
     }
 }
-
 if (!function_exists('kt_apply_destination')) {
     function kt_apply_destination(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -558,12 +421,10 @@ if (!function_exists('kt_apply_destination')) {
             $stmt->close();
             return $name;
         }
-
         $subcategory = ($d['category'] === 'nature' && !empty($d['subcategory'])) ? $d['subcategory'] : null;
         $scheduleMonth = ($d['category'] === 'church') ? ($d['schedule_month'] ?? null) : null;
         $scheduleText = ($d['category'] === 'church' && !empty($d['schedule_text'])) ? $d['schedule_text'] : null;
         $image = $d['image'] ?? null;
-
         if ($action === 'create') {
             $stmt = $conn->prepare(
                 "INSERT INTO destination (destination_name, address, category, subcategory, status, description, image, google_maps, schedule_month, schedule_text)
@@ -574,8 +435,6 @@ if (!function_exists('kt_apply_destination')) {
             $stmt->close();
             return $name;
         }
-
-        // update
         if ($image !== null) {
             $stmt = $conn->prepare(
                 "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, image=?, google_maps=?, schedule_month=?, schedule_text=? WHERE destination_id=?"
@@ -592,7 +451,6 @@ if (!function_exists('kt_apply_destination')) {
         return $name;
     }
 }
-
 if (!function_exists('kt_apply_product')) {
     function kt_apply_product(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -604,12 +462,10 @@ if (!function_exists('kt_apply_product')) {
             $stmt->close();
             return $name;
         }
-
         $price = $d['price'] !== null && $d['price'] !== '' ? (float) $d['price'] : null;
         $lat   = $d['latitude'] !== null && $d['latitude'] !== '' ? (float) $d['latitude'] : null;
         $lng   = $d['longitude'] !== null && $d['longitude'] !== '' ? (float) $d['longitude'] : null;
         $image = $d['image'] ?? '';
-
         if ($action === 'create') {
             $stmt = $conn->prepare(
                 "INSERT INTO products (product_name, category, description, price, location, latitude, longitude, image)
@@ -627,7 +483,6 @@ if (!function_exists('kt_apply_product')) {
         return $name;
     }
 }
-
 if (!function_exists('kt_apply_restaurant')) {
     function kt_apply_restaurant(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -639,11 +494,9 @@ if (!function_exists('kt_apply_restaurant')) {
             $stmt->close();
             return $name;
         }
-
         $lat   = $d['latitude'] !== null && $d['latitude'] !== '' ? (float) $d['latitude'] : null;
         $lng   = $d['longitude'] !== null && $d['longitude'] !== '' ? (float) $d['longitude'] : null;
         $image = $d['image'] ?? '';
-
         if ($action === 'create') {
             $stmt = $conn->prepare(
                 "INSERT INTO restaurants (restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, google_map, image)
@@ -661,7 +514,6 @@ if (!function_exists('kt_apply_restaurant')) {
         return $name;
     }
 }
-
 if (!function_exists('kt_apply_fiesta')) {
     function kt_apply_fiesta(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -673,11 +525,9 @@ if (!function_exists('kt_apply_fiesta')) {
             $stmt->close();
             return $name;
         }
-
         $lat = $d['latitude'] !== null && $d['latitude'] !== '' ? (float) $d['latitude'] : null;
         $lng = $d['longitude'] !== null && $d['longitude'] !== '' ? (float) $d['longitude'] : null;
         $image = $d['image'] ?? null;
-
         if ($action === 'create') {
             $stmt = $conn->prepare(
                 "INSERT INTO fiestas (fiesta_name, type, celebration_date, location, latitude, longitude, description, image, created_at)
@@ -695,7 +545,6 @@ if (!function_exists('kt_apply_fiesta')) {
         return $name;
     }
 }
-
 if (!function_exists('kt_apply_person')) {
     function kt_apply_person(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -707,9 +556,7 @@ if (!function_exists('kt_apply_person')) {
             $stmt->close();
             return $name;
         }
-
         $image = $d['image'] ?? null;
-
         if ($action === 'create') {
             $stmt = $conn->prepare(
                 "INSERT INTO people (fullname, title, achievement, description, image, created_at) VALUES (?, ?, ?, ?, ?, NOW())"
@@ -726,7 +573,6 @@ if (!function_exists('kt_apply_person')) {
         return $name;
     }
 }
-
 if (!function_exists('kt_apply_announcement')) {
     function kt_apply_announcement(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -738,9 +584,7 @@ if (!function_exists('kt_apply_announcement')) {
             $stmt->close();
             return $title;
         }
-
         $image = $d['image'] ?? null;
-
         if ($action === 'create') {
             $publishedAt = $d['status'] === 'live' ? date('Y-m-d H:i:s') : null;
             $stmt = $conn->prepare(
@@ -762,7 +606,6 @@ if (!function_exists('kt_apply_announcement')) {
         return $title;
     }
 }
-
 if (!function_exists('kt_apply_partner')) {
     function kt_apply_partner(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -774,11 +617,9 @@ if (!function_exists('kt_apply_partner')) {
             $stmt->close();
             return $name;
         }
-
         $logo = $d['logo'] ?? null;
         $websiteUrl = $d['website_url'] ?? null;
         $description = $d['description'] ?? null;
-
         if ($action === 'create') {
             $stmt = $conn->prepare("INSERT INTO partners (name, logo, website_url, description, status) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param('sssss', $name, $logo, $websiteUrl, $description, $d['status']);
@@ -794,7 +635,6 @@ if (!function_exists('kt_apply_partner')) {
         return $name;
     }
 }
-
 if (!function_exists('kt_apply_event_photo')) {
     function kt_apply_event_photo(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -806,9 +646,7 @@ if (!function_exists('kt_apply_event_photo')) {
             $stmt->close();
             return $caption;
         }
-
         $image = $d['image'] ?? null;
-
         if ($action === 'create') {
             $stmt = $conn->prepare("INSERT INTO event_gallery (image, caption, status) VALUES (?, ?, ?)");
             $stmt->bind_param('sss', $image, $caption, $d['status']);
@@ -824,7 +662,6 @@ if (!function_exists('kt_apply_event_photo')) {
         return $caption;
     }
 }
-
 if (!function_exists('kt_apply_fb_video')) {
     function kt_apply_fb_video(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -836,9 +673,7 @@ if (!function_exists('kt_apply_fb_video')) {
             $stmt->close();
             return $title;
         }
-
         $thumbnail = $d['thumbnail'] ?? null;
-
         if ($action === 'create') {
             $stmt = $conn->prepare("INSERT INTO fb_videos (video_url, title, thumbnail, status) VALUES (?, ?, ?, ?)");
             $stmt->bind_param('ssss', $d['video_url'], $d['title'], $thumbnail, $d['status']);
@@ -851,17 +686,11 @@ if (!function_exists('kt_apply_fb_video')) {
         return $title;
     }
 }
-
 if (!function_exists('kt_apply_page_widget')) {
     function kt_apply_page_widget(mysqli $conn, string $action, ?int $id, array $d): string
     {
-        // Label is just the page slug, not its friendly name — keeps this
-        // function self-contained (no dependency on page_widgets.php's
-        // kt_page_widget_pages(), which isn't loaded on every page that
-        // can apply a request, e.g. admin/adminrequests.php).
         $slug = (string) ($d['page_slug'] ?? '');
         $label = $slug;
-
         if ($action === 'archive') {
             $stmt = $conn->prepare("UPDATE page_widgets SET status = 'archived' WHERE id = ?");
             $stmt->bind_param('i', $id);
@@ -869,17 +698,12 @@ if (!function_exists('kt_apply_page_widget')) {
             $stmt->close();
             return $label;
         }
-
-        // Text fields are always (re)written; image fields are only
-        // overwritten when a new upload came through — same "keep existing
-        // unless replaced" pattern as kt_apply_partner's logo handling.
         $textFields = ['bg_color', 'headline', 'subtext', 'card1_text', 'card2_text',
             'photo_1_caption', 'photo_1_description', 'photo_2_caption', 'photo_2_description',
             'photo_3_caption', 'photo_3_description', 'photo_4_caption', 'photo_4_description',
             'photo_5_caption', 'photo_5_description'];
         $imageFields = ['main_image', 'gallery_image_1', 'gallery_main_image', 'gallery_image_2', 'gallery_image_3',
             'photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5'];
-
         if ($action === 'create') {
             $cols = array_merge(['page_slug'], $textFields, $imageFields, ['status']);
             $values = array_merge(
@@ -895,8 +719,6 @@ if (!function_exists('kt_apply_page_widget')) {
             $stmt->close();
             return $label;
         }
-
-        // update
         $setParts = [];
         $values = [];
         foreach ($textFields as $f) {
@@ -919,7 +741,6 @@ if (!function_exists('kt_apply_page_widget')) {
         return $label;
     }
 }
-
 if (!function_exists('kt_apply_about_section')) {
     function kt_apply_about_section(mysqli $conn, string $action, ?int $id, array $d): string
     {
@@ -931,9 +752,7 @@ if (!function_exists('kt_apply_about_section')) {
             $stmt->close();
             return $title;
         }
-
         $image = $d['image'] ?? null;
-
         if ($action === 'create') {
             $maxRow = $conn->query("SELECT COALESCE(MAX(sort_order), 0) AS m FROM about_sections")->fetch_assoc();
             $nextOrder = (int) $maxRow['m'] + 1;

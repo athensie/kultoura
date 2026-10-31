@@ -1,6 +1,3 @@
-/* KulToura — About page (a- prefix, following the tourism.php t- pattern) */
-
-/* ── Hero (photo + overlapping facts card) ── */
 .a-hero {
     position: relative;
     display: flex;
@@ -9,11 +6,9 @@
     padding: 90px 48px;
     background: linear-gradient(135deg, #2f3f24, #1c2718);
 }
-
 .a-hero-no-photo {
     background: linear-gradient(135deg, #2f3f24, #1c2718);
 }
-
 .a-hero-photo {
     position: absolute;
     inset: 0;
@@ -22,14 +17,12 @@
     object-fit: cover;
     z-index: 0;
 }
-
 .a-hero-scrim {
     position: absolute;
     inset: 0;
     background: linear-gradient(100deg, rgba(20, 22, 12, 0.82) 0%, rgba(20, 22, 12, 0.55) 45%, rgba(20, 22, 12, 0.15) 75%);
     z-index: 1;
 }
-
 .a-hero-leaf {
     position: absolute;
     top: 30px;
@@ -41,13 +34,11 @@
     z-index: 1;
 }
 .a-hero-leaf svg { width: 100%; height: 100%; display: block; }
-
 .a-hero-inner {
     position: relative;
     z-index: 2;
     max-width: 640px;
 }
-
 .a-eyebrow {
     font-size: 0.75rem;
     letter-spacing: 3px;
@@ -56,7 +47,6 @@
     font-weight: 700;
     margin: 0 0 8px;
 }
-
 .a-page-title {
     font-family: 'Playfair Display', Georgia, serif;
     font-weight: 900;
@@ -65,7 +55,6 @@
     line-height: 1;
     margin: 0;
 }
-
 .a-title-arrow {
     display: block;
     width: 60px;
@@ -85,7 +74,6 @@
     border-right: 2px solid #C8A96E;
     transform: rotate(45deg);
 }
-
 .a-page-sub {
     font-size: 1rem;
     line-height: 1.7;
@@ -93,18 +81,12 @@
     max-width: 420px;
     margin: 0;
 }
-
-/* Quick Facts card — sits in normal document flow (so it always takes up
-   exactly the space it needs) and is pulled up over the hero's bottom
-   edge with a negative margin, instead of being absolutely positioned
-   with hand-guessed padding on the hero/main to "reserve" room for it. */
 .a-facts-wrap {
     position: relative;
     z-index: 3;
     padding: 0 32px;
     margin-top: -70px;
 }
-
 .a-facts {
     max-width: 1180px;
     margin: 0 auto;
@@ -116,14 +98,12 @@
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
 }
-
 .a-fact {
     text-align: center;
     padding: 0 8px;
     border-right: 1px solid rgba(44, 26, 14, 0.08);
 }
 .a-fact:last-child { border-right: none; }
-
 .a-fact-icon {
     display: inline-flex;
     align-items: center;
@@ -138,7 +118,6 @@
     margin-bottom: 10px;
 }
 .a-fact-icon svg { width: 100%; height: 100%; display: block; }
-
 .a-fact-num {
     font-family: 'Playfair Display', Georgia, serif;
     font-weight: 700;
@@ -146,28 +125,23 @@
     color: #221a10;
     line-height: 1.1;
 }
-
 .a-fact-label {
     font-size: 0.78rem;
     font-weight: 700;
     color: #2c1a0e;
     margin-top: 4px;
 }
-
 .a-fact-desc {
     font-size: 0.7rem;
     color: rgba(34, 26, 16, 0.5);
     line-height: 1.4;
     margin-top: 4px;
 }
-
-/* ── Content ── */
 .a-main {
     max-width: 1020px;
     margin: 0 auto;
     padding: 56px 32px 96px;
 }
-
 .a-section {
     display: flex;
     align-items: flex-start;
@@ -177,7 +151,6 @@
     scroll-margin-top: 100px;
 }
 .a-section:last-of-type { border-bottom: none; }
-
 .a-section-photo {
     flex: 0 0 auto;
     width: 260px;
@@ -191,19 +164,16 @@
     object-fit: cover;
     display: block;
 }
-
 .a-section-content {
     flex: 1;
     min-width: 0;
 }
-
 .a-section-header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 14px;
 }
-
 .a-section-icon {
     width: 38px;
     height: 38px;
@@ -218,14 +188,12 @@
     box-sizing: border-box;
 }
 .a-section-icon svg { width: 100%; height: 100%; display: block; }
-
 .a-section-header h2 {
     font-family: 'Playfair Display', Georgia, serif;
     font-size: 1.6rem;
     color: #221a10;
     margin: 0;
 }
-
 .a-section-body p {
     font-size: 0.95rem;
     line-height: 1.85;
@@ -233,8 +201,6 @@
     margin-bottom: 14px;
 }
 .a-section-body p:last-child { margin-bottom: 0; }
-
-/* ── CTA banner ── */
 .a-cta {
     position: relative;
     overflow: hidden;
@@ -248,9 +214,7 @@
     border-radius: 20px;
     background: #ece5d3;
 }
-
 .a-cta-text { max-width: 420px; position: relative; z-index: 1; }
-
 .a-cta h3 {
     font-family: 'Playfair Display', Georgia, serif;
     font-style: italic;
@@ -270,14 +234,12 @@
     height: 2px;
     background: #C8A96E;
 }
-
 .a-cta p {
     font-size: 0.88rem;
     color: rgba(34, 26, 16, 0.6);
     line-height: 1.6;
     margin: 10px 0 0;
 }
-
 .a-cta-btn {
     position: relative;
     z-index: 1;
@@ -296,7 +258,6 @@
 }
 .a-cta-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 .a-cta-btn:hover { background: #3d5731; transform: translateY(-2px); }
-
 .a-cta-leaf {
     position: absolute;
     width: 90px;
@@ -307,8 +268,6 @@
 .a-cta-leaf svg { width: 100%; height: 100%; display: block; }
 .a-cta-leaf-1 { bottom: -20px; left: -20px; transform: rotate(-30deg); }
 .a-cta-leaf-2 { top: -20px; right: -10px; transform: rotate(150deg); }
-
-/* Scroll-reveal state (toggled by about.js) */
 .a-section {
     opacity: 0;
     transform: translateY(16px);
@@ -318,8 +277,6 @@
     opacity: 1;
     transform: none;
 }
-
-/* ── Footer ── */
 .a-footer {
     background: #14200f;
     color: rgba(240, 235, 216, 0.7);
@@ -332,9 +289,7 @@
     gap: 18px;
     flex-wrap: wrap;
 }
-
 .a-footer p { margin: 0; }
-
 .a-footer-social {
     display: flex;
     gap: 10px;
@@ -352,16 +307,13 @@
 }
 .a-footer-social a svg { width: 14px; height: 14px; }
 .a-footer-social a:hover { background: #9fb88a; color: #14200f; transform: translateY(-2px); }
-
 .a-footer-tag {
     color: rgba(240, 235, 216, 0.45);
 }
-
 @media (max-width: 1100px) {
     .a-facts { grid-template-columns: repeat(3, 1fr); }
     .a-fact:nth-child(3n) { border-right: none; }
 }
-
 @media (max-width: 900px) {
     .a-facts-wrap { margin-top: -50px; padding: 0 20px; }
     .a-facts { grid-template-columns: repeat(2, 1fr); gap: 20px 8px; }
@@ -370,7 +322,6 @@
     .a-section { flex-direction: column; }
     .a-section-photo { width: 100%; height: 220px; }
 }
-
 @media (max-width: 640px) {
     .a-hero { padding: 56px 20px; }
     .a-facts-wrap { margin-top: -30px; }
@@ -381,12 +332,9 @@
     .a-section-header h2 { font-size: 1.35rem; }
     .a-cta { flex-direction: column; align-items: flex-start; text-align: left; }
 }
-
-/* Barabara display type for the About title and its story section headings. */
 .a-page-title,
 .a-section-header h2 {
     font-family: 'Barabara', 'Fraunces', Georgia, serif;
     text-transform: uppercase;
     letter-spacing: 0.035em;
 }
-

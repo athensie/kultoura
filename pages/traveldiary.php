@@ -6,31 +6,14 @@ kt_maintenance_gate($conn);
 include '../config/analytics.php';
 require_once __DIR__ . '/../config/ai_recommend.php';
 analytics_track($conn, 'traveldiary');
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-// A diary is inherently personal — there's no meaningful guest view,
-// same guard pattern as favorites.php.
 if (!$isLoggedIn) {
     header("Location: ../auth/login.php");
     exit;
 }
-
 $userId = (int) $_SESSION['user_id'];
-
-/* ============================================================
-   CATALOG
-   ------------------------------------------------------------
-   Every product/restaurant/destination/fiesta/person, the same
-   dispatch-table aggregation used by favorites.php and foryou.php.
-   Powers the Visited Places Checklist and is the lookup source for
-   enriching diary_entries rows (which only store item_type+item_id).
-============================================================ */
 $imageSubfolder = [
-    // Products and restaurants share the same admin upload handler
-    // (adminfoodanddining.php), which always saves into
-    // assets/uploads/food/ regardless of listing type.
     'product'       => 'food',
     'restaurant'    => 'food',
     'nature'        => 'destinations',
@@ -42,24 +25,15 @@ $imageSubfolder = [
     'fiesta'        => 'fiestas',
     'person'        => 'people',
 ];
-
 function td_image_src(string $category, ?string $rawImage, array $imageSubfolder): string
 {
     if (empty($rawImage)) return '';
     return '../assets/uploads/' . ($imageSubfolder[$category] ?? $category) . '/' . basename($rawImage);
 }
-
-// Listings with no real uploaded photo fall back to a generic, sitewide
-// "*_card.svg" category icon (e.g. cafe_card.svg) as their `image` column
-// — fine at a small thumbnail size elsewhere, but blown up to the Travel
-// Timeline folder's large hero-photo size it just reads as an oversized
-// generic icon instead of an actual photo. Treated as "no photo" here so
-// the folder shows its own icon+label fallback instead.
 function td_is_placeholder_card_image(?string $path): bool
 {
     return $path !== null && str_ends_with(basename($path), '_card.svg');
 }
-
 $categoryLabels = [
     'product'       => 'Product',
     'restaurant'    => 'Restaurant',
@@ -72,10 +46,6 @@ $categoryLabels = [
     'fiesta'        => 'Fiesta',
     'person'        => 'Person',
 ];
-
-// Verb used in the timeline ("Visited But First Coffee", "Attended
-// Fiesta of Malvar"...), keyed by itemType (not the finer-grained
-// category) since it's about the kind of visit, not the exact place type.
 $itemTypeVerbs = [
     'product'     => 'Visited',
     'restaurant'  => 'Visited',
@@ -83,10 +53,6 @@ $itemTypeVerbs = [
     'fiesta'      => 'Attended',
     'person'      => 'Met',
 ];
-
-// Small monochrome line icons (currentColor), reused across the stat
-// cards, category badges-with-icon, and timeline dots. Same style as
-// the ones built for foryou.php's sidebar — no emoji.
 $categoryIcons = [
     'product'       => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
     'restaurant'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg>',
@@ -99,8 +65,6 @@ $categoryIcons = [
     'fiesta'        => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     'person'        => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>',
 ];
-
-// Generic icons for the stat cards / Journey card (not tied to a category).
 $statIcons = [
     'places'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
     'photos'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.5"/></svg>',
@@ -115,10 +79,6 @@ $statIcons = [
     'compass'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>',
     'clip'       => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V7a4 4 0 0 1 8 0v9a2.5 2.5 0 0 1-5 0V9"/></svg>',
 ];
-
-// Small UI-control icons (buttons, toggles, modal choices) — same
-// stroke style as $categoryIcons/$statIcons, replacing emoji that were
-// previously used as button glyphs.
 $uiIcons = [
     'camera'  => $statIcons['photos'],
     'library' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5-4 4-2-2-5 5"/></svg>',
@@ -129,10 +89,6 @@ $uiIcons = [
     'trash'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>',
     'pin'     => $statIcons['pin'],
 ];
-
-// Coordinates power the "are you actually there?" geofence check on the
-// Explorer checklist — destination.google_maps stores "lat,lng" as one
-// string, the other tables have separate latitude/longitude columns.
 function td_parse_latlng_pair(?string $raw): array
 {
     if (!$raw) return [null, null];
@@ -140,15 +96,7 @@ function td_parse_latlng_pair(?string $raw): array
     if (count($parts) !== 2 || !is_numeric($parts[0]) || !is_numeric($parts[1])) return [null, null];
     return [(float) $parts[0], (float) $parts[1]];
 }
-
-// Deliberately NOT filtered by status = 'active' — unlike the public
-// browse pages, this catalog also has to resolve a user's past diary
-// entries/photos for items that are now pending or archived. Hiding
-// those here would make a logged visit's photo silently vanish from
-// the user's own Travel Diary just because the place is no longer
-// publicly listed.
-$catalog = []; // keyed "itemType-itemId" => item details
-
+$catalog = [];
 if ($result = $conn->query("SELECT product_id, product_name, category, description, image, location, latitude, longitude FROM products")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['product_id'];
@@ -167,7 +115,6 @@ if ($result = $conn->query("SELECT product_id, product_name, category, descripti
         ];
     }
 }
-
 if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, description, image, address, latitude, longitude FROM restaurants")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['restaurant_id'];
@@ -186,7 +133,6 @@ if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, des
         ];
     }
 }
-
 $destinationLinks = [
     'nature'        => 'tourism/nature.php',
     'resort'        => 'tourism/resort.php',
@@ -201,9 +147,6 @@ if ($result = $conn->query("SELECT destination_id, destination_name, category, d
         $cat = $row['category'];
         if (!isset($destinationLinks[$cat])) continue;
         $id = (int) $row['destination_id'];
-        // latitude/longitude (set by the admin's address picker / our
-        // geocoding pass) is the real source of truth; google_maps only
-        // carries a lat,lng pair on older rows that predate those columns.
         if ($row['latitude'] !== null && $row['longitude'] !== null) {
             $destLat = (float) $row['latitude'];
             $destLng = (float) $row['longitude'];
@@ -225,7 +168,6 @@ if ($result = $conn->query("SELECT destination_id, destination_name, category, d
         ];
     }
 }
-
 if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, image, location, latitude, longitude FROM fiestas")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['fiesta_id'];
@@ -244,7 +186,6 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, im
         ];
     }
 }
-
 if ($result = $conn->query("SELECT person_id, fullname, title, description, image FROM people")) {
     while ($row = $result->fetch_assoc()) {
         $id = (int) $row['person_id'];
@@ -254,23 +195,15 @@ if ($result = $conn->query("SELECT person_id, fullname, title, description, imag
             'name'        => $row['fullname'],
             'category'    => 'person',
             'badgeText'   => $row['title'] ?: 'Person',
-            // People have no address column in the schema — the UI omits
-            // the location line for these rather than showing a blank.
             'address'     => '',
             'description' => $row['description'] ?? '',
             'image'     => td_image_src('person', $row['image'] ?? null, $imageSubfolder),
             'link'      => 'tourism/people.php',
-            // People aren't geotagged — the modal always falls back to
-            // the manual "are you sure?" confirmation for these.
             'lat'       => null,
             'lng'       => null,
         ];
     }
 }
-
-/* ============================================================
-   THIS USER'S DIARY ENTRIES + PHOTOS
-============================================================ */
 $entries = [];
 if ($stmt = $conn->prepare(
     "SELECT entry_id, item_type, item_id, visited_date, visited_time, note, created_at
@@ -281,9 +214,8 @@ if ($stmt = $conn->prepare(
     $entries = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 }
-
 $entryIds = array_column($entries, 'entry_id');
-$photosByEntry = []; // entry_id => [photo, photo, ...]
+$photosByEntry = [];
 $allPhotos = [];
 if (!empty($entryIds)) {
     $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
@@ -296,20 +228,13 @@ if (!empty($entryIds)) {
         $photosByEntry[(int) $p['entry_id']][] = $p;
     }
 }
-
-// Visit counts + latest note/entry per catalog item, for the checklist.
-$visitsByItem = []; // "type-id" => [entries...]
+$visitsByItem = [];
 foreach ($entries as $e) {
     $key = $e['item_type'] . '-' . $e['item_id'];
     $visitsByItem[$key][] = $e;
 }
-
-/* ============================================================
-   TRAVEL STATISTICS
-============================================================ */
 $distinctVisitedKeys = array_keys($visitsByItem);
 $totalPlacesVisited  = count($distinctVisitedKeys);
-
 $countByType = ['product' => 0, 'restaurant' => 0, 'destination' => 0, 'fiesta' => 0, 'person' => 0];
 $countByCategory = [];
 foreach ($distinctVisitedKeys as $key) {
@@ -318,14 +243,12 @@ foreach ($distinctVisitedKeys as $key) {
     $countByType[$item['itemType']] = ($countByType[$item['itemType']] ?? 0) + 1;
     $countByCategory[$item['category']] = ($countByCategory[$item['category']] ?? 0) + 1;
 }
-
 $favoriteCategory = null;
 if (!empty($countByCategory)) {
     arsort($countByCategory);
     $favoriteCategoryKey = array_key_first($countByCategory);
     $favoriteCategory = $categoryLabels[$favoriteCategoryKey] ?? $favoriteCategoryKey;
 }
-
 $mostVisited = null;
 $mostVisitedCount = 0;
 foreach ($visitsByItem as $key => $visits) {
@@ -334,19 +257,13 @@ foreach ($visitsByItem as $key => $visits) {
         $mostVisited = $catalog[$key] ?? null;
     }
 }
-
 $distinctDates  = array_unique(array_column($entries, 'visited_date'));
 $daysTraveled   = count($distinctDates);
 $totalPhotos    = count($allPhotos);
-$totalMemories  = count($entries); // every logged visit, including repeats — not just distinct places
+$totalMemories  = count($entries);
 $hasAnyEntries  = count($entries) > 0;
-
-// How many of the 5 catalog categories have at least one logged visit.
 $categoriesCompleted = count(array_filter($countByType, fn($c) => $c > 0));
 $totalCategories      = count($countByType);
-
-// The "Badges Collected" stat, spelled out: one badge per catalog
-// category, unlocked the moment the user logs their first visit in it.
 $badgeDefs = [
     ['type' => 'product',     'label' => 'Products',     'color' => '#a9843f', 'icon' => $categoryIcons['product']],
     ['type' => 'restaurant',  'label' => 'Restaurants',  'color' => '#8b2e1a', 'icon' => $categoryIcons['restaurant']],
@@ -354,9 +271,6 @@ $badgeDefs = [
     ['type' => 'fiesta',      'label' => 'Fiestas',      'color' => '#a8433a', 'icon' => $categoryIcons['fiesta']],
     ['type' => 'person',      'label' => 'People',       'color' => '#4a5a78', 'icon' => $categoryIcons['person']],
 ];
-
-// Real count from the existing favorites table — same one every other
-// page's heart button writes to.
 $favoritesCount = 0;
 if ($favStmt = $conn->prepare("SELECT COUNT(*) AS c FROM favorites WHERE user_id = ?")) {
     $favStmt->bind_param('i', $userId);
@@ -364,23 +278,12 @@ if ($favStmt = $conn->prepare("SELECT COUNT(*) AS c FROM favorites WHERE user_id
     $favoritesCount = (int) $favStmt->get_result()->fetch_assoc()['c'];
     $favStmt->close();
 }
-
 $currentYear = date('Y');
-
-/* ============================================================
-   TRAVEL WRAPPED (extra data only this feature needs)
-   ------------------------------------------------------------
-   Wrapped is generated for a chosen look-back window — Weekly,
-   Monthly, or Yearly — picked via ?wrapped=weekly|monthly|yearly.
-   Everything below is scoped to that date range and kept separate
-   from the Journey card's all-time stats above.
-============================================================ */
 $wrappedPeriod = $_GET['wrapped'] ?? 'yearly';
 if (!in_array($wrappedPeriod, ['weekly', 'monthly', 'yearly'], true)) {
     $wrappedPeriod = 'yearly';
 }
 $wrappedRequested = isset($_GET['wrapped']);
-
 $now = new DateTime();
 switch ($wrappedPeriod) {
     case 'weekly':
@@ -393,7 +296,7 @@ switch ($wrappedPeriod) {
         $wrappedRangeEnd   = (clone $wrappedRangeStart)->modify('+1 month');
         $wrappedLabel      = $now->format('F Y');
         break;
-    default: // yearly
+    default:
         $wrappedRangeStart = new DateTime($now->format('Y-01-01'));
         $wrappedRangeEnd   = (clone $wrappedRangeStart)->modify('+1 year');
         $wrappedLabel      = $now->format('Y');
@@ -401,13 +304,9 @@ switch ($wrappedPeriod) {
 }
 $wrappedRangeStartStr = $wrappedRangeStart->format('Y-m-d');
 $wrappedRangeEndStr   = $wrappedRangeEnd->format('Y-m-d');
-
-// $entries is already sorted visited_date DESC, entry_id DESC — filtering
-// preserves that order, so index 0 stays "most recent" within the window.
 $wrappedEntries = array_values(array_filter($entries, function ($e) use ($wrappedRangeStartStr, $wrappedRangeEndStr) {
     return $e['visited_date'] >= $wrappedRangeStartStr && $e['visited_date'] < $wrappedRangeEndStr;
 }));
-
 function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByEntry, array $categoryLabels, array $itemTypeVerbs): array
 {
     $visitsByItem = [];
@@ -415,7 +314,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         $visitsByItem[$e['item_type'] . '-' . $e['item_id']][] = $e;
     }
     $distinctKeys = array_keys($visitsByItem);
-
     $countByType = [];
     $countByCategory = [];
     $categoryVisitCounts = [];
@@ -431,7 +329,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         if (!$item) continue;
         $categoryVisitCounts[$item['category']] = ($categoryVisitCounts[$item['category']] ?? 0) + 1;
     }
-
     $favoriteCategoryKey   = null;
     $favoriteCategory      = null;
     $favoriteCategoryImage = '';
@@ -446,7 +343,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
             }
         }
     }
-
     $mostVisited = null;
     $mostVisitedCount = 0;
     foreach ($visitsByItem as $key => $visits) {
@@ -455,14 +351,11 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
             $mostVisited = $catalog[$key] ?? null;
         }
     }
-
     $distinctDates = array_unique(array_column($periodEntries, 'visited_date'));
-
     $totalPhotos = 0;
     foreach ($periodEntries as $e) {
         $totalPhotos += count($photosByEntry[(int) $e['entry_id']] ?? []);
     }
-
     $latestAdventure   = null;
     $firstPlaceVisited = null;
     if (!empty($periodEntries)) {
@@ -471,8 +364,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         $latestAdventure   = $catalog[$latestKey] ?? null;
         $firstPlaceVisited = $catalog[$firstKey] ?? null;
     }
-
-    // Longest streak: consecutive-day run across distinct visited_date values.
     $sortedDates = array_values($distinctDates);
     sort($sortedDates);
     $longestStreak = $sortedDates ? 1 : 0;
@@ -486,7 +377,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
             $currentStreak = 1;
         }
     }
-
     $timeline = [];
     foreach ($periodEntries as $e) {
         $key  = $e['item_type'] . '-' . $e['item_id'];
@@ -507,11 +397,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
             'photos'      => $photosByEntry[(int) $e['entry_id']] ?? [],
         ];
     }
-
-    // Every distinct place visited in the period, oldest visit first (one
-    // card per place, not one per visit) — $periodEntries is newest-first,
-    // so walk it backwards and keep the first (= earliest) occurrence of
-    // each place.
     $distinctPlaces = [];
     $seenPlaceKeys = [];
     for ($i = count($periodEntries) - 1; $i >= 0; $i--) {
@@ -532,7 +417,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
             'visitedDate' => $e['visited_date'],
         ];
     }
-
     $photoMemories = [];
     foreach ($periodEntries as $e) {
         $key  = $e['item_type'] . '-' . $e['item_id'];
@@ -546,7 +430,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         }
     }
     usort($photoMemories, fn($a, $b) => strcmp($b['visitedDate'], $a['visitedDate']));
-
     return [
         'totalPlaces'           => count($distinctKeys),
         'daysTraveled'          => count($distinctDates),
@@ -565,10 +448,6 @@ function td_wrapped_stats(array $periodEntries, array $catalog, array $photosByE
         'photoMemories'         => $photoMemories,
     ];
 }
-
-// Cycles through $items so a slide always has something to show even when
-// there are fewer photos than the slide wants (e.g. a 2-photo week still
-// fills a 4-up collage) instead of leaving blank grid cells.
 function td_wrapped_cycle(array $items, int $offset, int $count): array
 {
     if (empty($items)) return [];
@@ -578,36 +457,19 @@ function td_wrapped_cycle(array $items, int $offset, int $count): array
     }
     return $out;
 }
-
-// Malvar's real municipal boundary (OpenStreetMap relation 5947753, ODbL —
-// credited on the slide itself), simplified from ~918 points down to this
-// handful with Douglas-Peucker and pre-projected into the same 0-100 SVG
-// space used below, so it's one static path instead of a runtime API call.
 const TD_MAP_BOUNDARY_PATH = 'M5.3,40.07L8.31,45.8L7.1,46.01L6.8,47.28L9.67,51.63L10.87,56.96L13.21,55.83L13.84,54.31L17.24,53.51L20.12,55.07L23.59,54.94L28.51,60.39L35.97,62.72L37.72,65.68L40.59,66.74L42.51,69.05L42.43,72.6L44.09,74.1L44.27,76.8L46.58,78.82L45.57,81.53L48.55,83.92L49.02,89.47L53.63,96L64.86,91.09L64.03,88.3L65.42,86.78L65.41,85.01L67.77,84.41L67.5,83.23L78.22,76.62L90.94,70.96L85.05,63.65L85.23,61.38L94.39,54.57L94.7,53.22L94.08,51.49L90.41,49.76L89.59,45.01L90.44,42.42L89.14,38.7L90.32,35.49L89.55,34.16L83.51,31.89L81.56,28.04L82.5,26.11L81.82,23.05L80.82,22.02L80.2,22.83L80.13,21.76L77.9,22.15L76.53,20.04L75.57,20.48L74.35,19.21L73.25,16.26L73.93,15.8L72.09,13.88L70.65,13.88L71.63,13.48L70.5,12.16L71.75,8.38L67.16,4.21L66.16,4L66.13,6.47L68.18,8.37L67.69,12.71L62.42,19.87L62.68,21.36L46.22,27.71L33.02,34.58L30.04,35.47L27.81,34.6L23.98,36.47L20.79,35.47L14.42,35.76L12.72,36.99L7.3,37.85L6.67,39.6L5.3,40.07Z';
-
-// The exact lng/lat -> x/y projection used to build that path, re-applied
-// to each visited place below so its pin lands at its true position
-// inside the real outline (rather than auto-fit to just the pins' own
-// bounding box, which wouldn't line up with the shape at all).
 const TD_MAP_LNG_MIN  = 121.1060173;
 const TD_MAP_LAT_MAX  = 14.0740498;
 const TD_MAP_SCALE    = 1144.5291506598528;
 const TD_MAP_OFFSET_X = 5.299841756408291;
 const TD_MAP_OFFSET_Y = 4;
-
-// Every distinct place with coordinates (e.g. "person" entries have none
-// and are left out — there's nothing to plot for them).
 function td_wrapped_map_points(array $distinctPlaces): array
 {
     return array_values(array_filter($distinctPlaces, fn($p) => $p['lat'] !== null && $p['lng'] !== null));
 }
-
-// Reverses TD_MAP_BOUNDARY_PATH's own projection to recover Malvar's
-// outline as real [lat, lng] pairs for the Leaflet polygon — one shape,
-// reused both ways, instead of storing the boundary twice.
 function td_wrapped_boundary_latlngs(): array
 {
-    $inner = substr(TD_MAP_BOUNDARY_PATH, 1, -1); // drop leading "M" and trailing "Z"
+    $inner = substr(TD_MAP_BOUNDARY_PATH, 1, -1);
     $latlngs = [];
     foreach (explode('L', $inner) as $pair) {
         [$x, $y] = array_map('floatval', explode(',', $pair));
@@ -618,12 +480,7 @@ function td_wrapped_boundary_latlngs(): array
     }
     return $latlngs;
 }
-
 $tw = td_wrapped_stats($wrappedEntries, $catalog, $photosByEntry, $categoryLabels, $itemTypeVerbs);
-
-// Favorites marked within the same window (favorites.created_at) — the
-// count feeds the "By the Numbers" stat, the actual items feed the
-// "What You Liked" slide.
 $twFavoritesCount = 0;
 $twFavoriteItems = [];
 if ($twFavStmt = $conn->prepare("SELECT item_type, item_id FROM favorites WHERE user_id = ? AND created_at >= ? AND created_at < ? ORDER BY created_at DESC")) {
@@ -631,7 +488,6 @@ if ($twFavStmt = $conn->prepare("SELECT item_type, item_id FROM favorites WHERE 
     $twFavStmt->execute();
     $twFavRows = $twFavStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $twFavStmt->close();
-
     $twFavoritesCount = count($twFavRows);
     foreach ($twFavRows as $row) {
         $item = $catalog[$row['item_type'] . '-' . $row['item_id']] ?? null;
@@ -639,21 +495,13 @@ if ($twFavStmt = $conn->prepare("SELECT item_type, item_id FROM favorites WHERE 
         if (count($twFavoriteItems) >= 3) break;
     }
 }
-
-// Enough logged visits in the chosen window to make a Wrapped worth generating.
 $canGenerateWrapped = count($wrappedEntries) > 0;
-
-// AI-personalized captions (see ai_travel_wrapped_captions) — null, or
-// missing any given field, whenever AI isn't configured or the call
-// fails, so every slide below keeps its own static fallback copy.
 $twCaptions = $canGenerateWrapped
     ? (ai_travel_wrapped_captions($conn, $userId, $wrappedPeriod, $wrappedLabel, $tw) ?? [])
     : [];
 $twTemplate = $twCaptions['template'] ?? '';
 $allowedWrappedTemplates = ['culture', 'fiesta', 'sports', 'coffee', 'food', 'botanical', 'sky', 'sunset', 'neutral', 'moonlit'];
 if (!in_array($twTemplate, $allowedWrappedTemplates, true)) {
-    // If AI is unavailable, use explicit repeat-visit evidence for a
-    // lightweight local fallback instead of always showing one theme.
     $templateScores = [
         'culture' => 0,
         'fiesta' => (int) ($tw['categoryVisitCounts']['fiesta'] ?? 0),
@@ -686,27 +534,17 @@ $twSlideLayoutDefaults = [
     '9' => 'glance_scatter', '10' => 'closing_quote',
 ];
 $twSlideLayouts = array_replace($twSlideLayoutDefaults, $twCaptions['slide_layouts'] ?? []);
-
 $twMapPoints = td_wrapped_map_points($tw['distinctPlaces']);
-
-// Slides 1-4 and 10 always render; 5-9 are conditional on having that
-// kind of data. JS recomputes the real count from the DOM the instant
-// the overlay opens — this just keeps the very first paint from
-// flashing a stale "1/5".
 $twSlideTotal = 5
     + (!empty($tw['distinctPlaces']) ? 1 : 0)
     + (!empty($twFavoriteItems) ? 1 : 0)
     + (!empty($twMapPoints) ? 1 : 0)
     + (!empty($tw['photoMemories']) ? 2 : 0);
-
-/* ============================================================
-   TIMELINE + PHOTO MEMORIES (enrich with catalog details)
-============================================================ */
 $timeline = [];
 foreach ($entries as $e) {
     $key  = $e['item_type'] . '-' . $e['item_id'];
     $item = $catalog[$key] ?? null;
-    if (!$item) continue; // source item was deleted since — skip
+    if (!$item) continue;
     $timeline[] = [
         'entryId'      => (int) $e['entry_id'],
         'name'         => $item['name'],
@@ -726,16 +564,6 @@ foreach ($entries as $e) {
         'photos'       => $photosByEntry[(int) $e['entry_id']] ?? [],
     ];
 }
-
-/* ============================================================
-   DIARY GROUPS — $timeline (one row per visit) grouped by the
-   actual destination (itemType+itemId, never by name — two places
-   that happen to share a name must never merge). $entries/$timeline
-   are already ORDER BY visited_date DESC, entry_id DESC, so this is
-   a stable grouping pass: groups come out most-recently-visited
-   first and each group's own visits come out newest-first, for free
-   — exactly the default sort the compact Travel Timeline list wants.
-============================================================ */
 $diaryGroups = [];
 foreach ($timeline as $t) {
     $key = $t['itemType'] . '-' . $t['itemId'];
@@ -763,8 +591,6 @@ foreach ($diaryGroups as &$g) {
     $g['visitCount']     = count($g['visits']);
     $g['photoCount']     = array_sum(array_map(fn($v) => count($v['photos']), $g['visits']));
     $g['latestVisitDate'] = $g['visits'][0]['visitedDate'];
-    // Flat photos-across-all-visits list for the "Photos (N)" gallery —
-    // each photo still knows which visit it came from (for its caption).
     $g['allPhotos'] = [];
     foreach ($g['visits'] as $v) {
         foreach ($v['photos'] as $p) {
@@ -773,7 +599,6 @@ foreach ($diaryGroups as &$g) {
     }
 }
 unset($g);
-
 $photoMemories = [];
 foreach ($entries as $e) {
     $key  = $e['item_type'] . '-' . $e['item_id'];
@@ -790,22 +615,15 @@ foreach ($entries as $e) {
         ];
     }
 }
-// Newest photos first.
 usort($photoMemories, fn($a, $b) => strcmp($b['visitedDate'], $a['visitedDate']));
-
-// Exposed to JS for the client-side-rendered, tab-filtered, paginated
-// "Recent Memories" grid (switching tabs/pages shouldn't reload the page).
 $photoMemoriesJson = json_encode(array_values($photoMemories), JSON_UNESCAPED_UNICODE);
 $categoryIconsJson = json_encode($categoryIcons, JSON_UNESCAPED_SLASHES);
-
-// Checklist ("Visited Places Explorer"): every catalog item, with this
-// user's visit state attached.
 $checklist = [];
 foreach ($catalog as $key => $item) {
     $visits = $visitsByItem[$key] ?? [];
     $latestNote = '';
     foreach ($visits as $v) {
-        if ($v['note']) { $latestNote = $v['note']; break; } // entries already sorted DESC
+        if ($v['note']) { $latestNote = $v['note']; break; }
     }
     $checklist[] = $item + [
         'visited'        => count($visits) > 0,
@@ -814,7 +632,6 @@ foreach ($catalog as $key => $item) {
         'lastVisitedDate'=> $visits[0]['visited_date'] ?? null,
     ];
 }
-// Visited places first (most recent visit first), then unvisited alphabetically.
 usort($checklist, function ($a, $b) {
     if ($a['visited'] !== $b['visited']) return $a['visited'] ? -1 : 1;
     if ($a['visited']) return strcmp($b['lastVisitedDate'], $a['lastVisitedDate']);
@@ -831,25 +648,16 @@ usort($checklist, function ($a, $b) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css">
     <link rel="stylesheet" href="../assets/css/tourism.css">
-    <!-- ?v=<mtime> so browsers (mobile Chrome especially) actually fetch
-         a new copy after every deploy instead of serving a stale cached
-         one — this file has no Cache-Control/Expires header, so without
-         a change in the URL itself a "reload" can still show old CSS. -->
     <link rel="stylesheet" href="../assets/css/traveldiary.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/traveldiary.css') ?: time(); ?>">
-    <!-- Travel Wrapped's "Your Travel Map" slide — same Leaflet + OpenStreetMap tiles as the admin map pickers. -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -891,8 +699,6 @@ usort($checklist, function ($a, $b) {
         </div>
             <?php if ($isLoggedIn): ?><a href="../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="search_api.php" data-results="search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -905,12 +711,8 @@ usort($checklist, function ($a, $b) {
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
 <main class="td-page">
-
-    <!-- ── Hero ── -->
     <section class="td-hero">
         <div class="td-hero-decor" aria-hidden="true">
             <svg class="td-hero-mountains" viewBox="0 0 500 160" preserveAspectRatio="none">
@@ -923,7 +725,6 @@ usort($checklist, function ($a, $b) {
             <span class="td-hero-pin"><?php echo $statIcons['pin']; ?></span>
             <span class="td-hero-leaf td-hero-leaf-1"><?php echo $statIcons['memories']; ?></span>
         </div>
-
         <div class="td-hero-text">
             <p class="t-eyebrow td-hero-eyebrow"><?php echo $statIcons['pin']; ?> MALVAR, BATANGAS</p>
             <h1 class="td-hero-title">Travel <span class="td-hero-accent">Diary</span></h1>
@@ -931,7 +732,6 @@ usort($checklist, function ($a, $b) {
             <p class="td-hero-sub">Your personal log of everywhere you've explored in Malvar.</p>
             <button type="button" class="td-wrapped-btn td-wrapped-trigger">+ Generate My Travel Wrapped</button>
         </div>
-
         <div class="td-journey-card">
             <div class="td-journey-head">
                 <span class="td-journey-title">Your mini journey</span>
@@ -973,7 +773,6 @@ usort($checklist, function ($a, $b) {
             </div>
             <a href="#td-explorer" class="td-journey-link">Start a Memory →</a>
         </div>
-
         <?php if (!empty($photoMemories)): ?>
         <div class="td-hero-polaroid">
             <span class="td-hero-clip"><?php echo $statIcons['clip']; ?></span>
@@ -981,8 +780,6 @@ usort($checklist, function ($a, $b) {
         </div>
         <?php endif; ?>
     </section>
-
-    <!-- ── Travel Statistics ── -->
     <section class="td-section" id="td-stats">
         <div class="td-stats-grid">
             <div class="td-stat-card">
@@ -1011,7 +808,6 @@ usort($checklist, function ($a, $b) {
                 <span class="td-stat-label">Badges Collected</span>
             </div>
         </div>
-
         <div class="td-badges">
             <p class="td-badges-hint">One badge per category — logged your first visit there and it's yours.</p>
             <div class="td-badges-row">
@@ -1028,18 +824,14 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
     </section>
-
-    <!-- ── Recent Memories + Travel Timeline  |  Visited Places Explorer + Photo Memories ── -->
     <section class="td-section">
         <div class="td-twocol">
-
             <div class="td-col">
                 <div class="td-col-stack">
                     <div class="td-section-head-row">
                         <h2>Recent Memories</h2>
                         <a href="#td-gallery" class="td-view-link">View All Visits →</a>
                     </div>
-
                     <?php if (empty($photoMemories)): ?>
                         <div class="td-empty">
                             <h3>No memories yet</h3>
@@ -1060,13 +852,11 @@ usort($checklist, function ($a, $b) {
                     </div>
                     <?php endif; ?>
                 </div>
-
                 <div class="td-col-stack">
                     <div class="td-section-head-row">
                         <h2>Travel Timeline</h2>
                     </div>
                     <p class="td-col-sub">Every destination you've visited, most recent first.</p>
-
                     <?php if (empty($diaryGroups)): ?>
                         <div class="td-empty">
                             <h3>Your timeline is empty</h3>
@@ -1115,7 +905,6 @@ usort($checklist, function ($a, $b) {
                                         </p>
                                     </div>
                                 </div>
-
                                 <div class="td-folder-page-left" hidden>
                                         <div class="td-folder-stat-boxes">
                                             <div class="td-folder-stat-box">
@@ -1131,13 +920,11 @@ usort($checklist, function ($a, $b) {
                                                 <span class="td-folder-stat-value td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>
                                             </div>
                                         </div>
-
                                         <?php if (!empty($g['description'])): ?>
                                             <h4 class="td-folder-section-head">About</h4>
                                             <p class="td-folder-about"><?php echo nl2br(htmlspecialchars($g['description'])); ?></p>
                                         <?php endif; ?>
                                     </div>
-
                                 <div class="td-folder-page-right" hidden>
                                         <div class="td-folder-section-head-row">
                                             <h4 class="td-folder-section-head">Visit History</h4>
@@ -1179,7 +966,6 @@ usort($checklist, function ($a, $b) {
                                             <?php endforeach; ?>
                                         </div>
                                         <div class="td-visit-pagination" hidden></div>
-
                                         <div class="td-folder-section-head-row">
                                             <h4 class="td-folder-section-head td-folder-photos-head">Photos (<span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>)</h4>
                                             <?php if (count($g['allPhotos']) > 6): ?>
@@ -1201,7 +987,6 @@ usort($checklist, function ($a, $b) {
                                         <?php else: ?>
                                             <p class="td-empty-inline">No photos yet.</p>
                                         <?php endif; ?>
-
                                         <h4 class="td-folder-section-head">Notes</h4>
                                         <textarea
                                             class="td-note-input td-folder-note"
@@ -1209,7 +994,6 @@ usort($checklist, function ($a, $b) {
                                             data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
                                             data-item-id="<?php echo (int) $g['itemId']; ?>"
                                         ><?php echo htmlspecialchars($g['visits'][0]['note'] ?? ''); ?></textarea>
-
                                         <div class="td-timeline-actions">
                                             <button type="button" class="td-timeline-log-again td-folder-btn-solid"
                                                 data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
@@ -1233,7 +1017,6 @@ usort($checklist, function ($a, $b) {
                     <?php endif; ?>
                 </div>
             </div>
-
             <div class="td-col">
                 <div class="td-col-stack" id="td-explorer">
                     <div class="td-section-head-row">
@@ -1252,7 +1035,6 @@ usort($checklist, function ($a, $b) {
                     </div>
                     <button type="button" class="td-nearby-btn" id="tdNearbyBtn"><span class="td-btn-icon"><?php echo $uiIcons['pin']; ?></span><span class="td-nearby-btn-label">Show places near me first</span></button>
                     <p class="td-nearby-status" id="tdNearbyStatus" hidden></p>
-
                     <div class="td-checklist" id="tdChecklist">
                         <?php foreach ($checklist as $i => $c): ?>
                             <div class="td-check-row<?php echo $i >= 6 ? ' td-hidden-extra' : ''; ?>" data-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-name="<?php echo htmlspecialchars(mb_strtolower($c['name'])); ?>" data-place="<?php echo htmlspecialchars($c['name']); ?>" data-lat="<?php echo $c['lat'] !== null ? $c['lat'] : ''; ?>" data-lng="<?php echo $c['lng'] !== null ? $c['lng'] : ''; ?>">
@@ -1263,7 +1045,6 @@ usort($checklist, function ($a, $b) {
                                         <span class="td-check-initial"><?php echo htmlspecialchars(mb_substr($c['name'], 0, 1)); ?></span>
                                     <?php endif; ?>
                                 </div>
-
                                 <div class="td-check-body">
                                     <div class="td-check-top">
                                         <span class="td-check-name"><?php echo htmlspecialchars($c['name']); ?></span>
@@ -1277,22 +1058,18 @@ usort($checklist, function ($a, $b) {
                                             Not visited yet
                                         <?php endif; ?>
                                     </p>
-
                                     <?php if ($c['visited']): ?>
                                         <button type="button" class="td-log-again-btn td-log-again-btn-visible" data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>">+ Log Another Visit</button>
                                     <?php endif; ?>
-
                                     <div class="td-check-expand" hidden>
                                         <textarea class="td-note-input" placeholder="Add a note…" data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>"><?php echo htmlspecialchars($c['note']); ?></textarea>
                                     </div>
                                 </div>
-
                                 <?php if ($c['visited']): ?>
                                     <button type="button" class="td-check-photo-btn" aria-label="Add photo" title="Add photo"
                                         data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>"><?php echo $uiIcons['camera']; ?></button>
                                 <?php endif; ?>
                                 <button type="button" class="td-check-toggle-note" aria-label="Add note" title="Add note"><?php echo $uiIcons['pencil']; ?></button>
-
                                 <label class="td-check-box">
                                     <input type="checkbox" class="td-checkbox" data-item-type="<?php echo htmlspecialchars($c['itemType']); ?>" data-item-id="<?php echo (int) $c['itemId']; ?>" <?php echo $c['visited'] ? 'checked' : ''; ?>>
                                     <span class="td-check-mark"></span>
@@ -1305,13 +1082,11 @@ usort($checklist, function ($a, $b) {
                         <button type="button" class="td-view-link td-expand-btn" id="tdExpandChecklist">View All Places (<?php echo count($checklist); ?>) →</button>
                     <?php endif; ?>
                 </div>
-
                 <div class="td-col-stack" id="td-gallery">
                     <div class="td-section-head-row">
                         <h2>Photo Memories</h2>
                     </div>
                     <p class="td-col-sub">Every photo you've uploaded, in one gallery.</p>
-
                     <?php if (empty($photoMemories)): ?>
                         <div class="td-empty">
                             <h3>No photos yet</h3>
@@ -1336,11 +1111,8 @@ usort($checklist, function ($a, $b) {
                     <?php endif; ?>
                 </div>
             </div>
-
         </div>
     </section>
-
-    <!-- ── Wrapped CTA banner ── -->
     <section class="td-section td-section-flush">
         <div class="td-cta-banner">
             <span class="td-cta-leaf td-cta-leaf-1" aria-hidden="true"><?php echo $statIcons['memories']; ?></span>
@@ -1350,10 +1122,7 @@ usort($checklist, function ($a, $b) {
             <button type="button" class="td-wrapped-btn td-wrapped-btn-light td-wrapped-trigger">+ Generate My Travel Wrapped</button>
         </div>
     </section>
-
 </main>
-
-<!-- ── Wrapped period picker ── -->
 <div class="tw-period-overlay" id="twPeriodOverlay">
     <div class="tw-period-card">
         <button type="button" class="tw-period-close" id="twPeriodClose" aria-label="Close">&times;</button>
@@ -1384,18 +1153,13 @@ usort($checklist, function ($a, $b) {
         </div>
     </div>
 </div>
-
-<!-- ── Travel Wrapped ── -->
 <div class="tw-overlay" id="twOverlay">
     <button type="button" class="tw-close" id="twClose" aria-label="Close">&times;</button>
-
     <?php if ($canGenerateWrapped): ?>
     <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?> tw-vibe-<?php echo htmlspecialchars($twTemplate); ?>">
     <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
-
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>
     <button type="button" class="tw-nav tw-nav-next" id="twNext" aria-label="Next slide">&#8250;</button>
-
     <div class="tw-share-bar">
         <button type="button" class="tw-share-btn" id="twDownloadBtn" aria-label="Save this slide as a photo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -1410,10 +1174,7 @@ usort($checklist, function ($a, $b) {
             <span>Facebook</span>
         </a>
     </div>
-
     <div class="tw-slides" id="twSlides">
-
-        <!-- Slide 1: Title -->
         <div class="tw-slide tw-slide-1 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['1']); ?>">
             <div class="tw-slide-inner">
                 <div class="tw-brand">KULTOURA<span>MALVAR, BATANGAS</span></div>
@@ -1429,8 +1190,6 @@ usort($checklist, function ($a, $b) {
                 <p class="tw-swipe-hint">Swipe to see your adventures! →</p>
             </div>
         </div>
-
-        <!-- Slide 2: By the Numbers -->
         <div class="tw-slide tw-slide-2 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['2']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">By the Numbers</h2>
@@ -1445,8 +1204,6 @@ usort($checklist, function ($a, $b) {
                 <p class="tw-footer-note"><?php echo !empty($twCaptions['numbers_footer']) ? ai_wrapped_caption_html($twCaptions['numbers_footer']) : 'Every number has a memory behind it.'; ?></p>
             </div>
         </div>
-
-        <!-- Slide 3: Top Picks -->
         <div class="tw-slide tw-slide-3 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['3']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Top Picks</h2>
@@ -1498,8 +1255,6 @@ usort($checklist, function ($a, $b) {
                 </div>
             </div>
         </div>
-
-        <!-- Slide 4: Journey Timeline -->
         <div class="tw-slide tw-slide-4 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['4']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Your Journey<br>Timeline</h2>
@@ -1522,8 +1277,6 @@ usort($checklist, function ($a, $b) {
                 <p class="tw-footer-note"><?php echo !empty($twCaptions['timeline_footer']) ? ai_wrapped_caption_html($twCaptions['timeline_footer']) : 'More memories await next time!'; ?></p>
             </div>
         </div>
-
-        <!-- Slide 5: Places You Explored -->
         <?php if (!empty($tw['distinctPlaces'])): ?>
         <div class="tw-slide tw-slide-5 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['5']); ?>">
             <div class="tw-slide-inner">
@@ -1542,8 +1295,6 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
         <?php endif; ?>
-
-        <!-- Slide 6: What You Liked -->
         <?php if (!empty($twFavoriteItems)): ?>
         <div class="tw-slide tw-slide-6 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['6']); ?>">
             <div class="tw-slide-inner">
@@ -1560,8 +1311,6 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
         <?php endif; ?>
-
-        <!-- Slide 7: Your Travel Map -->
         <?php if (!empty($twMapPoints)): ?>
         <div class="tw-slide tw-slide-7 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['7']); ?>">
             <div class="tw-slide-inner">
@@ -1578,8 +1327,6 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
         <?php endif; ?>
-
-        <!-- Slide 8: Your Photos -->
         <?php if (!empty($tw['photoMemories'])): $twPhotosSlide = td_wrapped_cycle($tw['photoMemories'], 4, 4); ?>
         <div class="tw-slide tw-slide-8 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['8']); ?>">
             <div class="tw-slide-inner">
@@ -1593,8 +1340,6 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
         <?php endif; ?>
-
-        <!-- Slide 9: Memories at a Glance -->
         <?php if (!empty($tw['photoMemories'])): $twScatterPhotos = td_wrapped_cycle($tw['photoMemories'], 1, 3); ?>
         <div class="tw-slide tw-slide-9 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['9']); ?>">
             <div class="tw-slide-inner">
@@ -1609,8 +1354,6 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
         <?php endif; ?>
-
-        <!-- Slide 10: Thank You -->
         <div class="tw-slide tw-slide-10 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['10']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Here's to more <span class="tw-accent-green">adventures!</span></h2>
@@ -1621,41 +1364,29 @@ usort($checklist, function ($a, $b) {
                 <div class="tw-brand-footer">KULTOURA<span>MALVAR, BATANGAS</span></div>
             </div>
         </div>
-
     </div>
     </div>
     <?php endif; ?>
 </div>
-
-<!-- ── Backdrop behind a popped-open folder card ── -->
 <div class="td-folder-backdrop" id="tdFolderBackdrop"></div>
-
-<!-- ── Visit confirmation (geofence check / backdated visit) ── -->
 <div class="td-visit-overlay" id="tdVisitOverlay">
     <div class="td-visit-card">
         <button type="button" class="td-visit-close" id="tdVisitClose" aria-label="Close">&times;</button>
-
         <div class="td-visit-spinner" id="tdVisitSpinner"></div>
         <div class="td-visit-icon" id="tdVisitIcon" hidden></div>
-
         <p class="td-visit-title" id="tdVisitTitle">Checking your location…</p>
         <p class="td-visit-sub" id="tdVisitSub"></p>
-
         <input type="date" class="td-visit-date" id="tdVisitDate" hidden>
-
         <div class="td-visit-actions" id="tdVisitAskActions" hidden>
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdVisitNo">No, cancel</button>
             <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdVisitYes">Yes, I've been there</button>
         </div>
-
         <div class="td-visit-actions" id="tdVisitConfirmActions" hidden>
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdVisitCancel">Cancel</button>
             <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdVisitSubmit">Log Visit</button>
         </div>
     </div>
 </div>
-
-<!-- ── Add Photo: camera vs library choice ── -->
 <div class="td-photo-choice-overlay" id="tdPhotoChoiceOverlay">
     <div class="td-photo-choice-card">
         <button type="button" class="td-photo-choice-close" id="tdPhotoChoiceClose" aria-label="Close">&times;</button>
@@ -1678,8 +1409,6 @@ usort($checklist, function ($a, $b) {
         </div>
     </div>
 </div>
-
-<!-- ── Live camera (Take Photo) ── -->
 <div class="td-camera-overlay" id="tdCameraOverlay">
     <div class="td-camera-card">
         <button type="button" class="td-photo-choice-close" id="tdCameraClose" aria-label="Close camera">&times;</button>
@@ -1701,22 +1430,15 @@ usort($checklist, function ($a, $b) {
     </div>
 </div>
 <canvas id="tdCameraCanvas" hidden></canvas>
-
-<!-- ── Photo lightbox ── -->
 <div class="td-lightbox" id="tdLightbox">
     <button type="button" class="td-lightbox-close" id="tdLightboxClose" aria-label="Close">&times;</button>
     <img src="" alt="" id="tdLightboxImg">
     <p id="tdLightboxCaption"></p>
 </div>
-
-<!-- ── Toast ── -->
 <div class="td-toast" id="tdToast"></div>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-
 <script>
 const TD_CAN_WRAP = <?php echo $canGenerateWrapped ? 'true' : 'false'; ?>;
 const TD_WRAPPED_REQUESTED = <?php echo $wrappedRequested ? 'true' : 'false'; ?>;
@@ -1724,12 +1446,10 @@ const TD_WRAPPED_PERIOD = <?php echo json_encode($wrappedPeriod); ?>;
 const TD_PHOTO_MEMORIES = <?php echo $photoMemoriesJson; ?>;
 const TD_CATEGORY_ICONS = <?php echo $categoryIconsJson; ?>;
 </script>
-<!-- Renders a slide's DOM into a downloadable/shareable PNG (used by Save Photo / Share). -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/navbar-search.js"></script>
 <script src="../assets/js/traveldiary.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/traveldiary.js') ?: time(); ?>"></script>
-
 </body>
 </html>

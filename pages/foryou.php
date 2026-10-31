@@ -6,50 +6,24 @@ kt_maintenance_gate($conn);
 include '../config/analytics.php';
 include '../config/ai_recommend.php';
 analytics_track($conn, 'foryou');
-
 $siteName = "KULTOURA";
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-/* ============================================================
-   BROWSING HISTORY TRACKER
-   ------------------------------------------------------------
-   Each of the 7 tourism pages (products.php, restaurants.php,
-   nature.php, resort.php, industry.php, fiestas.php, people.php)
-   logs itself into $_SESSION['history'] on load — see the top of
-   each file. This just reads whatever they've accumulated.
-
-   For quick manual testing you can also simulate a visit by
-   opening:  foryou.php?track=nature
-============================================================ */
 if (!isset($_SESSION['history'])) {
     $_SESSION['history'] = [];
 }
 if (!isset($_SESSION['itemHistory'])) {
     $_SESSION['itemHistory'] = [];
 }
-
 if (isset($_GET['track'])) {
     $track = preg_replace('/[^a-z_]/', '', strtolower($_GET['track']));
     if ($track !== '') {
         $_SESSION['history'][] = $track;
-        $_SESSION['history'] = array_slice($_SESSION['history'], -30); // keep last 30
+        $_SESSION['history'] = array_slice($_SESSION['history'], -30);
     }
     header('Location: foryou.php');
     exit;
 }
-
-/* ============================================================
-   DESTINATION / CONTENT DATA
-   ------------------------------------------------------------
-   Pulled live from the same tables every tourism page reads from
-   (products, restaurants, destination, fiestas, people). Each
-   tourism page logs its own category into $_SESSION['history']
-   on load (see the top of nature.php, restaurants.php, etc.) so
-   the recommendations below reflect what the visitor has actually
-   been browsing, not a hardcoded demo list.
-============================================================ */
-// Upload subfolder per item type — same mapping used by favorites.php.
 $imageSubfolder = [
     'product'       => 'food',
     'restaurant'    => 'food',
@@ -62,16 +36,11 @@ $imageSubfolder = [
     'fiesta'        => 'fiestas',
     'person'        => 'people',
 ];
-
 function fy_image_src(string $category, ?string $rawImage, array $imageSubfolder): string
 {
     if (empty($rawImage)) return '';
     return '../assets/uploads/' . ($imageSubfolder[$category] ?? $category) . '/' . basename($rawImage);
 }
-
-// Which items the logged-in user has already favorited, keyed the same
-// way the `favorites` table stores them ("item_type-item_id") so every
-// heart button below can render its correct starting state.
 $favoritedKeys = [];
 if ($isLoggedIn) {
     $favUserId = (int) $_SESSION['user_id'];
@@ -85,18 +54,10 @@ if ($isLoggedIn) {
         }
     }
 }
-
 function fy_is_favorited(string $itemType, int $itemId, array $favoritedKeys): bool
 {
     return isset($favoritedKeys[$itemType . '-' . $itemId]);
 }
-
-// Places the user has actually logged a visit to in their Travel Diary
-// (diary_entries) — a stronger signal than a casual page view or even a
-// favorite, since it means they went, and often wrote a note about it.
-// Oldest-first so the recency weighting below treats the most recent
-// trip as the strongest signal. Session-only visitors (not logged in)
-// have no diary, so this is empty for them — same gate as $favoritedKeys.
 $diaryItemKeys = [];
 if ($isLoggedIn) {
     $diaryUserId = (int) $_SESSION['user_id'];
@@ -110,10 +71,6 @@ if ($isLoggedIn) {
         }
     }
 }
-
-// Which broad filter pill each category belongs to, and which color
-// the category badge on each card should use.
-
 $filterGroup = [
     'product'       => 'product',
     'restaurant'    => 'restaurant',
@@ -127,10 +84,7 @@ $filterGroup = [
     'fiesta'        => 'fiesta',
     'person'        => 'person',
 ];
-
-
 $places = [];
-
 if ($result = $conn->query("SELECT product_id, product_name, category, description, image, location, latitude, longitude, created_at FROM products WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['product_id'];
@@ -153,7 +107,6 @@ if ($result = $conn->query("SELECT product_id, product_name, category, descripti
         ];
     }
 }
-
 if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, description, image, address, latitude, longitude, created_at FROM restaurants WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['restaurant_id'];
@@ -176,7 +129,6 @@ if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, des
         ];
     }
 }
-
 $destinationMeta = [
     'nature'        => ['link' => 'tourism/nature.php'],
     'resort'        => ['link' => 'tourism/resort.php'],
@@ -190,7 +142,6 @@ if ($result = $conn->query("SELECT destination_id, destination_name, description
     while ($row = $result->fetch_assoc()) {
         $cat = $row['category'];
         if (!isset($destinationMeta[$cat])) continue;
-
         $itemId = (int) $row['destination_id'];
         $places[] = [
             'id'         => 'destination-' . $itemId,
@@ -211,7 +162,6 @@ if ($result = $conn->query("SELECT destination_id, destination_name, description
         ];
     }
 }
-
 if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, image, location, latitude, longitude, created_at FROM fiestas WHERE status = 'active' AND celebration_date >= CURDATE()")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['fiesta_id'];
@@ -234,10 +184,6 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, im
         ];
     }
 }
-
-// People have no map coordinates — they'll show up in "Because You
-// Explored" but are naturally excluded from "Near You" (null lat/lng).
-// Their "location" line shows their role/title instead of an address.
 if ($result = $conn->query("SELECT person_id, fullname, description, image, title, created_at FROM people WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['person_id'];
@@ -260,7 +206,6 @@ if ($result = $conn->query("SELECT person_id, fullname, description, image, titl
         ];
     }
 }
-
 $categoryLabels = [
     'product'       => 'Local Products',
     'restaurant'    => 'Local Cuisine',
@@ -274,33 +219,6 @@ $categoryLabels = [
     'fiesta'        => 'Fiestas & Events',
     'person'        => 'Faces of Malvar',
 ];
-
-/* ============================================================
-   RECOMMENDATION LOGIC — content-based filtering (TF-IDF + cosine
-   similarity), the same vector-space technique most "AI-powered"
-   recommendation engines use under the hood — fully local, no API
-   key or external call needed.
-   ------------------------------------------------------------
-   1. Every place becomes a TF-IDF vector built from its name,
-      category and description.
-   2. A "profile vector" for the visitor is the weighted centroid
-      of the vectors for every place they opened, logged in their
-      Travel Diary, or favorited — real interaction signals, not
-      just which category page loaded:
-        - items opened  ($_SESSION['itemHistory'])  weight 3x
-        - diary entries ($diaryItemKeys)             weight 4x
-        - favorites     ($favoritedKeys)             weight 5x
-      Each is also recency-weighted so recent activity outweighs
-      older activity.
-   3. Every other place is scored by cosine similarity to that
-      profile vector — how much its actual content (not just its
-      category label) resembles what the visitor has shown
-      interest in — blended with a category-affinity score built
-      from those same signals plus plain page visits (1x).
-   4. Already-opened places rank last (via backfill) so the section
-      surfaces something new. No history yet falls back to a
-      trending mix so the page never looks empty.
-============================================================ */
 function fy_tokenize(string $text): array
 {
     $text = strtolower($text);
@@ -310,10 +228,6 @@ function fy_tokenize(string $text): array
     $tokens = preg_split('/\s+/', trim($text));
     return array_values(array_filter($tokens, fn($t) => $t !== '' && strlen($t) > 1 && !in_array($t, $stopwords, true)));
 }
-
-// Augmented term frequency (dampens long descriptions dominating short
-// names) times inverse document frequency (rewards words that make a
-// place distinctive rather than generic filler shared by everything).
 function fy_tfidf_vector(array $tokens, array $docFreq, int $totalDocs): array
 {
     if (empty($tokens)) return [];
@@ -327,7 +241,6 @@ function fy_tfidf_vector(array $tokens, array $docFreq, int $totalDocs): array
     }
     return $vector;
 }
-
 function fy_cosine_similarity(array $a, array $b): float
 {
     if (empty($a) || empty($b)) return 0.0;
@@ -340,38 +253,24 @@ function fy_cosine_similarity(array $a, array $b): float
     $normB = sqrt(array_sum(array_map(fn($w) => $w * $w, $b)));
     return ($normA > 0 && $normB > 0) ? $dot / ($normA * $normB) : 0.0;
 }
-
 function fy_recency_weighted_scores(array $items, float $weight): array
 {
     $scores = [];
     $n = count($items);
     foreach ($items as $i => $key) {
-        // Oldest entry ~0.5x weight, newest ~1.5x — recent activity
-        // matters more without letting old history drop to zero.
         $recencyFactor = $n > 1 ? 0.5 + ($i / ($n - 1)) : 1.0;
         $scores[$key] = ($scores[$key] ?? 0) + ($weight * $recencyFactor);
     }
     return $scores;
 }
-
-// -- Build a content vector for every place in the catalog --
-// When a Gemini key is configured (config/gemini.php — see
-// config/gemini.example.php), real semantic embeddings are used,
-// cached per place in `place_embeddings` so only new/edited listings
-// ever cost a live API call. Without a key, or if a place's embedding
-// can't be fetched this request, it falls back to the local TF-IDF
-// vector below — the page always has something to compare with.
 $aiAvailable = ai_configured();
-$aiFetchBudget = 15; // cap live Gemini calls per page load so a cold cache can't stall a request
-
+$aiFetchBudget = 15;
 $placesByKey = [];
 $documents = [];
 $embedTexts = [];
 foreach ($places as $p) {
     $placesByKey[$p['itemType'] . '-' . $p['itemId']] = $p;
     $embedTexts[$p['id']] = $p['name'] . '. ' . ($p['badgeText'] ?? '') . '. ' . ucfirst($p['category']) . '. ' . ($p['desc'] ?? '');
-    // Name and category repeated so they outweigh incidental words
-    // in the free-text description when terms are scored (TF-IDF only).
     $doc = $p['name'] . ' ' . $p['name'] . ' ' . ($p['badgeText'] ?? '') . ' '
          . $p['category'] . ' ' . $p['category'] . ' ' . $p['category'] . ' '
          . ($p['desc'] ?? '');
@@ -384,21 +283,9 @@ foreach ($documents as $tokens) {
     }
 }
 $totalDocs = count($documents);
-
-// Embedding vectors (1536-dim) and TF-IDF vectors (term-keyed) are not
-// comparable to each other — mixing them in the same profile centroid
-// would silently produce meaningless scores. So this only ever runs in
-// one mode per request: every place gets a real embedding, or every
-// place gets a TF-IDF vector; a place that can't get an embedding this
-// request (budget exhausted, API error) gets an empty vector instead
-// of a TF-IDF one, so it just contributes zero content-similarity
-// rather than corrupting the shared vector space.
 $placeVectors = [];
 foreach ($places as $p) {
     if ($aiAvailable) {
-        // Cache reads are free and don't touch the fetch budget — only
-        // a genuine cache miss (new/edited listing) spends one of the
-        // capped live API calls below.
         $embedding = ai_get_cached_embedding($conn, $p['itemType'], $p['itemId'], $embedTexts[$p['id']]);
         if ($embedding === null && $aiFetchBudget > 0) {
             $embedding = ai_get_place_embedding($conn, $p['itemType'], $p['itemId'], $embedTexts[$p['id']]);
@@ -409,12 +296,9 @@ foreach ($places as $p) {
         $placeVectors[$p['id']] = fy_tfidf_vector($documents[$p['id']], $docFreq, $totalDocs);
     }
 }
-
 $history = $_SESSION['history'];
 $itemHistory = $_SESSION['itemHistory'];
 $hasHistory = count($history) > 0 || count($itemHistory) > 0 || count($favoritedKeys) > 0 || count($diaryItemKeys) > 0;
-
-// -- Category affinity (recency-weighted, now four signals) --
 $freq = fy_recency_weighted_scores($history, 1.0);
 $itemHistoryCats = array_map(fn($h) => $h['type'], $itemHistory);
 foreach (fy_recency_weighted_scores($itemHistoryCats, 3.0) as $cat => $score) {
@@ -432,11 +316,6 @@ foreach (array_keys($favoritedKeys) as $key) {
 arsort($freq);
 $topCategories = array_keys($freq);
 $maxFreq = !empty($freq) ? max($freq) : 0;
-
-// -- Content profile vector: weighted centroid of every item opened,
-//    logged in the Travel Diary, or favorited, so what the visitor
-//    actually read about / visited (not just which category they
-//    clicked) drives the similarity score. --
 $profileVector = [];
 $profileWeight = 0.0;
 $itemHistoryKeyed = array_map(fn($h) => $h['type'] . '-' . $h['id'], $itemHistory);
@@ -447,9 +326,6 @@ foreach (fy_recency_weighted_scores($itemHistoryKeyed, 3.0) as $key => $weight) 
     }
     $profileWeight += $weight;
 }
-// Diary visits outweigh a casual page view and sit just under an
-// explicit favorite — logging a trip (often with a note) is a
-// deliberate, confirmed sign of interest in that kind of place.
 foreach (fy_recency_weighted_scores($diaryItemKeys, 4.0) as $key => $weight) {
     if (!isset($placesByKey[$key])) continue;
     foreach ($placeVectors[$placesByKey[$key]['id']] as $term => $w) {
@@ -470,10 +346,6 @@ if ($profileWeight > 0) {
         $profileVector[$term] = $w / $profileWeight;
     }
 }
-
-// Items already opened this session, or already logged in the Travel
-// Diary, are excluded first so the section surfaces something new
-// rather than a repeat of a trip already taken and written up.
 $viewedItemKeys = [];
 foreach ($itemHistory as $h) {
     $viewedItemKeys[$h['type'] . '-' . $h['id']] = true;
@@ -481,24 +353,14 @@ foreach ($itemHistory as $h) {
 foreach ($diaryItemKeys as $key) {
     $viewedItemKeys[$key] = true;
 }
-
-// Interest score for every place, not just the eventual top 6 — sent
-// down to the client (see $placesJson below) so foryou.js can blend in
-// a location-proximity boost once geolocation is available, instead of
-// the "Near You" section staying forever separate from "Because You
-// Explored". Same formula as before, just computed unconditionally.
 $interestScores = [];
 foreach ($places as $p) {
     $contentScore = fy_cosine_similarity($profileVector, $placeVectors[$p['id']]);
     $categoryScore = $maxFreq > 0 ? (($freq[$p['category']] ?? 0) / $maxFreq) : 0;
-    // Lean on content similarity once there's a real profile vector
-    // to compare against; otherwise (e.g. only page visits logged,
-    // no items opened yet) fall back to category affinity alone.
     $interestScores[$p['id']] = $profileWeight > 0
         ? (0.65 * $contentScore) + (0.35 * $categoryScore)
         : $categoryScore;
 }
-
 $recommended = [];
 if ($hasHistory) {
     $scored = [];
@@ -509,9 +371,6 @@ if ($hasHistory) {
     }
     usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
     $recommended = array_column(array_slice($scored, 0, 6), 'place');
-
-    // Catalog too small to fill 6 unseen picks? Backfill with
-    // already-viewed places by top category rather than a short section.
     if (count($recommended) < 6) {
         $seen = [];
         foreach ($recommended as $p) $seen[$p['id']] = true;
@@ -525,7 +384,6 @@ if ($hasHistory) {
         }
     }
 } else {
-    // trending fallback: one pick per category
     $used = [];
     foreach ($places as $p) {
         if (!isset($used[$p['category']])) {
@@ -535,15 +393,10 @@ if ($hasHistory) {
     }
     $recommended = array_slice($recommended, 0, 6);
 }
-
-// ── "Browse by Category" sidebar ──
-// Count of how many spots are in each category, for the subtitle under
-// each sidebar entry.
 $categoryCounts = [];
 foreach ($places as $p) {
     $categoryCounts[$p['category']] = ($categoryCounts[$p['category']] ?? 0) + 1;
 }
-
 $hubTiles = [
     ['category' => 'product',    'title' => 'Products',        'link' => 'tourism/products.php'],
     ['category' => 'restaurant', 'title' => 'Restaurants',      'link' => 'tourism/restaurants.php'],
@@ -553,8 +406,6 @@ $hubTiles = [
     ['category' => 'fiesta',     'title' => 'Fiestas',          'link' => 'tourism/fiestas.php'],
     ['category' => 'person',     'title' => 'People of Malvar', 'link' => 'tourism/people.php'],
 ];
-
-// Small monochrome line icons (currentColor) for the sidebar — no emoji.
 $categoryIcons = [
     'product'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
     'restaurant' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg>',
@@ -564,8 +415,6 @@ $categoryIcons = [
     'fiesta'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     'person'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>',
 ];
-
-// The first recommended item with a photo becomes the hero image.
 $heroImage = '';
 $heroSource = !empty($recommended) ? $recommended : $places;
 foreach ($heroSource as $p) {
@@ -574,16 +423,11 @@ foreach ($heroSource as $p) {
         break;
     }
 }
-
-// Carry the interest score + already-viewed flag down to the client so
-// foryou.js can re-rank with a location boost (see applyLocationBoost)
-// using the same signal the server-rendered picks above are based on.
 foreach ($places as &$p) {
     $p['interestScore'] = $interestScores[$p['id']] ?? 0;
     $p['viewed'] = isset($viewedItemKeys[$p['itemType'] . '-' . $p['itemId']]);
 }
 unset($p);
-
 $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
 ?>
 <!DOCTYPE html>
@@ -599,18 +443,14 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
     <link rel="stylesheet" href="../assets/css/foryou.css">
 </head>
 <body>
-
 <header class="navbar">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
         <div class="user-greeting-left navbar-brand-logo"><img src="../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
-
         <div class="dropdown">
             <a href="tourism.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg></span><span>EXPLORE MALVAR ▾</span></a>
             <div class="mega-menu">
@@ -633,7 +473,6 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 </div>
             </div>
         </div>
-
         <a href="tourism/restaurants.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg></span><span>RESTAURANTS</span></a>
         <a href="tourism/accommodation.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M22 12v8"/><path d="M2 12h20"/><path d="M2 8h6a2 2 0 0 1 2 2v2"/><path d="M22 8h-6a2 2 0 0 0-2 2v2"/></svg></span><span>ACCOMMODATION</span></a>
         <a href="tourism/banks.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M2 10h20L12 4z"/><path d="M8 14v4M12 14v4M16 14v4"/></svg></span><span>BANKS</span></a>
@@ -649,11 +488,8 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 </div>
             </div>
         </div>
-
             <?php if ($isLoggedIn): ?><a href="../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="search_api.php" data-results="search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -666,12 +502,8 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
 <main class="fy-page">
-
-    <!-- Hero banner -->
     <section class="fy-hero">
         <div class="fy-hero-text">
             <p class="section-label">CURATED FOR YOU</p>
@@ -689,7 +521,6 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                     Start exploring and this page will learn what you love.
                 <?php endif; ?>
             </p>
-
             <?php if ($hasHistory): ?>
             <div class="fy-history-chips">
                 <span class="fy-history-label">You've been exploring</span>
@@ -698,21 +529,16 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
-
             <a href="#fy-recommended" class="fy-hero-cta">Explore Now →</a>
         </div>
-
         <?php if ($heroImage): ?>
         <div class="fy-hero-media">
             <img src="<?php echo htmlspecialchars($heroImage); ?>" alt="">
         </div>
         <?php endif; ?>
     </section>
-
     <div class="fy-layout-wrap">
     <div class="fy-page-layout">
-
-        <!-- Browse by Category sidebar -->
         <aside class="fy-sidebar">
             <p class="fy-sidebar-label">Browse by Category</p>
             <nav class="fy-cat-list">
@@ -726,8 +552,6 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                     </a>
                 <?php endforeach; ?>
             </nav>
-
-            <!-- Near You widget -->
             <div class="fy-near-widget">
                 <p class="fy-sidebar-label">Near You</p>
                 <p class="fy-near-widget-sub">Top spots near your current location</p>
@@ -736,11 +560,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <a href="#fy-nearby" class="fy-near-widget-link">View all nearby →</a>
             </div>
         </aside>
-
-        <!-- Content column -->
         <div class="fy-content-col">
-
-    <!-- Recommended section -->
     <section class="fy-section" id="fy-recommended">
         <div class="fy-section-head-row">
             <div class="fy-section-head">
@@ -764,7 +584,6 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 </select>
             </div>
         </div>
-
         <div class="fy-grid" id="fyRecommendedGrid">
             <?php foreach ($recommended as $p): ?>
                 <div class="fy-card" data-group="<?php echo htmlspecialchars($p['group']); ?>" data-created="<?php echo (int) $p['createdAt']; ?>" data-item-type="<?php echo htmlspecialchars($p['itemType']); ?>" data-item-id="<?php echo (int) $p['itemId']; ?>">
@@ -803,33 +622,22 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
             <?php endforeach; ?>
         </div>
     </section>
-
-    <!-- Near You section -->
     <section class="fy-section fy-nearby" id="fy-nearby">
         <div class="fy-section-head">
             <h2>Near You</h2>
             <p>Turn on location to see what's closest to where you are right now.</p>
         </div>
-
         <div id="fy-location-gate" class="fy-location-gate">
             <p>See destinations sorted by distance from you.</p>
             <button id="fy-enable-location" class="btn btn-filled fy-location-btn">ENABLE LOCATION</button>
             <p id="fy-location-status" class="fy-location-status"></p>
         </div>
-
         <div id="fy-nearby-grid" class="fy-grid fy-nearby-grid" hidden></div>
     </section>
-
         </div>
-        <!-- /fy-content-col -->
-
     </div>
     </div>
-    <!-- /fy-page-layout, /fy-layout-wrap -->
-
 </main>
-
-<!-- ── Place detail modal — "View" opens this instead of navigating away ── -->
 <div class="fy-detail-overlay" id="fyDetailOverlay">
     <div class="fy-detail-card">
         <button type="button" class="fy-detail-close" id="fyDetailClose" aria-label="Close">&times;</button>
@@ -852,12 +660,9 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
         </div>
     </div>
 </div>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-
 <script>
 const KULTOURA_PLACES = <?php echo $placesJson; ?>;
 </script>

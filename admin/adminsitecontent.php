@@ -4,82 +4,52 @@ include '../config/dbmain.php';
 include '../config/sitecontent.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL / ACCESS CONTROL — same guard as the other admin pages.
- */
 define('BASE_URL', '/kultoura');
-
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | IMAGE UPLOAD HELPER — same convention as admindestinations.php.
- */
 function handleSiteContentImageUpload(string $field): ?string
 {
     if (empty($_FILES[$field]['name']) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
-
     $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $allowed, true)) {
         return null;
     }
-
-    // Confirm it's actually an image, not just a renamed file.
     if (@getimagesize($_FILES[$field]['tmp_name']) === false) {
         return null;
     }
-
     $uploadDir = __DIR__ . '/../assets/uploads/sitecontent/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
-
     $filename = uniqid('site_', true) . '.' . $ext;
     if (move_uploaded_file($_FILES[$field]['tmp_name'], $uploadDir . $filename)) {
         return BASE_URL . '/assets/uploads/sitecontent/' . $filename;
     }
-
     return null;
 }
-
-/*
- |--------------------------------------------------------------------
- | HANDLE ADD / EDIT / DELETE / REORDER — POST back to this same page.
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     csrf_verify();
     $action = $_POST['action'];
-
-    // ---- Hero / singleton photo slots + reorder — no "entry" to review, so
-    // these stay Super Admin-only (not part of the request/approval queue).
     if (in_array($action, ['save_photo', 'reorder_sections'], true) && !$isSuperAdmin) {
         $_SESSION['admin_flash'] = 'Only a Super Admin can update site photos directly.';
         header("Location: " . BASE_URL . "/admin/adminsitecontent.php");
         exit;
     }
-
-    // ---- Hero / singleton photo slots ----
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
         if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero', 'products_hero'], true)) {
@@ -99,12 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
     }
-
-    // ---- About sections — create / update / archive, gated by role ----
     if (in_array($action, ['create_section', 'update_section', 'delete_section'], true)) {
         $id = isset($_POST['id']) && $_POST['id'] !== '' ? (int) $_POST['id'] : null;
         $entityAction = $action === 'create_section' ? 'create' : ($action === 'update_section' ? 'update' : 'archive');
-
         if ($entityAction === 'archive') {
             $data = ['archive_note' => $_POST['archive_note'] ?? ''];
             $stmt = $conn->prepare("SELECT title AS name FROM about_sections WHERE section_id = ?");
@@ -124,7 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'remove_image' => !empty($_POST['remove_image']),
             ];
         }
-
         if ($isSuperAdmin) {
             kt_apply_entity_change($conn, 'about_section', $entityAction, $id, $data);
             $_SESSION['admin_flash'] = $entityAction === 'archive' ? '"' . $title . '" archived.' : ('"' . $title . '" ' . ($entityAction === 'create' ? 'added' : 'updated') . '.');
@@ -133,8 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_SESSION['admin_flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $title . '" was submitted for Super Admin approval.';
         }
     }
-
-    // ---- Drag-and-drop reorder — AJAX, responds with JSON instead of redirecting ----
     if ($action === 'reorder_sections') {
         $order = $_POST['order'] ?? [];
         header('Content-Type: application/json');
@@ -153,19 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         echo json_encode(['success' => true]);
         exit;
     }
-
     header("Location: " . BASE_URL . "/admin/adminsitecontent.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | DATA FOR THE PAGE
- */
-// Grouped by where they live on the site, so the admin can find a slot
-// by "which page is this" instead of scanning one long flat list. Each slot
-// carries the live page's URL so admin can jump straight there to see
-// exactly where the photo will land.
 $heroPhotoGroups = [
     'Homepage' => [
         'icon'  => 'home',
@@ -193,7 +147,6 @@ foreach ($heroPhotoGroups as &$group) {
     unset($slot);
 }
 unset($group);
-
 $aboutSections = sitecontent_get_about_sections($conn, false);
 $iconSvgs   = sitecontent_icons();
 $iconLabels = sitecontent_icon_labels();
@@ -205,7 +158,6 @@ $iconLabels = sitecontent_icon_labels();
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Content – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -214,27 +166,21 @@ $iconLabels = sitecontent_icon_labels();
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminsitecontent.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -245,7 +191,6 @@ $iconLabels = sitecontent_icon_labels();
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -256,7 +201,6 @@ $iconLabels = sitecontent_icon_labels();
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -275,14 +219,9 @@ $iconLabels = sitecontent_icon_labels();
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header">
             <div>
                 <div class="section-label">Content Management</div>
@@ -290,7 +229,6 @@ $iconLabels = sitecontent_icon_labels();
                 <p>Control the Homepage and About page hero photos, plus the About page's History, Geography, and other story sections.</p>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -302,11 +240,8 @@ $iconLabels = sitecontent_icon_labels();
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
-        <!-- HERO PHOTOS -->
         <h2 class="content-h2">Hero Photos</h2>
         <p class="content-sub">Grouped by where they show up on the site. Click "Preview page" on any card to see exactly where a photo will land before you upload it.</p>
-
         <nav class="hero-group-jump" aria-label="Jump to a page group">
             <?php foreach ($heroPhotoGroups as $groupName => $group):
                 $groupSlug  = preg_replace('/[^a-z0-9]+/i', '-', $groupName);
@@ -321,7 +256,6 @@ $iconLabels = sitecontent_icon_labels();
                 </a>
             <?php endforeach; ?>
         </nav>
-
         <?php foreach ($heroPhotoGroups as $groupName => $group):
             $groupSlug = preg_replace('/[^a-z0-9]+/i', '-', $groupName);
         ?>
@@ -330,7 +264,6 @@ $iconLabels = sitecontent_icon_labels();
                 <i data-lucide="<?php echo htmlspecialchars($group['icon']); ?>" class="lucide"></i>
                 <?php echo htmlspecialchars($groupName); ?>
             </h3>
-
             <div class="photo-card-grid animate">
                 <?php foreach ($group['slots'] as $key => $slot): ?>
                 <div class="photo-card">
@@ -375,8 +308,6 @@ $iconLabels = sitecontent_icon_labels();
             </div>
         </div>
         <?php endforeach; ?>
-
-        <!-- ABOUT SECTIONS -->
         <div class="content-h2-row">
             <div>
                 <h2 class="content-h2">About Page Sections</h2>
@@ -384,7 +315,6 @@ $iconLabels = sitecontent_icon_labels();
             </div>
             <button class="btn-primary" onclick="openAddSection()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Section</button>
         </div>
-
         <div class="section-list animate" id="sectionList">
             <?php if (empty($aboutSections)): ?>
                 <div class="table-empty">
@@ -398,7 +328,6 @@ $iconLabels = sitecontent_icon_labels();
                     <div class="section-row-handle" aria-label="Drag to reorder" title="Drag to reorder">
                         <i data-lucide="grip-vertical" class="lucide"></i>
                     </div>
-
                     <div class="section-row-thumb">
                         <?php if (!empty($s['image'])): ?>
                             <img src="<?php echo htmlspecialchars($s['image']); ?>" alt="">
@@ -406,14 +335,11 @@ $iconLabels = sitecontent_icon_labels();
                             <div class="section-row-thumb-empty"><i data-lucide="image-off" class="lucide"></i></div>
                         <?php endif; ?>
                     </div>
-
                     <div class="section-row-icon"><?php echo $iconSvgs[$s['icon_key']] ?? $iconSvgs['history']; ?></div>
-
                     <div class="section-row-body">
                         <div class="section-row-title"><?php echo htmlspecialchars($s['title']); ?></div>
                         <div class="section-row-preview"><?php echo htmlspecialchars(mb_strimwidth(str_replace(["\r", "\n"], ' ', $s['body']), 0, 140, '…')); ?></div>
                     </div>
-
                     <div class="section-row-actions">
                         <button type="button" class="tbl-btn edit" onclick="openEditSection(<?php echo htmlspecialchars(json_encode([
                             'id' => $s['section_id'],
@@ -434,26 +360,20 @@ $iconLabels = sitecontent_icon_labels();
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-
     </div>
 </div>
-
-<!-- ADD SECTION MODAL -->
 <div class="modal-overlay" id="addSectionModal" onclick="closeModalOutside(event, 'addSectionModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addSectionModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Add About Section</div>
         <div class="modal-sub">Add a new story row to the About page — its own photo, icon, and text.</div>
-
         <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="create_section">
             <?php echo csrf_field(); ?>
-
             <div class="form-group">
                 <label class="form-label">Section Title</label>
                 <input class="form-input" type="text" name="title" placeholder="e.g. Local Cuisine" required>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Icon</label>
                 <select class="form-input" name="icon_key">
@@ -462,39 +382,31 @@ $iconLabels = sitecontent_icon_labels();
                     <?php endforeach; ?>
                 </select>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Photo</label>
                 <input class="form-input" type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
             </div>
-
             <div class="form-group">
                 <label class="form-label">Story Text</label>
                 <textarea class="form-textarea" name="body" rows="6" placeholder="Write the section's text. Leave a blank line between paragraphs." required></textarea>
             </div>
-
             <button type="submit" class="btn-primary" style="width:100%;justify-content:center;">Add Section</button>
         </form>
     </div>
 </div>
-
-<!-- EDIT SECTION MODAL -->
 <div class="modal-overlay" id="editSectionModal" onclick="closeModalOutside(event, 'editSectionModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editSectionModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Edit Section</div>
         <div class="modal-sub">Update the title, icon, photo, or text for this section.</div>
-
         <form action="<?php echo BASE_URL; ?>/admin/adminsitecontent.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="update_section">
             <input type="hidden" name="id" id="editSectionId">
             <?php echo csrf_field(); ?>
-
             <div class="form-group">
                 <label class="form-label">Section Title</label>
                 <input class="form-input" type="text" name="title" id="editSectionTitle" required>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Icon</label>
                 <select class="form-input" name="icon_key" id="editSectionIcon">
@@ -503,7 +415,6 @@ $iconLabels = sitecontent_icon_labels();
                     <?php endforeach; ?>
                 </select>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Photo</label>
                 <input class="form-input" type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
@@ -511,18 +422,14 @@ $iconLabels = sitecontent_icon_labels();
                     <input type="checkbox" name="remove_image" value="1"> Remove the current photo
                 </label>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Story Text</label>
                 <textarea class="form-textarea" name="body" id="editSectionBody" rows="6" required></textarea>
             </div>
-
             <button type="submit" class="btn-primary" style="width:100%;justify-content:center;">Save Changes</button>
         </form>
     </div>
 </div>
-
-<!-- PAGE PREVIEW MODAL -->
 <div class="modal-overlay preview-modal-overlay" id="pagePreviewModal" onclick="closeModalOutside(event, 'pagePreviewModal')">
     <div class="modal-card preview-modal-card">
         <button class="modal-close" onclick="closeModal('pagePreviewModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -543,9 +450,7 @@ $iconLabels = sitecontent_icon_labels();
         </div>
     </div>
 </div>
-
 <div class="toast" id="toast"></div>
-
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-archive-note.js"></script>
 <script src="../assets/js/admin-theme.js"></script>

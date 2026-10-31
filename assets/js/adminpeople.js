@@ -1,12 +1,5 @@
-// KulToura Admin — People of Malvar
-// peopleData is injected server-side by adminpeople.php via:
-//   <script> const peopleData = <?php echo json_encode($people); ?>; </script>
-// Add/Edit/Delete forms POST straight back to adminpeople.php —
-// there is no separate *_actions.php file.
-
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof lucide !== 'undefined') lucide.createIcons();
-
   const vpEditBtn = document.getElementById('vpEditBtn');
   if (vpEditBtn) {
     vpEditBtn.addEventListener('click', function () {
@@ -16,22 +9,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 });
-
-// SIDEBAR
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
-
-// MODALS
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
-
 function openAddPerson() {
   document.getElementById('addPersonForm')?.reset();
   openModal('addPersonModal');
 }
-
 function openViewPerson(id) {
   const p = (window.peopleData || []).find(x => String(x.person_id) === String(id));
   if (!p) return;
@@ -42,7 +29,6 @@ function openViewPerson(id) {
   document.getElementById('viewPersonModal').dataset.editId = id;
   openModal('viewPersonModal');
 }
-
 function openEditPerson(id) {
   const p = (window.peopleData || []).find(x => String(x.person_id) === String(id));
   if (!p) return;
@@ -55,19 +41,11 @@ function openEditPerson(id) {
   document.getElementById('editExistingImage').value = p.image || '';
   openModal('editPersonModal');
 }
-
 function confirmDelete(id, name) {
   document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
-  // deleteDesc's real text is server-rendered (PHP) based on role — it
-  // already says the right thing (archived, not permanently deleted, or
-  // submitted for approval), so it's deliberately left untouched here.
   document.getElementById('deletePersonId').value = id;
   openModal('deleteModal');
 }
-
-// FILTERS
-// Both the table rows (list view) and the grid cards (grid view) carry
-// the same underlying text, so this filters whichever exist.
 function filterPeople(val) {
   const rows = document.querySelectorAll('#peopleTable tbody tr, #peopleGrid .grid-card');
   rows.forEach(row => {
@@ -75,25 +53,19 @@ function filterPeople(val) {
     row.style.display = row.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
   });
 }
-
-// EXPORT AS EXCEL
 async function exportPeopleExcel() {
   const btn = document.getElementById('exportExcelBtn');
   if (!btn) return;
-
   const rows = Array.from(document.querySelectorAll('#peopleTable tbody tr'))
     .filter(r => r.style.display !== 'none');
-
   if (rows.length === 0) {
     showToast('No profiles to export yet.');
     return;
   }
-
   btn.classList.add('loading');
   const label = btn.querySelector('span');
   const originalLabel = label.textContent;
   label.textContent = 'Generating…';
-
   if (!window.XLSX) {
     try {
       await new Promise((resolve, reject) => {
@@ -111,31 +83,25 @@ async function exportPeopleExcel() {
       return;
     }
   }
-
   try {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-
     const sheetRows = [
       ['KulToura — People of Malvar Export'],
       [`Generated: ${dateStr}`],
       [],
       ['#', 'Name', 'Title', 'Achievement', 'Views'],
     ];
-
     rows.forEach((row, i) => {
       const cells = row.querySelectorAll('td');
       const name = cells[0]?.textContent.trim() || '';
       const title = cells[1]?.textContent.trim() || '';
       const achievement = cells[2]?.textContent.trim() || '';
       const views = cells[3]?.textContent.trim() || '';
-
       sheetRows.push([i + 1, name, title, achievement, views]);
     });
-
     sheetRows.push([]);
     sheetRows.push(['Total Profiles', rows.length]);
-
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
     ws['!cols'] = [{ wch: 4 }, { wch: 28 }, { wch: 20 }, { wch: 32 }, { wch: 10 }];
@@ -144,7 +110,6 @@ async function exportPeopleExcel() {
       { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'People of Malvar');
-
     XLSX.writeFile(wb, `KulToura-People-${now.toISOString().slice(0, 10)}.xlsx`);
     showToast('Export ready — check your downloads.');
   } catch (err) {
@@ -155,8 +120,6 @@ async function exportPeopleExcel() {
     label.textContent = originalLabel;
   }
 }
-
-// TOAST
 let _toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');

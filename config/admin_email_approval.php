@@ -1,22 +1,10 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | ADMIN EMAIL CHANGE — requires approval from the CURRENT email
- |--------------------------------------------------------------------
- | Typing a new email in Settings doesn't change it right away — it
- | emails the admin's CURRENT address on file (not the new one) an
- | Approve/Reject link. Only approving it — proving the admin still
- | controls the old inbox — replaces the address. Expires after 30
- | minutes. Self-creating columns, same pattern as session_security.php.
- */
-
 if (!function_exists('kt_emailreq_ensure_columns')) {
     function kt_emailreq_ensure_columns(mysqli $conn): void
     {
         static $done = false;
         if ($done) return;
         $done = true;
-
         $alters = [
             "ADD COLUMN pending_email_new VARCHAR(100) NULL DEFAULT NULL",
             "ADD COLUMN pending_email_token VARCHAR(64) NULL DEFAULT NULL",
@@ -26,15 +14,13 @@ if (!function_exists('kt_emailreq_ensure_columns')) {
             try {
                 $conn->query("ALTER TABLE admins $alter");
             } catch (mysqli_sql_exception $e) {
-                if ($e->getCode() !== 1060) { // 1060 = Duplicate column name — already added
+                if ($e->getCode() !== 1060) {
                     throw $e;
                 }
             }
         }
     }
 }
-
-// Starts an email-change request and returns the approval token.
 if (!function_exists('kt_emailreq_create')) {
     function kt_emailreq_create(mysqli $conn, int $adminId, string $newEmail): string
     {
@@ -50,8 +36,6 @@ if (!function_exists('kt_emailreq_create')) {
         return $token;
     }
 }
-
-// Looks up a still-valid pending request by its token.
 if (!function_exists('kt_emailreq_find')) {
     function kt_emailreq_find(mysqli $conn, string $token): ?array
     {
@@ -67,7 +51,6 @@ if (!function_exists('kt_emailreq_find')) {
         return $row ?: null;
     }
 }
-
 if (!function_exists('kt_emailreq_clear')) {
     function kt_emailreq_clear(mysqli $conn, int $adminId): void
     {
@@ -80,9 +63,6 @@ if (!function_exists('kt_emailreq_clear')) {
         $stmt->close();
     }
 }
-
-// "athenamacahia17@gmail.com" -> "ath************@gmail.com" — enough to
-// recognize the account is right without showing the full address.
 if (!function_exists('kt_mask_email')) {
     function kt_mask_email(string $email): string
     {

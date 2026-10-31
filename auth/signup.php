@@ -1,15 +1,12 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
-
 if (isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit;
 }
-
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['error']);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,14 +14,11 @@ unset($_SESSION['error']);
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up – KULTOURA</title>
-
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
-
 <div class="auth-page">
-
     <header class="navbar">
         <nav class="nav-links">
             <a href="../index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
@@ -66,35 +60,25 @@ unset($_SESSION['error']);
                 </div>
             </div>
         </nav>
-
         <a href="login.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN IN</span></a>
-
         <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
     </header>
-
     <main class="auth-content">
         <div class="auth-card">
-
             <div class="auth-brand">
                 <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
-
             <h2 class="auth-title">Create Your Account</h2>
             <p class="auth-sub">Join Kultoura and discover Malvar</p>
-
             <?php if ($error): ?>
                 <div class="alert alert-error">
                     <?php echo htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
-
             <form action="auth.php" method="POST" class="auth-form">
-
                 <input type="hidden" name="action" value="signup">
-
-                <!-- Full Name -->
                 <div class="form-group">
                     <label for="fullname">Full Name</label>
                     <input
@@ -106,8 +90,6 @@ unset($_SESSION['error']);
                         title="Full name should only contain letters."
                         required>
                 </div>
-
-                <!-- Username -->
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input
@@ -122,8 +104,6 @@ unset($_SESSION['error']);
                         required>
                     <p class="field-hint">At least 4 characters — must be unique</p>
                 </div>
-
-                <!-- Email -->
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input
@@ -133,8 +113,6 @@ unset($_SESSION['error']);
                         placeholder="Enter your email"
                         required>
                 </div>
-
-                <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="pw-field">
@@ -147,7 +125,6 @@ unset($_SESSION['error']);
                             pattern="^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$"
                             title="At least 8 characters, including one uppercase letter and one special character."
                             required>
-
                         <span class="toggle-pw" onclick="togglePw('password', this)" aria-label="Show password">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         </span>
@@ -158,8 +135,6 @@ unset($_SESSION['error']);
                         <li data-rule="special"><span class="pw-req-icon"></span>One special character</li>
                     </ul>
                 </div>
-
-                <!-- Confirm Password -->
                 <div class="form-group">
                     <label for="confirm_password">Confirm Password</label>
                     <div class="pw-field">
@@ -170,52 +145,39 @@ unset($_SESSION['error']);
                             placeholder="Confirm your password"
                             minlength="8"
                             required>
-
                         <span class="toggle-pw" onclick="togglePw('confirm_password', this)" aria-label="Show password">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         </span>
                     </div>
                 </div>
-
-                <!-- Terms of Service (required) -->
                 <div class="form-group checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="agree_terms" value="1" required>
                         I agree to the <button type="button" class="tc-link" onclick="openAuthModal('terms-modal')">Terms of Service</button>.
                     </label>
                 </div>
-
-                <!-- Privacy Policy (required, separate from Terms of Service) -->
                 <div class="form-group checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="agree_privacy" value="1" required>
                         I agree to the <button type="button" class="tc-link" onclick="openAuthModal('privacy-modal')">Privacy Policy</button>.
                     </label>
                 </div>
-
-                <!-- Promotional Email (optional, not required to sign up) -->
                 <div class="form-group checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="promotional_email" value="1">
                         I agree to receive promotional emails, travel updates, and special offers from KULTOURA. <span class="optional-tag">(Optional)</span>
                     </label>
                 </div>
-
                 <button type="submit" class="auth-btn">
                     CREATE ACCOUNT
                 </button>
-
             </form>
-
             <p class="auth-switch">
                 Already have an account?
                 <a href="login.php">Sign In</a>
             </p>
-
         </div>
     </main>
-
-    <!-- Terms of Service Modal -->
     <div class="tc-modal-overlay" id="terms-modal" onclick="if (event.target === this) closeAuthModal('terms-modal')">
         <div class="tc-modal-card">
             <button type="button" class="tc-modal-close" onclick="closeAuthModal('terms-modal')" aria-label="Close">&times;</button>
@@ -224,23 +186,17 @@ unset($_SESSION['error']);
             <div class="tc-modal-body">
                 <h4>1. Acceptance of Terms</h4>
                 <p>By creating an account on KulToura, you agree to use this platform responsibly to explore, save, and share information about Malvar's tourism destinations, products, and services.</p>
-
                 <h4>2. Your Account</h4>
                 <p>You are responsible for keeping your username and password confidential and for all activity that happens under your account. Please notify us if you suspect any unauthorized use.</p>
-
                 <h4>3. Acceptable Use</h4>
                 <p>You agree not to misuse the platform, including posting false information, attempting to disrupt the service, or accessing other users' accounts without permission.</p>
-
                 <h4>4. Content</h4>
                 <p>Features such as Favorites and Travel Diary let you save and organize content within KulToura. This content remains tied to your account and may be removed if it violates these terms.</p>
-
                 <h4>5. Changes</h4>
                 <p>KulToura may update these terms from time to time. Continued use of the platform after changes means you accept the updated terms.</p>
             </div>
         </div>
     </div>
-
-    <!-- Privacy Policy Modal -->
     <div class="tc-modal-overlay" id="privacy-modal" onclick="if (event.target === this) closeAuthModal('privacy-modal')">
         <div class="tc-modal-card">
             <button type="button" class="tc-modal-close" onclick="closeAuthModal('privacy-modal')" aria-label="Close">&times;</button>
@@ -249,26 +205,19 @@ unset($_SESSION['error']);
             <div class="tc-modal-body">
                 <h4>1. Information We Collect</h4>
                 <p>When you sign up, we collect your full name, username, email address, and password (stored securely as a one-way hash, never in plain text).</p>
-
                 <h4>2. How We Use Your Information</h4>
                 <p>Your account information is used to let you sign in, personalize your experience (such as Favorites, For You, and Travel Diary), and, only if you opt in, send promotional emails about Malvar tourism.</p>
-
                 <h4>3. Data Sharing</h4>
                 <p>We do not sell your personal information to third parties. Your data is used only within KulToura to operate and improve the platform.</p>
-
                 <h4>4. Data Security</h4>
                 <p>We apply reasonable safeguards to protect your account, including password hashing and login attempt monitoring to prevent unauthorized access.</p>
-
                 <h4>5. Your Choices</h4>
                 <p>You can update your account details at any time, and you may unsubscribe from promotional emails whenever you like.</p>
             </div>
         </div>
     </div>
-
 </div>
-
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/index.js"></script>
-
 </body>
 </html>

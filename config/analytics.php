@@ -1,20 +1,4 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | ANALYTICS — real page-view logging + read helpers
- |--------------------------------------------------------------------
- | Backs the "Active Users", "Total Page Views", "Monthly Visitor
- | Trend", and "Traffic Sources" panels on admin/admindashboard.php,
- | which previously had no real data source at all.
- |
- | Include AFTER config/dbmain.php (needs $conn). Call analytics_track()
- | once near the top of every public page you want counted — it logs
- | one row per page load, page-level (not per-card-click), which is
- | the standard definition of a "page view."
- |
- |   page_views(view_id, page, referrer_host, viewed_at)
- */
-
 $conn->query(
     "CREATE TABLE IF NOT EXISTS page_views (
         view_id       INT AUTO_INCREMENT PRIMARY KEY,
@@ -25,12 +9,6 @@ $conn->query(
         INDEX (viewed_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
-
-// Per-place view counts (e.g. "how many visitors did BFC have?") — logged
-// whenever a visitor opens a listing's "View Details" modal/page, across
-// every catalog type. See pages/track_item_view.php for the public
-// endpoint that writes here, and analytics_item_types() below for the
-// item_type slugs it accepts.
 $conn->query(
     "CREATE TABLE IF NOT EXISTS item_views (
         view_id   INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,11 +19,6 @@ $conn->query(
         INDEX (viewed_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
-
-// One row per explicit search submission (pages/search.php, not every
-// navbar-dropdown keystroke) — powers "Search Insights" on the admin
-// dashboard: what visitors look for, and what turns up nothing so a gap
-// in the catalog can actually be noticed.
 $conn->query(
     "CREATE TABLE IF NOT EXISTS search_log (
         search_id     INT AUTO_INCREMENT PRIMARY KEY,
@@ -55,9 +28,6 @@ $conn->query(
         INDEX (searched_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
-
-// Human-readable labels for the "page" slugs passed to analytics_track(),
-// reused wherever the admin dashboard needs to display them.
 function analytics_page_labels(): array
 {
     return [
@@ -77,12 +47,6 @@ function analytics_page_labels(): array
         'mostpopular' => 'Most Popular',
     ];
 }
-
-/*
- |--------------------------------------------------------------------
- | WRITE
- |--------------------------------------------------------------------
- */
 function analytics_track(mysqli $conn, string $page): void
 {
     $referrerHost = 'Direct';
@@ -93,7 +57,6 @@ function analytics_track(mysqli $conn, string $page): void
             $referrerHost = $host;
         }
     }
-
     $stmt = $conn->prepare("INSERT INTO page_views (page, referrer_host) VALUES (?, ?)");
     if ($stmt) {
         $stmt->bind_param('ss', $page, $referrerHost);
@@ -101,14 +64,6 @@ function analytics_track(mysqli $conn, string $page): void
         $stmt->close();
     }
 }
-
-/*
- |--------------------------------------------------------------------
- | READ
- |--------------------------------------------------------------------
- */
-
-// Site visitors with a heartbeat (config/dbmain.php) in the last N minutes.
 function analytics_active_users(mysqli $conn, int $minutes = 5): int
 {
     $count = 0;
@@ -121,8 +76,6 @@ function analytics_active_users(mysqli $conn, int $minutes = 5): int
     }
     return $count;
 }
-
-// Total logged page views, optionally since a given SQL datetime string.
 function analytics_total_views(mysqli $conn, ?string $sinceSql = null): int
 {
     $sql = "SELECT COUNT(*) c FROM page_views";
@@ -137,8 +90,6 @@ function analytics_total_views(mysqli $conn, ?string $sinceSql = null): int
     $res = $conn->query($sql);
     return (int) ($res ? ($res->fetch_assoc()['c'] ?? 0) : 0);
 }
-
-// [{page, label, views}], most-viewed first.
 function analytics_page_breakdown(mysqli $conn, ?string $sinceSql = null, int $limit = 6): array
 {
     $labels = analytics_page_labels();
@@ -162,8 +113,6 @@ function analytics_page_breakdown(mysqli $conn, ?string $sinceSql = null, int $l
         'views' => (int) $r['c'],
     ], $rows);
 }
-
-// Last N calendar months (oldest first): [{label: 'Mar 2026', ym: '2026-03', value, pct}]
 function analytics_monthly_trend(mysqli $conn, int $months = 6): array
 {
     $stmt = $conn->prepare(
@@ -180,7 +129,6 @@ function analytics_monthly_trend(mysqli $conn, int $months = 6): array
         $byMonth[$r['ym']] = (int) $r['c'];
     }
     $stmt->close();
-
     $result = [];
     for ($i = $months - 1; $i >= 0; $i--) {
         $dt = new DateTime("first day of -{$i} months");
@@ -194,8 +142,6 @@ function analytics_monthly_trend(mysqli $conn, int $months = 6): array
     unset($row);
     return $result;
 }
-
-// [{label, pct}] — where traffic is coming from, optionally since a date.
 function analytics_traffic_sources(mysqli $conn, ?string $sinceSql = null, int $limit = 5): array
 {
     $sql = "SELECT referrer_host, COUNT(*) c FROM page_views";
@@ -209,25 +155,13 @@ function analytics_traffic_sources(mysqli $conn, ?string $sinceSql = null, int $
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
-
     $total = array_sum(array_column($rows, 'c'));
     if ($total === 0) return [];
-
     return array_map(fn($r) => [
         'label' => $r['referrer_host'] === 'Direct' ? 'Direct / App' : $r['referrer_host'],
         'pct'   => (int) round((int) $r['c'] / $total * 100),
     ], $rows);
 }
-
-/*
- |--------------------------------------------------------------------
- | PER-ITEM VIEWS — "how many visitors did BFC have?"
- |--------------------------------------------------------------------
- */
-
-// item_type slug -> where its real name/id live, so item_views rows can
-// be joined back to an actual listing name. nature/resort/industry all
-// share the `destination` table, split by category.
 function analytics_item_types(): array
 {
     return [
@@ -244,7 +178,6 @@ function analytics_item_types(): array
         'person'     => ['table' => 'people',       'id_col' => 'person_id',       'name_col' => 'fullname',         'where' => '1=1'],
     ];
 }
-
 function analytics_track_item(mysqli $conn, string $itemType, int $itemId): void
 {
     if ($itemId <= 0 || !array_key_exists($itemType, analytics_item_types())) {
@@ -257,8 +190,6 @@ function analytics_track_item(mysqli $conn, string $itemType, int $itemId): void
         $stmt->close();
     }
 }
-
-// Views for one specific item — e.g. analytics_item_view_count($conn, 'restaurant', 7).
 function analytics_item_view_count(mysqli $conn, string $itemType, int $itemId): int
 {
     $stmt = $conn->prepare("SELECT COUNT(*) c FROM item_views WHERE item_type = ? AND item_id = ?");
@@ -268,9 +199,6 @@ function analytics_item_view_count(mysqli $conn, string $itemType, int $itemId):
     $stmt->close();
     return $count;
 }
-
-// [item_id => views] for one item_type — lets an admin listing table show
-// a Views column without running one query per row.
 function analytics_item_views_bulk(mysqli $conn, string $itemType): array
 {
     $counts = [];
@@ -283,10 +211,6 @@ function analytics_item_views_bulk(mysqli $conn, string $itemType): array
     $stmt->close();
     return $counts;
 }
-
-// The most-viewed real places across every catalog type, joined back to
-// their actual names — powers "Most Viewed Places" on the dashboard and
-// answers "how many visitors did BFC have?" directly.
 function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = null): array
 {
     $results = [];
@@ -305,22 +229,6 @@ function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = n
     usort($results, fn($a, $b) => $b['views'] <=> $a['views']);
     return array_slice($results, 0, $limit);
 }
-
-/*
- |--------------------------------------------------------------------
- | FAVORITES & TRAVEL DIARY CONVERSION
- |--------------------------------------------------------------------
- | How many of the people who *viewed* a place went on to favorite it
- | or log an actual visit in their Travel Diary — a much stronger
- | interest signal than the raw view count alone.
- */
-
-// item_views' item_type is split by destination sub-category
-// (nature/resort/industry/accommodation/bank/service/church), but
-// favorites and diary_entries only know the broader 'destination'
-// type (same ids, same `destination` table) — same grouping foryou.php
-// already uses for its filter pills. product/restaurant/fiesta/person
-// already match 1:1 and pass through unchanged.
 function analytics_type_group_map(): array
 {
     return [
@@ -328,11 +236,6 @@ function analytics_type_group_map(): array
         'accommodation' => 'destination', 'bank' => 'destination', 'service' => 'destination', 'church' => 'destination',
     ];
 }
-
-// Top-viewed places (same pool as analytics_top_items) with their
-// favorite count, diary-log count, and conversion % of each — gated by
-// a minimum view count so a single view + single favorite can't read
-// as a misleading "100%".
 function analytics_conversion_top_items(mysqli $conn, int $limit = 8, int $minViews = 3): array
 {
     $viewItems = analytics_top_items($conn, 100);
@@ -340,7 +243,6 @@ function analytics_conversion_top_items(mysqli $conn, int $limit = 8, int $minVi
     if (empty($viewItems)) {
         return [];
     }
-
     $favCounts = [];
     if ($res = $conn->query("SELECT item_type, item_id, COUNT(*) c FROM favorites GROUP BY item_type, item_id")) {
         foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
@@ -353,7 +255,6 @@ function analytics_conversion_top_items(mysqli $conn, int $limit = 8, int $minVi
             $diaryCounts[$r['item_type'] . '-' . $r['item_id']] = (int) $r['c'];
         }
     }
-
     $groupMap = analytics_type_group_map();
     $out = [];
     foreach ($viewItems as $item) {
@@ -375,13 +276,6 @@ function analytics_conversion_top_items(mysqli $conn, int $limit = 8, int $minVi
     usort($out, fn($a, $b) => $b['views'] <=> $a['views']);
     return array_slice($out, 0, $limit);
 }
-
-/*
- |--------------------------------------------------------------------
- | SEARCH INSIGHTS
- |--------------------------------------------------------------------
- */
-
 function analytics_track_search(mysqli $conn, string $query, int $resultCount): void
 {
     $query = trim($query);
@@ -395,8 +289,6 @@ function analytics_track_search(mysqli $conn, string $query, int $resultCount): 
         $stmt->close();
     }
 }
-
-// Most-searched terms (case-insensitive grouping), most frequent first.
 function analytics_top_searches(mysqli $conn, int $limit = 8): array
 {
     $stmt = $conn->prepare(
@@ -408,9 +300,6 @@ function analytics_top_searches(mysqli $conn, int $limit = 8): array
     $stmt->close();
     return array_map(fn($r) => ['query' => $r['q'], 'count' => (int) $r['c']], $rows);
 }
-
-// Searches that came back empty — a direct signal of a catalog gap
-// (e.g. visitors searching "waterfalls" with nothing tagged that way).
 function analytics_zero_result_searches(mysqli $conn, int $limit = 8): array
 {
     $stmt = $conn->prepare(

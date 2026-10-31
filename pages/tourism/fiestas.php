@@ -8,30 +8,17 @@ include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
 $pageWidget = kt_page_widget_get($conn, 'fiestas');
 analytics_track($conn, 'fiestas');
-
 $fiestasHeroPhoto = sitecontent_get_photo($conn, 'fiestas_hero');
-
-// Logged for foryou.php's "Because You Explored" recommendations.
-// Skipped on the ajax_calendar ping so flipping through months doesn't
-// flood the history with repeat 'fiesta' entries.
 if (!isset($_GET['ajax_calendar'])) {
     $_SESSION['history'][] = 'fiesta';
     $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 }
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-// Fiestas/Events are added by the admin via admineventandfiesta.php.
-// These are annual barangay feast days, so past-dated ones still show
-// (they're not "expired" — they'll roll around again next year).
 $fiestas = [];
 if ($result = $conn->query("SELECT * FROM fiestas WHERE status = 'active' ORDER BY celebration_date ASC")) {
     $fiestas = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// Which of these fiestas has the current user already favorited?
-// (favorites table: user_id, item_type, item_id — shared across the whole site)
 $favoritedFiestaIds = [];
 if ($isLoggedIn) {
     $favUserId = (int) $_SESSION['user_id'];
@@ -43,22 +30,17 @@ if ($isLoggedIn) {
         $favoritedFiestaIds = array_map(fn($r) => (string) $r['item_id'], $favRows);
     }
 }
-
-// ── Small calendar (left side) ──
-// Supports ?cal_month=YYYY-MM navigation; defaults to current month.
 $calMonthParam = $_GET['cal_month'] ?? date('Y-m');
 if (!preg_match('/^\d{4}-\d{2}$/', $calMonthParam)) {
     $calMonthParam = date('Y-m');
 }
 $calTimestamp   = strtotime($calMonthParam . '-01');
 $calMonthLabel  = date('F Y', $calTimestamp);
-$calFirstDow    = (int) date('w', $calTimestamp); // 0 = Sunday
+$calFirstDow    = (int) date('w', $calTimestamp);
 $calDaysInMonth = (int) date('t', $calTimestamp);
 $today          = date('Y-m-d');
 $prevMonth      = date('Y-m', strtotime('-1 month', $calTimestamp));
 $nextMonth      = date('Y-m', strtotime('+1 month', $calTimestamp));
-
-// Map day-of-month => event(s) for the month currently being viewed.
 $calEventsByDay = [];
 foreach ($fiestas as $item) {
     if (empty($item['celebration_date'])) continue;
@@ -67,15 +49,11 @@ foreach ($fiestas as $item) {
         $calEventsByDay[$dayNum][] = $item;
     }
 }
-
-// Every YYYY-MM that has at least one fiesta/event — used by the month
-// picker to put a small dot on months worth jumping to.
 $calEventMonths = [];
 foreach ($fiestas as $item) {
     if (empty($item['celebration_date'])) continue;
     $calEventMonths[date('Y-m', strtotime($item['celebration_date']))] = true;
 }
-
 function renderCalendarHtml($calMonthLabel, $calFirstDow, $calDaysInMonth, $today, $calMonthParam, $prevMonth, $nextMonth, $calEventsByDay) {
     ob_start();
     ?>
@@ -88,20 +66,17 @@ function renderCalendarHtml($calMonthLabel, $calFirstDow, $calDaysInMonth, $toda
         <?php foreach (['S','M','T','W','T','F','S'] as $wd): ?>
             <span class="p-calendar-weekday"><?= $wd ?></span>
         <?php endforeach; ?>
-
         <?php for ($i = 0; $i < $calFirstDow; $i++): ?>
             <span class="p-calendar-day p-calendar-blank"></span>
         <?php endfor; ?>
-
         <?php for ($d = 1; $d <= $calDaysInMonth; $d++):
             $cellDate  = sprintf('%s-%02d', $calMonthParam, $d);
             $hasEvent  = isset($calEventsByDay[$d]);
             $isToday   = ($cellDate === $today);
-            $col       = ($calFirstDow + $d - 1) % 7; // 0 = Sunday column
+            $col       = ($calFirstDow + $d - 1) % 7;
             $classes   = 'p-calendar-day';
             if ($hasEvent) {
                 $classes .= ' has-event';
-                // Keep the tooltip inside the calendar on the edge columns.
                 if ($col <= 1)      $classes .= ' tip-left';
                 elseif ($col >= 5)  $classes .= ' tip-right';
             }
@@ -118,8 +93,6 @@ function renderCalendarHtml($calMonthLabel, $calFirstDow, $calDaysInMonth, $toda
     <?php
     return ob_get_clean();
 }
-
-// AJAX: month navigation swaps just this markup in via fetch(), no full reload.
 if (isset($_GET['ajax_calendar'])) {
     header('Content-Type: text/html; charset=UTF-8');
     echo renderCalendarHtml($calMonthLabel, $calFirstDow, $calDaysInMonth, $today, $calMonthParam, $prevMonth, $nextMonth, $calEventsByDay);
@@ -138,11 +111,9 @@ if (isset($_GET['ajax_calendar'])) {
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261015c">
-
     <style>
         /* ── Calendar: clickable month label ── */
         #pCalendarWrap { position: relative; }
-
         button.p-calendar-month {
             background: none;
             border: 0;
@@ -164,7 +135,6 @@ if (isset($_GET['ajax_calendar'])) {
             background: rgba(200, 169, 110, .22);
             outline: none;
         }
-
         /* ── Month picker (overlays the calendar) ── */
         .p-month-picker {
             position: absolute;
@@ -235,7 +205,6 @@ if (isset($_GET['ajax_calendar'])) {
             align-items: center;
             gap: 6px;
         }
-
         /* ── Calendar: hover card on fiesta/event dates ── */
         .p-calendar-day.has-event {
             position: relative;
@@ -249,7 +218,6 @@ if (isset($_GET['ajax_calendar'])) {
             filter: brightness(1.06);
             box-shadow: 0 0 0 2px #C8A96E, 0 4px 12px rgba(0, 0, 0, .18);
         }
-
         .p-cal-tip {
             position: absolute;
             bottom: calc(100% + 12px);
@@ -289,18 +257,15 @@ if (isset($_GET['ajax_calendar'])) {
             visibility: visible;
             transform: translate(-50%, 0);
         }
-
         /* Edge columns: anchor the card to the cell edge so it stays on screen */
         .p-calendar-day.tip-left .p-cal-tip { left: 0; transform: translate(0, 6px); }
         .p-calendar-day.tip-left .p-cal-tip::after { left: 14px; margin-left: 0; }
         .p-calendar-day.tip-left:hover .p-cal-tip,
         .p-calendar-day.tip-left:focus-visible .p-cal-tip { transform: translate(0, 0); }
-
         .p-calendar-day.tip-right .p-cal-tip { left: auto; right: 0; transform: translate(0, 6px); }
         .p-calendar-day.tip-right .p-cal-tip::after { left: auto; right: 14px; margin-left: 0; }
         .p-calendar-day.tip-right:hover .p-cal-tip,
         .p-calendar-day.tip-right:focus-visible .p-cal-tip { transform: translate(0, 0); }
-
         .p-cal-tip-date {
             display: block;
             margin-bottom: 6px;
@@ -320,16 +285,12 @@ if (isset($_GET['ajax_calendar'])) {
     </style>
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -370,11 +331,8 @@ if (isset($_GET['ajax_calendar'])) {
                 </div>
             </div>
         </div>
-
             <?php if ($isLoggedIn): ?><a href="../../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="../search_api.php" data-results="../search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -387,11 +345,8 @@ if (isset($_GET['ajax_calendar'])) {
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
 <?php if (!$pageWidget): ?>
-<!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $fiestasHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($fiestasHeroPhoto): ?>
         <img class="t-hero-photo" src="<?php echo htmlspecialchars($fiestasHeroPhoto); ?>" alt="">
@@ -409,24 +364,15 @@ if (isset($_GET['ajax_calendar'])) {
     </div>
 </section>
 <?php endif; ?>
-
 <?php kt_page_widget_render_from($pageWidget, 'fiestas'); ?>
-
-<!-- ── Fiestas Grid ── -->
 <main class="t-main">
-
     <div class="p-page-layout">
-
-        <!-- ── Calendar column ── -->
         <aside class="p-calendar-col">
             <div class="p-calendar-wrap" id="pCalendarWrap">
                 <?= renderCalendarHtml($calMonthLabel, $calFirstDow, $calDaysInMonth, $today, $calMonthParam, $prevMonth, $nextMonth, $calEventsByDay) ?>
             </div>
         </aside>
-
-        <!-- ── Content column ── -->
         <div class="p-content-col">
-
             <section class="p-search-row">
                 <form class="p-search-bar" action="fiestas.php" method="get" onsubmit="return false;">
                     <input type="text" name="q" id="pSearchInput" placeholder="Search fiestas, barangays, dates…">
@@ -437,7 +383,6 @@ if (isset($_GET['ajax_calendar'])) {
                     </select>
                 </form>
             </section>
-
             <?php if (!empty($fiestas)): ?>
             <section class="p-month-filter">
                 <p class="p-month-filter-label">When to visit</p>
@@ -449,7 +394,6 @@ if (isset($_GET['ajax_calendar'])) {
                 <button type="button" class="p-month-clear" id="pMonthClear" hidden>Clear All Filters</button>
             </section>
             <?php endif; ?>
-
             <section class="t-category" id="fiestas">
                 <div class="t-category-header">
                     <div>
@@ -458,7 +402,6 @@ if (isset($_GET['ajax_calendar'])) {
                         <p class="t-cat-desc">Celebrations that bring Malvar's barangays together, throughout the year.</p>
                     </div>
                 </div>
-
                 <?php if (empty($fiestas)): ?>
                 <div class="p-empty-state">
                     <h3>No fiestas added yet</h3>
@@ -503,14 +446,9 @@ if (isset($_GET['ajax_calendar'])) {
                 </div>
                 <?php endif; ?>
             </section>
-
         </div>
-
     </div>
-
 </main>
-
-<!-- ── View Details Modal ── -->
 <div class="p-modal-overlay" id="pViewModal" onclick="if(event.target===this) closePModal('pViewModal')">
     <div class="p-modal-card">
         <button class="p-modal-close" onclick="closePModal('pViewModal')" aria-label="Close">&times;</button>
@@ -529,8 +467,6 @@ if (isset($_GET['ajax_calendar'])) {
         </div>
     </div>
 </div>
-
-<!-- ── Navigate Modal ── -->
 <div class="p-modal-overlay" id="pNavModal" onclick="if(event.target===this) closePModal('pNavModal')">
     <div class="p-modal-card p-modal-card-wide">
         <button class="p-modal-close" onclick="closePModal('pNavModal')" aria-label="Close">&times;</button>
@@ -543,18 +479,12 @@ if (isset($_GET['ajax_calendar'])) {
         </div>
     </div>
 </div>
-
-<!-- ── Toast ── -->
 <div class="p-toast" id="pToast"></div>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas ·
 </footer>
-
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js"></script>
-
 <script>
 // Data for every fiesta currently on the page (mirrors the eventsData
 // pattern used in admineventandfiesta.php) so modals don't need extra
@@ -563,14 +493,11 @@ const fiestasData  = <?php echo json_encode($fiestas); ?>;
 const isLoggedIn    = <?php echo json_encode($isLoggedIn); ?>;
 const favoritedIds  = new Set(<?php echo json_encode($favoritedFiestaIds); ?>);
 const calEventMonths = new Set(<?php echo json_encode(array_keys($calEventMonths)); ?>);
-
 function findFiesta(id) {
     return fiestasData.find(f => String(f.fiesta_id) === String(id));
 }
-
 function openPModal(id) { document.getElementById(id).classList.add('open'); }
 function closePModal(id) { document.getElementById(id).classList.remove('open'); }
-
 // ── Filtering — search box, category select, and month pills all combine
 // (AND logic) over the cards already rendered, client-side, no page reload ──
 (function () {
@@ -581,9 +508,7 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
     const searchInput = document.getElementById('pSearchInput');
     const categorySelect = document.getElementById('pCategorySelect');
     if (!grid) return;
-
     const activeMonths = new Set();
-
     function applyFilter() {
         if (clearBtn) clearBtn.hidden = activeMonths.size === 0 && !searchInput.value.trim() && !categorySelect.value;
         const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -599,7 +524,6 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
         });
         if (emptyState) emptyState.hidden = visibleCount !== 0;
     }
-
     if (pillBar) {
         pillBar.addEventListener('click', (e) => {
             const pill = e.target.closest('.p-month-pill');
@@ -615,7 +539,6 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
             applyFilter();
         });
     }
-
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             activeMonths.clear();
@@ -625,11 +548,9 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
             applyFilter();
         });
     }
-
     if (searchInput) searchInput.addEventListener('input', applyFilter);
     if (categorySelect) categorySelect.addEventListener('change', applyFilter);
 })();
-
 // ── Calendar month navigation (no page reload) ──
 async function loadCalendarMonth(month) {
     const wrap = document.getElementById('pCalendarWrap');
@@ -642,10 +563,8 @@ async function loadCalendarMonth(month) {
         console.error('Calendar load failed:', err);
     }
 }
-
 // ── Month picker — click the month name to jump to any month/year ──
 const MP_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 function buildMonthPicker(year, curMonth) {
     let html = '<div class="p-mp-head">' +
         '<button type="button" class="p-mp-nav" data-year="' + (year - 1) + '" aria-label="Previous year">&#8249;</button>' +
@@ -662,20 +581,16 @@ function buildMonthPicker(year, curMonth) {
     html += '</div><p class="p-mp-legend"><span class="p-calendar-dot"></span> Has a fiesta / event</p>';
     return html;
 }
-
 function closeMonthPicker() {
     const picker = document.querySelector('#pCalendarWrap .p-month-picker');
     if (picker) picker.remove();
 }
-
 function toggleMonthPicker() {
     const wrap = document.getElementById('pCalendarWrap');
     if (wrap.querySelector('.p-month-picker')) { closeMonthPicker(); return; }
-
     const header = wrap.querySelector('.p-calendar-header');
     const cur = header ? header.dataset.calMonth : '';
     const year = parseInt(cur.slice(0, 4), 10) || new Date().getFullYear();
-
     const picker = document.createElement('div');
     picker.className = 'p-month-picker';
     picker.innerHTML = buildMonthPicker(year, cur);
@@ -688,7 +603,6 @@ function toggleMonthPicker() {
     });
     wrap.appendChild(picker);
 }
-
 // Click anywhere else (or press Esc) to close the picker.
 document.addEventListener('click', function (e) {
     if (!e.target.closest('.p-calendar-month')) closeMonthPicker();
@@ -696,15 +610,12 @@ document.addEventListener('click', function (e) {
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeMonthPicker();
 });
-
 // ── Favorites ──
 function isFavorited(id) { return favoritedIds.has(String(id)); }
-
 function updateFavButtonState(btn, fav) {
     btn.classList.toggle('is-favorited', fav);
     btn.innerHTML = fav ? '&#9829;' : '&#9825;';
 }
-
 function refreshFavButtons(id) {
     document.querySelectorAll('[data-fiesta-id="' + id + '"]').forEach(btn => {
         updateFavButtonState(btn, isFavorited(id));
@@ -714,7 +625,6 @@ function refreshFavButtons(id) {
         if (label) label.textContent = isFavorited(id) ? '♥ Saved to Favorites' : '♡ Add to Favorites';
     }
 }
-
 async function toggleFavoriteRequest(fiestaId) {
     try {
         const res = await fetch('../favorites.php', {
@@ -723,7 +633,6 @@ async function toggleFavoriteRequest(fiestaId) {
             body: new URLSearchParams({ action: 'toggle', item_type: 'fiesta', item_id: fiestaId })
         });
         const data = await res.json();
-
         if (data.needsLogin) {
             showPToast(data.message || 'Please sign in to save favorites.');
             return;
@@ -739,12 +648,10 @@ async function toggleFavoriteRequest(fiestaId) {
         showPToast('Something went wrong. Please try again.');
     }
 }
-
 function toggleFavoriteFromModal() {
     const id = document.getElementById('pViewModal').dataset.fiestaId;
     if (id) toggleFavoriteRequest(id);
 }
-
 // ── Per-item view tracking (fire-and-forget) ──
 function ktTrackItemView(type, id) {
     if (!id) return;
@@ -756,21 +663,16 @@ function ktTrackItemView(type, id) {
         fetch('../track_item_view.php', { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, keepalive: true }).catch(() => {});
     }
 }
-
 // ── View Details ──
 function openViewDetails(id) {
     const f = findFiesta(id);
     if (!f) return;
-
     ktTrackItemView('fiesta', id);
-
     const media = document.getElementById('pvMedia');
     media.style.backgroundImage = f.image ? `url('${f.image}')` : '';
-
     document.getElementById('pvType').textContent = f.type || 'Fiesta';
     document.getElementById('pvName').textContent = f.fiesta_name;
     document.getElementById('pvDesc').textContent = f.description || 'No description available yet.';
-
     const dateLabel = f.celebration_date
         ? new Date(f.celebration_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         : '';
@@ -778,23 +680,19 @@ function openViewDetails(id) {
     if (dateLabel) facts += `<div><p class="p-fact-label">Date</p><p class="p-fact-value">${dateLabel}</p></div>`;
     if (f.location) facts += `<div><p class="p-fact-label">Location</p><p class="p-fact-value">${f.location}</p></div>`;
     document.getElementById('pvFacts').innerHTML = facts;
-
     const fav = isFavorited(f.fiesta_id);
     const favIcon = document.getElementById('pvFavIcon');
     favIcon.dataset.fiestaId = f.fiesta_id;
     updateFavButtonState(favIcon, fav);
     document.getElementById('pvFavLabel').textContent = fav ? '♥ Saved to Favorites' : '♡ Add to Favorites';
-
     document.getElementById('pViewModal').dataset.fiestaId = f.fiesta_id;
     openPModal('pViewModal');
 }
-
 function openNavigateFromView() {
     const id = document.getElementById('pViewModal').dataset.fiestaId;
     closePModal('pViewModal');
     setTimeout(() => openNavigate(id), 200);
 }
-
 // ── Navigate (Google Maps embed) ──
 function haversineDistanceKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -804,40 +702,31 @@ function haversineDistanceKm(lat1, lon1, lat2, lon2) {
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
 function openNavigate(id) {
     const f = findFiesta(id);
     if (!f) return;
-
     document.getElementById('pnName').textContent = f.fiesta_name;
     const distEl = document.getElementById('pnDistance');
     const frame = document.getElementById('pnFrame');
     const directLink = document.getElementById('pnDirectLink');
-
     const hasCoords = f.latitude !== null && f.latitude !== '' && f.longitude !== null && f.longitude !== '';
-
     openPModal('pNavModal');
-
     if (!hasCoords) {
         distEl.textContent = 'This location has no map pin yet — the admin needs to set it when adding/editing the event.';
         frame.src = '';
         directLink.style.display = 'none';
         return;
     }
-
     const destLat = parseFloat(f.latitude);
     const destLng = parseFloat(f.longitude);
-
     frame.src = 'https://www.google.com/maps?q=' + destLat + ',' + destLng + '&z=15&output=embed';
     directLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng;
     directLink.style.display = 'inline-block';
     distEl.textContent = 'Locating you…';
-
     if (!navigator.geolocation) {
         distEl.textContent = "Your browser doesn't support location — showing the event location only.";
         return;
     }
-
     navigator.geolocation.getCurrentPosition(function (pos) {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
@@ -849,7 +738,6 @@ function openNavigate(id) {
         distEl.textContent = "Couldn't get your location (" + (err.message || 'permission denied') + ') — showing the event location only.';
     }, { enableHighAccuracy: true, timeout: 8000 });
 }
-
 // ── Toast ──
 let _pToastTimer;
 function showPToast(msg) {
@@ -861,6 +749,5 @@ function showPToast(msg) {
     _pToastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 </script>
-
 </body>
 </html>

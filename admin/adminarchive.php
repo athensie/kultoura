@@ -1,41 +1,26 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
-
 define('BASE_URL', '/kultoura');
-
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL — Super Admin only, same gate as adminrequests.php.
- | Restoring archived content is a direct, live-site write — a plain
- | Admin files a request for that instead (see adminrequests.php).
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 if (!kt_is_super_admin()) {
     header("Location: " . BASE_URL . "/admin/admindashboard.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Super Admin';
-
 kt_requests_ensure_schema($conn);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && in_array($_POST['form_action'], ['restore', 'delete'], true)) {
     csrf_verify();
     $formAction = $_POST['form_action'];
     $entityType = $_POST['entity_type'] ?? '';
     $entityId = (int) ($_POST['entity_id'] ?? 0);
     $archiveMeta = kt_archive_types()[$entityType] ?? null;
-
     if ($formAction === 'restore') {
         if ($archiveMeta && $entityId > 0 && kt_archive_restore($conn, $entityType, $entityId)) {
             $_SESSION['admin_flash'] = 'Restored — it\'s live again on the site.';
@@ -52,20 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action']) && in_
     header("Location: " . BASE_URL . "/admin/adminarchive.php");
     exit;
 }
-
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
-
 $pendingRequestCount = kt_requests_pending_count($conn);
 $archivedGrouped = kt_archived_items_grouped($conn);
-
-/*
- |--------------------------------------------------------------------
- | DETAILS VIEW — turn each item's raw row into a generic [label =>
- | value] list for the "Open" modal, so every entity type gets a real
- | details view without needing its own custom template. Technical/
- | already-shown-elsewhere columns are left out.
- */
 $archiveFieldSkip = ['status', 'created_at', 'archive_note', 'views', 'favorited'];
 foreach ($archivedGrouped as $type => &$group) {
     $meta = kt_archive_types()[$type];
@@ -90,7 +65,6 @@ unset($group);
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Archive – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -99,10 +73,8 @@ unset($group);
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminusers.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
@@ -123,7 +95,6 @@ unset($group);
         .archive-item-name { font-size: .82rem; color: rgba(245,237,216,.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .archive-item-date { font-size: .68rem; color: rgba(245,237,216,.35); margin-top: 1px; }
         .archive-empty { font-size: .82rem; color: rgba(245,237,216,.4); padding: 20px; text-align: center; background: rgba(255,255,255,.02); border: 1px dashed rgba(245,237,216,.1); border-radius: 12px; }
-
         .archive-details-thumb { width: 100%; height: 160px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.04); margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
         .archive-details-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .archive-note-box { text-align: left; background: rgba(200,169,110,.08); border: 1px solid rgba(200,169,110,.25); border-radius: 10px; padding: 12px 14px; margin: 16px 0; }
@@ -137,18 +108,14 @@ unset($group);
     </style>
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -159,7 +126,6 @@ unset($group);
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -168,7 +134,6 @@ unset($group);
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php" class="active"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -187,13 +152,9 @@ unset($group);
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
         <div class="page-header animate">
             <div>
                 <div class="section-label">Content Management</div>
@@ -201,7 +162,6 @@ unset($group);
                 <p>Everything archived across the site — hidden from the public site. Restore anything back to live, or delete it permanently.</p>
             </div>
         </div>
-
         <?php if (empty($archivedGrouped)): ?>
             <div class="chart-empty">
                 <i data-lucide="archive" class="lucide"></i>
@@ -265,37 +225,28 @@ unset($group);
                 </details>
             <?php endforeach; ?>
         <?php endif; ?>
-
     </div>
 </div>
-
-<!-- ARCHIVE ITEM DETAILS MODAL -->
 <div class="modal-overlay" id="archiveDetailsModal" onclick="closeModalOutside(event, 'archiveDetailsModal')">
     <div class="modal-card" style="max-width:480px;">
         <button class="modal-close" onclick="closeModal('archiveDetailsModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="archive-details-thumb" id="adThumb"></div>
         <div class="modal-title" id="adName">—</div>
         <div class="modal-sub" id="adMeta">—</div>
-
         <div class="archive-note-box" id="adNoteBox" hidden>
             <div class="archive-note-label"><i data-lucide="message-square" class="lucide" style="width:.8rem;height:.8rem;"></i> Reason for archiving</div>
             <div class="archive-note-text" id="adNoteText">—</div>
             <div class="archive-note-by" id="adNoteBy"></div>
         </div>
-
         <div class="archive-details-list" id="adDetailsList"></div>
-
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button type="button" class="btn-ghost" style="flex:1;" onclick="closeModal('archiveDetailsModal')">Close</button>
         </div>
     </div>
 </div>
-
 <div class="toast" id="toast"></div>
-
 <script>
     const archivedGroupedData = <?php echo json_encode($archivedGrouped); ?>;
-
     // Every value here is free-text admin input (names, notes,
     // descriptions…), so it's built with DOM nodes / textContent
     // rather than innerHTML string concatenation — never trust it as HTML.
@@ -303,10 +254,8 @@ unset($group);
         const group = archivedGroupedData[type];
         const item = group ? group.items.find(i => Number(i.id) === Number(id)) : null;
         if (!item) return;
-
         document.getElementById('adName').textContent = item.name || ('#' + item.id);
         document.getElementById('adMeta').textContent = 'Archived ' + new Date(item.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
         const thumb = document.getElementById('adThumb');
         thumb.textContent = '';
         if (item.image) {
@@ -321,7 +270,6 @@ unset($group);
             icon.style.cssText = 'width:1.4rem;height:1.4rem;color:rgba(245,237,216,.25);';
             thumb.appendChild(icon);
         }
-
         const noteBox = document.getElementById('adNoteBox');
         if (item.archive_note && item.archive_note.note) {
             noteBox.hidden = false;
@@ -332,7 +280,6 @@ unset($group);
         } else {
             noteBox.hidden = true;
         }
-
         const list = document.getElementById('adDetailsList');
         list.textContent = '';
         const details = item.details || [];
@@ -356,7 +303,6 @@ unset($group);
                 list.appendChild(row);
             });
         }
-
         openModal('archiveDetailsModal');
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
@@ -375,6 +321,5 @@ unset($group);
         else { document.addEventListener('DOMContentLoaded', function () { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
     })();
 </script>
-
 </body>
 </html>

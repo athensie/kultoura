@@ -1,11 +1,6 @@
-/* ── people.css — page-specific styles for people.php ── */
-/* Reuses index.css (navbar) and tourism.css (hero, .t-* layout) as-is. */
-/* All selectors here are prefixed with p- so nothing collides with either file. */
-
 .p-search-row {
     margin-bottom: 52px;
 }
-
 .p-search-bar {
     display: flex;
     align-items: center;
@@ -17,7 +12,6 @@
     max-width: 640px;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
-
 .p-search-bar input[type="text"] {
     flex: 1;
     border: none;
@@ -28,7 +22,6 @@
     background: transparent;
     color: #2c1a0e;
 }
-
 .p-category-select {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -38,30 +31,21 @@
     background: #f0ebe3;
     color: #2c1a0e;
 }
-
-/* Mobile: the select doesn't shrink past its content width, so above
-   ~360px it was forcing .p-search-bar (and the whole page) to scroll
-   horizontally. Stack the input and select instead of squeezing them
-   onto one line. */
 @media (max-width: 640px) {
     .p-search-bar {
         flex-wrap: wrap;
         border-radius: 20px;
         padding: 10px;
     }
-
     .p-search-bar input[type="text"] {
         flex: 1 1 100%;
         padding: 8px 6px;
     }
-
     .p-category-select {
         flex: 1 1 100%;
         width: 100%;
     }
 }
-
-/* Empty state */
 .p-empty-state {
     text-align: center;
     padding: 64px 24px;
@@ -69,41 +53,33 @@
     border: 1px dashed rgba(44, 26, 14, 0.15);
     border-radius: 12px;
 }
-
 .p-empty-icon {
     font-size: 32px;
     margin: 0 0 12px;
 }
-
 .p-empty-state h3 {
     font-family: Georgia, serif;
     font-size: 19px;
     color: #2c1a0e;
     margin-bottom: 8px;
 }
-
 .p-empty-state p {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     color: rgba(44, 26, 14, 0.55);
     margin: 0;
 }
-
-/* Card grid (for when the admin has added products) */
 .p-card-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
 }
-
 @media (max-width: 1024px) {
     .p-card-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
 @media (max-width: 640px) {
     .p-card-grid { grid-template-columns: 1fr; }
 }
-
 .p-card {
     background: #faf7f2;
     border: 1px solid rgba(44, 26, 14, 0.1);
@@ -114,17 +90,11 @@
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
     transition: all 0.22s;
 }
-
 .p-card:hover {
     border-color: rgba(139, 46, 26, 0.25);
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(139, 46, 26, 0.1);
 }
-
-/* FIX: the image now fills the whole box instead of showing only its
-   top-left corner. "cover" scales + crops to fill; "center top" keeps
-   heads/faces in view. Change to "center center" or use
-   background-size: contain if you want a different crop. */
 .p-card-media {
     position: relative;
     width: 100%;
@@ -135,7 +105,6 @@
     background-position: center 20%;
     background-repeat: no-repeat;
 }
-
 .p-fav-btn {
     position: absolute;
     top: 12px;
@@ -153,21 +122,17 @@
     justify-content: center;
     transition: background 0.2s, transform 0.15s;
 }
-
 .p-fav-btn:hover {
     background: rgba(139, 46, 26, 0.85);
     transform: scale(1.08);
 }
-
 .p-fav-btn.is-favorited {
     background: #8b2e1a;
 }
-
 .p-fav-btn:disabled {
     opacity: 0.6;
     cursor: wait;
 }
-
 .p-tag-pill {
     position: absolute;
     top: 12px;
@@ -179,14 +144,12 @@
     padding: 6px 10px;
     border-radius: 14px;
 }
-
 .p-card-body {
     padding: 18px 18px 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
 }
-
 .p-card-category {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 11px;
@@ -196,7 +159,6 @@
     margin: 0 0 6px;
     text-transform: uppercase;
 }
-
 .p-card-title {
     font-family: Georgia, serif;
     font-size: 18px;
@@ -204,7 +166,6 @@
     margin: 0 0 18px;
     flex: 1;
 }
-
 .p-card-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
@@ -213,13 +174,10 @@
     flex: 1;
     margin: 0 0 18px;
 }
-
 .p-card-actions {
     display: flex;
     gap: 10px;
 }
-
-/* ── Full-page profile view (instead of a card/modal) ── */
 .p-breadcrumb {
     display: flex;
     align-items: center;
@@ -230,28 +188,23 @@
     color: rgba(44, 26, 14, 0.45);
     margin-bottom: 36px;
 }
-
 .p-breadcrumb a {
     color: rgba(44, 26, 14, 0.5);
     text-decoration: none;
 }
-
 .p-breadcrumb a:hover {
     color: #8b2e1a;
     text-decoration: underline;
 }
-
 .p-breadcrumb-current {
     color: #2c1a0e;
     font-weight: 600;
 }
-
 .p-detail-wrap {
     display: flex;
     align-items: flex-start;
     gap: 56px;
 }
-
 .p-detail-media {
     width: 420px;
     flex-shrink: 0;
@@ -260,13 +213,11 @@
     background: #ded6c6 center/contain no-repeat;
     box-shadow: 0 8px 28px rgba(44, 26, 14, 0.14);
 }
-
 .p-detail-body {
     flex: 1;
     min-width: 0;
     padding-top: 8px;
 }
-
 .p-detail-title {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -275,7 +226,6 @@
     color: #2c1a0e;
     margin: 0 0 22px;
 }
-
 .p-fact-list {
     list-style: none;
     margin: 0;
@@ -284,12 +234,10 @@
     flex-direction: column;
     gap: 4px;
 }
-
 .p-fact-list li.p-fact-value::before {
     content: '• ';
     color: #8b2e1a;
 }
-
 .p-detail-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 16px;
@@ -298,7 +246,6 @@
     margin: 0 0 24px;
     max-width: 52ch;
 }
-
 @media (max-width: 768px) {
     .p-detail-title {
         font-size: 34px;
@@ -311,7 +258,6 @@
         width: 100%;
     }
 }
-
 .p-btn {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 12px;
@@ -322,30 +268,24 @@
     border-radius: 24px;
     cursor: pointer;
 }
-
 .p-btn-primary {
     background: #8b2e1a;
     color: #fff;
     border: 1px solid #8b2e1a;
 }
-
 .p-btn-primary:hover {
     background: #a83520;
     border-color: #a83520;
 }
-
 .p-btn-outline {
     background: #fff;
     color: #2c1a0e;
     border: 1px solid rgba(44, 26, 14, 0.15);
 }
-
 .p-btn-outline:hover {
     border-color: #8b2e1a;
     color: #8b2e1a;
 }
-
-/* ── Toast (favorite saved / removed / sign-in message) ── */
 .p-toast {
     position: fixed;
     bottom: 28px;
@@ -363,7 +303,6 @@
     transition: opacity 0.25s, transform 0.25s;
     z-index: 9999;
 }
-
 .p-toast.show {
     opacity: 1;
     transform: translate(-50%, 0);

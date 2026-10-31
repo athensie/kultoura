@@ -1,16 +1,4 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | MAINTENANCE MODE
- |--------------------------------------------------------------------
- | Toggled from Admin → Settings ("Maintenance Mode"). When on, every
- | public page calls kt_maintenance_gate($conn) right after dbmain.php
- | — anyone who isn't logged in as an admin sees the maintenance page
- | and nothing else. Admin pages and the auth pages (login, signup,
- | etc.) are never gated, so an admin can always still sign in and use
- | the admin panel.
- */
-
 if (!function_exists('kt_maintenance_is_on')) {
     function kt_maintenance_is_on(mysqli $conn): bool
     {
@@ -19,19 +7,16 @@ if (!function_exists('kt_maintenance_is_on')) {
         return (bool) ($settings['maintenance_mode'] ?? false);
     }
 }
-
 if (!function_exists('kt_maintenance_gate')) {
     function kt_maintenance_gate(mysqli $conn): void
     {
         if (!kt_maintenance_is_on($conn)) {
             return;
         }
-
         $role = strtolower($_SESSION['role'] ?? '');
         if (in_array($role, ['admin', 'super admin'], true)) {
             return;
         }
-
         http_response_code(503);
         header('Retry-After: 1800');
         ?>

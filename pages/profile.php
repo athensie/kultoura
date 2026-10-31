@@ -2,27 +2,22 @@
 require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
-
 if (!isset($_SESSION['user_id']) || strtolower((string) ($_SESSION['role'] ?? '')) !== 'user') {
     header('Location: ../auth/login.php');
     exit;
 }
-
 $userId = (int) $_SESSION['user_id'];
 $isLoggedIn = true;
 $navUserName = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '', ENT_QUOTES, 'UTF-8');
 $error = $_SESSION['profile_error'] ?? '';
 $success = $_SESSION['profile_success'] ?? '';
 unset($_SESSION['profile_error'], $_SESSION['profile_success']);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
-
     $fullname = trim((string) ($_POST['fullname'] ?? ''));
     $username = trim((string) ($_POST['username'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
     $promotionalEmail = isset($_POST['promotional_email']) ? 1 : 0;
-
     if ($fullname === '' || mb_strlen($fullname) > 100) {
         $error = 'Enter your name (up to 100 characters).';
     } elseif (!preg_match('/^[A-Za-z0-9_]{4,20}$/', $username)) {
@@ -37,7 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('sssii', $fullname, $username, $email, $promotionalEmail, $userId);
             $stmt->execute();
             $stmt->close();
-
             $_SESSION['username'] = $username;
             $_SESSION['user_name'] = $fullname;
             $_SESSION['profile_success'] = 'Your profile has been updated.';
@@ -49,8 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : 'We could not save your profile. Please try again.';
         }
     }
-
-    // Keep submitted values visible when validation fails.
     $profile = [
         'fullname' => $fullname,
         'username' => $username,
@@ -63,28 +55,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute();
     $profile = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-
     if (!$profile) {
         $_SESSION = [];
         header('Location: ../auth/login.php');
         exit;
     }
 }
-
 function profile_escape(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
-
 $nameParts = preg_split('/\s+/u', trim((string) ($profile['fullname'] ?? '')), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 $profileInitials = '';
 foreach (array_slice($nameParts, 0, 2) as $part) {
     $profileInitials .= mb_strtoupper(mb_substr($part, 0, 1));
 }
 $profileInitials = $profileInitials !== '' ? $profileInitials : 'KT';
-
 $stats = ['visits' => 0, 'places' => 0, 'favorites' => 0, 'photos' => 0, 'streak' => 0];
-
 $stmt = $conn->prepare(
     "SELECT COUNT(*) AS visits, COUNT(DISTINCT CONCAT(item_type, ':', item_id)) AS places
      FROM diary_entries WHERE user_id = ?"
@@ -95,13 +82,11 @@ $visitStats = $stmt->get_result()->fetch_assoc() ?: [];
 $stmt->close();
 $stats['visits'] = (int) ($visitStats['visits'] ?? 0);
 $stats['places'] = (int) ($visitStats['places'] ?? 0);
-
 $stmt = $conn->prepare('SELECT COUNT(*) AS total FROM favorites WHERE user_id = ?');
 $stmt->bind_param('i', $userId);
 $stmt->execute();
 $stats['favorites'] = (int) ($stmt->get_result()->fetch_assoc()['total'] ?? 0);
 $stmt->close();
-
 $stmt = $conn->prepare(
     'SELECT COUNT(*) AS total FROM diary_photos p
      INNER JOIN diary_entries d ON d.entry_id = p.entry_id WHERE d.user_id = ?'
@@ -110,7 +95,6 @@ $stmt->bind_param('i', $userId);
 $stmt->execute();
 $stats['photos'] = (int) ($stmt->get_result()->fetch_assoc()['total'] ?? 0);
 $stmt->close();
-
 $stmt = $conn->prepare('SELECT DISTINCT visited_date FROM diary_entries WHERE user_id = ? ORDER BY visited_date ASC');
 $stmt->bind_param('i', $userId);
 $stmt->execute();
@@ -201,10 +185,8 @@ while ($dateRow = $dateRows->fetch_assoc()) {
             <p class="profile-eyebrow">YOUR ACCOUNT</p>
             <h1>Edit your profile</h1>
             <p class="profile-intro">Keep your account details up to date.</p>
-
             <?php if ($error !== ''): ?><div class="profile-alert profile-alert-error" role="alert"><?php echo profile_escape($error); ?></div><?php endif; ?>
             <?php if ($success !== ''): ?><div class="profile-alert profile-alert-success" role="status"><?php echo profile_escape($success); ?></div><?php endif; ?>
-
             <form method="post" action="profile.php" class="profile-form">
                 <?php echo csrf_field(); ?>
                 <label>

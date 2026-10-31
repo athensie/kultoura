@@ -1,62 +1,27 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/csrf.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- | Keep this in sync with the rest of the admin panel.
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | DATABASE
- |--------------------------------------------------------------------
- | Needed to prefill the Admin Account card with this admin's real
- | name/email. Adjust the path if dbmain.php lives somewhere else.
- */
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/site_settings.php';
 require_once __DIR__ . '/../config/admin_email_approval.php';
 require_once __DIR__ . '/../config/admin_requests.php';
 require_once __DIR__ . '/../config/ai_recommend.php';
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-// Flash message from settings_actions.php (PRG pattern) — shown as a toast below.
 $flashMessage = $_SESSION['flash_message'] ?? null;
 unset($_SESSION['flash_message']);
-
-/*
- |--------------------------------------------------------------------
- | CURRENT ADMIN ACCOUNT
- |--------------------------------------------------------------------
- | Pulled fresh from the admins table (not just the session) so the
- | Admin Account form always shows this admin's real, current name
- | and email — not stale session data.
- */
 $currentAdmin = ['first_name' => '', 'last_name' => '', 'email' => ''];
 $stmt = $conn->prepare("SELECT first_name, last_name, email FROM admins WHERE admin_id = ? LIMIT 1");
 $stmt->bind_param('i', $_SESSION['user_id']);
@@ -67,15 +32,6 @@ if ($row) {
 }
 $displayName = trim(($currentAdmin['first_name'] ?? '') . ' ' . ($currentAdmin['last_name'] ?? '')) ?: $adminName;
 $maskedEmail = $currentAdmin['email'] ? kt_mask_email($currentAdmin['email']) : 'no email on file';
-
-/*
- |--------------------------------------------------------------------
- | SITE SETTINGS
- |--------------------------------------------------------------------
- | Backed by the `settings` key/value table (config/site_settings.php),
- | written to by settings_actions.php's toggle_setting handler. These
- | are just the defaults for a key that doesn't have a saved row yet.
- */
 $settings = site_settings_get_all($conn, [
     'maintenance_mode'      => false,
     'email_alerts'          => true,
@@ -83,26 +39,11 @@ $settings = site_settings_get_all($conn, [
     'flagged_content_alert' => true,
     'weekly_summary'        => false,
 ]);
-
-// Whether the For You page's recommendations are running on real Gemini
-// embeddings (config/gemini.php locally, or a GEMINI_API_KEY env var on
-// a host like Railway) versus the local TF-IDF fallback. Read-only here
-// — there's no key input field, since GEMINI_API_KEY is a secret and
-// belongs in an env var, not a value typed into the admin panel.
 $aiActive = ai_configured();
-
-// Forecasting/summary/recommended-actions/chart-insights try Gemini
-// first and fall back to Groq (config/groq.php or GROQ_API_KEY) before
-// giving up on AI entirely — so "Active" here means either provider is
-// usable, not just Gemini. Embeddings above stay Gemini-only since
-// Groq has no embeddings endpoint.
 $aiTextActive = ai_text_configured();
 $aiTextProvider = ai_configured() && groq_configured()
     ? 'Gemini, with Groq as a fallback'
     : (ai_configured() ? 'Gemini' : (groq_configured() ? 'Groq' : null));
-
-// The actual model ids in use, for a precise "what's really running"
-// answer rather than just a provider name.
 $aiEmbeddingModel = defined('GEMINI_EMBEDDING_MODEL') ? GEMINI_EMBEDDING_MODEL : null;
 $aiTextModel = ai_configured() && groq_configured()
     ? GEMINI_TEXT_MODEL . ' (falls back to ' . GROQ_MODEL . ')'
@@ -115,7 +56,6 @@ $aiTextModel = ai_configured() && groq_configured()
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -124,27 +64,21 @@ $aiTextModel = ai_configured() && groq_configured()
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminsettings.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -155,7 +89,6 @@ $aiTextModel = ai_configured() && groq_configured()
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -166,7 +99,6 @@ $aiTextModel = ai_configured() && groq_configured()
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php" class="active"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -185,14 +117,9 @@ $aiTextModel = ai_configured() && groq_configured()
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">Admin Panel</div>
@@ -200,13 +127,9 @@ $aiTextModel = ai_configured() && groq_configured()
                 <p>Control site visibility, notifications, and your admin account.</p>
             </div>
         </div>
-
         <div class="settings-grid animate">
-
-            <!-- SYSTEM STATUS -->
             <div class="settings-card">
                 <h3><i data-lucide="cpu" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> System Status</h3>
-
                 <div class="setting-row">
                     <div class="setting-info">
                         <div class="setting-label">AI Recommendations</div>
@@ -243,11 +166,8 @@ $aiTextModel = ai_configured() && groq_configured()
                     </span>
                 </div>
             </div>
-
-            <!-- SITE VISIBILITY -->
             <div class="settings-card">
                 <h3><i data-lucide="globe" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Site Visibility</h3>
-
                 <div class="setting-row">
                     <div class="setting-info">
                         <div class="setting-label">Maintenance Mode</div>
@@ -256,11 +176,8 @@ $aiTextModel = ai_configured() && groq_configured()
                     <button class="toggle <?php echo $settings['maintenance_mode'] ? 'on' : ''; ?>" data-key="maintenance_mode" onclick="toggleSetting(this)"></button>
                 </div>
             </div>
-
-            <!-- NOTIFICATIONS -->
             <div class="settings-card">
                 <h3><i data-lucide="bell" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Notifications</h3>
-
                 <div class="setting-row">
                     <div class="setting-info">
                         <div class="setting-label">Email Alerts</div>
@@ -290,15 +207,11 @@ $aiTextModel = ai_configured() && groq_configured()
                     <button class="toggle <?php echo $settings['weekly_summary'] ? 'on' : ''; ?>" data-key="weekly_summary" onclick="toggleSetting(this)"></button>
                 </div>
             </div>
-
-            <!-- ADMIN ACCOUNT -->
             <div class="settings-card">
                 <h3><i data-lucide="user-cog" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Admin Account</h3>
-
                 <form id="accountForm" action="<?php echo BASE_URL; ?>/admin/settings_actions.php" method="POST">
                     <input type="hidden" name="action" value="update_account">
                     <?php echo csrf_field(); ?>
-
                     <div class="form-group" style="margin-bottom:14px;">
                         <label class="form-label">Display Name</label>
                         <input class="form-input" type="text" name="display_name" value="<?php echo htmlspecialchars($displayName); ?>" placeholder="Display Name" required>
@@ -314,15 +227,11 @@ $aiTextModel = ai_configured() && groq_configured()
                     </div>
                 </form>
             </div>
-
         </div>
-
-        <!-- DANGER ZONE — Super Admin only -->
         <?php if ($isSuperAdmin): ?>
         <div style="margin-top: 20px;" class="animate">
             <div class="settings-card danger">
                 <h3><i data-lucide="triangle-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Danger Zone</h3>
-
                 <div class="setting-row">
                     <div class="setting-info">
                         <div class="setting-label danger-label">Reset All Analytics</div>
@@ -348,17 +257,13 @@ $aiTextModel = ai_configured() && groq_configured()
             </div>
         </div>
         <?php endif; ?>
-
     </div>
 </div>
-
-<!-- CHANGE PASSWORD MODAL -->
 <div class="modal-overlay" id="changePasswordModal" onclick="closeModalOutside(event, 'changePasswordModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('changePasswordModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title">Change Password</div>
         <div class="modal-sub">Confirm your current password to request a change. You'll choose the new one after approving it by email.</div>
-
         <form id="changePasswordForm" onsubmit="return submitChangePassword(event)">
             <div class="form-group" style="margin-bottom:14px;">
                 <label class="form-label">Current Password</label>
@@ -369,7 +274,6 @@ $aiTextModel = ai_configured() && groq_configured()
                 <button type="button" class="btn-ghost" onclick="closeModal('changePasswordModal')">Cancel</button>
             </div>
         </form>
-
         <div id="changePasswordPending" hidden style="text-align:center; padding:8px 0;">
             <i data-lucide="mail-check" class="lucide" style="width:2.5rem;height:2.5rem;margin-bottom:10px;"></i>
             <div class="modal-title" style="margin-bottom:6px;">Check Your Email</div>
@@ -378,10 +282,7 @@ $aiTextModel = ai_configured() && groq_configured()
         </div>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
@@ -393,6 +294,5 @@ const KT_CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
 showToast(<?php echo json_encode($flashMessage); ?>);
 <?php endif; ?>
 </script>
-
 </body>
 </html>

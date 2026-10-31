@@ -1,9 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/session_boot.php';
-
-// Same base path used in admin/admindashboard.php — keep these in sync.
 define('BASE_URL', '/kultoura');
-
 if (isset($_SESSION['user_id'])) {
     $role = strtolower($_SESSION['role'] ?? '');
     if (in_array($role, ['admin', 'super admin'], true)) {
@@ -13,13 +10,10 @@ if (isset($_SESSION['user_id'])) {
     }
     exit;
 }
-
 $error   = $_SESSION['error'] ?? '';
 $success = $_SESSION['success'] ?? '';
-
 unset($_SESSION['error'], $_SESSION['success']);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,14 +21,11 @@ unset($_SESSION['error'], $_SESSION['success']);
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forgot Password – KULTOURA</title>
-
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
-
 <div class="auth-page">
-
     <header class="navbar">
         <nav class="nav-links">
             <a href="../index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
@@ -76,41 +67,30 @@ unset($_SESSION['error'], $_SESSION['success']);
                 </div>
             </div>
         </nav>
-
         <a href="signup.php" class="sign-in-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg><span>SIGN UP</span></a>
-
         <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
     </header>
-
     <main class="auth-content">
         <div class="auth-card">
-
             <div class="auth-brand">
                 <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
-
             <h2 class="auth-title">Forgot Password</h2>
             <p class="auth-sub">Enter your username and the email on your account to continue.</p>
-
             <?php if ($error): ?>
                 <div class="alert alert-error">
                     <?php echo htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
-
             <?php if ($success): ?>
                 <div class="alert alert-success">
                     <?php echo htmlspecialchars($success); ?>
                 </div>
             <?php endif; ?>
-
             <form action="auth.php" method="POST" class="auth-form">
-
                 <input type="hidden" name="action" value="verify_reset">
-
-                <!-- Username -->
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input
@@ -124,8 +104,6 @@ unset($_SESSION['error'], $_SESSION['success']);
                         title="Username can only contain letters, numbers, and underscores."
                         required>
                 </div>
-
-                <!-- Email -->
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input
@@ -135,25 +113,18 @@ unset($_SESSION['error'], $_SESSION['success']);
                         placeholder="Enter your email"
                         required>
                 </div>
-
                 <button type="submit" class="auth-btn">
                     VERIFY &amp; CONTINUE
                 </button>
-
             </form>
-
             <p class="auth-switch">
                 Remembered your password?
                 <a href="login.php">Sign In</a>
             </p>
-
         </div>
     </main>
-
 </div>
-
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/index.js"></script>
-
 </body>
 </html>

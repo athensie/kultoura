@@ -8,22 +8,9 @@ include '../config/sitecontent.php';
 require_once __DIR__ . '/../config/page_widgets.php';
 $pageWidget = kt_page_widget_get($conn, 'tourism');
 analytics_track($conn, 'tourism');
-
 $tourismHeroPhoto = sitecontent_get_photo($conn, 'tourism_hero');
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-/*
- |--------------------------------------------------------------------
- | HUB TILE IMAGES
- |--------------------------------------------------------------------
- | Each category tile below shows the newest entry's photo from its
- | source table. `destination` categories are stored lowercase
- | ('nature', 'resort', 'industrial zone'), matching how nature.php
- | already queries it — double check resort.php / industry.php use
- | the same casing if their tiles don't pick up an image.
- */
 function kt_latest_image(mysqli $conn, string $table, ?string $categoryColumn = null, ?string $categoryValue = null): ?string
 {
     if ($categoryColumn !== null) {
@@ -45,7 +32,6 @@ function kt_latest_image(mysqli $conn, string $table, ?string $categoryColumn = 
     $stmt->close();
     return $row['image'] ?? null;
 }
-
 $hubImages = [
     'products'    => kt_latest_image($conn, 'products'),
     'nature'      => kt_latest_image($conn, 'destination', 'category', 'nature'),
@@ -56,20 +42,6 @@ $hubImages = [
     'services'    => kt_latest_image($conn, 'destination', 'category', 'service'),
     'churches'    => kt_latest_image($conn, 'destination', 'category', 'church'),
 ];
-
-/*
- |--------------------------------------------------------------------
- | Turn each raw `image` value into a working <img> src.
- |--------------------------------------------------------------------
- | basename() strips any accidentally-stored path/URL prefix down to
- | just the filename, so this is robust to older rows saved before the
- | upload code settled on "bare filename only" as the convention.
- |
- | Subfolder per source table — 'food' and 'destinations' are confirmed
- | from the actual project structure; 'products', 'fiestas', and
- | 'people' are a best guess matching the table name and haven't been
- | verified — check those three if their tiles don't pick up a photo.
- */
 $hubImageSubfolder = [
     'products'    => 'food',
     'nature'      => 'destinations',
@@ -80,7 +52,6 @@ $hubImageSubfolder = [
     'services'    => 'destinations',
     'churches'    => 'destinations',
 ];
-
 foreach ($hubImages as $key => $value) {
     if (!empty($value)) {
         $hubImages[$key] = '../assets/uploads/' . $hubImageSubfolder[$key] . '/' . basename($value);
@@ -100,16 +71,12 @@ foreach ($hubImages as $key => $value) {
     <link rel="stylesheet" href="../assets/css/pagewidget.css">
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -151,8 +118,6 @@ foreach ($hubImages as $key => $value) {
         </div>
             <?php if ($isLoggedIn): ?><a href="../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="search_api.php" data-results="search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -165,11 +130,8 @@ foreach ($hubImages as $key => $value) {
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
 <?php if (!$pageWidget): ?>
-<!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $tourismHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($tourismHeroPhoto): ?>
         <img class="t-hero-photo" src="<?php echo htmlspecialchars($tourismHeroPhoto); ?>" alt="">
@@ -187,13 +149,8 @@ foreach ($hubImages as $key => $value) {
     </div>
 </section>
 <?php endif; ?>
-
 <?php kt_page_widget_render_from($pageWidget, 'tourism'); ?>
-
-<!-- ── Category Hub ── -->
 <main class="t-main">
-
-    <!-- LOCAL PRODUCTS -->
     <section class="t-category" id="products">
         <div class="t-category-header">
             <div>
@@ -204,7 +161,6 @@ foreach ($hubImages as $key => $value) {
                 </p>
             </div>
         </div>
-
         <div class="t-card-row">
             <a href="tourism/products.php" class="t-card">
                 <div class="t-card-media">
@@ -220,10 +176,7 @@ foreach ($hubImages as $key => $value) {
             </a>
         </div>
     </section>
-
     <div class="t-divider"></div>
-
-    <!-- LOCAL DESTINATIONS -->
     <section class="t-category" id="destinations">
         <div class="t-category-header">
             <div>
@@ -234,7 +187,6 @@ foreach ($hubImages as $key => $value) {
                 </p>
             </div>
         </div>
-
         <div class="t-card-row">
             <a href="tourism/nature.php" class="t-card">
                 <div class="t-card-media">
@@ -248,7 +200,6 @@ foreach ($hubImages as $key => $value) {
                 </div>
                 <div class="t-card-arrow">→</div>
             </a>
-
             <a href="tourism/resort.php" class="t-card">
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['resort'])): ?>
@@ -261,7 +212,6 @@ foreach ($hubImages as $key => $value) {
                 </div>
                 <div class="t-card-arrow">→</div>
             </a>
-
             <a href="tourism/industry.php" class="t-card">
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['industry'])): ?>
@@ -274,7 +224,6 @@ foreach ($hubImages as $key => $value) {
                 </div>
                 <div class="t-card-arrow">→</div>
             </a>
-
             <a href="tourism/churches.php" class="t-card">
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['churches'])): ?>
@@ -289,10 +238,7 @@ foreach ($hubImages as $key => $value) {
             </a>
         </div>
     </section>
-
     <div class="t-divider"></div>
-
-    <!-- CULTURE -->
     <section class="t-category" id="culture">
         <div class="t-category-header">
             <div>
@@ -303,7 +249,6 @@ foreach ($hubImages as $key => $value) {
                 </p>
             </div>
         </div>
-
         <div class="t-card-row">
             <a href="tourism/fiestas.php" class="t-card">
                 <div class="t-card-media">
@@ -317,7 +262,6 @@ foreach ($hubImages as $key => $value) {
                 </div>
                 <div class="t-card-arrow">→</div>
             </a>
-
             <a href="tourism/people.php" class="t-card">
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['people'])): ?>
@@ -332,10 +276,7 @@ foreach ($hubImages as $key => $value) {
             </a>
         </div>
     </section>
-
     <div class="t-divider"></div>
-
-    <!-- OTHER SERVICES -->
     <section class="t-category" id="services">
         <div class="t-category-header">
             <div>
@@ -346,7 +287,6 @@ foreach ($hubImages as $key => $value) {
                 </p>
             </div>
         </div>
-
         <div class="t-card-row">
             <a href="tourism/services.php" class="t-card">
                 <div class="t-card-media">
@@ -362,16 +302,11 @@ foreach ($hubImages as $key => $value) {
             </a>
         </div>
     </section>
-
 </main>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/navbar-search.js"></script>
-
 </body>
 </html>

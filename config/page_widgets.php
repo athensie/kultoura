@@ -1,31 +1,10 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | PAGE WIDGETS — admin-customizable promo banner per tourism page
- |--------------------------------------------------------------------
- | One optional widget per tourism subpage (Products, Restaurants,
- | Churches, etc. — see kt_page_widget_pages() below): a colored promo
- | banner (photo + headline + two small highlight cards) with a photo
- | strip underneath that expands on hover. Admin picks a page from a
- | dropdown in admin/adminpagewidgets.php; only one live widget per
- | page_slug (enforced by the UNIQUE key), same as site_photos' one-
- | slot-per-key pattern in config/sitecontent.php.
- |
- | Goes through the same Admin/Super Admin approval queue as Partners
- | and Event Gallery (config/admin_requests.php): a plain Admin's
- | add/edit/archive is held for review, a Super Admin's applies
- | immediately.
- |
- | Include this AFTER config/dbmain.php (needs $conn).
- */
-
 if (!function_exists('kt_page_widgets_ensure_schema')) {
     function kt_page_widgets_ensure_schema(mysqli $conn): void
     {
         static $done = false;
         if ($done) return;
         $done = true;
-
         $conn->query(
             "CREATE TABLE IF NOT EXISTS page_widgets (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -69,13 +48,6 @@ if (!function_exists('kt_page_widgets_ensure_schema')) {
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
-
-        // Already-deployed installs had page_widgets before a column
-        // existed — CREATE TABLE IF NOT EXISTS above is a no-op for them,
-        // so add any missing ones here. gallery_main_image/gallery_image_1-4/
-        // strip_*/gallery_heading/gallery_text/card2_title/card2_text are
-        // now unused (the single photo_1-5 + caption/description set below
-        // replaced them) but deliberately left in place, harmless.
         foreach (['strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4',
                   'photo_1', 'photo_1_caption', 'photo_1_description',
                   'photo_2', 'photo_2_caption', 'photo_2_description',
@@ -88,14 +60,11 @@ if (!function_exists('kt_page_widgets_ensure_schema')) {
             try {
                 $conn->query("ALTER TABLE page_widgets ADD COLUMN $col $type NULL");
             } catch (mysqli_sql_exception $e) {
-                if ($e->getCode() !== 1060) { throw $e; } // 1060 = column already exists
+                if ($e->getCode() !== 1060) { throw $e; }
             }
         }
     }
 }
-
-// The tourism subpages a widget can be attached to — dropdown source in
-// the admin form, and the validity check when applying a request.
 if (!function_exists('kt_page_widget_pages')) {
     function kt_page_widget_pages(): array
     {
@@ -115,12 +84,6 @@ if (!function_exists('kt_page_widget_pages')) {
         ];
     }
 }
-
-// The banner's eyebrow/headline/description always come from here, not an
-// admin-typed field — same text already shown in that page's own hero
-// section (<p class="t-eyebrow">, <h1 class="t-page-title">,
-// <p class="t-page-sub">), kept as a single source of truth so the widget
-// can't drift out of sync with the page it's on.
 if (!function_exists('kt_page_widget_page_meta')) {
     function kt_page_widget_page_meta(): array
     {
@@ -140,9 +103,6 @@ if (!function_exists('kt_page_widget_page_meta')) {
         ];
     }
 }
-
-// Shared by every image field on the widget — same validation/storage
-// pattern as config/homepage_content.php's kt_homepage_handle_image_upload().
 if (!function_exists('kt_page_widget_save_uploaded_image')) {
     function kt_page_widget_save_uploaded_image(string $tmpName): ?string
     {
@@ -159,16 +119,10 @@ if (!function_exists('kt_page_widget_save_uploaded_image')) {
         if (!move_uploaded_file($tmpName, $dir . '/' . $filename)) {
             return null;
         }
-        // Absolute from site root (not relative) — this image gets rendered
-        // by kt_page_widget_render() on tourism pages nested two directories
-        // deep (pages/tourism/*.php), where a relative "assets/..." path
-        // would resolve wrong. Same convention as adminsitecontent.php's
-        // upload handler.
         $base = defined('BASE_URL') ? BASE_URL : '/kultoura';
         return $base . '/assets/uploads/pagewidgets/' . $filename;
     }
 }
-
 if (!function_exists('kt_page_widget_handle_image_upload')) {
     function kt_page_widget_handle_image_upload(string $fieldName): ?string
     {
@@ -181,12 +135,6 @@ if (!function_exists('kt_page_widget_handle_image_upload')) {
         return kt_page_widget_save_uploaded_image($_FILES[$fieldName]['tmp_name']);
     }
 }
-
-// One <input type="file" name="$fieldName[]" multiple> picker, not five
-// separate single-file inputs — $index is which file the admin picked
-// into that slot (0-based). A skipped slot (fewer than 5 files chosen,
-// or the browser's multi-select just leaves it out) returns null, which
-// the caller treats as "keep whatever was there before."
 if (!function_exists('kt_page_widget_handle_multi_image_upload')) {
     function kt_page_widget_handle_multi_image_upload(string $fieldName, int $index): ?string
     {
@@ -199,8 +147,6 @@ if (!function_exists('kt_page_widget_handle_multi_image_upload')) {
         return kt_page_widget_save_uploaded_image($_FILES[$fieldName]['tmp_name'][$index]);
     }
 }
-
-// The live widget for one page, or null if the admin hasn't set one up yet.
 if (!function_exists('kt_page_widget_get')) {
     function kt_page_widget_get(mysqli $conn, string $pageSlug): ?array
     {
@@ -212,32 +158,17 @@ if (!function_exists('kt_page_widget_get')) {
         return $row ?: null;
     }
 }
-
-// Renders the banner + expanding gallery strip for one page. Safe to call
-// unconditionally — a no-op when that page has no live widget.
 if (!function_exists('kt_page_widget_render')) {
     function kt_page_widget_render(mysqli $conn, string $pageSlug): void
     {
         kt_page_widget_render_from(kt_page_widget_get($conn, $pageSlug), $pageSlug);
     }
 }
-
-// Same rendering, but takes an already-fetched row (or null) instead of
-// querying again — lets a page call kt_page_widget_get() once up top,
-// decide whether to show its own hero title (skipped when a widget will
-// show the same title/description below it), and pass that same result
-// in here instead of hitting the DB twice.
 if (!function_exists('kt_page_widget_render_from')) {
     function kt_page_widget_render_from(?array $w, string $pageSlug): void
     {
         if (!$w) return;
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['eyebrow' => '', 'title' => $pageSlug, 'description' => ''];
-        // Grid photos (gallery_image_1/gallery_main_image/gallery_image_2/
-        // gallery_image_3, + card2_text for the logo cell's caption) and
-        // strip photos (photo_1-5, each with its own caption/description)
-        // are deliberately separate uploads — different pictures in the
-        // grid above vs. the expanding strip below. main_image is its own
-        // single photo too: the one the page's Title overlays.
         $photos = [
             1 => ['src' => $w['photo_1'] ?? null, 'caption' => $w['photo_1_caption'] ?? null, 'description' => $w['photo_1_description'] ?? null],
             2 => ['src' => $w['photo_2'] ?? null, 'caption' => $w['photo_2_caption'] ?? null, 'description' => $w['photo_2_description'] ?? null],
@@ -287,7 +218,6 @@ if (!function_exists('kt_page_widget_render_from')) {
                     </div>
                 <?php endif; ?>
             </div>
-
             <?php $hasAnyPhoto = array_filter($photos, fn($p) => !empty($p['src'])); ?>
             <?php if (!empty($hasAnyPhoto)): ?>
             <div class="pw-gallery">

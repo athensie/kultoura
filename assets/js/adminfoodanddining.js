@@ -1,59 +1,26 @@
-// KulToura Admin — Food & Dining
-// listingsData + categoriesByType are injected server-side by adminfoodanddining.php via:
-//   <script> const listingsData = <?php echo json_encode($foodListings); ?>;
-//            const categoriesByType = <?php echo json_encode($categoriesByType); ?>; </script>
-//
-// Schema note: there is no `status` column and no single `location_address`
-// column. Products use `price` + `location`; restaurants use `address` +
-// `contact_number` + `opening_hours` + `google_map`. Add/Edit forms show
-// the relevant field group based on listing type (see toggleTypeFields).
-
-// CSS class suffix for a category's colored badge — mirrors
-// kt_food_category_slug() in adminfoodanddining.php so the View
-// modal's badge (filled client-side from listingsData) matches the
-// table/grid badges (rendered server-side).
 function ktFoodCategorySlug(category) {
   const known = Object.values(window.categoriesByType || {}).flat();
   if (!known.includes(category)) return 'other';
   return category.toLowerCase().replace(/&/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
-
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof lucide !== 'undefined') lucide.createIcons();
-  // Default category + field set for the Add modal's initial "product" type.
   updateCategoryOptions('addTypeInput', 'addCategoryInput');
   toggleTypeFields('add');
   toggleCategoryField('add');
-
   const addTypeInput = document.getElementById('addTypeInput');
   if (addTypeInput) {
     addTypeInput.addEventListener('change', function () { toggleCategoryField('add'); });
   }
-
   const flash = window.__adminFlash;
   if (flash) showToast(flash);
 });
-
-// SIDEBAR
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
-
-// MODALS
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
-
-/* ------------------------------------------------------------------ *
- * CATEGORY <-> TYPE
- * ------------------------------------------------------------------ *
- * Category is a fixed dropdown for both listing types — the choices
- * come from $categoriesByType in adminfoodanddining.php (product:
- * Local Food / Local Products / Crafts; restaurant: its own preset
- * list). The hidden text input isn't user-facing; it only carries the
- * value being edited over to toggleCategoryField(), which builds the
- * real <select> admins actually use.
- */
 function updateCategoryOptions(typeSelectId, categoryInputId, selected) {
   const categoryInput = document.getElementById(categoryInputId);
   if (!categoryInput) return;
@@ -61,24 +28,17 @@ function updateCategoryOptions(typeSelectId, categoryInputId, selected) {
     categoryInput.value = selected;
   }
 }
-
 function buildCategorySelect(selectEl, options) {
   selectEl.innerHTML = options.map(c => `<option value="${c}">${c}</option>`).join('');
 }
-
 function toggleCategoryField(prefix) {
   const textInput = document.getElementById(prefix + 'CategoryInput');
   const select = document.getElementById(prefix + 'CategorySelect');
   const typeEl = document.getElementById(prefix + 'TypeInput');
   if (!textInput || !select || !typeEl) return;
-
   const type = typeEl.value || 'product';
   const options = (window.categoriesByType && window.categoriesByType[type]) || [];
   buildCategorySelect(select, options);
-
-  // Carry over whatever value is already in the (hidden) text field —
-  // e.g. a legacy category on an existing row that predates the fixed
-  // list — so editing a listing never silently discards its category.
   const current = textInput.value;
   if (current && ![...select.options].some(o => o.value === current)) {
     const opt = document.createElement('option');
@@ -87,17 +47,11 @@ function toggleCategoryField(prefix) {
     select.insertBefore(opt, select.firstChild);
   }
   if (current) select.value = current;
-
   textInput.style.display = 'none';
   textInput.disabled = true;
   select.style.display = '';
   select.disabled = false;
 }
-
-// Shows the product-only fields (price/location) or restaurant-only fields
-// (address/contact/hours/google map) depending on the selected listing type.
-// Relies on the .{prefix}-product-fields / .{prefix}-restaurant-fields
-// classes on the form markup.
 function toggleTypeFields(prefix) {
   const typeInput = document.getElementById(prefix + 'TypeInput');
   const type = typeInput ? typeInput.value : 'product';
@@ -108,24 +62,12 @@ function toggleTypeFields(prefix) {
   document.querySelectorAll('.' + prefix + '-restaurant-fields').forEach(el => {
     el.style.display = isProduct ? 'none' : '';
   });
-
-  // Products submit as `location`, restaurants as `address` — one shared
-  // address-picker input serves both, renamed to match whichever the
-  // currently-selected listing type expects.
   const locationInput = document.getElementById(prefix + 'LocationInput');
   if (locationInput) locationInput.name = isProduct ? 'location' : 'address';
 }
-
-/* ------------------------------------------------------------------ *
- * READ-ONLY MAP PREVIEW (View modal only) — Leaflet + OpenStreetMap
- * tiles. Add/Edit use the shared, editable KtAddressPicker instead
- * (see ktSetupFoodMap below); this one just drops a static pin for
- * a listing that already has coordinates, no API key needed.
- * ------------------------------------------------------------------ */
-const DEFAULT_CENTER = [14.0570, 121.1610]; // Malvar, Batangas
-const mapInstances = {};    // canvasId -> Leaflet map
-const markerInstances = {}; // canvasId -> Leaflet marker
-
+const DEFAULT_CENTER = [14.0570, 121.1610];
+const mapInstances = {};
+const markerInstances = {};
 function getMapRefs(prefix) {
   return {
     canvasId: prefix + 'MapCanvas',
@@ -135,59 +77,46 @@ function getMapRefs(prefix) {
     hintEl: document.getElementById(prefix + 'MapHint'),
   };
 }
-
 function setMapHint(prefix, text) {
   const { hintEl } = getMapRefs(prefix);
   if (hintEl) hintEl.textContent = text;
 }
-
 function initMapPicker(prefix, lat, lng, readOnly) {
   const { canvasId, latInput } = getMapRefs(prefix);
   const canvas = document.getElementById(canvasId);
   if (!canvas || typeof L === 'undefined') return;
-
-  // Re-create the map fresh each time the modal opens so Leaflet always
-  // renders correctly inside a container that was just made visible.
   if (mapInstances[canvasId]) {
     mapInstances[canvasId].remove();
     delete mapInstances[canvasId];
     delete markerInstances[canvasId];
   }
-
   const center = (lat && lng) ? [lat, lng] : DEFAULT_CENTER;
   const map = L.map(canvasId, { dragging: true, scrollWheelZoom: true }).setView(center, lat && lng ? 16 : 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
     maxZoom: 19,
   }).addTo(map);
-
   mapInstances[canvasId] = map;
-
   if (lat && lng) {
     dropPin(prefix, lat, lng, false);
   } else if (!readOnly) {
     setMapHint(prefix, 'Search an address, or click/drag the pin to set the exact spot.');
   }
-
   if (!readOnly) {
     map.on('click', function (e) {
       dropPin(prefix, e.latlng.lat, e.latlng.lng, true);
     });
   }
-
-  // Leaflet needs a resize nudge once its container becomes visible.
   setTimeout(() => map.invalidateSize(), 200);
 }
-
 function dropPin(prefix, lat, lng, reverseGeocode) {
   const { canvasId, latInput, lngInput } = getMapRefs(prefix);
   const map = mapInstances[canvasId];
   if (!map) return;
-
   if (markerInstances[canvasId]) {
     markerInstances[canvasId].setLatLng([lat, lng]);
   } else {
-    const draggable = !!latInput; // read-only view map has no lat input, so no dragging
+    const draggable = !!latInput;
     const marker = L.marker([lat, lng], { draggable }).addTo(map);
     marker.on('dragend', function () {
       const pos = marker.getLatLng();
@@ -195,16 +124,12 @@ function dropPin(prefix, lat, lng, reverseGeocode) {
     });
     markerInstances[canvasId] = marker;
   }
-
   map.setView([lat, lng], Math.max(map.getZoom(), 16));
-
   if (latInput) latInput.value = lat.toFixed(7);
   if (lngInput) lngInput.value = lng.toFixed(7);
   setMapHint(prefix, '✓ Pin set at ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' — drag it to fine-tune.');
-
   if (reverseGeocode) reverseGeocodeLatLng(prefix, lat, lng);
 }
-
 function reverseGeocodeLatLng(prefix, lat, lng) {
   const { addressInput } = getMapRefs(prefix);
   if (!addressInput) return;
@@ -214,16 +139,9 @@ function reverseGeocodeLatLng(prefix, lat, lng) {
     .then(data => {
       if (data && data.display_name) addressInput.value = data.display_name;
     })
-    .catch(() => { /* silent — the pin/coords are already saved either way */ });
+    .catch(() => {  });
 }
-
-/* ------------------------------------------------------------------ *
- * ADDRESS PICKER for Add/Edit (shared module — kt-address-picker.js)
- * The View modal's static map above still uses the lightweight
- * read-only initMapPicker() — it has no input to autocomplete.
- * ------------------------------------------------------------------ */
 const ktFoodMaps = { add: null, edit: null };
-
 function ktSetupFoodMap(prefix) {
   if (ktFoodMaps[prefix]) return ktFoodMaps[prefix];
   ktFoodMaps[prefix] = KtAddressPicker.setup({
@@ -239,10 +157,6 @@ function ktSetupFoodMap(prefix) {
   });
   return ktFoodMaps[prefix];
 }
-
-/* ------------------------------------------------------------------ *
- * ADD LISTING
- * ------------------------------------------------------------------ */
 function openAddListing() {
   const form = document.getElementById('addListingForm');
   if (form) form.reset();
@@ -258,7 +172,6 @@ function openAddListing() {
     if (picker) { picker.map.invalidateSize(); picker.reset(); }
   }, 150);
 }
-
 function validateListingForm(mode) {
   const prefix = mode === 'add' ? 'add' : 'edit';
   const name = document.querySelector(`#${prefix}ListingForm [name="name"]`);
@@ -266,18 +179,12 @@ function validateListingForm(mode) {
     showToast('Please enter a listing name.');
     return false;
   }
-  return true; // real form submit -> PHP saves it -> page reloads with fresh data
+  return true;
 }
-
-/* ------------------------------------------------------------------ *
- * VIEW / EDIT / DELETE — matched by id + type
- * ------------------------------------------------------------------ */
 function findListing(id, type) {
   return (window.listingsData || []).find(x => String(x.id) === String(id) && x.type === type);
 }
-
 let _lastViewed = null;
-
 function buildDetailsHtml(l) {
   if (l.type === 'product') {
     const price = (l.price !== null && l.price !== '') ? '₱' + Number(l.price).toFixed(2) : '—';
@@ -291,7 +198,6 @@ function buildDetailsHtml(l) {
   }
   return html;
 }
-
 function openViewListing(id, type) {
   const l = findListing(id, type) || { name: '—', type, category: '—', desc: 'No description available.' };
   _lastViewed = l;
@@ -302,37 +208,30 @@ function openViewListing(id, type) {
   categoryEl.className = 'category-badge food-cat-' + ktFoodCategorySlug(l.category);
   document.getElementById('vlDetails').innerHTML = buildDetailsHtml(l);
   document.getElementById('vlDesc').textContent = l.desc || 'No description available.';
-
   const viewCanvas = document.getElementById('viewMapCanvas');
   const hasCoords = l.latitude !== null && l.latitude !== '' && l.longitude !== null && l.longitude !== '';
   if (viewCanvas) viewCanvas.style.display = hasCoords ? '' : 'none';
-
   openModal('viewListingModal');
   if (hasCoords) {
     setTimeout(() => initMapPicker('view', parseFloat(l.latitude), parseFloat(l.longitude), true), 150);
   }
 }
-
 function reopenAsEdit() {
   closeModal('viewListingModal');
   if (_lastViewed) setTimeout(() => openEditListing(_lastViewed.id, _lastViewed.type), 200);
 }
-
 function openEditListing(id, type) {
   const l = findListing(id, type);
   if (!l) return;
-
   document.getElementById('editListingName').textContent = 'Editing: ' + l.name;
   document.getElementById('editIdInput').value = l.id;
   document.getElementById('editTypeInput').value = l.type;
   document.getElementById('editNameInput').value = l.name || '';
   document.getElementById('editDescInput').value = l.desc || '';
   document.getElementById('editImageInput').value = l.image || '';
-
   updateCategoryOptions('editTypeInput', 'editCategoryInput', l.category);
   toggleTypeFields('edit');
   toggleCategoryField('edit');
-
   document.getElementById('editLocationInput').value = l.address || '';
   if (l.type === 'product') {
     document.getElementById('editPriceInput').value = l.price ?? '';
@@ -341,11 +240,9 @@ function openEditListing(id, type) {
     document.getElementById('editHoursInput').value = l.opening_hours || '';
     document.getElementById('editGoogleMapInput').value = l.google_map || '';
   }
-
   const hasCoords = l.latitude !== null && l.latitude !== '' && l.longitude !== null && l.longitude !== '';
   document.getElementById('editLatInput').value = hasCoords ? l.latitude : '';
   document.getElementById('editLngInput').value = hasCoords ? l.longitude : '';
-
   openModal('editListingModal');
   setTimeout(() => {
     const picker = ktSetupFoodMap('edit');
@@ -358,7 +255,6 @@ function openEditListing(id, type) {
     }
   }, 150);
 }
-
 function confirmDelete(id, type, name) {
   document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
   document.getElementById('deleteDesc').textContent = 'This will permanently remove this listing from KulToura.';
@@ -366,24 +262,13 @@ function confirmDelete(id, type, name) {
   document.getElementById('deleteTypeInput').value = type;
   openModal('deleteModal');
 }
-
-/* ------------------------------------------------------------------ *
- * FILTERS
- * Search text, listing type, and category all apply together (a row
- * only shows if it passes all three), read straight off the filter
- * controls in the DOM rather than being passed a single value.
- * ------------------------------------------------------------------ */
 function filterListings() {
   const searchEl = document.getElementById('searchInput');
   const typeEl = document.getElementById('typeFilter');
   const categoryEl = document.getElementById('categoryFilter');
-
   const q = searchEl ? searchEl.value.toLowerCase().trim() : '';
   const type = typeEl ? typeEl.value : '';
   const category = categoryEl ? categoryEl.value : '';
-
-  // Both the table rows (list view) and the grid cards (grid view) carry
-  // the same data-* attributes, so this filters whichever exist.
   document.querySelectorAll('#foodListingsTable tbody tr, #foodListingsGrid .grid-card').forEach(row => {
     const matchesQ = !q || (row.dataset.name || row.textContent.toLowerCase()).includes(q);
     const matchesType = !type || row.dataset.type === type;
@@ -391,25 +276,19 @@ function filterListings() {
     row.style.display = (matchesQ && matchesType && matchesCategory) ? '' : 'none';
   });
 }
-
-// EXPORT AS EXCEL
 async function exportFoodListingsExcel() {
   const btn = document.getElementById('exportExcelBtn');
   if (!btn) return;
-
   const rows = Array.from(document.querySelectorAll('#foodListingsTable tbody tr'))
     .filter(r => r.style.display !== 'none');
-
   if (rows.length === 0) {
     showToast('No listings to export yet.');
     return;
   }
-
   btn.classList.add('loading');
   const label = btn.querySelector('span');
   const originalLabel = label.textContent;
   label.textContent = 'Generating…';
-
   if (!window.XLSX) {
     try {
       await new Promise((resolve, reject) => {
@@ -427,20 +306,16 @@ async function exportFoodListingsExcel() {
       return;
     }
   }
-
   try {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-
     const sheetRows = [
       ['KulToura — Food & Dining Export'],
       [`Generated: ${dateStr}`],
       [],
       ['#', 'Listing', 'Type', 'Category', 'Location', 'Price / Contact', 'Views'],
     ];
-
     let products = 0, restaurants = 0;
-
     rows.forEach((row, i) => {
       const cells = row.querySelectorAll('td');
       const name = cells[0]?.textContent.trim() || '';
@@ -449,18 +324,14 @@ async function exportFoodListingsExcel() {
       const location = cells[3]?.textContent.trim() || '';
       const priceContact = cells[4]?.textContent.trim() || '';
       const views = cells[5]?.textContent.trim() || '';
-
       sheetRows.push([i + 1, name, type, category, location, priceContact, views]);
-
       if (type.toLowerCase() === 'product') products++;
       else if (type.toLowerCase() === 'restaurant') restaurants++;
     });
-
     sheetRows.push([]);
     sheetRows.push(['Total Listings', rows.length]);
     sheetRows.push(['Products', products]);
     sheetRows.push(['Restaurants', restaurants]);
-
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
     ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 24 }, { wch: 18 }, { wch: 10 }];
@@ -469,7 +340,6 @@ async function exportFoodListingsExcel() {
       { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Food & Dining');
-
     XLSX.writeFile(wb, `KulToura-FoodAndDining-${now.toISOString().slice(0, 10)}.xlsx`);
     showToast('Export ready — check your downloads.');
   } catch (err) {
@@ -480,8 +350,6 @@ async function exportFoodListingsExcel() {
     label.textContent = originalLabel;
   }
 }
-
-// TOAST
 let _toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');

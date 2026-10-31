@@ -8,21 +8,12 @@ include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
 $pageWidget = kt_page_widget_get($conn, 'banks');
 analytics_track($conn, 'banks');
-
 $banksHeroPhoto = sitecontent_get_photo($conn, 'banks_hero');
-
-// Logged for foryou.php's "Because You Explored" recommendations.
 $_SESSION['history'][] = 'bank';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
-
-// Bank listings come from the same `destination` table the admin panel
-// (admindestinations.php) writes to, filtered to this category. The
-// EXISTS subquery checks THIS user's favorites table row (not the
-// destination table's own `favorited` column, which isn't user-specific).
 $spots = [];
 $stmt = $conn->prepare(
     "SELECT d.*,
@@ -65,16 +56,12 @@ $stmt->close();
     <link rel="stylesheet" href="../../assets/css/banks.css">
 </head>
 <body>
-
-<!-- ── Navbar (shared) ── -->
 <header class="navbar navbar-solid">
-
     <?php if ($isLoggedIn): ?>
         <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="../../assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
     <?php else: ?>
 <div class="user-greeting-left navbar-brand-logo"><img src="../../assets/images/kultoura.png" alt="KulToura"></div>
     <?php endif; ?>
-
     <nav class="nav-links">
         <a href="/kultoura/index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
         <div class="dropdown">
@@ -115,11 +102,8 @@ $stmt->close();
                 </div>
             </div>
         </div>
-
             <?php if ($isLoggedIn): ?><a href="../../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="../../auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
     </nav>
-
-
         <div class="navbar-search" data-api="../search_api.php" data-results="../search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -132,11 +116,8 @@ $stmt->close();
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
     </button>
-
 </header>
-
 <?php if (!$pageWidget): ?>
-<!-- ── Page Hero ── -->
 <section class="t-hero<?php echo $banksHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
     <?php if ($banksHeroPhoto): ?>
         <img class="t-hero-photo" src="<?php echo htmlspecialchars($banksHeroPhoto); ?>" alt="">
@@ -154,12 +135,8 @@ $stmt->close();
     </div>
 </section>
 <?php endif; ?>
-
 <?php kt_page_widget_render_from($pageWidget, 'banks'); ?>
-
-<!-- ── Banks Grid ── -->
 <main class="t-main">
-
     <section class="p-search-row">
         <form class="p-search-bar" action="banks.php" method="get">
             <input type="text" name="q" placeholder="Search banks, ATMs, remittance centers…">
@@ -172,7 +149,6 @@ $stmt->close();
             </select>
         </form>
     </section>
-
     <section class="t-category" id="banks">
         <div class="t-category-header">
             <div>
@@ -181,7 +157,6 @@ $stmt->close();
                 <p class="t-cat-desc">Where to withdraw, deposit, or send money while visiting Malvar.</p>
             </div>
         </div>
-
         <?php if (empty($spots)): ?>
         <div class="p-empty-state">
             <h3>No banks listed yet</h3>
@@ -225,17 +200,10 @@ $stmt->close();
         </div>
         <?php endif; ?>
     </section>
-
 </main>
-
-<!-- ── Footer ── -->
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-
-<!-- ── View Details / Navigate popups (shared .p-modal-* styles in tourism.css) ── -->
-
-<!-- VIEW DETAILS MODAL -->
 <div class="p-modal-overlay" id="ktViewDetailsModal" data-item-id="" data-favorited="0" onclick="if(event.target===this) ktCloseModal('ktViewDetailsModal')">
     <div class="p-modal-card">
         <button class="p-modal-close" onclick="ktCloseModal('ktViewDetailsModal')" aria-label="Close">&times;</button>
@@ -255,8 +223,6 @@ $stmt->close();
         </div>
     </div>
 </div>
-
-<!-- NAVIGATE MODAL -->
 <div class="p-modal-overlay" id="ktNavigateModal" onclick="if(event.target===this) ktCloseModal('ktNavigateModal')">
     <div class="p-modal-card p-modal-card-wide">
         <button class="p-modal-close" onclick="ktCloseModal('ktNavigateModal')" aria-label="Close">&times;</button>
@@ -273,7 +239,6 @@ $stmt->close();
 <script>
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }
-
 function ktTrackItemView(type, id) {
     if (!id) return;
     const body = new URLSearchParams({ item_type: type, item_id: id }).toString();
@@ -284,7 +249,6 @@ function ktTrackItemView(type, id) {
         fetch('../track_item_view.php', { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, keepalive: true }).catch(() => {});
     }
 }
-
 function ktOpenViewDetails(btn) {
     ktTrackItemView('bank', btn.dataset.id);
     const image = btn.dataset.image || '';
@@ -294,31 +258,25 @@ function ktOpenViewDetails(btn) {
     document.getElementById('ktVdCategory').textContent = btn.dataset.category || '';
     document.getElementById('ktVdName').textContent = btn.dataset.name || '';
     document.getElementById('ktVdDesc').textContent = btn.dataset.desc || 'No description available yet.';
-
     let facts = '';
     if (btn.dataset.tag) facts += `<div><p class="p-fact-label">Address</p><p class="p-fact-value">${btn.dataset.tag}</p></div>`;
     document.getElementById('ktVdFacts').innerHTML = facts;
-
     // Wire up the modal's own "Add to Favorites" button to this item.
     const modal = document.getElementById('ktViewDetailsModal');
     const itemId = btn.dataset.id || '';
     const isFav = btn.dataset.favorited === '1';
     modal.dataset.itemId = itemId;
     modal.dataset.favorited = isFav ? '1' : '0';
-
     const favIcon = document.getElementById('ktVdFavIcon');
     favIcon.classList.toggle('is-favorited', isFav);
     favIcon.innerHTML = isFav ? '&#9829;' : '&#9825;';
     document.getElementById('ktVdFavLabel').textContent = isFav ? '♥ Added to Favorites' : '♡ Add to Favorites';
-
     document.getElementById('ktVdNavigateBtn').onclick = function () {
         ktCloseModal('ktViewDetailsModal');
         setTimeout(() => ktOpenNavigate(btn), 200);
     };
-
     ktShowModal('ktViewDetailsModal');
 }
-
 /* ---------- FAVORITES ---------- */
 let ktFavToastTimer = null;
 function ktShowFavToast(msg) {
@@ -329,7 +287,6 @@ function ktShowFavToast(msg) {
     clearTimeout(ktFavToastTimer);
     ktFavToastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
-
 // Keeps the card's heart button AND the modal's "Add to Favorites"
 // button in sync, since both can represent the same destination.
 function ktSetFavState(itemId, isFav) {
@@ -337,7 +294,6 @@ function ktSetFavState(itemId, isFav) {
         b.classList.toggle('is-favorited', isFav);
         b.innerHTML = isFav ? '&#9829;' : '&#9825;';
     });
-
     const modal = document.getElementById('ktViewDetailsModal');
     if (modal && modal.dataset.itemId === String(itemId)) {
         modal.dataset.favorited = isFav ? '1' : '0';
@@ -349,14 +305,12 @@ function ktSetFavState(itemId, isFav) {
         const favLabel = document.getElementById('ktVdFavLabel');
         if (favLabel) favLabel.textContent = isFav ? '♥ Added to Favorites' : '♡ Add to Favorites';
     }
-
     // Also keep the View Details button's own data-favorited in sync,
     // so reopening the modal for this card shows the right state.
     document.querySelectorAll('.p-btn-primary[data-id="' + itemId + '"]').forEach(function (b) {
         b.dataset.favorited = isFav ? '1' : '0';
     });
 }
-
 async function ktToggleFavorite(itemId) {
     if (!itemId) return;
     try {
@@ -366,7 +320,6 @@ async function ktToggleFavorite(itemId) {
             body: new URLSearchParams({ action: 'toggle', item_type: 'destination', item_id: itemId })
         });
         const data = await res.json();
-
         if (data.needsLogin) {
             ktShowFavToast(data.message || 'Please sign in to save favorites.');
             return;
@@ -382,7 +335,6 @@ async function ktToggleFavorite(itemId) {
         ktShowFavToast('Something went wrong. Please try again.');
     }
 }
-
 function ktHaversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -392,16 +344,13 @@ function ktHaversineKm(lat1, lon1, lat2, lon2) {
               Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
 function ktOpenNavigate(btn) {
     const name = btn.dataset.name || 'this destination';
     const gmaps = btn.dataset.gmaps || '';
     document.getElementById('ktNavName').textContent = name;
-
     const distanceEl = document.getElementById('ktNavDistance');
     const frame = document.getElementById('ktNavFrame');
     const directLink = document.getElementById('ktNavDirectLink');
-
     if (!gmaps.includes(',')) {
         distanceEl.textContent = "This destination's location hasn't been mapped yet.";
         frame.src = '';
@@ -409,15 +358,12 @@ function ktOpenNavigate(btn) {
         ktShowModal('ktNavigateModal');
         return;
     }
-
     const [destLat, destLng] = gmaps.split(',').map(Number);
-
     frame.src = 'https://www.google.com/maps?q=' + destLat + ',' + destLng + '&z=15&output=embed';
     directLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng;
     directLink.style.display = 'inline-block';
     distanceEl.textContent = 'Locating you…';
     ktShowModal('ktNavigateModal');
-
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function (pos) {
             const userLat = pos.coords.latitude;
@@ -434,9 +380,7 @@ function ktOpenNavigate(btn) {
     }
 }
 </script>
-
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js"></script>
-
 </body>
 </html>

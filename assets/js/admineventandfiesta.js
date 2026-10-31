@@ -1,12 +1,5 @@
-// KulToura Admin — Events & Fiesta
-// eventsData is injected server-side by admineventandfiesta.php via:
-//   <script> const eventsData = <?php echo json_encode($events); ?>; </script>
-// Add/Edit/Delete forms POST straight back to admineventandfiesta.php —
-// there is no separate *_actions.php file.
-
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof lucide !== 'undefined') lucide.createIcons();
-
   const veEditBtn = document.getElementById('veEditBtn');
   if (veEditBtn) {
     veEditBtn.addEventListener('click', function () {
@@ -16,17 +9,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 });
-
-// SIDEBAR
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
-
-// MODALS
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
-
 function openAddEvent() {
   document.getElementById('addEventForm')?.reset();
   document.getElementById('addLatInput').value = '';
@@ -37,7 +25,6 @@ function openAddEvent() {
     if (picker) { picker.map.invalidateSize(); picker.reset(); }
   }, 150);
 }
-
 function openViewEvent(id) {
   const e = (window.eventsData || []).find(x => String(x.fiesta_id) === String(id));
   if (!e) return;
@@ -51,7 +38,6 @@ function openViewEvent(id) {
   document.getElementById('viewEventModal').dataset.editId = id;
   openModal('viewEventModal');
 }
-
 function openEditEvent(id) {
   const e = (window.eventsData || []).find(x => String(x.fiesta_id) === String(id));
   if (!e) return;
@@ -64,12 +50,10 @@ function openEditEvent(id) {
   document.getElementById('editDescInput').value = e.description || '';
   document.getElementById('editExistingImage').value = e.image || '';
   document.getElementById('editLocationInput').value = e.location || '';
-
   const hasCoords = e.latitude !== null && e.latitude !== undefined && e.latitude !== '' &&
                     e.longitude !== null && e.longitude !== undefined && e.longitude !== '';
   document.getElementById('editLatInput').value = hasCoords ? e.latitude : '';
   document.getElementById('editLngInput').value = hasCoords ? e.longitude : '';
-
   openModal('editEventModal');
   setTimeout(() => {
     const picker = ktSetupEventMap('edit');
@@ -82,19 +66,11 @@ function openEditEvent(id) {
     }
   }, 150);
 }
-
 function confirmDelete(id, name) {
   document.getElementById('deleteTitle').textContent = 'Archive "' + name + '"?';
-  // deleteDesc's real text is server-rendered (PHP) based on role — it
-  // already says the right thing (archived, not permanently deleted, or
-  // submitted for approval), so it's deliberately left untouched here.
   document.getElementById('deleteFiestaId').value = id;
   openModal('deleteModal');
 }
-
-// FILTERS
-// Both the table rows (list view) and the grid cards (grid view) carry
-// matching data-*, so filters apply to whichever exist.
 function filterEvents(val) {
   const rows = document.querySelectorAll('#eventsTable tbody tr, #eventsGrid .grid-card');
   rows.forEach(row => {
@@ -102,7 +78,6 @@ function filterEvents(val) {
     row.style.display = row.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
   });
 }
-
 function filterEventsByType(val) {
   const rows = document.querySelectorAll('#eventsTable tbody tr, #eventsGrid .grid-card');
   rows.forEach(row => {
@@ -111,25 +86,19 @@ function filterEventsByType(val) {
     row.style.display = row.dataset.type === val ? '' : 'none';
   });
 }
-
-// EXPORT AS EXCEL
 async function exportEventsExcel() {
   const btn = document.getElementById('exportExcelBtn');
   if (!btn) return;
-
   const rows = Array.from(document.querySelectorAll('#eventsTable tbody tr'))
     .filter(r => r.style.display !== 'none');
-
   if (rows.length === 0) {
     showToast('No events to export yet.');
     return;
   }
-
   btn.classList.add('loading');
   const label = btn.querySelector('span');
   const originalLabel = label.textContent;
   label.textContent = 'Generating…';
-
   if (!window.XLSX) {
     try {
       await new Promise((resolve, reject) => {
@@ -147,18 +116,15 @@ async function exportEventsExcel() {
       return;
     }
   }
-
   try {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-
     const sheetRows = [
       ['KulToura — Events & Fiesta Export'],
       [`Generated: ${dateStr}`],
       [],
       ['#', 'Event', 'Type', 'Location', 'Date', 'Views'],
     ];
-
     rows.forEach((row, i) => {
       const cells = row.querySelectorAll('td');
       const name = cells[0]?.textContent.trim() || '';
@@ -166,13 +132,10 @@ async function exportEventsExcel() {
       const location = cells[2]?.textContent.trim() || '';
       const date = cells[3]?.textContent.trim() || '';
       const views = cells[4]?.textContent.trim() || '';
-
       sheetRows.push([i + 1, name, type, location, date, views]);
     });
-
     sheetRows.push([]);
     sheetRows.push(['Total Events', rows.length]);
-
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
     ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 14 }, { wch: 24 }, { wch: 16 }, { wch: 10 }];
@@ -181,7 +144,6 @@ async function exportEventsExcel() {
       { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Events & Fiesta');
-
     XLSX.writeFile(wb, `KulToura-Events-${now.toISOString().slice(0, 10)}.xlsx`);
     showToast('Export ready — check your downloads.');
   } catch (err) {
@@ -192,8 +154,6 @@ async function exportEventsExcel() {
     label.textContent = originalLabel;
   }
 }
-
-// TOAST
 let _toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -203,12 +163,7 @@ function showToast(msg) {
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
-
-// ─────────────────────────────────────────────────────────────
-// ADDRESS PICKER (shared module — assets/js/kt-address-picker.js)
-// ─────────────────────────────────────────────────────────────
 const ktEventMaps = { add: null, edit: null };
-
 function ktSetupEventMap(prefix) {
   if (ktEventMaps[prefix]) return ktEventMaps[prefix];
   ktEventMaps[prefix] = KtAddressPicker.setup({

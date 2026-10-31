@@ -1,23 +1,12 @@
-/* ============================================================
-   TRAVEL DIARY PAGE — Warm Cream Theme
-   Reuses index.css (navbar) and tourism.css (.t-* primitives) as
-   the shared base. Palette matches the rest of the site: cream
-   background, dark brown text, terracotta/olive accents. Icons are
-   inline SVG (currentColor), not emoji, except the one greeting wave.
-============================================================ */
-
 .td-page {
     background: #f0ebe3;
     min-height: 100vh;
 }
-
-/* ── Section wrapper (same left/right space as tourism pages' .t-main) ── */
 .td-section {
     width: 100%;
     margin: 0;
     padding: 40px 80px 10px;
 }
-
 .td-section-head-row {
     display: flex;
     align-items: center;
@@ -26,7 +15,6 @@
     flex-wrap: wrap;
     margin-bottom: 6px;
 }
-
 .td-section-head-row h2 {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -35,13 +23,11 @@
     margin: 0;
     letter-spacing: -0.2px;
 }
-
 .td-col-sub {
     color: rgba(44, 26, 14, 0.55);
     font-size: 13px;
     margin: 0 0 18px;
 }
-
 .td-view-link {
     font-size: 12.5px;
     font-weight: 700;
@@ -53,21 +39,16 @@
     font-family: inherit;
     white-space: nowrap;
 }
-
 .td-view-link:hover {
     text-decoration: underline;
 }
-
 .td-expand-btn {
     display: block;
     margin: 16px auto 0;
 }
-
 .td-hidden-extra {
     display: none !important;
 }
-
-/* ── Empty states ── */
 .td-empty {
     text-align: center;
     padding: 40px 20px;
@@ -75,21 +56,17 @@
     border: 1px dashed rgba(44, 26, 14, 0.15);
     border-radius: 12px;
 }
-
 .td-empty h3 {
     font-family: Georgia, serif;
     font-size: 16px;
     color: #2c1a0e;
     margin: 0 0 6px;
 }
-
 .td-empty p {
     font-size: 13px;
     color: rgba(44, 26, 14, 0.55);
     margin: 0;
 }
-
-/* ── Category badges (shared color set) ── */
 .td-badge {
     display: inline-block;
     font-size: 10px;
@@ -101,7 +78,6 @@
     color: #fff;
     flex-shrink: 0;
 }
-
 .td-badge-product       { background: #a9843f; }
 .td-badge-restaurant    { background: #8b2e1a; }
 .td-badge-nature        { background: #5f7d4c; }
@@ -112,8 +88,6 @@
 .td-badge-service       { background: #8a6a2f; }
 .td-badge-fiesta        { background: #a8433a; }
 .td-badge-person        { background: #4a5a78; }
-
-/* ── Hero ── */
 .td-hero {
     position: relative;
     display: flex;
@@ -124,7 +98,6 @@
     padding: 56px 80px 40px;
     overflow: hidden;
 }
-
 .td-hero-decor {
     position: absolute;
     inset: 0;
@@ -132,7 +105,6 @@
     pointer-events: none;
     overflow: hidden;
 }
-
 .td-hero-mountains {
     position: absolute;
     left: 0;
@@ -140,7 +112,6 @@
     width: 100%;
     height: 150px;
 }
-
 .td-hero-path {
     position: absolute;
     top: 10%;
@@ -149,7 +120,6 @@
     height: 65%;
     opacity: 0.7;
 }
-
 .td-hero-pin {
     position: absolute;
     top: 44%;
@@ -159,9 +129,7 @@
     color: #8b2e1a;
     opacity: 0.55;
 }
-
 .td-hero-pin svg, .td-hero-leaf svg { width: 100%; height: 100%; display: block; }
-
 .td-hero-leaf {
     position: absolute;
     width: 30px;
@@ -169,32 +137,27 @@
     color: #9fb88a;
     opacity: 0.5;
 }
-
 .td-hero-leaf-1 {
     top: 14%;
     right: 32%;
     transform: rotate(20deg);
 }
-
 .td-hero-text {
     position: relative;
     z-index: 1;
     flex: 1;
     min-width: 0;
 }
-
 .td-hero-eyebrow {
     display: flex;
     align-items: center;
     gap: 6px;
 }
-
 .td-hero-eyebrow svg {
     width: 13px;
     height: 13px;
     display: block;
 }
-
 .td-hero-title {
     font-family: Georgia, serif;
     font-size: clamp(38px, 5.5vw, 58px);
@@ -203,11 +166,9 @@
     line-height: 1;
     margin: 0 0 10px;
 }
-
 .td-hero-accent {
     color: #5f7d4c;
 }
-
 .td-hero-tagline {
     font-family: Georgia, serif;
     font-style: italic;
@@ -215,14 +176,12 @@
     color: rgba(44, 26, 14, 0.7);
     margin: 0 0 8px;
 }
-
 .td-hero-sub {
     font-size: 14px;
     color: rgba(44, 26, 14, 0.55);
     margin: 0 0 22px;
     max-width: 420px;
 }
-
 .td-wrapped-btn {
     display: inline-block;
     background: #5f7d4c;
@@ -236,12 +195,9 @@
     cursor: pointer;
     transition: background 0.2s;
 }
-
 .td-wrapped-btn:hover {
     background: #4c6a3d;
 }
-
-/* ── Hero polaroid photo ── */
 .td-hero-polaroid {
     position: relative;
     z-index: 1;
@@ -253,7 +209,6 @@
     box-shadow: 0 20px 40px rgba(44, 26, 14, 0.18);
     transform: rotate(6deg);
 }
-
 .td-hero-polaroid img {
     width: 100%;
     height: 190px;
@@ -261,7 +216,6 @@
     border-radius: 2px;
     display: block;
 }
-
 .td-hero-clip {
     position: absolute;
     top: -18px;
@@ -271,18 +225,11 @@
     color: #a9843f;
     transform: rotate(20deg);
 }
-
 .td-hero-clip svg {
     width: 100%;
     height: 100%;
     display: block;
 }
-
-/* ── Journey / Wrapped-teaser card ── */
-/* Cork board: a speckled tan/brown texture (layered radial-gradient
-   dots at different sizes/positions — no image asset needed) inside a
-   thick "wood frame" border, with every stat pinned to it like an
-   index card. */
 .td-journey-card {
     position: relative;
     z-index: 1;
@@ -302,7 +249,6 @@
     padding: 26px 18px 22px;
     box-shadow: 0 14px 34px rgba(44, 26, 14, 0.28), inset 0 0 26px rgba(60, 35, 15, 0.3);
 }
-
 .td-journey-head {
     display: flex;
     align-items: center;
@@ -310,7 +256,6 @@
     margin-bottom: 20px;
     gap: 10px;
 }
-
 .td-journey-title {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -323,7 +268,6 @@
     transform: rotate(-2deg);
     white-space: nowrap;
 }
-
 .td-journey-viewall {
     font-size: 11px;
     font-weight: 700;
@@ -337,18 +281,15 @@
     box-shadow: 0 3px 7px rgba(44, 26, 14, 0.25);
     transform: rotate(1deg);
 }
-
 .td-journey-viewall:hover {
     background: #741f11;
 }
-
 .td-journey-stats {
     display: flex;
     flex-direction: column;
     gap: 16px;
     margin-bottom: 18px;
 }
-
 .td-journey-stat {
     display: flex;
     align-items: center;
@@ -359,7 +300,6 @@
     position: relative;
     box-shadow: 0 5px 12px rgba(44, 26, 14, 0.22);
 }
-
 .td-journey-stat::before {
     content: '';
     position: absolute;
@@ -372,16 +312,13 @@
     background: radial-gradient(circle at 35% 30%, #f07a63, #b5301c);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
 }
-
 .td-journey-stat:nth-child(1) { transform: rotate(-1.1deg); }
 .td-journey-stat:nth-child(2) { transform: rotate(0.9deg); }
 .td-journey-stat:nth-child(3) { transform: rotate(-0.8deg); }
 .td-journey-stat:nth-child(4) { transform: rotate(1deg); }
-
 .td-journey-stat:nth-child(2)::before { background: radial-gradient(circle at 35% 30%, #7fb8e8, #2c6fa8); }
 .td-journey-stat:nth-child(3)::before { background: radial-gradient(circle at 35% 30%, #8fc97d, #4c8a3c); }
 .td-journey-stat:nth-child(4)::before { background: radial-gradient(circle at 35% 30%, #f0c95f, #c99418); }
-
 .td-journey-icon {
     width: 34px;
     height: 34px;
@@ -394,18 +331,15 @@
     box-sizing: border-box;
     color: #8b2e1a;
 }
-
 .td-journey-icon svg {
     width: 100%;
     height: 100%;
     display: block;
 }
-
 .td-journey-icon-a { background: rgba(139, 46, 26, 0.12); color: #8b2e1a; }
 .td-journey-icon-b { background: rgba(181, 119, 44, 0.14); color: #b5772c; }
 .td-journey-icon-c { background: rgba(95, 125, 76, 0.14); color: #5f7d4c; }
 .td-journey-icon-d { background: rgba(190, 90, 120, 0.14); color: #b5567a; }
-
 .td-journey-num {
     display: block;
     font-family: Georgia, serif;
@@ -413,17 +347,14 @@
     font-size: 17px;
     color: #2c1a0e;
 }
-
 .td-journey-label {
     display: block;
     font-size: 12px;
     color: rgba(44, 26, 14, 0.5);
 }
-
 .td-journey-label-top {
     margin-bottom: 1px;
 }
-
 .td-journey-text {
     display: block;
     font-family: Georgia, serif;
@@ -431,7 +362,6 @@
     font-size: 14.5px;
     color: #2c1a0e;
 }
-
 .td-journey-link {
     display: inline-block;
     font-size: 12.5px;
@@ -443,18 +373,14 @@
     border-radius: 3px;
     border: 1px dashed rgba(255, 248, 236, 0.5);
 }
-
 .td-journey-link:hover {
     background: rgba(44, 26, 14, 0.32);
 }
-
-/* ── Travel Statistics ── */
 .td-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 16px;
 }
-
 .td-stat-card {
     background: #faf7f2;
     border: 1px solid rgba(44, 26, 14, 0.09);
@@ -464,7 +390,6 @@
     flex-direction: column;
     gap: 6px;
 }
-
 .td-stat-icon {
     width: 30px;
     height: 30px;
@@ -475,15 +400,12 @@
     padding: 6px;
     margin-bottom: 2px;
 }
-
 .td-stat-icon svg { width: 100%; height: 100%; display: block; }
-
 .td-stat-icon-green  { background: rgba(95, 125, 76, 0.14); color: #5f7d4c; }
 .td-stat-icon-pink   { background: rgba(190, 90, 120, 0.14); color: #b5567a; }
 .td-stat-icon-orange { background: rgba(200, 140, 60, 0.16); color: #b5772c; }
 .td-stat-icon-purple { background: rgba(120, 100, 170, 0.16); color: #6f5a9e; }
 .td-stat-icon-blue   { background: rgba(63, 125, 130, 0.14); color: #3f7d82; }
-
 .td-stat-num {
     font-family: Georgia, serif;
     font-size: 26px;
@@ -491,31 +413,25 @@
     color: #2c1a0e;
     line-height: 1.1;
 }
-
 .td-stat-label {
     font-size: 11px;
     letter-spacing: 0.3px;
     text-transform: uppercase;
     color: rgba(44, 26, 14, 0.5);
 }
-
-/* ── Badges Collected — what the "X/5" stat actually means ── */
 .td-badges {
     margin-top: 22px;
 }
-
 .td-badges-hint {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.5);
     margin: 0 0 12px;
 }
-
 .td-badges-row {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
 }
-
 .td-badge-chip {
     --td-badge-color: #8a8578;
     position: relative;
@@ -527,7 +443,6 @@
     background: #faf7f2;
     border: 1.5px dashed rgba(44, 26, 14, 0.16);
 }
-
 .td-badge-chip-icon {
     width: 30px;
     height: 30px;
@@ -542,13 +457,11 @@
     color: rgba(44, 26, 14, 0.3);
 }
 .td-badge-chip-icon svg { width: 100%; height: 100%; display: block; }
-
 .td-badge-chip-label {
     font-size: 12.5px;
     font-weight: 700;
     color: rgba(44, 26, 14, 0.4);
 }
-
 .td-badge-chip-lock {
     position: absolute;
     top: -4px;
@@ -566,42 +479,32 @@
     box-sizing: border-box;
 }
 .td-badge-chip-lock svg { width: 100%; height: 100%; display: block; }
-
 .td-badge-chip.is-unlocked {
     border: 1.5px solid var(--td-badge-color);
     background: color-mix(in srgb, var(--td-badge-color) 10%, #fff);
 }
-
 .td-badge-chip.is-unlocked .td-badge-chip-icon {
     background: var(--td-badge-color);
     color: #fff;
 }
-
 .td-badge-chip.is-unlocked .td-badge-chip-label {
     color: #2c1a0e;
 }
-
-/* ── Two-column section layout ── */
 .td-twocol {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 40px;
     align-items: start;
 }
-
 .td-col {
     min-width: 0;
 }
-
 .td-col-stack + .td-col-stack {
     margin-top: 48px;
 }
-
-/* ── Toolbar: search + filter pills ── */
 .td-toolbar {
     margin: 14px 0 10px;
 }
-
 .td-search {
     width: 100%;
     padding: 10px 16px;
@@ -613,18 +516,15 @@
     outline: none;
     box-sizing: border-box;
 }
-
 .td-search:focus {
     border-color: rgba(200, 169, 110, 0.6);
 }
-
 .td-filter-bar {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin-bottom: 16px;
 }
-
 .td-filter-pill {
     padding: 6px 13px;
     border-radius: 999px;
@@ -637,21 +537,15 @@
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-
 .td-filter-pill:hover {
     border-color: rgba(200, 169, 110, 0.5);
     color: #2c1a0e;
 }
-
 .td-filter-pill.is-active {
     background: #2c1a0e;
     border-color: #2c1a0e;
     color: #fff;
 }
-
-/* Icon glyph inside a text button (nearby/add-photo/camera buttons) —
-   sits inline with the label, sized off font-size so it matches whatever
-   button it's dropped into without a one-off rule per button. */
 .td-btn-icon {
     display: inline-flex;
     width: 1em;
@@ -659,9 +553,7 @@
     vertical-align: -0.15em;
     margin-right: 5px;
 }
-
 .td-btn-icon svg { width: 100%; height: 100%; display: block; }
-
 .td-nearby-btn {
     display: inline-flex;
     align-items: center;
@@ -678,24 +570,19 @@
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease;
 }
-
 .td-nearby-btn .td-btn-icon { width: 14px; height: 14px; margin-right: 0; }
-
 .td-nearby-btn:hover {
     background: rgba(200, 169, 110, 0.12);
 }
-
 .td-nearby-btn:disabled {
     opacity: 0.6;
     cursor: default;
 }
-
 .td-nearby-status {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.55);
     margin: -8px 0 14px;
 }
-
 .td-nearby-badge {
     display: inline-flex;
     align-items: center;
@@ -708,21 +595,16 @@
     color: #3f6b3f;
     flex-shrink: 0;
 }
-
 .td-nearby-badge .td-btn-icon { width: 10px; height: 10px; margin-right: 3px; }
-
 .td-check-row.td-is-nearby {
     border-color: rgba(63, 107, 63, 0.4);
     background: rgba(63, 107, 63, 0.04);
 }
-
-/* ── Recent Memories (tabbed, paginated grid) ── */
 .td-memory-tabs {
     display: flex;
     gap: 8px;
     margin-bottom: 14px;
 }
-
 .td-memory-tab {
     padding: 7px 14px;
     border-radius: 999px;
@@ -735,36 +617,28 @@
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-
 .td-memory-tab:hover {
     border-color: rgba(44, 26, 14, 0.3);
 }
-
 .td-memory-tab.is-active {
     background: #2c1a0e;
     border-color: #2c1a0e;
     color: #fff;
 }
-
-/* Tile size shrinks a step per tab — Week > Month > Year — so "This
-   Year" can show a lot more at a glance without the page feeling huge. */
 .td-memory-grid {
     display: grid;
     gap: 14px;
     margin-bottom: 10px;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
 }
-
 .td-memory-grid.is-month {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
 }
-
 .td-memory-grid.is-year {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     gap: 10px;
 }
-
 .td-memory-card {
     background: #fff;
     border: 1px solid rgba(44, 26, 14, 0.09);
@@ -772,7 +646,6 @@
     overflow: hidden;
     padding-bottom: 10px;
 }
-
 .td-memory-photo {
     position: relative;
     width: 100%;
@@ -780,15 +653,12 @@
     background: #e5dccb;
     cursor: pointer;
 }
-
 .td-memory-photo:focus-visible {
     outline: 2px solid #8a6a2f;
     outline-offset: 2px;
 }
-
 .td-memory-grid.is-month .td-memory-photo { height: 105px; }
 .td-memory-grid.is-year .td-memory-photo { height: 85px; }
-
 .td-memory-photo img {
     width: 100%;
     height: 100%;
@@ -796,7 +666,6 @@
     display: block;
     cursor: pointer;
 }
-
 .td-memory-icon {
     position: absolute;
     top: 8px;
@@ -813,26 +682,21 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     pointer-events: none;
 }
-
 .td-memory-grid.is-month .td-memory-icon,
 .td-memory-grid.is-year .td-memory-icon {
     width: 20px;
     height: 20px;
     padding: 4px;
 }
-
 .td-memory-icon svg { width: 100%; height: 100%; display: block; }
-
 .td-memory-card .td-photo-delete-btn {
     top: 6px;
     right: 6px;
 }
-
 .td-memory-photo:hover .td-photo-delete-btn,
 .td-memory-photo:focus-within .td-photo-delete-btn {
     opacity: 1;
 }
-
 .td-memory-name {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -840,24 +704,20 @@
     color: #2c1a0e;
     margin: 10px 12px 2px;
 }
-
 .td-memory-grid.is-month .td-memory-name,
 .td-memory-grid.is-year .td-memory-name {
     font-size: 12px;
     margin: 8px 10px 2px;
 }
-
 .td-memory-date {
     font-size: 11px;
     color: rgba(44, 26, 14, 0.5);
     margin: 0 12px 6px;
 }
-
 .td-memory-grid.is-month .td-memory-date,
 .td-memory-grid.is-year .td-memory-date {
     margin: 0 10px 6px;
 }
-
 .td-memory-caption {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.65);
@@ -869,16 +729,13 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-
 .td-memory-grid.is-year .td-memory-caption { display: none; }
-
 .td-empty-inline {
     text-align: center;
     padding: 30px 10px;
     color: rgba(44, 26, 14, 0.5);
     font-size: 13px;
 }
-
 .td-memory-pager {
     display: flex;
     align-items: center;
@@ -886,7 +743,6 @@
     gap: 14px;
     margin-top: 4px;
 }
-
 .td-memory-page-btn {
     width: 30px;
     height: 30px;
@@ -898,28 +754,22 @@
     line-height: 1;
     cursor: pointer;
 }
-
 .td-memory-page-btn:hover {
     border-color: rgba(44, 26, 14, 0.3);
 }
-
 .td-memory-page-btn:disabled {
     opacity: 0.4;
     cursor: default;
 }
-
 .td-memory-page-status {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.55);
 }
-
-/* ── Visited Places Explorer (checklist) ── */
 .td-checklist {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
-
 .td-check-row {
     display: flex;
     align-items: center;
@@ -930,11 +780,9 @@
     padding: 10px 14px;
     transition: border-color 0.15s;
 }
-
 .td-check-row:hover {
     border-color: rgba(44, 26, 14, 0.18);
 }
-
 .td-check-thumb {
     width: 44px;
     height: 44px;
@@ -946,33 +794,28 @@
     align-items: center;
     justify-content: center;
 }
-
 .td-check-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .td-check-initial {
     font-family: Georgia, serif;
     font-size: 17px;
     font-weight: 700;
     color: rgba(44, 26, 14, 0.4);
 }
-
 .td-check-body {
     flex: 1;
     min-width: 0;
 }
-
 .td-check-top {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 }
-
 .td-check-name {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -982,13 +825,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
 .td-check-status {
     font-size: 11.5px;
     color: rgba(44, 26, 14, 0.5);
     margin: 2px 0 0;
 }
-
 .td-log-again-btn-visible {
     display: inline-block;
     margin-top: 6px;
@@ -1003,15 +844,12 @@
     font-family: inherit;
     transition: background 0.15s;
 }
-
 .td-log-again-btn-visible:hover {
     background: rgba(95, 125, 76, 0.2);
 }
-
 .td-check-expand {
     margin-top: 10px;
 }
-
 .td-note-input {
     width: 100%;
     min-height: 32px;
@@ -1027,19 +865,16 @@
     margin-bottom: 8px;
     box-sizing: border-box;
 }
-
 .td-note-input:focus {
     outline: none;
     border-color: rgba(200, 169, 110, 0.6);
     background: #fff;
 }
-
 .td-check-actions {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
 }
-
 .td-mini-btn {
     font-size: 11.5px;
     font-weight: 600;
@@ -1052,11 +887,9 @@
     font-family: inherit;
     transition: background 0.15s;
 }
-
 .td-mini-btn:hover {
     background: rgba(139, 46, 26, 0.14);
 }
-
 .td-check-toggle-note {
     flex-shrink: 0;
     width: 30px;
@@ -1072,15 +905,12 @@
     justify-content: center;
     padding: 7px;
 }
-
 .td-check-toggle-note svg,
 .td-check-photo-btn svg { width: 100%; height: 100%; display: block; }
-
 .td-check-toggle-note:hover {
     color: #8b2e1a;
     border-color: rgba(139, 46, 26, 0.3);
 }
-
 .td-check-photo-btn {
     flex-shrink: 0;
     width: 30px;
@@ -1096,17 +926,14 @@
     justify-content: center;
     padding: 7px;
 }
-
 .td-check-photo-btn:hover {
     color: #8a6a2f;
     border-color: rgba(138, 106, 47, 0.3);
 }
-
 .td-check-photo-btn:disabled {
     opacity: 0.6;
     cursor: default;
 }
-
 .td-check-box {
     flex-shrink: 0;
     position: relative;
@@ -1114,7 +941,6 @@
     height: 22px;
     cursor: pointer;
 }
-
 .td-checkbox {
     position: absolute;
     inset: 0;
@@ -1122,7 +948,6 @@
     cursor: pointer;
     margin: 0;
 }
-
 .td-check-mark {
     position: absolute;
     inset: 0;
@@ -1131,7 +956,6 @@
     background: #fff;
     transition: background 0.15s, border-color 0.15s;
 }
-
 .td-check-mark::after {
     content: '';
     position: absolute;
@@ -1144,34 +968,27 @@
     transform: rotate(45deg);
     opacity: 0;
 }
-
 .td-checkbox:checked ~ .td-check-mark {
     background: #5f7d4c;
     border-color: #5f7d4c;
 }
-
 .td-checkbox:checked ~ .td-check-mark::after {
     opacity: 1;
 }
-
 .td-no-results {
     text-align: center;
     padding: 24px;
     color: rgba(44, 26, 14, 0.5);
     font-size: 13px;
 }
-
-/* ── Travel Timeline: compact destination list ── */
 .td-toolbar-timeline {
     display: flex;
     gap: 8px;
     align-items: center;
 }
-
 .td-toolbar-timeline .td-search {
     flex: 1;
 }
-
 .td-sort-select {
     padding: 10px 14px;
     border-radius: 999px;
@@ -1184,19 +1001,15 @@
     cursor: pointer;
     flex-shrink: 0;
 }
-
 .td-sort-select:focus {
     border-color: rgba(200, 169, 110, 0.6);
 }
-
 .td-group-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
     gap: 30px 20px;
     margin-top: 30px;
 }
-
-/* ── Folder card ── */
 .td-group-row {
     position: relative;
     border-radius: 4px 14px 14px 14px;
@@ -1205,55 +1018,24 @@
     transition: transform 0.15s, box-shadow 0.15s;
     perspective: 500px;
 }
-
 .td-group-row:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(44, 26, 14, 0.12);
 }
-
-/* ── Popped-open state: a literal open folder ──
-   assets/js/traveldiary.js drives the actual opening/closing motion with
-   the Web Animations API — a FLIP-style fly from the clicked card's exact
-   on-page rect to a responsive, top-anchored open rect, with the cover
-   color morphing from the pastel closed tone to the richer open tone,
-   the right page flipping into view, and the tab/depth-sliver fading in
-   once the cover has mostly arrived. position:fixed plus the JS-set
-   inline left/top/width/height is what makes that rect interpolation
-   possible; nothing here does the animating.
-
-   While open, .td-group-row itself is the folder's cover — a richer,
-   more saturated shade of its pastel tone — with generous padding so the
-   cream "pages" (wrapped in .td-folder-pages) sit inset with a visible
-   colored margin all around, like an actual folder. The cover itself is
-   NOT the scroll/clip container — overflow lives on .td-folder-pages
-   instead, so the tab and the stacked-page sliver below can poke outside
-   the cream pages' box without being clipped by a scrollable ancestor
-   (overflow-y:auto on an element also clips content that overflows its
-   OTHER edges, which would otherwise cut the tab's negative top offset
-   right off). */
 .td-group-row.is-expanded {
     position: fixed;
     border-radius: 6px 20px 20px 20px;
     box-shadow: 0 30px 70px rgba(20, 12, 6, 0.35);
 }
-
 .td-group-row.is-expanded.td-folder-sage { background: var(--td-folder-open); }
 .td-group-row.is-expanded.td-folder-tan  { background: var(--td-folder-open); }
-
 .td-group-row.is-expanded .td-folder-pages {
     height: 100%;
     overflow-y: auto;
-    /* Explicit, not just implied by overflow-y — otherwise the Visit
-       History page-flip's rotateY mid-turn (a 3D transform, whose
-       rendered bounds can bleed a hair past its own box at extreme
-       angles) triggers a horizontal scrollbar here. */
     overflow-x: hidden;
     padding: 34px 26px 26px;
     box-sizing: border-box;
 }
-
-/* A second, slightly rotated sliver of "folder" peeking out behind the
-   open cover — just enough to read as depth/thickness, not a full page. */
 .td-group-row.is-expanded::after {
     content: '';
     position: absolute;
@@ -1262,15 +1044,10 @@
     transform: rotate(1.2deg);
     z-index: -1;
 }
-
 .td-group-row.is-expanded.td-folder-sage::after,
 .td-group-row.is-expanded.td-folder-tan::after {
     background: var(--td-folder-tab);
 }
-
-/* The folder tab grows into a proper folder tab (bigger, its own richer
-   shade) while open, instead of the small collapsed-card peek — JS
-   handles its fade/pop-in timing. */
 .td-group-row.is-expanded .td-folder-tab {
     width: 110px;
     height: 24px;
@@ -1279,7 +1056,6 @@
     border-radius: 9px 9px 0 0;
     background: var(--td-folder-tab);
 }
-
 .td-group-close {
     display: none;
     position: absolute;
@@ -1296,21 +1072,17 @@
     cursor: pointer;
     z-index: 1;
 }
-
 .td-group-close:hover {
     background: rgba(44, 26, 14, 0.22);
 }
-
 .td-group-row.is-expanded .td-group-close {
     display: block;
     background: rgba(255, 255, 255, 0.3);
     color: #fff;
 }
-
 .td-group-row.is-expanded .td-group-close:hover {
     background: rgba(255, 255, 255, 0.45);
 }
-
 .td-folder-backdrop {
     position: fixed;
     inset: 0;
@@ -1321,20 +1093,12 @@
     transition: opacity 0.25s;
     perspective: 1400px;
 }
-
 .td-folder-backdrop.open {
     opacity: 1;
     pointer-events: all;
 }
-
-/* Alternating manila-folder tones, scrapbook style. Exposed as custom
-   properties too — the open/close animation (assets/js/traveldiary.js)
-   reads these to morph the background color smoothly as it plays,
-   instead of an instant class-toggle snap. */
 .td-folder-sage { background: #dde6d0; --td-folder-closed: #dde6d0; --td-folder-open: #85a271; --td-folder-tab: #6f8a5e; }
 .td-folder-tan  { background: #ece0c8; --td-folder-closed: #ece0c8; --td-folder-open: #bb9a64; --td-folder-tab: #a37f4c; }
-
-/* The little tab peeking above the folder's top-left corner. */
 .td-folder-tab {
     position: absolute;
     top: -12px;
@@ -1343,23 +1107,19 @@
     height: 16px;
     border-radius: 7px 7px 0 0;
 }
-
 .td-folder-sage .td-folder-tab { background: #dde6d0; }
 .td-folder-tan  .td-folder-tab { background: #ece0c8; }
-
 .td-group-header {
     display: flex;
     flex-direction: column;
     cursor: pointer;
     outline: none;
 }
-
 .td-group-header:focus-visible {
     outline: 2px solid #5f7d4c;
     outline-offset: 3px;
     border-radius: 10px;
 }
-
 .td-group-thumb {
     width: 100%;
     aspect-ratio: 5 / 4;
@@ -1372,21 +1132,15 @@
     justify-content: center;
     margin-bottom: 12px;
 }
-
 .td-group-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .td-group-thumb .td-check-initial {
     font-size: 34px;
 }
-
-/* Shown instead of a photo when the listing has no real uploaded photo —
-   just a generic sitewide "*_card.svg" category icon on file, which reads
-   as an oversized generic graphic at this thumb's large hero-photo size. */
 .td-group-thumb-fallback {
     width: 100%;
     height: 100%;
@@ -1396,7 +1150,6 @@
     justify-content: center;
     gap: 10px;
 }
-
 .td-group-thumb-icon {
     width: 56px;
     height: 56px;
@@ -1408,24 +1161,20 @@
     color: #fff;
     flex-shrink: 0;
 }
-
 .td-group-thumb-icon svg {
     width: 100%;
     height: 100%;
     display: block;
 }
-
 .td-group-thumb-label {
     font-family: Georgia, serif;
     font-weight: 700;
     font-size: 13px;
     color: #2c1a0e;
 }
-
 .td-group-main {
     min-width: 0;
 }
-
 .td-group-name {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -1434,14 +1183,12 @@
     color: #2c1a0e;
     margin: 0 0 6px;
 }
-
 .td-group-location {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.6);
     line-height: 1.4;
     margin: 0 0 10px;
 }
-
 .td-group-location-pin {
     display: inline-flex;
     width: 13px;
@@ -1450,13 +1197,11 @@
     vertical-align: -2px;
     color: #5f7d4c;
 }
-
 .td-group-location-pin svg {
     width: 100%;
     height: 100%;
     display: block;
 }
-
 .td-group-stats {
     font-size: 11.5px;
     color: rgba(44, 26, 14, 0.55);
@@ -1465,27 +1210,15 @@
     padding-top: 10px;
     border-top: 1px solid rgba(44, 26, 14, 0.14);
 }
-
-/* Hidden while open — the stat boxes on the left page show the same
-   numbers, so the two don't duplicate each other on screen. */
 .td-group-row.is-expanded .td-group-stats {
     display: none;
 }
-
-/* Two real "pages" while popped open: .td-group-header (photo/name/
-   address) and .td-folder-page-left (stat boxes + About) stack as ONE
-   seamless cream left page; .td-folder-page-right (Visit History /
-   Photos / Notes) is the right page, aligned top with the left page and
-   spanning its full height. .td-folder-pages is the grid — these three
-   are its direct children, explicitly placed, so the header and
-   left-page content can share one page without a visible seam. */
 .td-group-row.is-expanded .td-folder-pages {
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto 1fr;
     gap: 0 24px;
 }
-
 .td-group-row.is-expanded .td-group-header {
     grid-column: 1;
     grid-row: 1;
@@ -1494,7 +1227,6 @@
     padding: 20px 20px 14px;
     box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
 }
-
 .td-group-row.is-expanded .td-folder-page-left {
     grid-column: 1;
     grid-row: 2;
@@ -1503,7 +1235,6 @@
     padding: 0 20px 22px;
     box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
 }
-
 .td-group-row.is-expanded .td-folder-page-right {
     grid-column: 2;
     grid-row: 1 / 3;
@@ -1513,33 +1244,28 @@
     box-shadow: -6px 0 16px -8px rgba(44, 26, 14, 0.25), 0 2px 10px rgba(44, 26, 14, 0.1);
     transform-origin: left center;
 }
-
 .td-folder-page-left,
 .td-folder-page-right {
     min-width: 0;
 }
-
 .td-folder-stat-boxes {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-bottom: 18px;
 }
-
 .td-folder-stat-box {
     background: rgba(255, 255, 255, 0.55);
     border-radius: 10px;
     padding: 10px 8px;
     text-align: center;
 }
-
 .td-folder-stat-label {
     display: block;
     font-size: 10.5px;
     color: rgba(44, 26, 14, 0.55);
     margin-bottom: 3px;
 }
-
 .td-folder-stat-value {
     display: block;
     font-family: Georgia, serif;
@@ -1547,7 +1273,6 @@
     font-size: 13px;
     color: #2c1a0e;
 }
-
 .td-folder-section-head {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -1555,7 +1280,6 @@
     color: #2c1a0e;
     margin: 0 0 10px;
 }
-
 .td-folder-section-head-row {
     display: flex;
     align-items: center;
@@ -1563,13 +1287,9 @@
     gap: 10px;
     margin-bottom: 10px;
 }
-
 .td-folder-section-head-row .td-folder-section-head {
     margin-bottom: 0;
 }
-
-/* Small rounded pill used for "All Visits" and "View All" — a button
-   when interactive (View All), inert decoration otherwise (All Visits). */
 .td-folder-pill {
     display: inline-flex;
     align-items: center;
@@ -1585,50 +1305,39 @@
     font-family: inherit;
     cursor: default;
 }
-
 button.td-folder-pill {
     cursor: pointer;
 }
-
 button.td-folder-pill:hover {
     background: #fff;
     color: #2c1a0e;
 }
-
 .td-folder-pill svg {
     width: 13px;
     height: 13px;
     flex-shrink: 0;
 }
-
 .td-folder-about {
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.7);
     line-height: 1.6;
     margin: 0;
 }
-
 .td-visit-history {
     position: relative;
     margin-bottom: 10px;
     perspective: 1200px;
 }
-
-/* One per pagination page (grouped by JS) — flips like a book page
-   turning when switching pages, instead of an instant swap. */
 .td-visit-page {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
 }
-
 .td-visit-row {
     border-bottom: 1px solid rgba(44, 26, 14, 0.09);
 }
-
 .td-visit-row:last-of-type {
     border-bottom: none;
 }
-
 .td-visit-row-head {
     display: flex;
     align-items: center;
@@ -1636,9 +1345,6 @@ button.td-folder-pill:hover {
     padding: 10px 2px;
     cursor: pointer;
 }
-
-/* Calendar-tile date badge — month/day/year stacked, like a torn-off
-   page-a-day calendar. */
 .td-visit-date-badge {
     display: flex;
     flex-direction: column;
@@ -1650,14 +1356,12 @@ button.td-folder-pill:hover {
     border-radius: 10px;
     background: rgba(44, 26, 14, 0.06);
 }
-
 .td-visit-date-month {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.4px;
     color: rgba(44, 26, 14, 0.55);
 }
-
 .td-visit-date-day {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -1665,17 +1369,14 @@ button.td-folder-pill:hover {
     color: #2c1a0e;
     line-height: 1.1;
 }
-
 .td-visit-date-year {
     font-size: 10px;
     color: rgba(44, 26, 14, 0.5);
 }
-
 .td-visit-row-info {
     flex: 1;
     min-width: 0;
 }
-
 .td-visit-row-weekday {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -1683,19 +1384,16 @@ button.td-folder-pill:hover {
     color: #2c1a0e;
     margin: 0;
 }
-
 .td-visit-row-photocount {
     font-size: 11.5px;
     color: rgba(44, 26, 14, 0.55);
     margin: 2px 0 0;
 }
-
 .td-visit-row-thumbs {
     display: flex;
     gap: 6px;
     flex-shrink: 0;
 }
-
 .td-visit-row-thumb {
     display: block;
     width: 40px;
@@ -1704,14 +1402,12 @@ button.td-folder-pill:hover {
     overflow: hidden;
     flex-shrink: 0;
 }
-
 .td-visit-row-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .td-visit-row-chevron {
     width: 14px;
     height: 14px;
@@ -1719,16 +1415,12 @@ button.td-folder-pill:hover {
     color: rgba(44, 26, 14, 0.4);
     transition: transform 0.2s;
 }
-
 .td-visit-row-head[aria-expanded="true"] .td-visit-row-chevron {
     transform: rotate(90deg);
 }
-
 .td-visit-row-body {
     padding: 0 2px 14px 66px;
 }
-
-/* Dot pager for the Visit History list once it has more than one page. */
 .td-visit-pagination {
     display: flex;
     align-items: center;
@@ -1736,7 +1428,6 @@ button.td-folder-pill:hover {
     gap: 6px;
     margin: 4px 0 18px;
 }
-
 .td-visit-dot {
     width: 6px;
     height: 6px;
@@ -1746,28 +1437,23 @@ button.td-folder-pill:hover {
     background: rgba(44, 26, 14, 0.2);
     cursor: pointer;
 }
-
 .td-visit-dot:hover {
     background: rgba(44, 26, 14, 0.35);
 }
-
 .td-visit-dot.is-active {
     width: 16px;
     border-radius: 999px;
     background: #8a6a2e;
 }
-
 .td-folder-photos-head {
     margin-top: 4px;
 }
-
 .td-folder-photos {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 18px;
 }
-
 .td-folder-note {
     display: block;
     width: 100%;
@@ -1783,58 +1469,43 @@ button.td-folder-pill:hover {
     background: rgba(255, 255, 255, 0.55);
     margin: 0 0 16px;
 }
-
 .td-folder-note:focus {
     outline: none;
     border-color: #5f7d4c;
     background: #fff;
 }
-
 @media (max-width: 680px) {
-    /* Stack the two pages top-to-bottom instead of side-by-side — each
-       override resets the explicit column/row placement set above. */
     .td-group-row.is-expanded .td-folder-pages {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto auto;
     }
-
     .td-group-row.is-expanded .td-group-header,
     .td-group-row.is-expanded .td-folder-page-left,
     .td-group-row.is-expanded .td-folder-page-right {
         grid-column: 1;
     }
-
     .td-group-row.is-expanded .td-group-header {
         grid-row: 1;
     }
-
     .td-group-row.is-expanded .td-folder-page-left {
         grid-row: 2;
     }
-
     .td-group-row.is-expanded .td-folder-page-right {
         grid-row: 3;
         border-radius: 14px;
         margin-top: 16px;
         box-shadow: 0 2px 10px rgba(44, 26, 14, 0.1);
     }
-
-    /* The visit row (date badge + info + up to 4 thumbnails + chevron)
-       is too much to fit on one line at phone widths — drop the inline
-       thumbnail previews there; the full set is still one tap away in
-       the Photos section and inside the row itself once expanded. */
     .td-visit-row-thumbs {
         display: none;
     }
 }
-
 .td-timeline-note {
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.68);
     line-height: 1.5;
     margin: 0 0 6px;
 }
-
 .td-timeline-delete {
     display: inline-block;
     margin-top: 2px;
@@ -1847,25 +1518,21 @@ button.td-folder-pill:hover {
     padding: 0;
     font-family: inherit;
 }
-
 .td-timeline-delete:hover {
     color: #8b2e1a;
     text-decoration: underline;
 }
-
 .td-timeline-photos {
     display: flex;
     gap: 6px;
     margin: 0 0 8px;
     flex-wrap: wrap;
 }
-
 .td-timeline-photo {
     position: relative;
     width: 72px;
     height: 72px;
 }
-
 .td-timeline-photo img {
     width: 100%;
     height: 100%;
@@ -1875,9 +1542,6 @@ button.td-folder-pill:hover {
     cursor: pointer;
     display: block;
 }
-
-/* Delete button: invisible until the thumbnail is hovered/focused, so the
-   timeline doesn't read as cluttered with a trash icon on every photo. */
 .td-photo-delete-btn {
     position: absolute;
     top: -6px;
@@ -1896,23 +1560,18 @@ button.td-folder-pill:hover {
     opacity: 0;
     transition: opacity 0.15s ease, background 0.15s ease;
 }
-
 .td-photo-delete-btn svg { width: 100%; height: 100%; display: block; }
-
 .td-timeline-photo:hover .td-photo-delete-btn,
 .td-photo-delete-btn:focus-visible {
     opacity: 1;
 }
-
 .td-photo-delete-btn:hover {
     background: #6e2213;
 }
-
 .td-photo-delete-btn:disabled {
     opacity: 0.6 !important;
     cursor: default;
 }
-
 .td-timeline-actions {
     display: flex;
     align-items: center;
@@ -1920,7 +1579,6 @@ button.td-folder-pill:hover {
     flex-wrap: wrap;
     margin-top: 10px;
 }
-
 .td-timeline-log-again,
 .td-timeline-add-photo {
     display: inline-flex;
@@ -1934,43 +1592,35 @@ button.td-folder-pill:hover {
     font-family: inherit;
     white-space: nowrap;
 }
-
 .td-folder-btn-solid {
     background: #8a6a2e;
     border: 1.5px solid #8a6a2e;
     color: #fff;
 }
-
 .td-folder-btn-solid:hover {
     background: #74581f;
     border-color: #74581f;
 }
-
 .td-folder-btn-outline {
     background: none;
     border: 1.5px solid rgba(44, 26, 14, 0.25);
     color: #2c1a0e;
 }
-
 .td-folder-btn-outline:hover {
     border-color: #8a6a2e;
     color: #8a6a2e;
 }
-
 .td-timeline-log-again .td-btn-icon,
 .td-timeline-add-photo .td-btn-icon {
     width: 15px;
     height: 15px;
     margin-right: 0;
 }
-
-/* ── Photo Memories gallery ── */
 .td-gallery {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
 }
-
 .td-gallery-tile {
     position: relative;
     aspect-ratio: 1 / 1;
@@ -1981,29 +1631,24 @@ button.td-folder-pill:hover {
     cursor: pointer;
     background: #e5dccb;
 }
-
 .td-gallery-tile:focus-visible {
     outline: 2px solid #8a6a2f;
     outline-offset: 2px;
 }
-
 .td-gallery-tile img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .td-gallery-tile .td-photo-delete-btn {
     top: 6px;
     right: 6px;
 }
-
 .td-gallery-tile:hover .td-photo-delete-btn,
 .td-gallery-tile:focus-within .td-photo-delete-btn {
     opacity: 1;
 }
-
 .td-gallery-info {
     position: absolute;
     left: 0;
@@ -2016,23 +1661,18 @@ button.td-folder-pill:hover {
     align-items: flex-start;
     text-align: left;
 }
-
 .td-gallery-name {
     color: #fff;
     font-size: 11.5px;
     font-weight: 700;
 }
-
 .td-gallery-date {
     color: rgba(255, 255, 255, 0.75);
     font-size: 10.5px;
 }
-
-/* ── Bottom CTA quote banner ── */
 .td-section-flush {
     padding-bottom: 40px;
 }
-
 .td-cta-banner {
     position: relative;
     overflow: hidden;
@@ -2045,7 +1685,6 @@ button.td-folder-pill:hover {
     border-radius: 22px;
     padding: 60px 32px 52px;
 }
-
 .td-cta-quote-mark {
     position: absolute;
     top: 4px;
@@ -2056,7 +1695,6 @@ button.td-folder-pill:hover {
     color: rgba(255, 255, 255, 0.12);
     pointer-events: none;
 }
-
 .td-cta-quote {
     position: relative;
     z-index: 1;
@@ -2068,12 +1706,10 @@ button.td-folder-pill:hover {
     color: #f5efe3;
     max-width: 640px;
 }
-
 .td-cta-heart {
     color: #e8b4b8;
     font-style: normal;
 }
-
 .td-cta-leaf {
     position: absolute;
     width: 48px;
@@ -2081,45 +1717,35 @@ button.td-folder-pill:hover {
     color: rgba(255, 255, 255, 0.1);
     pointer-events: none;
 }
-
 .td-cta-leaf svg {
     width: 100%;
     height: 100%;
     display: block;
 }
-
 .td-cta-leaf-1 { top: 22px; left: 64px; transform: rotate(-15deg); }
 .td-cta-leaf-2 { bottom: 20px; right: 72px; transform: rotate(20deg); }
-
 .td-wrapped-btn-light {
     position: relative;
     z-index: 1;
     background: #fff;
     color: #2f3f24;
 }
-
 .td-wrapped-btn-light:hover {
     background: #f0ebe3;
 }
-
-/* ── Visit confirmation modal ── */
 .td-visit-overlay {
     display: none;
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.6);
-    /* Above .td-folder-backdrop (3150) — "Log Another Visit" is clickable
-       from inside an open folder, so this must render in front of it. */
     z-index: 3160;
     align-items: center;
     justify-content: center;
     padding: 20px;
 }
-
 .td-visit-overlay.open {
     display: flex;
 }
-
 .td-visit-card {
     position: relative;
     width: min(360px, 100%);
@@ -2129,7 +1755,6 @@ button.td-folder-pill:hover {
     text-align: center;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
 }
-
 .td-visit-close {
     position: absolute;
     top: 14px;
@@ -2144,11 +1769,9 @@ button.td-folder-pill:hover {
     line-height: 1;
     cursor: pointer;
 }
-
 .td-visit-close:hover {
     background: rgba(44, 26, 14, 0.15);
 }
-
 .td-visit-spinner {
     width: 32px;
     height: 32px;
@@ -2158,11 +1781,9 @@ button.td-folder-pill:hover {
     border-top-color: #5f7d4c;
     animation: td-visit-spin 0.8s linear infinite;
 }
-
 @keyframes td-visit-spin {
     to { transform: rotate(360deg); }
 }
-
 .td-visit-icon {
     width: 40px;
     height: 40px;
@@ -2176,19 +1797,15 @@ button.td-folder-pill:hover {
     background: rgba(44, 26, 14, 0.08);
     color: #2c1a0e;
 }
-
 .td-visit-icon svg { width: 20px; height: 20px; display: block; }
-
 .td-visit-icon-ok {
     background: rgba(95, 125, 76, 0.16);
     color: #5f7d4c;
 }
-
 .td-visit-icon-warn {
     background: rgba(181, 119, 44, 0.16);
     color: #b5772c;
 }
-
 .td-visit-title {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -2197,13 +1814,11 @@ button.td-folder-pill:hover {
     color: #2c1a0e;
     margin: 0 0 6px;
 }
-
 .td-visit-sub {
     font-size: 13px;
     color: rgba(44, 26, 14, 0.6);
     margin: 0;
 }
-
 .td-visit-date {
     width: 100%;
     box-sizing: border-box;
@@ -2216,36 +1831,22 @@ button.td-folder-pill:hover {
     font-size: 13.5px;
     color: #2c1a0e;
 }
-
 .td-visit-date:focus {
     outline: none;
     border-color: #5f7d4c;
 }
-
 .td-visit-actions {
     display: flex;
     gap: 10px;
     margin-top: 20px;
 }
-
-/* `.td-visit-icon`/`.td-visit-actions` both declare their own `display`,
-   which — at equal specificity with the browser's default `[hidden] {
-   display: none }` rule — let the later-loaded one win regardless of
-   which element actually has the `hidden` attribute. That let both the
-   "ask" and "confirm" button rows show at once instead of only the
-   active step. These two selectors restore `hidden` actually hiding. */
 .td-visit-icon[hidden],
 .td-visit-actions[hidden] {
     display: none;
 }
-
-/* Same issue as above — this badge starts `hidden` in the markup and
-   only ever gets un-hidden (for a row actually near the user), so
-   without this it would show on every row from the start. */
 .td-nearby-badge[hidden] {
     display: none;
 }
-
 .td-visit-btn {
     flex: 1;
     padding: 11px 14px;
@@ -2257,39 +1858,29 @@ button.td-folder-pill:hover {
     cursor: pointer;
     transition: background 0.2s, color 0.2s;
 }
-
 .td-visit-btn-primary {
     background: #5f7d4c;
     color: #fff;
 }
-
 .td-visit-btn-primary:hover {
     background: #4c6a3d;
 }
-
 .td-visit-btn-primary:disabled {
     opacity: 0.6;
     cursor: default;
 }
-
 .td-visit-btn-ghost {
     background: rgba(44, 26, 14, 0.06);
     color: #2c1a0e;
 }
-
 .td-visit-btn-ghost:hover {
     background: rgba(44, 26, 14, 0.12);
 }
-
-/* ── Lightbox ── */
 .td-lightbox {
     display: none;
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.9);
-    /* Above .td-folder-backdrop (3150) — photo thumbnails inside an open
-       folder's Visit History / Photos sections open this lightbox, so it
-       must render in front of the folder, not behind it. */
     z-index: 3180;
     align-items: center;
     justify-content: center;
@@ -2297,23 +1888,19 @@ button.td-folder-pill:hover {
     gap: 12px;
     padding: 40px;
 }
-
 .td-lightbox.open {
     display: flex;
 }
-
 .td-lightbox img {
     max-width: 90vw;
     max-height: 80vh;
     border-radius: 8px;
     object-fit: contain;
 }
-
 .td-lightbox p {
     color: #f5ede0;
     font-size: 13px;
 }
-
 .td-lightbox-close {
     position: absolute;
     top: 20px;
@@ -2325,8 +1912,6 @@ button.td-folder-pill:hover {
     cursor: pointer;
     line-height: 1;
 }
-
-/* ── Toast ── */
 .td-toast {
     position: fixed;
     bottom: 24px;
@@ -2343,15 +1928,10 @@ button.td-folder-pill:hover {
     z-index: 2100;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
-
 .td-toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
-
-/* ============================================================
-   TRAVEL WRAPPED — period picker (Weekly / Monthly / Yearly)
-============================================================ */
 .tw-period-overlay {
     display: none;
     position: fixed;
@@ -2362,11 +1942,9 @@ button.td-folder-pill:hover {
     justify-content: center;
     padding: 20px;
 }
-
 .tw-period-overlay.open {
     display: flex;
 }
-
 .tw-period-card {
     position: relative;
     width: min(360px, 100%);
@@ -2376,7 +1954,6 @@ button.td-folder-pill:hover {
     text-align: center;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
 }
-
 .tw-period-close {
     position: absolute;
     top: 14px;
@@ -2391,11 +1968,9 @@ button.td-folder-pill:hover {
     line-height: 1;
     cursor: pointer;
 }
-
 .tw-period-close:hover {
     background: rgba(44, 26, 14, 0.15);
 }
-
 .tw-period-title {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -2403,19 +1978,16 @@ button.td-folder-pill:hover {
     color: #2c1a0e;
     margin: 0 0 6px;
 }
-
 .tw-period-sub {
     font-size: 13.5px;
     color: rgba(44, 26, 14, 0.6);
     margin: 0 0 22px;
 }
-
 .tw-period-options {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
-
 .tw-period-btn {
     display: flex;
     align-items: center;
@@ -2428,7 +2000,6 @@ button.td-folder-pill:hover {
     text-align: left;
     transition: border-color 0.2s, background 0.2s;
 }
-
 .tw-period-btn-dot {
     flex: 0 0 auto;
     width: 12px;
@@ -2436,30 +2007,24 @@ button.td-folder-pill:hover {
     border-radius: 50%;
     background: #5f7d4c;
 }
-
 .tw-period-btn-copy {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
-
 .tw-period-btn-title {
     font-family: Georgia, serif;
     font-weight: 700;
     font-size: 15px;
     color: #2c1a0e;
 }
-
 .tw-period-btn-sub {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.55);
 }
-
-/* Each range previews the palette its Wrapped slideshow will use. */
 .tw-period-weekly .tw-period-btn-dot  { background: #c14a2b; }
 .tw-period-monthly .tw-period-btn-dot { background: #2f6690; }
 .tw-period-yearly .tw-period-btn-dot  { background: #b5772c; }
-
 .tw-period-weekly:hover, .tw-period-weekly.is-active {
     border-color: #c14a2b;
     background: rgba(193, 74, 43, 0.08);
@@ -2472,10 +2037,6 @@ button.td-folder-pill:hover {
     border-color: #b5772c;
     background: rgba(181, 119, 44, 0.08);
 }
-
-/* ============================================================
-   TRAVEL WRAPPED — full-screen "story" slideshow
-============================================================ */
 .tw-overlay {
     display: none;
     position: fixed;
@@ -2485,11 +2046,9 @@ button.td-folder-pill:hover {
     align-items: center;
     justify-content: center;
 }
-
 .tw-overlay.open {
     display: flex;
 }
-
 .tw-close {
     position: absolute;
     top: 22px;
@@ -2497,13 +2056,6 @@ button.td-folder-pill:hover {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    /* Dark circle + white X, same contrast trick as .tw-nav's arrows
-       (visible further down) — a near-transparent white background only
-       reads against the dark backdrop behind the panel on desktop; on
-       mobile the panel is full-screen, so this button sits directly on
-       top of each slide's own light background instead, where white-on-
-       near-white was essentially invisible. A dark circle shows up
-       against any slide color, light or dark. */
     background: rgba(44, 26, 14, 0.4);
     border: none;
     color: #fff;
@@ -2512,11 +2064,9 @@ button.td-folder-pill:hover {
     cursor: pointer;
     z-index: 20;
 }
-
 .tw-close:hover {
     background: rgba(44, 26, 14, 0.6);
 }
-
 .tw-panel {
     position: relative;
     width: min(420px, 92vw);
@@ -2525,14 +2075,9 @@ button.td-folder-pill:hover {
     overflow: hidden;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
 }
-
 .tw-badge {
     position: absolute;
     top: 18px;
-    /* Left, not right — .tw-close sits in the top-right corner, and now
-       that it's a visible dark circle too (previously near-invisible,
-       see the comment on .tw-close) sharing that corner with the badge
-       made them visually collide. */
     left: 18px;
     background: #2c1a0e;
     color: #fff;
@@ -2542,7 +2087,6 @@ button.td-folder-pill:hover {
     border-radius: 999px;
     z-index: 10;
 }
-
 .tw-nav {
     position: absolute;
     top: 50%;
@@ -2558,11 +2102,9 @@ button.td-folder-pill:hover {
     cursor: pointer;
     z-index: 10;
 }
-
 .tw-nav:hover {
     background: rgba(44, 26, 14, 0.55);
 }
-
 .tw-share-bar {
     position: absolute;
     left: 50%;
@@ -2572,7 +2114,6 @@ button.td-folder-pill:hover {
     gap: 8px;
     z-index: 15;
 }
-
 .tw-share-btn {
     display: flex;
     align-items: center;
@@ -2591,44 +2132,36 @@ button.td-folder-pill:hover {
     transition: background 0.2s, transform 0.15s;
     white-space: nowrap;
 }
-
 .tw-share-btn svg {
     width: 14px;
     height: 14px;
     flex: 0 0 auto;
 }
-
 .tw-share-btn:hover {
     background: #fff;
     transform: translateY(-1px);
 }
-
 .tw-share-btn[disabled] {
     opacity: 0.6;
     cursor: default;
     pointer-events: none;
     transform: none;
 }
-
 .tw-share-fb {
     background: #1877f2;
     color: #fff;
 }
-
 .tw-share-fb:hover {
     background: #1665d8;
 }
-
 .tw-nav-prev { left: 10px; }
 .tw-nav-next { right: 10px; }
-
 .tw-slides {
     display: flex;
     width: 100%;
     height: 100%;
     transition: transform 0.4s ease;
 }
-
 .tw-slide {
     flex: 0 0 100%;
     width: 100%;
@@ -2636,31 +2169,18 @@ button.td-folder-pill:hover {
     overflow-y: auto;
     overflow-x: hidden;
 }
-
 .tw-slide-inner {
     width: 100%;
     min-height: 100%;
     box-sizing: border-box;
-    /* Extra bottom clearance so content doesn't sit under the floating
-       Save Photo/Share/Facebook bar, which is pinned over the panel. */
     padding: 60px 30px 68px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    /* Centers short slides as one balanced block instead of leaving them
-       pinned to the top with a single huge gap below — very noticeable
-       on tall phone screens, where the full-height mobile panel (see the
-       480px media query) leaves far more room than e.g. the title slide's
-       few lines of text actually need. `center` is the fallback for
-       browsers without `safe` support; `safe center` (the one that
-       actually applies everywhere modern) falls back to top-alignment
-       instead of centering if a slide's content ever overflows, so nothing
-       gets clipped off the top on a short/landscape viewport. */
     justify-content: center;
     justify-content: safe center;
 }
-
 .tw-slide-1 { background: #f3e6d3; }
 .tw-slide-2 { background: #e9efe1; }
 .tw-slide-3 { background: #f2ddc1; }
@@ -2671,7 +2191,6 @@ button.td-folder-pill:hover {
 .tw-slide-8 { background: #f1e6d6; }
 .tw-slide-9 { background: #ece0cf; }
 .tw-slide-10 { background: #f5efe3; }
-
 .tw-brand {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -2680,7 +2199,6 @@ button.td-folder-pill:hover {
     color: #5f7d4c;
     margin-bottom: 30px;
 }
-
 .tw-brand span {
     display: block;
     font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -2690,7 +2208,6 @@ button.td-folder-pill:hover {
     color: rgba(44, 26, 14, 0.5);
     margin-top: 2px;
 }
-
 .tw-title-1 {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -2699,17 +2216,8 @@ button.td-folder-pill:hover {
     color: #2c1a0e;
     margin: 0 0 16px;
 }
-
 .tw-accent-green { color: #5f7d4c; }
 .tw-accent-gold  { color: #b5772c; font-style: italic; }
-
-/* ============================================================
-   TRAVEL WRAPPED — per-period themes
-   ------------------------------------------------------------
-   .tw-theme-yearly uses the base KULTOURA green/gold palette
-   above untouched (the "premium" annual recap). Weekly/Monthly
-   get their own warm/cool palettes so each range feels distinct.
-============================================================ */
 .tw-theme-weekly .tw-badge { background: #c14a2b; }
 .tw-theme-weekly .tw-nav { background: rgba(193, 74, 43, 0.35); }
 .tw-theme-weekly .tw-nav:hover { background: rgba(193, 74, 43, 0.55); }
@@ -2726,7 +2234,6 @@ button.td-folder-pill:hover {
 .tw-theme-weekly .tw-slide-8 { background: #fdecd9; }
 .tw-theme-weekly .tw-slide-9 { background: #fbe5d0; }
 .tw-theme-weekly .tw-slide-10 { background: #fdf1e3; }
-
 .tw-theme-monthly .tw-badge { background: #2f6690; }
 .tw-theme-monthly .tw-nav { background: rgba(47, 102, 144, 0.35); }
 .tw-theme-monthly .tw-nav:hover { background: rgba(47, 102, 144, 0.55); }
@@ -2743,9 +2250,6 @@ button.td-folder-pill:hover {
 .tw-theme-monthly .tw-slide-8 { background: #e0f0f2; }
 .tw-theme-monthly .tw-slide-9 { background: #d6ebee; }
 .tw-theme-monthly .tw-slide-10 { background: #eaf5f7; }
-
-/* Each Wrapped page gets its own AI-selected composition. These are
-   bounded layout variants chosen against the visitor's actual content. */
 .tw-slide-1.tw-layout-cover_collage .tw-collage { max-width: 310px; gap: 9px; }
 .tw-slide-1.tw-layout-cover_collage .tw-collage-photo { box-shadow: 0 10px 24px rgba(44,26,14,.22); }
 .tw-slide-1.tw-layout-cover_collage { background-image: radial-gradient(circle at 50% 18%, rgba(255,255,255,.8), transparent 50%); }
@@ -2777,8 +2281,6 @@ button.td-folder-pill:hover {
 .tw-slide-9.tw-layout-glance_strip .tw-sticky-note { position: relative; inset: auto; width: auto; grid-column: 1 / -1; transform: none; }
 .tw-slide-10.tw-layout-closing_minimal .tw-quote { background: transparent; border-top: 1px solid rgba(44,26,14,.2); border-radius: 0; padding: 18px 8px; }
 .tw-slide-10.tw-layout-closing_minimal .tw-title-2 { font-size: 29px; }
-
-/* User-selectable illustrated backdrops for every Wrapped slide. */
 .tw-panel.tw-vibe-botanical .tw-slide { background-image: linear-gradient(rgba(255,250,240,.58), rgba(255,250,240,.58)), url("../images/traveldiary/wrapped/botanical-cream.jpg"); }
 .tw-panel.tw-vibe-sky .tw-slide { background-image: linear-gradient(rgba(255,250,240,.58), rgba(255,250,240,.58)), url("../images/traveldiary/wrapped/sky-blue.jpg"); }
 .tw-panel.tw-vibe-sunset .tw-slide { background-image: linear-gradient(rgba(255,250,240,.58), rgba(255,250,240,.58)), url("../images/traveldiary/wrapped/sunset-lavender.jpg"); }
@@ -2794,10 +2296,8 @@ button.td-folder-pill:hover {
     background-position: center bottom;
     background-repeat: no-repeat;
 }
-
 .tw-panel.tw-vibe-sports .tw-slide,
 .tw-panel.tw-vibe-moonlit .tw-slide { background-position: center top; }
-
 .tw-panel.tw-vibe-moonlit .tw-slide-inner :is(
     .tw-brand, .tw-brand span, .tw-title-1, .tw-title-2, .tw-accent-green, .tw-accent-gold,
     .tw-sub, .tw-sub-2, .tw-footer-note, .tw-stat-num, .tw-stat-label, .tw-pick-label,
@@ -2808,20 +2308,17 @@ button.td-folder-pill:hover {
     color: #fff8df !important;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.72);
 }
-
 .tw-panel.tw-vibe-moonlit .tw-slide-inner :is(
     .tw-stat-row, .tw-pick-row, .tw-mini-item, .tw-place-card, .tw-liked-card, .tw-quote, .tw-sticky-note
 ) {
     background-color: rgba(7, 20, 17, 0.62);
 }
-
 .tw-sub {
     font-size: 13.5px;
     color: rgba(44, 26, 14, 0.6);
     line-height: 1.6;
     margin: 0 0 24px;
 }
-
 .tw-collage {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2830,7 +2327,6 @@ button.td-folder-pill:hover {
     max-width: 260px;
     margin: 0 auto 24px;
 }
-
 .tw-collage-photo {
     aspect-ratio: 1 / 1;
     background: #fff;
@@ -2838,7 +2334,6 @@ button.td-folder-pill:hover {
     border-radius: 4px;
     box-shadow: 0 6px 16px rgba(44, 26, 14, 0.18);
 }
-
 .tw-collage-photo img {
     width: 100%;
     height: 100%;
@@ -2846,18 +2341,15 @@ button.td-folder-pill:hover {
     display: block;
     border-radius: 2px;
 }
-
 .tw-tilt-0 { transform: rotate(-4deg); }
 .tw-tilt-1 { transform: rotate(3deg); }
 .tw-tilt-2 { transform: rotate(2deg); }
 .tw-tilt-3 { transform: rotate(-3deg); }
-
 .tw-swipe-hint {
     margin-top: 24px;
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.5);
 }
-
 .tw-title-2 {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -2866,27 +2358,22 @@ button.td-folder-pill:hover {
     margin: 0 0 8px;
     line-height: 1.25;
 }
-
 .tw-sub-2 {
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.55);
     margin: 0 0 26px;
 }
-
 .tw-footer-note {
     margin-top: 20px;
     font-size: 12.5px;
     color: rgba(44, 26, 14, 0.5);
 }
-
-/* Slide 2: stat list */
 .tw-stat-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
     width: 100%;
 }
-
 .tw-stat-row {
     display: flex;
     align-items: center;
@@ -2896,7 +2383,6 @@ button.td-folder-pill:hover {
     padding: 14px 16px;
     text-align: left;
 }
-
 .tw-stat-icon {
     width: 34px;
     height: 34px;
@@ -2907,15 +2393,12 @@ button.td-folder-pill:hover {
     justify-content: center;
     padding: 7px;
 }
-
 .tw-stat-icon svg { width: 100%; height: 100%; display: block; }
-
 .tw-icon-green  { background: rgba(95, 125, 76, 0.16); color: #5f7d4c; }
 .tw-icon-orange { background: rgba(200, 140, 60, 0.18); color: #b5772c; }
 .tw-icon-pink   { background: rgba(190, 90, 120, 0.16); color: #b5567a; }
 .tw-icon-purple { background: rgba(120, 100, 170, 0.18); color: #6f5a9e; }
 .tw-icon-blue   { background: rgba(63, 125, 130, 0.16); color: #3f7d82; }
-
 .tw-stat-num {
     display: block;
     font-family: Georgia, serif;
@@ -2923,21 +2406,17 @@ button.td-folder-pill:hover {
     font-size: 19px;
     color: #2c1a0e;
 }
-
 .tw-stat-label {
     display: block;
     font-size: 11.5px;
     color: rgba(44, 26, 14, 0.55);
 }
-
-/* Slide 3: top picks */
 .tw-picks-list {
     display: flex;
     flex-direction: column;
     gap: 14px;
     width: 100%;
 }
-
 .tw-pick-row {
     display: flex;
     align-items: center;
@@ -2945,14 +2424,12 @@ button.td-folder-pill:hover {
     gap: 10px;
     text-align: left;
 }
-
 .tw-pick-text {
     display: flex;
     align-items: flex-start;
     gap: 10px;
     min-width: 0;
 }
-
 .tw-pick-icon {
     width: 20px;
     height: 20px;
@@ -2960,20 +2437,16 @@ button.td-folder-pill:hover {
     color: #8b2e1a;
     margin-top: 2px;
 }
-
 .tw-pick-icon svg { width: 100%; height: 100%; display: block; }
-
 .tw-pick-copy {
     display: flex;
     flex-direction: column;
     min-width: 0;
 }
-
 .tw-pick-label {
     font-size: 11px;
     color: rgba(44, 26, 14, 0.55);
 }
-
 .tw-pick-value {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -2983,7 +2456,6 @@ button.td-folder-pill:hover {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
 .tw-pick-photo {
     width: 56px;
     height: 56px;
@@ -2993,29 +2465,24 @@ button.td-folder-pill:hover {
     background: #fff;
     box-shadow: 0 4px 10px rgba(44, 26, 14, 0.15);
 }
-
 .tw-pick-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
-/* Slide 4: mini timeline */
 .tw-mini-timeline {
     display: flex;
     flex-direction: column;
     gap: 16px;
     width: 100%;
 }
-
 .tw-mini-item {
     display: flex;
     align-items: center;
     gap: 12px;
     text-align: left;
 }
-
 .tw-mini-dot {
     width: 28px;
     height: 28px;
@@ -3027,16 +2494,13 @@ button.td-folder-pill:hover {
     padding: 6px;
     color: #fff;
 }
-
 .tw-mini-dot svg { width: 100%; height: 100%; display: block; }
-
 .tw-mini-text {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
 }
-
 .tw-mini-date {
     font-size: 10.5px;
     font-weight: 700;
@@ -3044,19 +2508,16 @@ button.td-folder-pill:hover {
     text-transform: uppercase;
     color: rgba(44, 26, 14, 0.45);
 }
-
 .tw-mini-verb {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.65);
 }
-
 .tw-mini-name {
     font-family: Georgia, serif;
     font-weight: 700;
     font-size: 14px;
     color: #2c1a0e;
 }
-
 .tw-mini-photo {
     width: 46px;
     height: 46px;
@@ -3066,22 +2527,18 @@ button.td-folder-pill:hover {
     background: #fff;
     box-shadow: 0 4px 10px rgba(44, 26, 14, 0.15);
 }
-
 .tw-mini-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
-/* Slide 5: thank you */
 .tw-thanks {
     font-size: 13.5px;
     color: rgba(44, 26, 14, 0.65);
     line-height: 1.6;
     margin: 0 0 26px;
 }
-
 .tw-quote {
     font-family: Georgia, serif;
     font-style: italic;
@@ -3093,7 +2550,6 @@ button.td-folder-pill:hover {
     padding: 20px 22px;
     margin: 24px 0 0;
 }
-
 .tw-brand-footer {
     margin-top: 24px;
     font-family: Georgia, serif;
@@ -3101,7 +2557,6 @@ button.td-folder-pill:hover {
     font-size: 13px;
     color: #5f7d4c;
 }
-
 .tw-brand-footer span {
     display: block;
     font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -3111,19 +2566,15 @@ button.td-folder-pill:hover {
     color: rgba(44, 26, 14, 0.5);
     margin-top: 2px;
 }
-
-/* Slide 5: places explored */
 .tw-places-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
     width: 100%;
 }
-
 .tw-place-card:only-child {
     grid-column: 1 / -1;
 }
-
 .tw-place-card {
     background: rgba(255, 255, 255, 0.6);
     border-radius: 12px;
@@ -3131,20 +2582,17 @@ button.td-folder-pill:hover {
     padding-bottom: 10px;
     text-align: left;
 }
-
 .tw-place-photo {
     width: 100%;
     aspect-ratio: 1 / 1;
     background: #fff;
 }
-
 .tw-place-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .tw-place-name {
     display: flex;
     align-items: center;
@@ -3156,24 +2604,19 @@ button.td-folder-pill:hover {
     line-height: 1.3;
     color: #2c1a0e;
 }
-
 .tw-place-pin {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
     color: #8b2e1a;
 }
-
 .tw-place-pin svg { width: 100%; height: 100%; display: block; }
-
-/* Slide 6: what you liked */
 .tw-liked-stack {
     display: flex;
     flex-direction: column;
     gap: 14px;
     width: 100%;
 }
-
 .tw-liked-card {
     background: rgba(255, 255, 255, 0.6);
     border-radius: 14px;
@@ -3181,20 +2624,17 @@ button.td-folder-pill:hover {
     padding-bottom: 12px;
     text-align: left;
 }
-
 .tw-liked-photo {
     width: 100%;
     height: 150px;
     background: #fff;
 }
-
 .tw-liked-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
 .tw-liked-name {
     display: flex;
     align-items: center;
@@ -3205,40 +2645,24 @@ button.td-folder-pill:hover {
     font-size: 14px;
     color: #2c1a0e;
 }
-
 .tw-liked-heart {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
     color: #b5567a;
 }
-
 .tw-liked-heart svg { width: 100%; height: 100%; display: block; }
-
-/* Slide 7: travel map — a real (non-interactive) Leaflet + OpenStreetMap
-   map. Dragging/zooming/etc. are all disabled in JS so the map can't
-   fight the slideshow's own swipe-to-navigate; it's a snapshot view, not
-   a widget. Malvar's outline and the visit route are drawn with Leaflet's
-   own L.polygon/L.polyline (see traveldiary.js), not CSS. */
 .tw-map-wrap {
     width: 100%;
     max-width: 240px;
     margin: 0 auto 18px;
 }
-
 .tw-map-leaflet {
     width: 100%;
     aspect-ratio: 1 / 1;
     border-radius: 12px;
-    background: #e5dccb; /* shows while tiles are still loading */
+    background: #e5dccb;
 }
-
-/* Each visited place's marker is its own category icon (the fork-and-
-   knife for a restaurant, the leaf for nature, …) in a colored circle —
-   the same $categoryIcons + .td-badge-* colors used everywhere else on
-   the page — rather than a plain dot, so the map reads at a glance.
-   Positioning itself is handled entirely by Leaflet (iconAnchor), so
-   this only styles the badge's own look. */
 .tw-map-pin-marker {
     width: 100%;
     height: 100%;
@@ -3250,29 +2674,19 @@ button.td-folder-pill:hover {
     color: #fff;
     border: 1.5px solid #fff;
     box-shadow: 0 2px 6px rgba(44, 26, 14, 0.35);
-    /* Faded in with a staggered delay per marker (see tdWrappedMap in
-       traveldiary.js) once Leaflet actually places it. Plain opacity
-       only — unlike the rest of the page's pop-in effects, this can't
-       also animate transform: Leaflet uses transform on this exact
-       element to position it on the map, and a CSS animation touching
-       the same property would fight that every frame. */
     opacity: 0;
     transition: opacity 0.35s ease;
 }
-
 .tw-map-pin-marker.tw-marker-visible {
     opacity: 1;
 }
-
 .tw-map-pin-marker svg { width: 100%; height: 100%; display: block; }
-
 .tw-map-legend {
     display: flex;
     flex-direction: column;
     gap: 10px;
     width: 100%;
 }
-
 .tw-map-legend-item {
     display: flex;
     align-items: center;
@@ -3283,7 +2697,6 @@ button.td-folder-pill:hover {
     font-size: 13px;
     color: #2c1a0e;
 }
-
 .tw-map-legend-pin {
     width: 22px;
     height: 22px;
@@ -3295,16 +2708,11 @@ button.td-folder-pill:hover {
     padding: 5px;
     color: #fff;
 }
-
 .tw-map-legend-pin svg { width: 100%; height: 100%; display: block; }
-
-/* Slide 8: a bigger version of slide 1's photo collage */
 .tw-collage-big {
     max-width: 280px;
     gap: 16px;
 }
-
-/* Slide 9: scattered scrapbook-style photos + a sticky note */
 .tw-scatter {
     position: relative;
     width: 100%;
@@ -3312,7 +2720,6 @@ button.td-folder-pill:hover {
     height: 240px;
     margin: 0 auto 10px;
 }
-
 .tw-scatter-photo {
     position: absolute;
     width: 128px;
@@ -3322,7 +2729,6 @@ button.td-folder-pill:hover {
     border-radius: 4px;
     box-shadow: 0 6px 16px rgba(44, 26, 14, 0.18);
 }
-
 .tw-scatter-photo img {
     width: 100%;
     height: 100%;
@@ -3330,11 +2736,9 @@ button.td-folder-pill:hover {
     display: block;
     border-radius: 2px;
 }
-
 .tw-scatter-0 { top: 0; left: 4px; transform: rotate(-6deg); z-index: 1; }
 .tw-scatter-1 { top: 18px; right: 0; transform: rotate(5deg); z-index: 2; }
 .tw-scatter-2 { bottom: 0; left: 36px; transform: rotate(-3deg); z-index: 3; }
-
 .tw-sticky-note {
     position: absolute;
     bottom: 6px;
@@ -3350,40 +2754,17 @@ button.td-folder-pill:hover {
     color: #5c4a1a;
     z-index: 4;
 }
-
 @media (max-width: 480px) {
-    /* 100vh on mobile Chrome/Safari is sized against the viewport with
-       the address bar collapsed — while it's actually showing (the
-       common case, especially right after the page loads), that makes
-       the panel taller than what's really visible, pushing the Save
-       Photo/Share/Facebook bar (pinned to the panel's own bottom edge)
-       down behind the browser chrome. 100dvh tracks the real visible
-       height instead; the 100vh line stays first as the fallback for
-       browsers that don't support dvh yet. */
     .tw-panel { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; }
 }
-
-/* ============================================================
-   TRAVEL WRAPPED — entrance animation
-   ------------------------------------------------------------
-   JS toggles .tw-animate on the slide that just became active
-   (removing + re-adding it to force the keyframes to restart, since
-   simply re-adding an already-present class wouldn't replay a CSS
-   animation). Direct children of .tw-slide-inner cascade in first,
-   then each slide's own repeating list (stat rows, place cards,
-   photos, map pins...) cascades in right after, for a layered,
-   Spotify-Wrapped-style reveal instead of everything just appearing.
-============================================================ */
 @keyframes tw-fade-up {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes tw-pop-in {
     from { opacity: 0; transform: scale(0.4); }
     to   { opacity: 1; transform: scale(1); }
 }
-
 @media (prefers-reduced-motion: reduce) {
     .tw-slide.tw-animate .tw-slide-inner > *,
     .tw-slide.tw-animate .tw-stat-row,
@@ -3398,30 +2779,20 @@ button.td-folder-pill:hover {
     .tw-slide.tw-animate .tw-map-leaflet {
         animation: none !important;
     }
-
     .tw-map-pin-marker {
         transition: none !important;
         opacity: 1 !important;
     }
 }
-
-/* No base opacity:0 rule here on purpose — the keyframe's own `from`
-   state is what starts each element hidden while .tw-animate plays. If
-   JS ever fails to add that class, slides fall back to simply showing
-   their content immediately instead of staying permanently blank. */
 .tw-slide.tw-animate .tw-slide-inner > * {
     animation: tw-fade-up 0.5s ease both;
 }
-
 .tw-slide-inner > *:nth-child(1) { animation-delay: 0.05s; }
 .tw-slide-inner > *:nth-child(2) { animation-delay: 0.12s; }
 .tw-slide-inner > *:nth-child(3) { animation-delay: 0.19s; }
 .tw-slide-inner > *:nth-child(4) { animation-delay: 0.26s; }
 .tw-slide-inner > *:nth-child(5) { animation-delay: 0.33s; }
 .tw-slide-inner > *:nth-child(6) { animation-delay: 0.4s; }
-
-/* Repeating list items get their own (faster, more tightly staggered)
-   cascade, layered on top of the parent container's own entrance. */
 .tw-slide.tw-animate .tw-stat-row,
 .tw-slide.tw-animate .tw-pick-row,
 .tw-slide.tw-animate .tw-mini-item,
@@ -3430,45 +2801,33 @@ button.td-folder-pill:hover {
 .tw-slide.tw-animate .tw-map-legend-item {
     animation: tw-fade-up 0.45s ease both;
 }
-
 .tw-slide.tw-animate .tw-collage-photo,
 .tw-slide.tw-animate .tw-scatter-photo,
 .tw-slide.tw-animate .tw-sticky-note {
     animation: tw-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-
 .tw-stat-row:nth-child(1), .tw-pick-row:nth-child(1), .tw-mini-item:nth-child(1), .tw-place-card:nth-child(1), .tw-liked-card:nth-child(1), .tw-map-legend-item:nth-child(1) { animation-delay: 0.3s; }
 .tw-stat-row:nth-child(2), .tw-pick-row:nth-child(2), .tw-mini-item:nth-child(2), .tw-place-card:nth-child(2), .tw-liked-card:nth-child(2), .tw-map-legend-item:nth-child(2) { animation-delay: 0.38s; }
 .tw-stat-row:nth-child(3), .tw-pick-row:nth-child(3), .tw-mini-item:nth-child(3), .tw-place-card:nth-child(3), .tw-liked-card:nth-child(3), .tw-map-legend-item:nth-child(3) { animation-delay: 0.46s; }
 .tw-stat-row:nth-child(4), .tw-pick-row:nth-child(4), .tw-mini-item:nth-child(4), .tw-place-card:nth-child(4), .tw-liked-card:nth-child(4), .tw-map-legend-item:nth-child(4) { animation-delay: 0.54s; }
 .tw-stat-row:nth-child(5), .tw-pick-row:nth-child(5), .tw-mini-item:nth-child(5) { animation-delay: 0.62s; }
-
 .tw-collage-photo:nth-child(1), .tw-scatter-photo:nth-child(1) { animation-delay: 0.3s; }
 .tw-collage-photo:nth-child(2), .tw-scatter-photo:nth-child(2) { animation-delay: 0.4s; }
 .tw-collage-photo:nth-child(3), .tw-scatter-photo:nth-child(3) { animation-delay: 0.5s; }
 .tw-collage-photo:nth-child(4) { animation-delay: 0.6s; }
 .tw-sticky-note { animation-delay: 0.65s; }
-
-/* The map card gets its own little scale-in on top of .tw-map-wrap's
-   (its parent's) own fade-up — safe to animate transform here, since
-   unlike the pin markers inside it, Leaflet never touches this
-   container's own transform. */
 @keyframes tw-map-card-in {
     from { opacity: 0; transform: scale(0.94); }
     to   { opacity: 1; transform: scale(1); }
 }
-
 .tw-slide.tw-animate .tw-map-leaflet {
     animation: tw-map-card-in 0.5s ease both;
     animation-delay: 0.25s;
 }
-
-/* ── Responsive ── */
 @media (max-width: 1100px) {
     .td-hero { padding: 48px 48px 32px; }
     .td-section { padding: 32px 48px 10px; }
 }
-
 @media (max-width: 900px) {
     .td-hero { flex-direction: column; align-items: stretch; }
     .td-hero-decor, .td-hero-polaroid { display: none; }
@@ -3476,7 +2835,6 @@ button.td-folder-pill:hover {
     .td-twocol { grid-template-columns: 1fr; gap: 32px; }
     .td-col-stack + .td-col-stack { margin-top: 40px; }
 }
-
 @media (max-width: 640px) {
     .td-hero { padding: 36px 20px 28px; }
     .td-section { padding: 28px 18px 8px; }
@@ -3486,25 +2844,19 @@ button.td-folder-pill:hover {
     .td-toolbar-timeline { flex-direction: column; align-items: stretch; }
     .td-sort-select { width: 100%; }
 }
-
-/* ── Add Photo: camera vs library choice ── */
 .td-photo-choice-overlay {
     display: none;
     position: fixed;
     inset: 0;
     background: rgba(20, 12, 6, 0.72);
-    /* Above .td-folder-backdrop (3150) — "Add Photo" is clickable from
-       inside an open folder, so this must render in front of it. */
     z-index: 3170;
     align-items: center;
     justify-content: center;
     padding: 20px;
 }
-
 .td-photo-choice-overlay.open {
     display: flex;
 }
-
 .td-photo-choice-card {
     position: relative;
     width: min(360px, 100%);
@@ -3514,7 +2866,6 @@ button.td-folder-pill:hover {
     text-align: center;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
 }
-
 .td-photo-choice-close {
     position: absolute;
     top: 14px;
@@ -3529,11 +2880,9 @@ button.td-folder-pill:hover {
     line-height: 1;
     cursor: pointer;
 }
-
 .td-photo-choice-close:hover {
     background: rgba(44, 26, 14, 0.15);
 }
-
 .td-photo-choice-title {
     font-family: Georgia, serif;
     font-weight: 700;
@@ -3541,13 +2890,11 @@ button.td-folder-pill:hover {
     color: #2c1a0e;
     margin: 0 0 22px;
 }
-
 .td-photo-choice-options {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
-
 .td-photo-choice-btn {
     display: flex;
     align-items: center;
@@ -3561,12 +2908,10 @@ button.td-folder-pill:hover {
     text-align: left;
     transition: border-color 0.15s, background 0.15s;
 }
-
 .td-photo-choice-btn:hover {
     border-color: #8a6a2f;
     background: rgba(138, 106, 47, 0.08);
 }
-
 .td-photo-choice-dot {
     flex: 0 0 auto;
     width: 32px;
@@ -3576,28 +2921,22 @@ button.td-folder-pill:hover {
     justify-content: center;
     color: #8a6a2f;
 }
-
 .td-photo-choice-dot svg { width: 100%; height: 100%; display: block; }
-
 .td-photo-choice-copy {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
-
 .td-photo-choice-btn-title {
     font-family: Georgia, serif;
     font-weight: 700;
     font-size: 15px;
     color: #2c1a0e;
 }
-
 .td-photo-choice-btn-sub {
     font-size: 12px;
     color: rgba(44, 26, 14, 0.55);
 }
-
-/* ── Live camera (Take Photo) ── */
 .td-camera-overlay {
     display: none;
     position: fixed;
@@ -3608,11 +2947,9 @@ button.td-folder-pill:hover {
     justify-content: center;
     padding: 16px;
 }
-
 .td-camera-overlay.open {
     display: flex;
 }
-
 .td-camera-card {
     position: relative;
     width: min(480px, 100%);
@@ -3622,11 +2959,9 @@ button.td-folder-pill:hover {
     text-align: center;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
 }
-
 .td-camera-video-wrap {
     position: relative;
 }
-
 .td-camera-video {
     width: 100%;
     max-height: 60vh;
@@ -3635,13 +2970,9 @@ button.td-folder-pill:hover {
     object-fit: cover;
     display: block;
 }
-
-/* Live viewfinder only (not the captured-photo review) — see the JS
-   comment on updateMirror() for why. */
 #tdCameraVideo.td-camera-mirrored {
     transform: scaleX(-1);
 }
-
 .td-camera-flip {
     position: absolute;
     top: 10px;
@@ -3659,35 +2990,24 @@ button.td-folder-pill:hover {
     justify-content: center;
     transition: background 0.15s;
 }
-
 .td-camera-flip svg { width: 100%; height: 100%; display: block; padding: 2px; }
-
 .td-camera-flip:hover {
     background: rgba(0, 0, 0, 0.65);
 }
-
 .td-camera-flip[hidden] {
     display: none;
 }
-
 .td-camera-error {
     font-size: 13px;
     color: #8b2e1a;
     margin: 12px 0 0;
 }
-
 .td-camera-actions {
     display: flex;
     justify-content: center;
     gap: 10px;
     margin-top: 16px;
 }
-
-/* `.td-camera-video`/`.td-camera-actions` both declare their own
-   `display`, which beats the browser's default `[hidden] { display:
-   none }` rule at equal specificity — same issue fixed above for the
-   visit modal. Without these, the capture preview and live video (or
-   their action rows) would show at the same time. */
 .td-camera-video[hidden],
 .td-camera-actions[hidden] {
     display: none;

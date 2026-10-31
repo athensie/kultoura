@@ -4,41 +4,16 @@ require_once '../config/dbmain.php';
 require_once '../config/analytics.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | SCHEMA — widen `location`
- |--------------------------------------------------------------------
- | Started as VARCHAR(100) back when admins typed a short manual
- | location. The address picker now fills this from a full Nominatim
- | result (often 100+ characters), so it needs the same width as
- | destination.address / restaurants.address. Guarded with a static
- | flag, same pattern as kt_people_ensure_schema() in adminpeople.php.
- */
 function kt_products_ensure_schema(mysqli $conn): void
 {
     static $done = false;
@@ -46,50 +21,20 @@ function kt_products_ensure_schema(mysqli $conn): void
     $done = true;
     $conn->query("ALTER TABLE products MODIFY location VARCHAR(255) NULL");
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
 kt_products_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | FOOD & DINING DATA — backed by the `products` and `restaurants` tables
- |--------------------------------------------------------------------
- | Every listing has a TYPE ("product" or "restaurant"), which decides
- | which table it's saved to and which fields apply:
- |
- |   products:    product_id, product_name, category, description,
- |                price, location, image, created_at
- |   restaurants: restaurant_id, restaurant_name, category, description,
- |                address, contact_number, opening_hours, image,
- |                google_map, created_at
- |
- | There is no approval workflow (no `status` column) and no map-based
- | lat/lng picker — listings go live as soon as they're added, and
- | location is a plain text field (or a pasted Google Maps link for
- | restaurants).
- */
-// Both listing types use a fixed category dropdown in the Add/Edit forms
-// (see assets/js/adminfoodanddining.js's toggleCategoryField) — these are
-// the only choices offered for a new entry.
 $categoriesByType = [
     'product'    => ['Local Food', 'Local Products', 'Crafts'],
     'restaurant' => ['Restaurant', 'Karinderya', 'Cafe', 'Fast Food', 'Bulalo & Lomi House', 'Bakery', 'Milk Tea & Beverage Shop', 'Dessert Shop'],
 ];
-
-// Which table/columns a given "type" writes to.
 $tableMap = [
     'product'    => ['table' => 'products',    'idCol' => 'product_id',    'nameCol' => 'product_name'],
     'restaurant' => ['table' => 'restaurants', 'idCol' => 'restaurant_id', 'nameCol' => 'restaurant_name'],
 ];
-
-// CSS class suffix for a category's colored badge (see the
-// .category-badge.food-cat-* rules in adminfoodanddining.css) — any
-// older row whose category predates the current preset list falls
-// back to the neutral "other" style instead of going unstyled.
 function kt_food_category_slug(string $category, array $categoriesByType): string
 {
     $known = array_merge(...array_values($categoriesByType));
@@ -100,99 +45,58 @@ function kt_food_category_slug(string $category, array $categoriesByType): strin
     $slug = trim(preg_replace('/[^a-z0-9]+/', '-', $slug), '-');
     return $slug;
 }
-
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
-
-/*
- |--------------------------------------------------------------------
- | IMAGE UPLOAD
- |--------------------------------------------------------------------
- | Saves the uploaded file into /assets/uploads/food/ and returns the
- | path to store in the DB (as an absolute site path, so it resolves
- | correctly whether it's displayed from /admin/, /pages/, or
- | /pages/tourism/). Returns null if no file was uploaded (so the
- | caller can fall back to keeping the existing image on edit).
- */
 function kt_handle_image_upload(string $fieldName = 'image_file'): ?string
 {
     if (empty($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
         return null;
     }
     if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
-        return null; // silently skip on upload error — existing/blank image is kept
+        return null;
     }
-
     $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     $originalName = $_FILES[$fieldName]['name'];
     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     if (!in_array($ext, $allowedExt, true)) {
         return null;
     }
-
-    // Confirm it's actually an image, not just a renamed file.
     if (@getimagesize($_FILES[$fieldName]['tmp_name']) === false) {
         return null;
     }
-
-    // Physical uploads folder is /kultoura/assets/uploads/food/ — confirmed
-    // from the actual project structure. restaurants.php's <img> src was the
-    // thing pointing at the wrong place (fixed separately), not this path.
     $uploadDir = __DIR__ . '/../assets/uploads/food/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
-
     $safeName = preg_replace('/[^a-z0-9_-]/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
     $filename = uniqid('food_', true) . '_' . $safeName . '.' . $ext;
-
     if (move_uploaded_file($_FILES[$fieldName]['tmp_name'], $uploadDir . $filename)) {
-        // Absolute site path, matching admindestinations.php's convention —
-        // this was returning a bare filename before, which the DB's one
-        // existing image row (an absolute path) didn't match, and broke
-        // any <img src> that used the stored value directly.
         return BASE_URL . '/assets/uploads/food/' . $filename;
     }
-
     return null;
 }
-
-/*
- |--------------------------------------------------------------------
- | WRITE — Add / Edit / Delete
- |--------------------------------------------------------------------
- | Classic POST -> redirect -> GET so a page refresh never re-submits
- | the form. Every write is routed to `products` or `restaurants`
- | based on the submitted listing_type.
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     csrf_verify();
     $formAction  = $_POST['form_action'];
     $listingType = $_POST['listing_type'] ?? '';
     $map         = $tableMap[$listingType] ?? null;
     $entityType  = $listingType === 'product' ? 'product' : 'restaurant';
-
     if (!$map) {
         $_SESSION['admin_flash'] = 'Please choose a listing type (Product or Restaurant).';
         header("Location: adminfoodanddining.php");
         exit;
     }
-
     $name     = trim($_POST['name'] ?? '');
     $category = trim($_POST['category'] ?? '');
     $entityAction = $formAction === 'add_listing' ? 'create' : ($formAction === 'edit_listing' ? 'update' : 'archive');
     $id = ($formAction === 'edit_listing' || $formAction === 'delete_listing') ? (int) ($_POST['id'] ?? 0) : null;
-
     if ($entityAction !== 'archive' && ($name === '' || $category === '')) {
         $_SESSION['admin_flash'] = 'Please enter a name and a category.';
         header("Location: adminfoodanddining.php");
         exit;
     }
-
     if ($entityAction === 'archive') {
         $data = ['archive_note' => $_POST['archive_note'] ?? ''];
-        // The delete form only posts the id/type — look the name up for
-        // the flash message and (if this becomes a request) its label.
         $nameCol = $map['nameCol'];
         $stmt = $conn->prepare("SELECT `$nameCol` AS name FROM `{$map['table']}` WHERE `{$map['idCol']}` = ?");
         $stmt->bind_param('i', $id);
@@ -227,7 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'image'           => $image,
         ];
     }
-
     if ($isSuperAdmin) {
         kt_apply_entity_change($conn, $entityType, $entityAction, $id, $data);
         $_SESSION['admin_flash'] = $entityAction === 'archive' ? 'Listing archived.' : ('"' . $name . '" was ' . ($entityAction === 'create' ? 'added' : 'updated') . '.');
@@ -236,18 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         kt_requests_create($conn, $entityType, $entityAction, $id, $data, $label, (int) $_SESSION['user_id'], $adminName);
         $_SESSION['admin_flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $label . '" was submitted for Super Admin approval.';
     }
-
     header("Location: adminfoodanddining.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | READ — union products + restaurants into one table view
- |--------------------------------------------------------------------
- | Columns that don't exist on one side of the union (e.g. price on
- | restaurants, contact_number on products) come through as NULL.
- */
 $foodListings = [];
 $sql = "
     SELECT product_id AS id, product_name AS name, category, description AS `desc`,
@@ -266,23 +160,14 @@ $sql = "
 if ($result = $conn->query($sql)) {
     $foodListings = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// Real per-place view counts (see config/analytics.php). product_id and
-// restaurant_id can collide (they're PKs on different tables), so these
-// stay as two separate buckets keyed by `type` — never merged.
 $foodViewsByType = [
     'product'    => analytics_item_views_bulk($conn, 'product'),
     'restaurant' => analytics_item_views_bulk($conn, 'restaurant'),
 ];
-
 $totalListings  = count($foodListings);
 $productCount   = count(array_filter($foodListings, fn($l) => $l['type'] === 'product'));
 $restaurantCount = count(array_filter($foodListings, fn($l) => $l['type'] === 'restaurant'));
 $addedThisMonth = count(array_filter($foodListings, fn($l) => date('Y-m', strtotime($l['created_at'])) === date('Y-m')));
-
-// Flat list of every category actually in use (for the table's filter dropdown) —
-// pulled from the real data, since older rows may still carry a category
-// outside the current preset lists below.
 $allCategories = array_values(array_unique(array_filter(array_column($foodListings, 'category'))));
 sort($allCategories);
 ?>
@@ -293,7 +178,6 @@ sort($allCategories);
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food &amp; Dining – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -302,14 +186,10 @@ sort($allCategories);
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
-    <!-- Leaflet + OpenStreetMap: free, no API key required, used for the map-based location picker -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <link rel="stylesheet" href="../assets/css/adminfoodanddining.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
@@ -320,18 +200,14 @@ sort($allCategories);
     </style>
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -342,7 +218,6 @@ sort($allCategories);
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -353,7 +228,6 @@ sort($allCategories);
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -372,14 +246,9 @@ sort($allCategories);
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">Content Management</div>
@@ -396,7 +265,6 @@ sort($allCategories);
                 <button class="btn-primary" onclick="openAddListing()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Listing</button>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -408,8 +276,6 @@ sort($allCategories);
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
-        <!-- KPI ROW -->
         <div class="mini-kpi-row animate">
             <div class="mini-kpi">
                 <div class="mini-kpi-num"><?php echo htmlspecialchars((string) $totalListings); ?></div>
@@ -428,8 +294,6 @@ sort($allCategories);
                 <div class="mini-kpi-label">Added This Month</div>
             </div>
         </div>
-
-        <!-- FILTER ROW -->
         <div class="filter-row animate">
             <input class="search-input" type="text" placeholder="Search listings…" oninput="filterListings()" id="searchInput">
             <select class="filter-select" onchange="filterListings()" id="typeFilter">
@@ -448,8 +312,6 @@ sort($allCategories);
                 <button type="button" class="view-btn" data-view="grid" onclick="setView('grid')" aria-label="Grid view"><i data-lucide="layout-grid" class="lucide"></i></button>
             </div>
         </div>
-
-        <!-- LISTINGS TABLE -->
         <div class="data-table-wrap animate">
             <?php if (empty($foodListings)): ?>
                 <div class="chart-empty">
@@ -498,8 +360,6 @@ sort($allCategories);
                 </table>
             <?php endif; ?>
         </div>
-
-        <!-- GRID VIEW -->
         <div class="grid-view-panel" id="foodListingsGrid">
             <?php if (empty($foodListings)): ?>
                 <div class="chart-empty grid-empty">
@@ -541,13 +401,9 @@ sort($allCategories);
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-
         <div class="pagination" id="foodListingsPagination"></div>
-
     </div>
 </div>
-
-<!-- ADD LISTING MODAL -->
 <div class="modal-overlay" id="addListingModal" onclick="closeModalOutside(event, 'addListingModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addListingModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -558,7 +414,6 @@ sort($allCategories);
             <?php echo csrf_field(); ?>
             <input type="hidden" name="latitude" id="addLatInput" value="">
             <input type="hidden" name="longitude" id="addLngInput" value="">
-
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Listing Type</label>
@@ -569,27 +424,20 @@ sort($allCategories);
                 </div>
                 <div class="form-group">
                     <label class="form-label">Category</label>
-                    <!-- Hidden value carrier only — toggleCategoryField() builds and
-                         shows the real <select> below, options set per listing type. -->
                     <input class="form-input" type="hidden" name="category" id="addCategoryInput">
                     <select class="filter-select" name="category" id="addCategorySelect" style="width:100%; padding:11px 14px; border-radius:8px;"></select>
                 </div>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Listing Name</label>
                 <input class="form-input" type="text" name="name" placeholder="e.g. Barako Brew Café">
             </div>
-
-            <!-- Product-only fields -->
             <div class="form-row add-product-fields">
                 <div class="form-group">
                     <label class="form-label">Price</label>
                     <input class="form-input" type="number" step="0.01" min="0" name="price" placeholder="e.g. 150.00">
                 </div>
             </div>
-
-            <!-- Restaurant-only fields -->
             <div class="add-restaurant-fields" style="display:none;">
                 <div class="form-row">
                     <div class="form-group">
@@ -606,12 +454,10 @@ sort($allCategories);
                     <input class="form-input" type="text" name="google_map" placeholder="Paste a Google Maps share link">
                 </div>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Image</label>
                 <input class="form-input" type="file" name="image_file" accept="image/*">
             </div>
-
             <div class="form-group">
                 <label class="form-label">Location</label>
                 <div class="kt-map-field">
@@ -621,7 +467,6 @@ sort($allCategories);
                 <div id="addMapCanvas" class="kt-map-canvas"></div>
                 <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot. This is what powers the "Navigate" button on the site.</div>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="desc" placeholder="Describe this listing…"></textarea>
@@ -633,8 +478,6 @@ sort($allCategories);
         </form>
     </div>
 </div>
-
-<!-- EDIT LISTING MODAL -->
 <div class="modal-overlay" id="editListingModal" onclick="closeModalOutside(event, 'editListingModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editListingModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -647,32 +490,22 @@ sort($allCategories);
             <input type="hidden" name="listing_type" id="editTypeInput" value="">
             <input type="hidden" name="latitude" id="editLatInput" value="">
             <input type="hidden" name="longitude" id="editLngInput" value="">
-            <!-- Holds the CURRENT image path. adminfoodanddining.js's openEditListing()
-                 already sets this element's .value = l.image — unchanged, still works,
-                 since this is just a hidden field now instead of a visible text one. -->
             <input type="hidden" name="existing_image" id="editImageInput" value="">
-
             <div class="form-group">
                 <label class="form-label">Listing Name</label>
                 <input class="form-input" type="text" name="name" id="editNameInput" placeholder="Listing name">
             </div>
             <div class="form-group">
                 <label class="form-label">Category</label>
-                <!-- Hidden value carrier only — toggleCategoryField() builds and
-                     shows the real <select> below, options set per listing type. -->
                 <input class="form-input" type="hidden" name="category" id="editCategoryInput">
                 <select class="filter-select" name="category" id="editCategorySelect" style="width:100%; padding:11px 14px; border-radius:8px;"></select>
             </div>
-
-            <!-- Product-only fields -->
             <div class="form-row edit-product-fields">
                 <div class="form-group">
                     <label class="form-label">Price</label>
                     <input class="form-input" type="number" step="0.01" min="0" name="price" id="editPriceInput" placeholder="e.g. 150.00">
                 </div>
             </div>
-
-            <!-- Restaurant-only fields -->
             <div class="edit-restaurant-fields" style="display:none;">
                 <div class="form-row">
                     <div class="form-group">
@@ -689,13 +522,11 @@ sort($allCategories);
                     <input class="form-input" type="text" name="google_map" id="editGoogleMapInput" placeholder="Google Maps link">
                 </div>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Replace Image</label>
                 <input class="form-input" type="file" name="image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current image.</p>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Location</label>
                 <div class="kt-map-field">
@@ -705,7 +536,6 @@ sort($allCategories);
                 <div id="editMapCanvas" class="kt-map-canvas"></div>
                 <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
-
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="desc" id="editDescInput" placeholder="Description…"></textarea>
@@ -717,8 +547,6 @@ sort($allCategories);
         </form>
     </div>
 </div>
-
-<!-- VIEW LISTING MODAL -->
 <div class="modal-overlay" id="viewListingModal" onclick="closeModalOutside(event, 'viewListingModal')">
     <div class="modal-card" style="max-width:480px;">
         <button class="modal-close" onclick="closeModal('viewListingModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -742,8 +570,6 @@ sort($allCategories);
         </div>
     </div>
 </div>
-
-<!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event, 'deleteModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div class="modal-title" id="deleteTitle">Archive Item?</div>
@@ -764,10 +590,7 @@ sort($allCategories);
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
     // Data for the JS file (../assets/js/adminfoodanddining.js) to read from.
     // Explicitly assigned onto `window` — a top-level `const`/`let` does NOT
@@ -792,6 +615,5 @@ sort($allCategories);
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
 <script src="../assets/js/adminfoodanddining.js?v=20261016"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
-
 </body>
 </html>

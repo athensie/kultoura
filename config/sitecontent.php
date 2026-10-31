@@ -1,19 +1,4 @@
 <?php
-/*
- |--------------------------------------------------------------------
- | SITE CONTENT — admin-editable photos & About sections
- |--------------------------------------------------------------------
- | Backs the "Site Content" admin page (admin/adminsitecontent.php)
- | and is read by index.php (home hero photos) and pages/about.php
- | (about hero photo + the History/Geography/etc. section rows).
- |
- | Include this AFTER config/dbmain.php (needs $conn). Safe to include
- | on every page load — table creation/seeding is idempotent.
- |
- |   site_photos     — named singleton image slots (home hero x2, about hero)
- |   about_sections  — admin-managed, reorderable list of About page rows
- */
-
 $conn->query(
     "CREATE TABLE IF NOT EXISTS site_photos (
         photo_key  VARCHAR(40) NOT NULL PRIMARY KEY,
@@ -21,7 +6,6 @@ $conn->query(
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
-
 $conn->query(
     "CREATE TABLE IF NOT EXISTS about_sections (
         section_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -33,10 +17,6 @@ $conn->query(
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
-
-// First-ever run: seed the 5 sections with the site's real, already-written
-// copy so turning this feature on doesn't change what visitors see until an
-// admin actually edits something.
 $seedCheck = $conn->query("SELECT COUNT(*) AS c FROM about_sections");
 if ($seedCheck && (int) $seedCheck->fetch_assoc()['c'] === 0) {
     $seedSections = [
@@ -78,14 +58,6 @@ if ($seedCheck && (int) $seedCheck->fetch_assoc()['c'] === 0) {
     }
     $seedStmt->close();
 }
-
-/*
- |--------------------------------------------------------------------
- | ICON PRESETS
- |--------------------------------------------------------------------
- | Admin picks one of these by key (a dropdown, not raw markup) so a
- | new About section always gets a safe, on-brand icon.
- */
 function sitecontent_icons(): array
 {
     return [
@@ -102,7 +74,6 @@ function sitecontent_icons(): array
         'compass'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>',
     ];
 }
-
 function sitecontent_icon_labels(): array
 {
     return [
@@ -119,15 +90,6 @@ function sitecontent_icon_labels(): array
         'compass'   => 'Compass',
     ];
 }
-
-/*
- |--------------------------------------------------------------------
- | READ HELPERS
- |--------------------------------------------------------------------
- */
-
-// Returns the raw stored path (e.g. "assets/uploads/sitecontent/xyz.jpg")
-// for a photo slot, or null if it hasn't been set by an admin yet.
 function sitecontent_get_photo(mysqli $conn, string $key): ?string
 {
     $stmt = $conn->prepare("SELECT image FROM site_photos WHERE photo_key = ? LIMIT 1");
@@ -137,9 +99,6 @@ function sitecontent_get_photo(mysqli $conn, string $key): ?string
     $stmt->close();
     return (!empty($row['image'])) ? $row['image'] : null;
 }
-
-// All About sections, admin-ordered, each with its 'paragraphs' array
-// pre-split so the template can just foreach() them into <p> tags.
 function sitecontent_get_about_sections(mysqli $conn, bool $includeArchived = false): array
 {
     $sections = [];

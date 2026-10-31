@@ -1,15 +1,8 @@
-// KulToura Admin — Page Widgets
-// pageWidgetsData / pageWidgetLabels are injected server-side by
-// adminpagewidgets.php via window.pageWidgetsData = <?php echo json_encode(...); ?>
-// (openModal/closeModal/closeModalOutside/showToast come from adminhomepage.js,
-// loaded on this page before this file).
-
 function openAddWidget(pageSlug, pageLabel) {
     document.getElementById('addWidgetPageSlug').value = pageSlug;
     document.getElementById('addWidgetPageLabel').textContent = pageLabel;
     openModal('addWidgetModal');
 }
-
 function openEditWidget(id) {
     const w = (window.pageWidgetsData || []).find((row) => Number(row.id) === id);
     if (!w) return;
@@ -27,7 +20,6 @@ function openEditWidget(id) {
     }
     openModal('editWidgetModal');
 }
-
 function confirmArchiveWidget(id, label) {
     document.getElementById('archiveIdInput').value = id;
     document.getElementById('archiveTitle').textContent = `Archive "${label}" widget?`;

@@ -4,28 +4,7 @@ require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/analytics.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
-
-/*
- |--------------------------------------------------------------------
- | BASE URL
- |--------------------------------------------------------------------
- | This page lives one folder deep (/kultoura/admin/admineventandfiesta.php),
- | so a plain header("Location: index.php") would resolve relative to
- | /admin/ and break. Anchoring every redirect to a fixed base path
- | avoids that, regardless of which folder a script is called from.
- |
- | Change this if your project folder name/path is different.
- */
 define('BASE_URL', '/kultoura');
-
-/*
- |--------------------------------------------------------------------
- | IMAGE UPLOAD
- |--------------------------------------------------------------------
- | Same validation/storage pattern as adminfoodanddining.php's
- | kt_handle_image_upload(). Returns null if no file was uploaded, so
- | the caller can fall back to keeping the existing image on edit.
- */
 function kt_fiesta_handle_image_upload(string $fieldName = 'image_file'): ?string
 {
     if (empty($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
@@ -34,7 +13,6 @@ function kt_fiesta_handle_image_upload(string $fieldName = 'image_file'): ?strin
     if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
-
     $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     $originalName = $_FILES[$fieldName]['name'];
     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
@@ -44,52 +22,26 @@ function kt_fiesta_handle_image_upload(string $fieldName = 'image_file'): ?strin
     if (@getimagesize($_FILES[$fieldName]['tmp_name']) === false) {
         return null;
     }
-
     $uploadDir = __DIR__ . '/../assets/uploads/fiestas/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
-
     $safeName = preg_replace('/[^a-z0-9_-]/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
     $filename = uniqid('fiesta_', true) . '_' . $safeName . '.' . $ext;
-
     if (move_uploaded_file($_FILES[$fieldName]['tmp_name'], $uploadDir . $filename)) {
         return BASE_URL . '/assets/uploads/fiestas/' . $filename;
     }
-
     return null;
 }
-
-/*
- |--------------------------------------------------------------------
- | ACCESS CONTROL
- |--------------------------------------------------------------------
- | Only logged-in users with the "admin" or "super admin" role may
- | view this page. Anyone else (including guests) is bounced to
- | the real site root index.php — mirrors admindashboard.php.
- */
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
 $role = strtolower($_SESSION['role'] ?? '');
-
 if (!in_array($role, ['admin', 'super admin'], true)) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
 }
-
-/*
- |--------------------------------------------------------------------
- | SCHEMA — widen `location`
- |--------------------------------------------------------------------
- | Started as VARCHAR(100) back when admins typed a short manual
- | location. The address picker now fills this from a full Nominatim
- | result (often 100+ characters), so it needs the same width as
- | destination.address / restaurants.address. Guarded with a static
- | flag, same pattern as kt_people_ensure_schema().
- */
 function kt_fiestas_ensure_schema(mysqli $conn): void
 {
     static $done = false;
@@ -97,40 +49,18 @@ function kt_fiestas_ensure_schema(mysqli $conn): void
     $done = true;
     $conn->query("ALTER TABLE fiestas MODIFY location VARCHAR(255) NOT NULL");
 }
-
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 kt_requests_ensure_schema($conn);
 kt_fiestas_ensure_schema($conn);
 $pendingRequestCount = kt_requests_pending_count($conn);
-
-/*
- |--------------------------------------------------------------------
- | EVENTS & FIESTA — DB ACTIONS (add / edit / delete)
- |--------------------------------------------------------------------
- | Handled inline (no separate *_actions.php) so this stays a single
- | file. `fiestas` table columns: fiesta_id, fiesta_name,
- | celebration_date, location, description, image, created_at, plus
- | `type` ENUM('Fiesta','Event') and `latitude`/`longitude` — run these
- | once if you haven't yet:
- |
- |   ALTER TABLE fiestas
- |     ADD COLUMN type ENUM('Fiesta','Event') NOT NULL DEFAULT 'Fiesta'
- |     AFTER fiesta_name;
- |
- |   ALTER TABLE fiestas
- |     ADD COLUMN latitude DECIMAL(10,7) NULL AFTER location,
- |     ADD COLUMN longitude DECIMAL(10,7) NULL AFTER latitude;
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $action = $_POST['action'] ?? '';
-
     if ($action === 'add' || $action === 'edit' || $action === 'delete') {
         $id = (int) ($_POST['fiesta_id'] ?? 0);
         $entityAction = $action === 'add' ? 'create' : ($action === 'edit' ? 'update' : 'archive');
-
         if ($entityAction === 'archive') {
             $data = ['archive_note' => $_POST['archive_note'] ?? ''];
             $stmt = $conn->prepare("SELECT fiesta_name AS name FROM fiestas WHERE fiesta_id = ?");
@@ -156,14 +86,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description'      => trim($_POST['desc'] ?? ''),
                 'image'            => $image ?: null,
             ];
-
             if ($name === '') {
                 $_SESSION['flash'] = $entityAction === 'create' ? 'Event name is required.' : 'Could not update — event name is required.';
                 header('Location: admineventandfiesta.php');
                 exit;
             }
         }
-
         if ($isSuperAdmin) {
             kt_apply_entity_change($conn, 'fiesta', $entityAction, $id > 0 ? $id : null, $data);
             $_SESSION['flash'] = $entityAction === 'archive' ? '"' . $name . '" archived.' : ('"' . $name . '" ' . ($entityAction === 'create' ? 'added' : 'updated') . '.');
@@ -171,34 +99,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             kt_requests_create($conn, 'fiesta', $entityAction, $id > 0 ? $id : null, $data, $name, (int) $_SESSION['user_id'], $adminName);
             $_SESSION['flash'] = 'Your request to ' . ($entityAction === 'archive' ? 'archive' : $entityAction) . ' "' . $name . '" was submitted for Super Admin approval.';
         }
-
         if (!empty($photoAttemptFailed)) {
             $_SESSION['flash'] .= ' Note: the photo didn\'t upload (file too large or not a supported image type) — everything else was saved.';
         }
-
         header('Location: admineventandfiesta.php');
         exit;
     }
 }
-
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
-
-/*
- |--------------------------------------------------------------------
- | EVENTS & FIESTA — FETCH
- |--------------------------------------------------------------------
- */
 $eventTypes = ['Fiesta', 'Event'];
-
 $events = [];
 if ($result = $conn->query("SELECT * FROM fiestas WHERE status = 'active' ORDER BY celebration_date ASC")) {
     $events = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// Real per-place view counts (see config/analytics.php).
 $eventViews = analytics_item_views_bulk($conn, 'fiesta');
-
 $totalEvents   = count($events);
 $fiestaCount   = count(array_filter($events, fn($e) => $e['type'] === 'Fiesta'));
 $eventCount    = count(array_filter($events, fn($e) => $e['type'] === 'Event'));
@@ -214,7 +129,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Events &amp; Fiesta – KULTOURA Admin</title>
-
     <script>
         (function () {
             var saved = localStorage.getItem('kt-admin-theme');
@@ -223,33 +137,25 @@ $upcomingCount = count(array_filter($events, function ($e) {
             }
         })();
     </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-
-    <!-- Leaflet (OpenStreetMap) — free, no API key, used for the location picker -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
-
     <link rel="stylesheet" href="../assets/css/admineventandfiesta.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
-
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
     <div class="sidebar-logo">KulToura</div>
     <div class="sidebar-tagline">Malvar, Batangas</div>
-
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
     </ul>
-
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
@@ -260,7 +166,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
         <li><a href="<?php echo BASE_URL; ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
     </ul>
-
     <div class="sidebar-section">Management</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
@@ -271,7 +176,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-
     <div class="sidebar-footer">
         <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
             <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
@@ -290,14 +194,9 @@ $upcomingCount = count(array_filter($events, function ($e) {
         </a>
     </div>
 </aside>
-
 <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu" class="lucide"></i></button>
-
-<!-- MAIN CONTENT -->
 <div class="main-content">
     <div class="dash-wrapper">
-
-        <!-- PAGE HEADER -->
         <div class="page-header animate">
             <div>
                 <div class="section-label">Content Management</div>
@@ -314,7 +213,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <button class="btn-primary" onclick="openAddEvent()"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> New Event</button>
             </div>
         </div>
-
         <?php if (!$isSuperAdmin): ?>
         <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#C8A96E);flex-shrink:0;"></i>
@@ -326,8 +224,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#C8A96E);font-weight:600;text-decoration:none;">Review →</a>
         </div>
         <?php endif; ?>
-
-        <!-- KPI ROW -->
         <div class="mini-kpi-row animate">
             <div class="mini-kpi">
                 <div class="mini-kpi-num"><?php echo htmlspecialchars((string) $totalEvents); ?></div>
@@ -346,8 +242,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <div class="mini-kpi-label">Upcoming This Month</div>
             </div>
         </div>
-
-        <!-- FILTER ROW -->
         <div class="filter-row animate">
             <input class="search-input" type="text" placeholder="Search events…" oninput="filterEvents(this.value)">
             <select class="filter-select" onchange="filterEventsByType(this.value)">
@@ -361,8 +255,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <button type="button" class="view-btn" data-view="grid" onclick="setView('grid')" aria-label="Grid view"><i data-lucide="layout-grid" class="lucide"></i></button>
             </div>
         </div>
-
-        <!-- EVENTS TABLE -->
         <div class="data-table-wrap animate">
             <?php if (empty($events)): ?>
                 <div class="chart-empty">
@@ -403,8 +295,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 </table>
             <?php endif; ?>
         </div>
-
-        <!-- GRID VIEW -->
         <div class="grid-view-panel" id="eventsGrid">
             <?php if (empty($events)): ?>
                 <div class="chart-empty grid-empty">
@@ -439,13 +329,9 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-
         <div class="pagination" id="eventsPagination"></div>
-
     </div>
 </div>
-
-<!-- ADD EVENT MODAL -->
 <div class="modal-overlay" id="addEventModal" onclick="closeModalOutside(event, 'addEventModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('addEventModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -498,8 +384,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
         </form>
     </div>
 </div>
-
-<!-- EDIT EVENT MODAL -->
 <div class="modal-overlay" id="editEventModal" onclick="closeModalOutside(event, 'editEventModal')">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal('editEventModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -555,8 +439,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
         </form>
     </div>
 </div>
-
-<!-- VIEW EVENT MODAL -->
 <div class="modal-overlay" id="viewEventModal" onclick="closeModalOutside(event, 'viewEventModal')">
     <div class="modal-card" style="max-width:480px;">
         <button class="modal-close" onclick="closeModal('viewEventModal')"><i data-lucide="x" class="lucide"></i></button>
@@ -576,8 +458,6 @@ $upcomingCount = count(array_filter($events, function ($e) {
         </div>
     </div>
 </div>
-
-<!-- DELETE CONFIRM MODAL -->
 <div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event, 'deleteModal')">
     <div class="modal-card" style="max-width:380px; text-align:center;">
         <div class="modal-title" id="deleteTitle">Archive Item?</div>
@@ -597,10 +477,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
         </form>
     </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
     // A top-level const in a classic script does NOT become window.eventsData
     // — it stays in the script's own lexical scope, invisible to functions
@@ -631,6 +508,5 @@ $upcomingCount = count(array_filter($events, function ($e) {
     });
     <?php endif; ?>
 </script>
-
 </body>
 </html>

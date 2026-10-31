@@ -1,9 +1,8 @@
 <?php
 require_once __DIR__ . '/config/session_boot.php';
 include 'config/dbmain.php';
-require_once __DIR__ . '/config/mailer.php';      // <-- use the real filename of your mailer file
+require_once __DIR__ . '/config/mailer.php';
 require_once __DIR__ . '/config/newsletter.php';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'newsletter_subscribe') {
     header('Content-Type: application/json');
     echo json_encode(kt_newsletter_subscribe($conn, (string) ($_POST['email'] ?? '')));
@@ -25,19 +24,9 @@ include 'config/announcements.php';
 require_once __DIR__ . '/config/homepage_content.php';
 kt_homepage_content_ensure_schema($conn);
 analytics_track($conn, 'home');
-
 $siteName = "KULTOURA";
-
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-
-/* ============================================================
-   HOMEPAGE PREVIEWS
-   ------------------------------------------------------------
-   Real data for the hero photo collage, the "For You" preview
-   carousel, and the About Malvar photo — same image-subfolder
-   convention used by pages/traveldiary.php and pages/foryou.php.
-============================================================ */
 $homeImageSubfolder = [
     'product'       => 'products',
     'restaurant'    => 'food',
@@ -56,9 +45,6 @@ function home_img(string $category, ?string $raw, array $subfolders): string
     if (empty($raw)) return '';
     return 'assets/uploads/' . ($subfolders[$category] ?? $category) . '/' . basename($raw);
 }
-
-// Badge colors reused from the Travel Diary category palette, so the
-// same category reads the same color everywhere on the site.
 $homeBadgeColors = [
     'product'       => '#a9843f',
     'restaurant'    => '#8b2e1a',
@@ -72,9 +58,6 @@ $homeBadgeColors = [
     'fiesta'        => '#a8433a',
     'person'        => '#4a5a78',
 ];
-
-// Up to 3 real destination photos: first 2 for the hero collage, the
-// 3rd (or a repeat of the 1st if there's only one) for the About photo.
 $homeDestPhotos = [];
 if ($result = $conn->query("SELECT destination_name, category, image FROM destination WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY destination_id ASC LIMIT 3")) {
     while ($row = $result->fetch_assoc()) {
@@ -86,22 +69,11 @@ if ($result = $conn->query("SELECT destination_name, category, image FROM destin
 }
 $heroPhotos = array_slice($homeDestPhotos, 0, 2);
 $aboutPhoto = $homeDestPhotos[2] ?? ($homeDestPhotos[0] ?? null);
-
-// Admin-curated hero photos (Admin → Site Content) take priority over the
-// automatic destination-photo fallback above, slot by slot.
 $adminHero1 = sitecontent_get_photo($conn, 'home_hero_1');
 $adminHero2 = sitecontent_get_photo($conn, 'home_hero_2');
 if ($adminHero1) $heroPhotos[0] = ['name' => 'Malvar, Batangas', 'image' => $adminHero1];
 if ($adminHero2) $heroPhotos[1] = ['name' => 'Malvar, Batangas', 'image' => $adminHero2];
-
-// Full-bleed background photo behind the hero (Admin → Site Content →
-// "Homepage — Hero Background Photo"). Falls back to the green gradient
-// when no photo has been set — same pattern as about.php's a-hero.
 $heroBgPhoto = sitecontent_get_photo($conn, 'home_hero_bg');
-
-// A small real-data sample for the "For You" preview carousel — one
-// destination, one fiesta, one restaurant, so the teaser is genuine
-// catalog content rather than placeholder copy.
 $forYouPreview = [];
 if ($result = $conn->query("SELECT destination_name AS name, category, image, description FROM destination WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY destination_id ASC LIMIT 1")) {
     if ($row = $result->fetch_assoc()) {
@@ -142,15 +114,6 @@ if ($result = $conn->query("SELECT restaurant_name AS name, image, description F
         ];
     }
 }
-
-// ── News (mirrors admin/adminannouncements.php) ──
-// Only announcements the admin has actually published show up here —
-// drafts and not-yet-due scheduled posts never reach this query.
-// config/announcements.php (included above) already promotes any
-// scheduled post whose time has passed, so 'live' is enough here.
-// Most recent item runs as a large featured banner, the rest as a grid
-// below it — makes the section read as a real news hub rather than 3
-// identical small cards.
 $homeNews = [];
 $homeNewsTypeMeta = announcements_type_meta();
 if ($result = $conn->query(
@@ -162,8 +125,6 @@ if ($result = $conn->query(
 )) {
     $homeNews = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// ── Discover What's Next — upcoming fiestas/events (mirrors pages/tourism/fiestas.php) ──
 $homeUpcoming = [];
 if ($result = $conn->query(
     "SELECT fiesta_id, fiesta_name, type, celebration_date, location, image
@@ -185,8 +146,6 @@ if ($result = $conn->query(
         ];
     }
 }
-
-// Add upcoming services from the admin-published one-month church schedules.
 $homeNow = new DateTimeImmutable();
 $homeChurches = $conn->query(
     "SELECT destination_name, address, image, schedule_month, schedule_text
@@ -223,19 +182,27 @@ foreach ($homeUpcoming as &$upcomingItem) {
 unset($upcomingItem);
 usort($homeUpcoming, fn($a, $b) => $a['sort'] <=> $b['sort']);
 $homeUpcoming = array_slice($homeUpcoming, 0, 10);
-
-// ── Our Partners (mirrors admin/adminhomepage.php) ──
+$homeCalendarMonth = new DateTimeImmutable('first day of this month');
+$homeCalendarMonthKey = $homeCalendarMonth->format('Y-m');
+$homeCalendarOffset = (int) $homeCalendarMonth->format('w');
+$homeCalendarDays = (int) $homeCalendarMonth->format('t');
+$homeCalendarToday = (new DateTimeImmutable())->format('Y-m-d');
+$homeCalendarScheduledDays = [];
+foreach ($homeUpcoming as $scheduleItem) {
+    if (substr((string) $scheduleItem['date'], 0, 7) === $homeCalendarMonthKey) {
+        $day = (int) date('j', strtotime($scheduleItem['date']));
+        $homeCalendarScheduledDays[$day][] = $scheduleItem['title'];
+    }
+}
+$homeSchedulePreview = array_slice($homeUpcoming, 0, 3);
 $homePartners = [];
 if ($result = $conn->query("SELECT name, logo, website_url, description FROM partners WHERE status = 'live' ORDER BY created_at DESC")) {
     $homePartners = $result->fetch_all(MYSQLI_ASSOC);
 }
-
-// ── Event Gallery (mirrors admin/adminhomepage.php) ──
 $homeEventGallery = [];
 if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE status = 'live' ORDER BY created_at DESC LIMIT 18")) {
     $homeEventGallery = $result->fetch_all(MYSQLI_ASSOC);
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -248,27 +215,20 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     <link rel="stylesheet" href="assets/css/search.css">
 </head>
 <body>
-
 <div class="hero<?php echo $heroBgPhoto ? '' : ' hero-no-bg-photo'; ?>">
-
     <?php if ($heroBgPhoto): ?>
         <img class="hero-bg-photo" src="<?php echo htmlspecialchars($heroBgPhoto); ?>" alt="">
         <div class="hero-bg-scrim"></div>
     <?php endif; ?>
-
-    <!-- Ambient orbs -->
-    <div class="orb orb-1"></div>
+<div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
-
     <header class="navbar">
-
         <?php if ($isLoggedIn): ?>
             <div class="user-greeting-left user-greeting-name"><span class="navbar-logo-icon navbar-logo-icon-salakot"><img src="assets/images/salakot.png?v=20261008" alt=""></span><span class="navbar-greeting-text">Mabuhay, <?php echo $userName; ?></span></div>
         <?php else: ?>
             <div class="user-greeting-left navbar-brand-logo"><img src="assets/images/kultoura.png" alt="KulToura"></div>
         <?php endif; ?>
-
         <nav class="nav-links">
             <a href="index.php" class="nav-item nav-active"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span>HOME</span></a>
             <div class="dropdown">
@@ -293,7 +253,6 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
                     </div>
                 </div>
             </div>
-
             <a href="pages/tourism/restaurants.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg></span><span>RESTAURANTS</span></a>
             <a href="pages/tourism/accommodation.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M22 12v8"/><path d="M2 12h20"/><path d="M2 8h6a2 2 0 0 1 2 2v2"/><path d="M22 8h-6a2 2 0 0 0-2 2v2"/></svg></span><span>ACCOMMODATION</span></a>
             <a href="pages/tourism/banks.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M2 10h20L12 4z"/><path d="M8 14v4M12 14v4M16 14v4"/></svg></span><span>BANKS</span></a>
@@ -312,9 +271,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
             </div>
             <?php if ($isLoggedIn): ?><a href="auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span><span>SIGN OUT</span></a><?php else: ?><a href="auth/login.php" class="nav-item nav-signin-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4"/><path d="M8 7l-5 5 5 5"/><path d="M3 12h12"/></svg></span><span>SIGN IN</span></a><?php endif; ?>
         </nav>
-
-
-            <div class="navbar-search" data-api="pages/search_api.php" data-results="pages/search.php">
+<div class="navbar-search" data-api="pages/search_api.php" data-results="pages/search.php">
         <button type="button" class="navbar-search-toggle" aria-label="Search" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
@@ -326,19 +283,13 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
 <button type="button" class="navbar-hamburger" aria-label="Toggle menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
-
     </header>
-
     <main class="hero-content hero-content-split">
-
         <div class="hero-text-col">
-
             <h1 class="brand-title brand-title-logo">
                 <img src="assets/images/kultoura.png" alt="KulToura — Malvar, Batangas · Cultural Tourism">
             </h1>
-
             <p class="hero-mobile-tagline">Discover the culture, people, and local experiences of Malvar, Batangas.</p>
-
             <div class="cta-buttons">
                 <button class="btn btn-filled" id="exploreBtn">
                     EXPLORE CULTURE
@@ -347,104 +298,96 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
                     GET RECOMMENDATIONS
                 </button>
             </div>
-
         </div>
-
-
-
-    </main>
-
+</main>
     <button type="button" class="scroll-hint" id="scrollHintBtn" aria-label="Scroll to explore">
         <span class="scroll-line"></span>
         <span class="scroll-hint-label-desktop">DISCOVER</span>
         <span class="scroll-hint-label-mobile">Scroll</span>
         <span class="scroll-hint-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </button>
-
     <span class="hero-corner-leaf hero-corner-leaf-left" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
     <span class="hero-corner-leaf hero-corner-leaf-right" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14z"/><path d="M5 19c2-4 5-7 9-9"/></svg></span>
-
     <div class="torn-edge" aria-hidden="true">
         <svg viewBox="0 0 1440 48" preserveAspectRatio="none">
             <path d="M0,24 Q60,4 120,24 Q180,44 240,24 Q300,4 360,24 Q420,44 480,24 Q540,4 600,24 Q660,44 720,24 Q780,4 840,24 Q900,44 960,24 Q1020,4 1080,24 Q1140,44 1200,24 Q1260,4 1320,24 Q1380,44 1440,24 L1440,48 L0,48 Z" fill="#f0ebd8"/>
         </svg>
     </div>
-
 </div>
-
-<!-- ── For You Preview (mirrors pages/foryou.php) ── -->
 <section class="home-foryou">
     <div class="home-foryou-top reveal">
         <div class="home-foryou-intro">
             <p class="home-eyebrow home-eyebrow-rust">CURATED FOR YOU</p>
-            <h2 class="home-heading">For You</h2>
-            <p class="home-foryou-desc">Discover handpicked experiences and places based on your interests.</p>
-            <a href="pages/foryou.php" class="home-btn home-btn-dark">Explore Now →</a>
+            <h2 class="home-heading home-heading-barabara">For You</h2>
         </div>
     </div>
-
     <?php if (!empty($forYouPreview)): ?>
-    <div class="home-pills" id="homePills">
-        <button type="button" class="home-pill is-active" data-category="all">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
-            All
-        </button>
-        <button type="button" class="home-pill" data-category="product">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
-            Products
-        </button>
-        <button type="button" class="home-pill" data-category="restaurant">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a2 2 0 0 0 2 2v10"/><path d="M5 3v6M9 3v6"/><path d="M17 3c-1.5 0-3 1.5-3 4v4c0 1 1 2 2 2v8"/></svg>
-            Restaurants
-        </button>
-        <button type="button" class="home-pill" data-category="destination">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L9 7l4 6"/><path d="M11 18l6-10 4 10"/></svg>
-            Destinations
-        </button>
-        <button type="button" class="home-pill" data-category="fiesta">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-            Fiestas
-        </button>
-        <button type="button" class="home-pill" data-category="person">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
-            People
-        </button>
-    </div>
-
-    <div class="home-carousel-wrap reveal">
-        <button type="button" class="home-carousel-nav home-carousel-prev" id="homeCarouselPrev" aria-label="Previous">&#8249;</button>
-        <div class="home-carousel" id="homeCarousel">
+    <div class="home-instagram-grid reveal">
             <?php foreach ($forYouPreview as $item): ?>
-            <a href="<?php echo htmlspecialchars($item['link']); ?>" class="home-card" data-category="<?php echo htmlspecialchars($item['itemType']); ?>">
-                <div class="home-card-photo">
-                    <span class="home-card-badge" style="background:<?php echo htmlspecialchars($item['badgeColor']); ?>"><?php echo htmlspecialchars(strtoupper($item['badge'])); ?></span>
-                    <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="" loading="lazy">
+            <article class="home-instagram-post">
+                <div class="home-instagram-post-head">
+                    <span class="home-instagram-avatar" aria-hidden="true">K</span>
+                    <div class="home-instagram-account"><strong>kultoura</strong><span><?php echo htmlspecialchars($item['badge']); ?> · Malvar, Batangas</span></div>
+                    <span class="home-instagram-more" aria-hidden="true">•••</span>
                 </div>
-                <h3 class="home-card-title"><?php echo htmlspecialchars($item['name']); ?></h3>
-                <p class="home-card-desc"><?php echo htmlspecialchars(mb_strimwidth(trim((string) $item['desc']), 0, 90, '…')); ?></p>
-                <span class="home-card-link">View More →</span>
-            </a>
+                <a href="<?php echo htmlspecialchars($item['link']); ?>" class="home-instagram-media" aria-label="Explore <?php echo htmlspecialchars($item['name']); ?>">
+                    <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" loading="lazy">
+                    <span class="home-instagram-category" style="--post-accent:<?php echo htmlspecialchars($item['badgeColor']); ?>"><?php echo htmlspecialchars(strtoupper($item['badge'])); ?></span>
+                </a>
+                <div class="home-instagram-caption">
+                    <p><strong><?php echo htmlspecialchars($item['name']); ?></strong> <?php echo htmlspecialchars(mb_strimwidth(trim((string) $item['desc']), 0, 125, '…')); ?></p>
+                    <a href="<?php echo htmlspecialchars($item['link']); ?>">Explore this place</a>
+                </div>
+            </article>
             <?php endforeach; ?>
-        </div>
-        <button type="button" class="home-carousel-nav home-carousel-next" id="homeCarouselNext" aria-label="Next">&#8250;</button>
     </div>
-    <p class="home-no-results" id="homeNoResults" hidden>Nothing in that category yet — check the full For You page for more.</p>
     <?php endif; ?>
 </section>
-
 <?php if (!empty($homeUpcoming)): ?>
-<!-- ── Discover What's Next — upcoming fiestas/events (mirrors pages/tourism/fiestas.php) ── -->
 <section class="home-upcoming">
     <div class="home-upcoming-top reveal">
         <div>
             <p class="home-eyebrow home-eyebrow-rust">UPCOMING</p>
-            <h2 class="home-heading">Discover What's Next</h2>
+            <h2 class="home-heading home-heading-barabara">Discover What's Next</h2>
             <p class="home-upcoming-desc">See upcoming fiestas and Mass schedules around Malvar.</p>
         </div>
-        <div class="home-upcoming-nav-group">
-            <button type="button" class="home-carousel-nav" id="homeUpcomingPrev" aria-label="Previous">&#8249;</button>
-            <button type="button" class="home-carousel-nav" id="homeUpcomingNext" aria-label="Next">&#8250;</button>
-        </div>
+        <aside class="home-schedule-panel" aria-label="Upcoming schedule">
+            <div class="home-schedule-heading">
+                <span class="home-schedule-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+                <div><strong>Schedule</strong><span><?php echo htmlspecialchars($homeCalendarMonth->format('F Y')); ?></span></div>
+            </div>
+            <div class="home-calendar-grid" role="grid" aria-label="<?php echo htmlspecialchars($homeCalendarMonth->format('F Y')); ?>">
+                <?php foreach (['S', 'M', 'T', 'W', 'T', 'F', 'S'] as $weekday): ?><span class="home-calendar-weekday" role="columnheader"><?php echo $weekday; ?></span><?php endforeach; ?>
+                <?php
+                    $calendarCellCount = (int) (ceil(($homeCalendarOffset + $homeCalendarDays) / 7) * 7);
+                    for ($cell = 0; $cell < $calendarCellCount; $cell++):
+                        $day = $cell - $homeCalendarOffset + 1;
+                        if ($day < 1 || $day > $homeCalendarDays):
+                            echo '<span class="home-calendar-day is-empty" role="gridcell"></span>';
+                            continue;
+                        endif;
+                        $dateIso = $homeCalendarMonth->format('Y-m-') . str_pad((string) $day, 2, '0', STR_PAD_LEFT);
+                        $scheduledTitles = $homeCalendarScheduledDays[$day] ?? [];
+                        $dayClasses = ['home-calendar-day'];
+                        if ($dateIso === $homeCalendarToday) $dayClasses[] = 'is-today';
+                        if ($scheduledTitles) $dayClasses[] = 'has-schedule';
+                        $dayLabel = $homeCalendarMonth->format('F') . ' ' . $day;
+                        if ($scheduledTitles) $dayLabel .= ': ' . implode(', ', $scheduledTitles);
+                ?>
+                    <span class="<?php echo implode(' ', $dayClasses); ?>" role="gridcell" aria-label="<?php echo htmlspecialchars($dayLabel); ?>">
+                        <?php echo $day; ?><?php if ($scheduledTitles): ?><i aria-hidden="true"></i><?php endif; ?>
+                    </span>
+                <?php endfor; ?>
+            </div>
+            <div class="home-schedule-list">
+                <?php foreach ($homeSchedulePreview as $scheduleItem): $scheduleDate = new DateTimeImmutable($scheduleItem['date']); ?>
+                    <a class="home-schedule-item" href="<?php echo htmlspecialchars($scheduleItem['href']); ?>">
+                        <time datetime="<?php echo htmlspecialchars($scheduleDate->format('Y-m-d')); ?>"><strong><?php echo htmlspecialchars($scheduleDate->format('d')); ?></strong><span><?php echo htmlspecialchars(strtoupper($scheduleDate->format('M'))); ?></span></time>
+                        <span class="home-schedule-item-copy"><strong><?php echo htmlspecialchars($scheduleItem['title']); ?></strong><small><?php echo htmlspecialchars($scheduleItem['time'] !== '' ? $scheduleItem['time'] : $scheduleItem['type']); ?></small></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </aside>
     </div>
     <div class="home-upcoming-carousel reveal" id="homeUpcomingCarousel">
         <?php foreach ($homeUpcoming as $u):
@@ -476,15 +419,12 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
 </section>
 <?php endif; ?>
-
 <?php if (!empty($homeNews)): ?>
-<!-- ── News & Announcements (mirrors admin/adminannouncements.php) ── -->
 <section class="home-news">
     <div class="home-news-top reveal">
         <p class="home-eyebrow home-eyebrow-gold">LATEST NEWS</p>
-        <h2 class="home-heading">News &amp; Announcements</h2>
+        <h2 class="home-heading home-heading-barabara">News &amp; Announcements</h2>
     </div>
-
     <?php
         $homeNewsFeatured = $homeNews[0];
         $homeNewsRest = array_slice($homeNews, 1);
@@ -507,7 +447,6 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
             <p class="home-news-excerpt"><?php echo htmlspecialchars(mb_strimwidth(trim((string) $homeNewsFeatured['body']), 0, 220, '…')); ?></p>
         </div>
     </div>
-
     <?php if (!empty($homeNewsRest)): ?>
     <div class="home-news-grid reveal">
         <?php foreach ($homeNewsRest as $n): ?>
@@ -534,14 +473,11 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     <?php endif; ?>
 </section>
 <?php endif; ?>
-
-<!-- ── About Malvar Preview (mirrors pages/about.php) ── -->
 <section class="home-about">
     <div class="home-about-text reveal">
         <p class="home-eyebrow home-eyebrow-gold">ABOUT MALVAR</p>
-        <h2 class="home-heading home-heading-light">About Malvar</h2>
+        <h2 class="home-heading home-heading-light home-heading-barabara">About Malvar</h2>
         <p class="home-about-desc">A town of farmers and factories, waterfalls and church bells — this is the story of Malvar.</p>
-
         <div class="home-facts">
             <div class="home-fact">
                 <span class="home-fact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 8h1M14 8h1M9 12h1M14 12h1"/><path d="M10 21v-4h4v4"/></svg></span>
@@ -572,10 +508,8 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
                 </div>
             </div>
         </div>
-
         <a href="pages/about.php" class="home-btn home-btn-light">Learn More About Malvar →</a>
     </div>
-
     <?php if ($aboutPhoto): ?>
     <div class="home-about-photo reveal">
         <img src="<?php echo htmlspecialchars($aboutPhoto['image']); ?>" alt="<?php echo htmlspecialchars($aboutPhoto['name']); ?>" loading="lazy">
@@ -584,13 +518,11 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
     <?php endif; ?>
 </section>
-
 <?php if (!empty($homePartners)): ?>
-<!-- ── Our Partners (mirrors admin/adminhomepage.php) ── -->
 <section class="home-partners">
     <div class="home-partners-top reveal">
         <p class="home-eyebrow home-eyebrow-gold">OUR PARTNERS</p>
-        <h2 class="home-heading">Together with Malvar</h2>
+        <h2 class="home-heading home-heading-barabara">Together with Malvar</h2>
         <p class="home-partners-desc">Together in the shared vision of a stronger, forward-looking tourism industry, our valued partners help bring Malvar closer to everyone who visits.</p>
     </div>
     <div class="home-partners-grid reveal">
@@ -619,9 +551,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
 </section>
 <?php endif; ?>
-
 <?php if (!empty($homeEventGallery)): ?>
-<!-- ── Event Gallery (mirrors admin/adminhomepage.php) ── -->
 <section class="home-gallery">
     <div class="home-gallery-top reveal">
         <p class="home-eyebrow home-eyebrow-rust">EVENTS IN MALVAR</p>
@@ -637,8 +567,6 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     </div>
 </section>
 <?php endif; ?>
-
-<!-- ── Footer ── -->
 <footer class="home-footer">
     <div class="home-footer-top">
         <div class="home-footer-brand">
