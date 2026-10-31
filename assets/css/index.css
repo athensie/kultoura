@@ -1254,6 +1254,15 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 18px;
 }
+.home-foryou-top,
+.home-instagram-grid,
+.home-news-top,
+.home-news-featured,
+.home-news-grid,
+.home-partners-top,
+.home-partners-grid { max-width: 1506px; }
+.home-about { max-width: 1602px; }
+.home-partners-top { text-align: left; }
 .home-partner-card {
     display: block;
     aspect-ratio: 1 / 1;
