@@ -211,7 +211,7 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
-    <link rel="stylesheet" href="assets/css/index.css">
+    <link rel="stylesheet" href="assets/css/index.css?v=20261031-2">
     <link rel="stylesheet" href="assets/css/search.css">
 </head>
 <body>
@@ -336,7 +336,6 @@ if ($result = $conn->query("SELECT image, caption FROM event_gallery WHERE statu
                 </a>
                 <div class="home-instagram-caption">
                     <p><strong><?php echo htmlspecialchars($item['name']); ?></strong> <?php echo htmlspecialchars(mb_strimwidth(trim((string) $item['desc']), 0, 125, '…')); ?></p>
-                    <a href="<?php echo htmlspecialchars($item['link']); ?>">Explore this place</a>
                 </div>
             </article>
             <?php endforeach; ?>
