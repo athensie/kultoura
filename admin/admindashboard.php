@@ -63,6 +63,7 @@ unset($tp);
 $itemTypeLabels = ['nature' => 'Nature', 'resort' => 'Resort', 'industry' => 'Industry', 'product' => 'Product', 'restaurant' => 'Restaurant', 'fiesta' => 'Fiesta', 'person' => 'Person'];
 // People can have page views, but they are not places. Keep them out of this ranking.
 $topItems = analytics_top_items($conn, 6, $periodStartSql, ['person']);
+$topPeople = analytics_top_items($conn, 6, $periodStartSql, [], ['person']);
 $conversionItems = analytics_conversion_top_items($conn, 8, 3);
 $topSearches = analytics_top_searches($conn, 6);
 $zeroResultSearches = analytics_zero_result_searches($conn, 6);
@@ -345,6 +346,7 @@ $chartInsights = ai_chart_insights($conn, [
     'most_viewed_pages' => ['title' => 'Most Viewed Pages', 'data' => $topPages],
     'recently_added' => ['title' => 'Recently Added', 'data' => array_map(fn($t) => ['name' => $t['name'], 'sub' => $t['sub']], $trending)],
     'most_viewed_places' => ['title' => 'Most Viewed Places', 'data' => array_map(fn($i) => ['name' => $i['name'], 'type' => $i['type'], 'views' => $i['views']], $topItems)],
+    'most_viewed_people' => ['title' => 'Most Viewed People', 'data' => array_map(fn($i) => ['name' => $i['name'], 'views' => $i['views']], $topPeople)],
     'conversion' => ['title' => 'Favorites & Travel Diary Conversion', 'data' => array_map(fn($c) => ['name' => $c['name'], 'views' => $c['views'], 'favorite_pct' => $c['favoritePct'], 'diary_pct' => $c['diaryPct']], $conversionItems)],
     'top_searches' => ['title' => 'Top Searches', 'data' => $topSearches],
     'zero_result_searches' => ['title' => 'Zero-Result Searches', 'data' => $zeroResultSearches],
@@ -549,7 +551,8 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <?php endif; ?>
             </div>
         </div>
-        <div class="chart-box chart-box-full animate">
+        <div class="charts-2col animate">
+        <div class="chart-box">
             <h4>Most Viewed Places <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
             <?php if (empty($topItems)): ?>
                 <div class="chart-empty">
@@ -572,6 +575,31 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 </div>
                 <?php kt_render_chart_insight($chartInsights, 'most_viewed_places'); ?>
             <?php endif; ?>
+        </div>
+        <div class="chart-box">
+            <h4>Most Viewed People <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
+            <?php if (empty($topPeople)): ?>
+                <div class="chart-empty">
+                    <i data-lucide="users-round" class="lucide"></i>
+                    <div class="chart-empty-title">No people profile views yet</div>
+                    <div class="chart-empty-sub">Views will appear here when visitors open People of Malvar profiles.</div>
+                </div>
+            <?php else: ?>
+                <div class="trending-list">
+                    <?php foreach ($topPeople as $i => $person): ?>
+                        <div class="trending-row">
+                            <div class="trending-rank">#<?php echo $i + 1; ?></div>
+                            <div class="trending-info">
+                                <div class="trending-name"><?php echo htmlspecialchars($person['name']); ?></div>
+                                <div class="trending-sub">People of Malvar profile</div>
+                            </div>
+                            <div class="trending-visits"><?php echo (int) $person['views']; ?> views</div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php kt_render_chart_insight($chartInsights, 'most_viewed_people'); ?>
+            <?php endif; ?>
+        </div>
         </div>
         </div>
         <?php if ($monthlySummary): ?>

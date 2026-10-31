@@ -212,11 +212,11 @@ function analytics_item_views_bulk(mysqli $conn, string $itemType): array
     $stmt->close();
     return $counts;
 }
-function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = null, array $excludeTypes = []): array
+function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = null, array $excludeTypes = [], array $includeTypes = []): array
 {
     $results = [];
     foreach (analytics_item_types() as $slug => $meta) {
-        if (in_array($slug, $excludeTypes, true)) {
+        if (in_array($slug, $excludeTypes, true) || (!empty($includeTypes) && !in_array($slug, $includeTypes, true))) {
             continue;
         }
         $sql = "SELECT t.{$meta['id_col']} AS id, t.{$meta['name_col']} AS name, COUNT(v.view_id) AS views
