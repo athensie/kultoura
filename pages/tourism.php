@@ -66,7 +66,7 @@ $hubImages = [
  | verified — check those three if their tiles don't pick up a photo.
  */
 $hubImageSubfolder = [
-    'products'    => 'products',
+    'products'    => 'food',
     'nature'      => 'destinations',
     'resort'      => 'destinations',
     'industry'    => 'destinations',
