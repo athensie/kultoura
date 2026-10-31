@@ -27,11 +27,16 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?
 function kt_latest_image(mysqli $conn, string $table, ?string $categoryColumn = null, ?string $categoryValue = null): ?string
 {
     if ($categoryColumn !== null) {
-        $sql = "SELECT image FROM {$table} WHERE {$categoryColumn} = ? ORDER BY created_at DESC LIMIT 1";
+        $sql = "SELECT image FROM {$table}
+                WHERE {$categoryColumn} = ? AND status = 'active'
+                  AND image IS NOT NULL AND image <> ''
+                ORDER BY created_at DESC LIMIT 1";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('s', $categoryValue);
     } else {
-        $sql = "SELECT image FROM {$table} ORDER BY created_at DESC LIMIT 1";
+        $sql = "SELECT image FROM {$table}
+                WHERE status = 'active' AND image IS NOT NULL AND image <> ''
+                ORDER BY created_at DESC LIMIT 1";
         $stmt = $conn->prepare($sql);
     }
     $stmt->execute();
