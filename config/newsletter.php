@@ -164,25 +164,6 @@ function kt_newsletter_sync_opted_in_users(mysqli $conn): void
         error_log('newsletter sync opted-in users: ' . $e->getMessage());
     }
 }
-function kt_newsletter_sync_user_opt_in(mysqli $conn, string $oldEmail, bool $wasOptedIn, string $newEmail, bool $isOptedIn): void
-{
-    $oldEmail = strtolower(trim($oldEmail));
-    $newEmail = strtolower(trim($newEmail));
-    if ($wasOptedIn && (!$isOptedIn || $oldEmail !== $newEmail) && $oldEmail !== '') {
-        $stmt = $conn->prepare("UPDATE newsletter_subscribers SET status = 'unsubscribed' WHERE email = ?");
-        $stmt->bind_param('s', $oldEmail);
-        $stmt->execute();
-        $stmt->close();
-    }
-    if ($isOptedIn && (!$wasOptedIn || $oldEmail !== $newEmail) && $newEmail !== '') {
-        $token = bin2hex(random_bytes(16));
-        $stmt = $conn->prepare("INSERT INTO newsletter_subscribers (email, token) VALUES (?, ?)
-                                ON DUPLICATE KEY UPDATE status = 'active'");
-        $stmt->bind_param('ss', $newEmail, $token);
-        $stmt->execute();
-        $stmt->close();
-    }
-}
 function kt_newsletter_dispatch_pending(mysqli $conn): void
 {
     kt_newsletter_ensure_schema($conn);

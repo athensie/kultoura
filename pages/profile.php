@@ -3,7 +3,6 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/password_policy.php';
-require_once __DIR__ . '/../config/newsletter.php';
 if (!isset($_SESSION['user_id']) || strtolower((string) ($_SESSION['role'] ?? '')) !== 'user') {
     header('Location: ../auth/login.php');
     exit;
@@ -96,14 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param('sssii', $fullname, $username, $email, $promotionalEmail, $userId);
                 $stmt->execute();
                 $stmt->close();
-                kt_newsletter_ensure_schema($conn);
-                kt_newsletter_sync_user_opt_in(
-                    $conn,
-                    (string) $savedProfile['email'],
-                    (int) $savedProfile['promotional_email'] === 1,
-                    $email,
-                    $promotionalEmail === 1
-                );
                 $_SESSION['username'] = $username;
                 $_SESSION['user_name'] = $fullname;
                 $_SESSION['profile_success'] = 'Your profile has been updated.';
