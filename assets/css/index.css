@@ -1993,3 +1993,13 @@ a.home-partner-card { text-decoration: none; }
     .home-upcoming-top { align-items: stretch; }
     .home-schedule-panel { flex-basis: auto; width: 100%; }
 }
+@media (max-width: 768px) {
+    .dropdown:hover .mega-menu {
+        left: auto;
+        transform: none;
+    }
+    .brand-title-logo img {
+        width: min(82vw, 460px);
+        max-width: 100%;
+    }
+}
