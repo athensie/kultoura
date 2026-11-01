@@ -10,6 +10,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'newsl
 }
 if (isset($_GET['unsubscribe'])) {
     $done = kt_newsletter_unsubscribe($conn, (string) $_GET['unsubscribe']);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        http_response_code($done ? 200 : 404);
+        exit;
+    }
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>KULTOURA</title></head>'
        . '<body style="font-family:Arial,sans-serif;text-align:center;padding:60px">'
        . '<h2>' . ($done ? 'You have been unsubscribed.' : 'Link invalid or already unsubscribed.') . '</h2>'

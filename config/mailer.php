@@ -3,7 +3,7 @@ require_once __DIR__ . '/../lib/PHPMailer/Exception.php';
 require_once __DIR__ . '/../lib/PHPMailer/PHPMailer.php';
 require_once __DIR__ . '/../lib/PHPMailer/SMTP.php';
 if (!function_exists('kt_send_mail')) {
-    function kt_send_mail(string $to, string $subject, string $body, ?string $html = null): bool
+    function kt_send_mail(string $to, string $subject, string $body, ?string $html = null, array $headers = []): bool
     {
         $transport = strtolower(getenv('MAIL_TRANSPORT') ?: 'smtp');
         $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: 'kultouramalvar@gmail.com';
@@ -22,9 +22,14 @@ if (!function_exists('kt_send_mail')) {
                 'subject'     => $subject,
                 'textContent' => $body,
             ]);
-                        if ($html !== null) {
+            if ($html !== null) {
                 $decoded = json_decode($payload, true);
                 $decoded['htmlContent'] = $html;
+                $payload = json_encode($decoded);
+            }
+            if ($headers) {
+                $decoded = json_decode($payload, true);
+                $decoded['headers'] = $headers;
                 $payload = json_encode($decoded);
             }
             $ch = curl_init('https://api.brevo.com/v3/smtp/email');
@@ -68,12 +73,15 @@ if (!function_exists('kt_send_mail')) {
             $mail->setFrom($fromAddress, $fromName);
             $mail->addAddress($to);
             $mail->Subject = $subject;
-                        if ($html !== null) {
+            if ($html !== null) {
                 $mail->isHTML(true);
                 $mail->Body = $html;
                 $mail->AltBody = $body;
             } else {
                 $mail->Body = $body;
+            }
+            foreach ($headers as $name => $value) {
+                $mail->addCustomHeader((string) $name, (string) $value);
             }
             $mail->send();
             return true;

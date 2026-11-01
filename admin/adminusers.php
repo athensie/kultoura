@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
 require_once __DIR__ . '/../config/password_policy.php';
+require_once __DIR__ . '/../config/newsletter.php';
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
     exit;
@@ -91,12 +92,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $email    = trim($_POST['email'] ?? '');
                 $promo    = ((int) ($_POST['promotional_email'] ?? 0)) === 1 ? 1 : 0;
                 if ($fullname !== '' && $username !== '' && $email !== '') {
+                    $oldUserStmt = $conn->prepare('SELECT email, promotional_email FROM users WHERE id=? LIMIT 1');
+                    $oldUserStmt->bind_param('i', $id);
+                    $oldUserStmt->execute();
+                    $oldUser = $oldUserStmt->get_result()->fetch_assoc();
+                    $oldUserStmt->close();
                     $stmt = $conn->prepare(
                         "UPDATE users SET fullname=?, username=?, email=?, promotional_email=? WHERE id=?"
                     );
                     $stmt->bind_param('sssii', $fullname, $username, $email, $promo, $id);
                     $stmt->execute();
                     $stmt->close();
+                    if ($oldUser) {
+                        kt_newsletter_ensure_schema($conn);
+                        kt_newsletter_sync_user_opt_in(
+                            $conn,
+                            (string) $oldUser['email'],
+                            (int) $oldUser['promotional_email'] === 1,
+                            $email,
+                            $promo === 1
+                        );
+                    }
                     $flashMessage = 'User account updated.';
                 } else {
                     $flashMessage = 'Could not update — missing required fields.';

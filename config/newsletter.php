@@ -40,7 +40,7 @@ function kt_newsletter_base_url(): string
     $dir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
     return ($https ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $dir;
 }
-function kt_newsletter_send(string $to, string $subject, string $body): bool
+function kt_newsletter_send(string $to, string $subject, string $body, ?string $token = null): bool
 {
     if (!function_exists('kt_send_mail')) {
         error_log('newsletter: kt_send_mail() not loaded');
@@ -49,7 +49,15 @@ function kt_newsletter_send(string $to, string $subject, string $body): bool
     $html = '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#2b2b2b">'
           . preg_replace('~(https?://[^\s<]+)~', '<a href="$1">$1</a>', nl2br(htmlspecialchars($body)))
           . '</div>';
-    return kt_send_mail($to, $subject, $body, $html);
+    $headers = [];
+    if ($token !== null && preg_match('/^[a-f0-9]{32}$/i', $token)) {
+        $unsubscribeUrl = kt_newsletter_base_url() . '/index.php?unsubscribe=' . strtolower($token);
+        $headers = [
+            'List-Unsubscribe' => '<' . $unsubscribeUrl . '>',
+            'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+        ];
+    }
+    return kt_send_mail($to, $subject, $body, $html, $headers);
 }
 function kt_newsletter_footer(string $token): string
 {
@@ -112,7 +120,7 @@ function kt_newsletter_subscribe(mysqli $conn, string $email): array
     }
     $stmt->execute();
     $stmt->close();
-    $sent = kt_newsletter_send($email, 'Welcome to KULTOURA - upcoming announcements', kt_newsletter_digest_text($conn, $token));
+    $sent = kt_newsletter_send($email, 'Welcome to KULTOURA - upcoming announcements', kt_newsletter_digest_text($conn, $token), $token);
     return $sent
         ? ['ok' => true, 'message' => 'Subscribed! Check your inbox for the latest announcements.']
         : ['ok' => true, 'message' => 'Subscribed, but we could not send the email right now. You will still get future announcements.'];
@@ -120,11 +128,17 @@ function kt_newsletter_subscribe(mysqli $conn, string $email): array
 function kt_newsletter_unsubscribe(mysqli $conn, string $token): bool
 {
     kt_newsletter_ensure_schema($conn);
-    $token = preg_replace('/[^a-f0-9]/', '', $token);
+    $token = strtolower(trim($token));
+    if (!preg_match('/^[a-f0-9]{32}$/', $token)) return false;
+    $check = $conn->prepare("SELECT status FROM newsletter_subscribers WHERE token = ? LIMIT 1");
+    $check->bind_param('s', $token);
+    $check->execute();
+    $subscriber = $check->get_result()->fetch_assoc();
+    $check->close();
+    if (!$subscriber) return false;
     $stmt = $conn->prepare("UPDATE newsletter_subscribers SET status = 'unsubscribed' WHERE token = ?");
     $stmt->bind_param('s', $token);
     $stmt->execute();
-    $ok = $stmt->affected_rows > 0;
     $stmt->close();
     try {
         $u = $conn->prepare("UPDATE users SET promotional_email = 0
@@ -135,7 +149,7 @@ function kt_newsletter_unsubscribe(mysqli $conn, string $token): bool
     } catch (Throwable $e) {
         error_log('unsubscribe user flag: ' . $e->getMessage());
     }
-    return $ok;
+    return true;
 }
 function kt_newsletter_sync_opted_in_users(mysqli $conn): void
 {
@@ -148,6 +162,25 @@ function kt_newsletter_sync_opted_in_users(mysqli $conn): void
                         AND COALESCE(u.status, 'Active') <> 'Inactive'");
     } catch (Throwable $e) {
         error_log('newsletter sync opted-in users: ' . $e->getMessage());
+    }
+}
+function kt_newsletter_sync_user_opt_in(mysqli $conn, string $oldEmail, bool $wasOptedIn, string $newEmail, bool $isOptedIn): void
+{
+    $oldEmail = strtolower(trim($oldEmail));
+    $newEmail = strtolower(trim($newEmail));
+    if ($wasOptedIn && (!$isOptedIn || $oldEmail !== $newEmail) && $oldEmail !== '') {
+        $stmt = $conn->prepare("UPDATE newsletter_subscribers SET status = 'unsubscribed' WHERE email = ?");
+        $stmt->bind_param('s', $oldEmail);
+        $stmt->execute();
+        $stmt->close();
+    }
+    if ($isOptedIn && (!$wasOptedIn || $oldEmail !== $newEmail) && $newEmail !== '') {
+        $token = bin2hex(random_bytes(16));
+        $stmt = $conn->prepare("INSERT INTO newsletter_subscribers (email, token) VALUES (?, ?)
+                                ON DUPLICATE KEY UPDATE status = 'active'");
+        $stmt->bind_param('ss', $newEmail, $token);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 function kt_newsletter_dispatch_pending(mysqli $conn): void
@@ -194,7 +227,7 @@ function kt_newsletter_dispatch_pending(mysqli $conn): void
                 if ($budget <= 0 || time() > $deadline) { $failures++; break; }
                 $body = "New announcement from KULTOURA:\n\n" . kt_newsletter_item_text($a)
                       . "\nRead more: " . kt_newsletter_base_url() . '/index.php';
-                $ok = kt_newsletter_send($sub['email'], 'KULTOURA: ' . $a['title'], $body . kt_newsletter_footer($sub['token']));
+                $ok = kt_newsletter_send($sub['email'], 'KULTOURA: ' . $a['title'], $body . kt_newsletter_footer($sub['token']), $sub['token']);
                 $subId = (int) $sub['id'];
                 $flag  = $ok ? 1 : 0;
                 $rec->bind_param('iii', $annId, $subId, $flag);
