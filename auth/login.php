@@ -120,6 +120,10 @@ unset($_SESSION['error'], $_SESSION['success'], $_SESSION['login_retry'], $_SESS
         </button>
     </header>
     <main class="auth-content">
+        <nav class="auth-mode-switch" aria-label="Account access">
+            <a href="login.php" class="is-active" aria-current="page">Log In</a>
+            <a href="signup.php">Sign Up</a>
+        </nav>
         <div class="auth-card">
             <div class="auth-brand">
                 <img src="../assets/images/kultoura.png" alt="KulToura">
