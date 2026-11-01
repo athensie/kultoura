@@ -22,3 +22,78 @@
 .theme-toggle[data-active="light"] .theme-toggle-option[data-theme-option="light"] {
   color: var(--dark); font-weight: 700;
 }
+
+/* Match the public site’s forest, sage, cream, and earth palette. */
+:root {
+  --clay: #9FB88A;
+  --gold: #C8A96E;
+  --cream: #F0EBD8;
+  --forest: #111E14;
+  --dark: #0A1209;
+  --warm: #4A7C47;
+  --muted: rgba(240, 235, 216, .58);
+  --light: #162019;
+  --success: #4A7C47;
+  --info: #8FB5D8;
+  --sidebar: #111E14;
+  --green: #4A7C47;
+  --cream-rgb: 240, 235, 216;
+  --overlay-rgb: 255, 255, 255;
+  --card-shadow: rgba(0, 0, 0, .35);
+  --text-success: #9FB88A;
+  --text-info: #9CC8E8;
+  --text-danger: #E76E6E;
+  --text-amber: #C8A96E;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --dark: #F0EBE3;
+  --cream: #2C1A0E;
+  --sidebar: #FFFFFF;
+  --cream-rgb: 44, 26, 14;
+  --overlay-rgb: 0, 0, 0;
+  --card-shadow: rgba(44, 26, 14, .12);
+  --clay: #4A7C47;
+  --forest: #E8E1D5;
+  --warm: #3D6B3A;
+  --light: #FFFFFF;
+  --muted: #786F64;
+  --success: #3D6B3A;
+  --green: #3D6B3A;
+  --text-success: #3D6B3A;
+  --text-info: #1A3A8A;
+  --text-danger: #C93A3A;
+  --text-amber: #8B2E1A;
+  --gold: #8B2E1A;
+  color-scheme: light;
+}
+:root[data-theme="light"] body { background: #F0EBE3; }
+:root .sidebar-nav li a.active { background: rgba(159, 184, 138, .16); color: var(--clay); }
+:root .sidebar-nav li a.active .nav-icon { color: var(--clay); }
+:root[data-theme="light"] .sidebar-nav li a.active { background: rgba(74, 124, 71, .12); }
+:root .period-btn.active,
+:root .period-btn:hover,
+:root .analytics-filter-pill.is-active,
+:root .traffic-range-button.is-active,
+:root .view-btn.active,
+:root .toggle.on { background: var(--clay); border-color: var(--clay); color: #fff; }
+:root .type-chip.active { background: rgba(159, 184, 138, .18); border-color: var(--clay); color: var(--clay); }
+:root .page-btn:hover,
+:root .page-btn.active { background: rgba(159, 184, 138, .18); border-color: var(--clay); color: var(--clay); }
+:root[data-theme="light"] .type-chip.active,
+:root[data-theme="light"] .page-btn:hover,
+:root[data-theme="light"] .page-btn.active { background: rgba(74, 124, 71, .12); }
+:root .search-input:focus,
+:root .form-input:focus,
+:root .form-textarea:focus { border-color: var(--clay); box-shadow: 0 0 0 3px rgba(159, 184, 138, .14); }
+:root .tbl-btn.edit,
+:root .status.pending,
+:root .type-pill.fiesta,
+:root .role-badge.super-admin { background: rgba(200, 169, 110, .15); color: var(--gold); }
+:root .tag-predictive,
+:root .rec-info .rec-icon,
+:root .section-row-icon { background: rgba(200, 169, 110, .15); color: var(--gold); }
+:root .admin-tab-btn.active { background: rgba(159, 184, 138, .18); border-color: var(--clay); color: var(--clay); }
+:root[data-theme="light"] .search-input:focus,
+:root[data-theme="light"] .form-input:focus,
+:root[data-theme="light"] .form-textarea:focus { box-shadow: 0 0 0 3px rgba(74, 124, 71, .12); }
