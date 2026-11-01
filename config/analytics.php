@@ -20,6 +20,17 @@ $conn->query(
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
 $conn->query(
+    "CREATE TABLE IF NOT EXISTS user_item_interactions (
+        interaction_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        item_type VARCHAR(20) NOT NULL,
+        item_id INT NOT NULL,
+        viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX (user_id, viewed_at),
+        INDEX (user_id, item_type, item_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+);
+$conn->query(
     "CREATE TABLE IF NOT EXISTS search_log (
         search_id     INT AUTO_INCREMENT PRIMARY KEY,
         query         VARCHAR(150) NOT NULL,
@@ -187,6 +198,18 @@ function analytics_track_item(mysqli $conn, string $itemType, int $itemId): void
     $stmt = $conn->prepare("INSERT INTO item_views (item_type, item_id) VALUES (?, ?)");
     if ($stmt) {
         $stmt->bind_param('si', $itemType, $itemId);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+function analytics_track_user_item(mysqli $conn, int $userId, string $itemType, int $itemId): void
+{
+    if ($userId <= 0 || $itemId <= 0 || !array_key_exists($itemType, analytics_item_types())) {
+        return;
+    }
+    $stmt = $conn->prepare('INSERT INTO user_item_interactions (user_id, item_type, item_id) VALUES (?, ?, ?)');
+    if ($stmt) {
+        $stmt->bind_param('isi', $userId, $itemType, $itemId);
         $stmt->execute();
         $stmt->close();
     }

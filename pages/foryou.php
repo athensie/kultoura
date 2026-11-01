@@ -298,6 +298,29 @@ foreach ($places as $p) {
 }
 $history = $_SESSION['history'];
 $itemHistory = $_SESSION['itemHistory'];
+if ($isLoggedIn) {
+    $interactionUserId = (int) $_SESSION['user_id'];
+    $interactionStmt = $conn->prepare('SELECT item_type AS type, item_id AS id FROM user_item_interactions WHERE user_id = ? ORDER BY viewed_at DESC, interaction_id DESC LIMIT 50');
+    if ($interactionStmt) {
+        $interactionStmt->bind_param('i', $interactionUserId);
+        $interactionStmt->execute();
+        $persistentInteractions = array_reverse($interactionStmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $interactionStmt->close();
+
+        $historyKeys = [];
+        foreach ($persistentInteractions as $interaction) {
+            $historyKeys[$interaction['type'] . '-' . (int) $interaction['id']] = true;
+        }
+        foreach ($itemHistory as $interaction) {
+            $interactionKey = ($interaction['type'] ?? '') . '-' . (int) ($interaction['id'] ?? 0);
+            if (!isset($historyKeys[$interactionKey])) {
+                $persistentInteractions[] = $interaction;
+                $historyKeys[$interactionKey] = true;
+            }
+        }
+        $itemHistory = array_slice($persistentInteractions, -50);
+    }
+}
 $hasHistory = count($history) > 0 || count($itemHistory) > 0 || count($favoritedKeys) > 0 || count($diaryItemKeys) > 0;
 $freq = fy_recency_weighted_scores($history, 1.0);
 $itemHistoryCats = array_map(fn($h) => $h['type'], $itemHistory);
@@ -384,14 +407,9 @@ if ($hasHistory) {
         }
     }
 } else {
-    $used = [];
-    foreach ($places as $p) {
-        if (!isset($used[$p['category']])) {
-            $recommended[] = $p;
-            $used[$p['category']] = true;
-        }
-    }
-    $recommended = array_slice($recommended, 0, 6);
+    $randomizedPlaces = $places;
+    shuffle($randomizedPlaces);
+    $recommended = array_slice($randomizedPlaces, 0, 6);
 }
 $categoryCounts = [];
 foreach ($places as $p) {
@@ -518,7 +536,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <?php if ($hasHistory): ?>
                     Picked based on what you've been exploring around Malvar.
                 <?php else: ?>
-                    Start exploring and this page will learn what you love.
+                    New to KULTOURA? Explore these random picks around Malvar. Your recommendations will get more personal as you explore.
                 <?php endif; ?>
             </p>
             <?php if ($hasHistory): ?>
@@ -564,10 +582,10 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
     <section class="fy-section" id="fy-recommended">
         <div class="fy-section-head-row">
             <div class="fy-section-head">
-                <h2><?php echo $hasHistory ? 'Because You Explored' : 'Trending in Malvar'; ?></h2>
+                <h2><?php echo $hasHistory ? 'Because You Explored' : 'A First Look at Malvar'; ?></h2>
                 <p><?php echo $hasHistory
                     ? 'More places like the ones you\'ve viewed recently.'
-                    : 'A little bit of everything to get you started.'; ?></p>
+                    : 'A random mix of places to help you discover what Malvar has to offer.'; ?></p>
             </div>
             <div class="fy-toolbar">
                 <div class="fy-filter-bar" id="fyFilterBar">

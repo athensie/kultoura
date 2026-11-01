@@ -7,6 +7,9 @@ $itemType = $_POST['item_type'] ?? '';
 $itemId   = (int) ($_POST['item_id'] ?? 0);
 analytics_track_item($conn, $itemType, $itemId);
 if ($itemId > 0 && array_key_exists($itemType, analytics_item_types())) {
+    if (isset($_SESSION['user_id'])) {
+        analytics_track_user_item($conn, (int) $_SESSION['user_id'], $itemType, $itemId);
+    }
     if (!isset($_SESSION['itemHistory'])) {
         $_SESSION['itemHistory'] = [];
     }
