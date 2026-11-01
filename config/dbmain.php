@@ -28,6 +28,18 @@ if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['user_id'])) {
     $table = $isAdminSession ? 'admins' : 'users';
     $idCol = $isAdminSession ? 'admin_id' : 'id';
     $uid   = (int) $_SESSION['user_id'];
+    $statusStmt = $conn->prepare("SELECT status FROM `$table` WHERE `$idCol` = ? LIMIT 1");
+    $statusStmt->bind_param('i', $uid);
+    $statusStmt->execute();
+    $accountStatus = $statusStmt->get_result()->fetch_assoc()['status'] ?? null;
+    $statusStmt->close();
+    if ($accountStatus === null || strcasecmp((string) $accountStatus, 'Inactive') === 0) {
+        $_SESSION = [];
+        $_SESSION['error'] = 'Your account was deactivated. Contact an administrator if you believe this is a mistake.';
+        session_regenerate_id(true);
+        header('Location: /kultoura/auth/login.php');
+        exit;
+    }
     if (isset($_SESSION['session_token']) && !kt_session_is_current($conn, $table, $idCol, $uid, $_SESSION['session_token'])) {
         $_SESSION = [];
         $_SESSION['error'] = "You were signed out because this account was signed in somewhere else, or its password was changed.";

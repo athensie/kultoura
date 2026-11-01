@@ -18,8 +18,10 @@ $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
-$flashMessage = null;
+$flashMessage = $_SESSION['adminusers_flash'] ?? null;
+unset($_SESSION['adminusers_flash']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $flashMessage = null;
     csrf_verify();
     if (!$isSuperAdmin) {
         $flashMessage = 'Only a Super Admin can manage accounts.';
@@ -53,18 +55,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($formAction === 'delete' && $id > 0) {
-            if ($source === 'admin') {
-                $stmt = $conn->prepare("UPDATE admins SET status = IF(status = 'Inactive', 'Active', 'Inactive') WHERE admin_id = ?");
+            $newStatus = $_POST['new_status'] ?? '';
+            $stmt = null;
+            if (!in_array($newStatus, ['Active', 'Inactive'], true)) {
+                $flashMessage = 'Invalid account status requested.';
+            } elseif ($source === 'admin') {
+                $stmt = $conn->prepare("UPDATE admins SET status = ?, session_token = IF(? = 'Inactive', NULL, session_token) WHERE admin_id = ?");
             } elseif ($source === 'user') {
-                $stmt = $conn->prepare("UPDATE users SET status = IF(status = 'Inactive', 'Active', 'Inactive') WHERE id = ?");
+                $stmt = $conn->prepare("UPDATE users SET status = ?, session_token = IF(? = 'Inactive', NULL, session_token) WHERE id = ?");
             } else {
                 $stmt = null;
             }
             if ($stmt) {
-                $stmt->bind_param('i', $id);
-                $stmt->execute();
+                $stmt->bind_param('ssi', $newStatus, $newStatus, $id);
+                $ok = $stmt->execute();
+                $found = $stmt->affected_rows > 0;
                 $stmt->close();
-                $flashMessage = 'Account status updated.';
+                $flashMessage = $ok
+                    ? ($found ? 'Account status updated.' : 'Account already has that status.')
+                    : 'Could not update the account status.';
             }
         }
         if ($formAction === 'edit' && $id > 0) {
@@ -104,6 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    if ($flashMessage !== null) {
+        $_SESSION['adminusers_flash'] = $flashMessage;
+    }
+    header('Location: ' . BASE_URL . '/admin/adminusers.php');
+    exit;
 }
 $accounts = [];
 $adminAccounts = [];
@@ -482,6 +496,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && 
             <input type="hidden" name="form_action" value="delete">
             <input type="hidden" name="source" id="deleteSource" value="">
             <input type="hidden" name="id" id="deleteId" value="">
+            <input type="hidden" name="new_status" id="deleteNewStatus" value="">
             <?php echo csrf_field(); ?>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button type="submit" class="tbl-btn delete" style="flex:1; padding:12px;">Yes, Deactivate</button>

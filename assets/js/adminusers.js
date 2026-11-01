@@ -64,6 +64,7 @@ function confirmDeleteAccount(btn) {
   document.querySelector('#deleteAccountForm button[type="submit"]').textContent = willDeactivate ? 'Yes, Deactivate' : 'Yes, Reactivate';
   document.getElementById('deleteSource').value = d.source;
   document.getElementById('deleteId').value = d.id;
+  document.getElementById('deleteNewStatus').value = willDeactivate ? 'Inactive' : 'Active';
   openModal('deleteModal');
 }
 function filterUsers(val) {
