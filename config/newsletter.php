@@ -94,6 +94,36 @@ function kt_newsletter_digest_text(mysqli $conn, string $token): string
     $txt .= 'Visit: ' . kt_newsletter_base_url() . '/index.php';
     return $txt . kt_newsletter_footer($token);
 }
+function kt_newsletter_is_subscribed(mysqli $conn, string $email): bool
+{
+    kt_newsletter_ensure_schema($conn);
+    $email = strtolower(trim($email));
+    if ($email === '') return false;
+    $stmt = $conn->prepare("SELECT 1 FROM newsletter_subscribers WHERE email = ? AND status = 'active' LIMIT 1");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $subscribed = (bool) $stmt->get_result()->fetch_row();
+    $stmt->close();
+    return $subscribed;
+}
+function kt_newsletter_unsubscribe_email(mysqli $conn, string $email): void
+{
+    kt_newsletter_ensure_schema($conn);
+    $email = strtolower(trim($email));
+    if ($email === '') return;
+    $stmt = $conn->prepare("UPDATE newsletter_subscribers SET status = 'unsubscribed' WHERE email = ? AND status = 'active'");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $stmt->close();
+    try {
+        $user = $conn->prepare('UPDATE users SET promotional_email = 0 WHERE LOWER(TRIM(email)) = ?');
+        $user->bind_param('s', $email);
+        $user->execute();
+        $user->close();
+    } catch (Throwable $e) {
+        error_log('unsubscribe user preference: ' . $e->getMessage());
+    }
+}
 function kt_newsletter_subscribe(mysqli $conn, string $email): array
 {
     kt_newsletter_ensure_schema($conn);
@@ -107,6 +137,7 @@ function kt_newsletter_subscribe(mysqli $conn, string $email): array
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     if ($row && $row['status'] === 'active') {
+        kt_newsletter_set_user_opt_in($conn, $email);
         return ['ok' => true, 'message' => 'You are already subscribed.'];
     }
     if ($row) {
@@ -120,10 +151,22 @@ function kt_newsletter_subscribe(mysqli $conn, string $email): array
     }
     $stmt->execute();
     $stmt->close();
+    kt_newsletter_set_user_opt_in($conn, $email);
     $sent = kt_newsletter_send($email, 'Welcome to KULTOURA - upcoming announcements', kt_newsletter_digest_text($conn, $token), $token);
     return $sent
         ? ['ok' => true, 'message' => 'Subscribed! Check your inbox for the latest announcements.']
         : ['ok' => true, 'message' => 'Subscribed, but we could not send the email right now. You will still get future announcements.'];
+}
+function kt_newsletter_set_user_opt_in(mysqli $conn, string $email): void
+{
+    try {
+        $stmt = $conn->prepare('UPDATE users SET promotional_email = 1 WHERE LOWER(TRIM(email)) = ?');
+        $stmt->bind_param('s', $email);
+        $stmt->execute();
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log('newsletter user preference: ' . $e->getMessage());
+    }
 }
 function kt_newsletter_unsubscribe(mysqli $conn, string $token): bool
 {

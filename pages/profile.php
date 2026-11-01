@@ -3,11 +3,13 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/password_policy.php';
+require_once __DIR__ . '/../config/newsletter.php';
 if (!isset($_SESSION['user_id']) || strtolower((string) ($_SESSION['role'] ?? '')) !== 'user') {
     header('Location: ../auth/login.php');
     exit;
 }
 $userId = (int) $_SESSION['user_id'];
+kt_newsletter_ensure_schema($conn);
 $isLoggedIn = true;
 $navUserName = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '', ENT_QUOTES, 'UTF-8');
 $error = $_SESSION['profile_error'] ?? '';
@@ -53,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $profile = $stmt->get_result()->fetch_assoc();
         $stmt->close();
+        if ($profile) {
+            $profile['promotional_email'] = ((int) $profile['promotional_email'] === 1
+                || kt_newsletter_is_subscribed($conn, (string) $profile['email'])) ? 1 : 0;
+        }
     } else {
         $fullname = trim((string) ($_POST['fullname'] ?? ''));
         $username = trim((string) ($_POST['username'] ?? ''));
@@ -77,13 +83,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
+            $wasNewsletterSubscribed = kt_newsletter_is_subscribed($conn, (string) $savedProfile['email']);
+            $emailPreferenceWasEnabled = (int) $savedProfile['promotional_email'] === 1 || $wasNewsletterSubscribed;
+
             $hasChanges = $fullname !== (string) $savedProfile['fullname']
                 || $username !== (string) $savedProfile['username']
                 || $email !== (string) $savedProfile['email']
-                || $promotionalEmail !== (int) $savedProfile['promotional_email'];
+                || $promotionalEmail !== (int) $savedProfile['promotional_email']
+                || ($promotionalEmail === 1) !== $wasNewsletterSubscribed;
 
             if (!$hasChanges) {
-                $_SESSION['profile_success'] = 'No changes to save. Your profile is already up to date.';
+                $_SESSION['profile_success'] = $emailPreferenceWasEnabled
+                    ? 'Your profile is already up to date, and this email is already subscribed to KULTOURA announcements.'
+                    : 'No changes to save. Your profile is already up to date.';
                 header('Location: profile.php');
                 exit;
             }
@@ -95,9 +107,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param('sssii', $fullname, $username, $email, $promotionalEmail, $userId);
                 $stmt->execute();
                 $stmt->close();
+                $oldEmail = strtolower(trim((string) $savedProfile['email']));
+                $newEmail = strtolower(trim($email));
+                if ($wasNewsletterSubscribed && ($oldEmail !== $newEmail || $promotionalEmail !== 1)) {
+                    kt_newsletter_unsubscribe_email($conn, $oldEmail);
+                }
+                if ($promotionalEmail === 1) {
+                    $subscription = kt_newsletter_subscribe($conn, $email);
+                    if (!empty($subscription['ok']) && ($subscription['message'] ?? '') === 'You are already subscribed.') {
+                        $_SESSION['profile_success'] = 'Your profile has been updated. This email is already subscribed to KULTOURA announcements.';
+                    } elseif (!empty($subscription['ok'])) {
+                        $_SESSION['profile_success'] = 'Your profile has been updated, and this email is now subscribed to KULTOURA announcements.';
+                    } else {
+                        $_SESSION['profile_success'] = 'Your profile was updated, but the email subscription could not be saved. Please try again.';
+                    }
+                } else {
+                    if (!$wasNewsletterSubscribed && $emailPreferenceWasEnabled) {
+                        kt_newsletter_unsubscribe_email($conn, $oldEmail);
+                    }
+                    $_SESSION['profile_success'] = 'Your profile has been updated.';
+                }
                 $_SESSION['username'] = $username;
                 $_SESSION['user_name'] = $fullname;
-                $_SESSION['profile_success'] = 'Your profile has been updated.';
                 header('Location: profile.php');
                 exit;
             } catch (mysqli_sql_exception $e) {
@@ -124,6 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ../auth/login.php');
         exit;
     }
+    $profile['promotional_email'] = ((int) $profile['promotional_email'] === 1
+        || kt_newsletter_is_subscribed($conn, (string) $profile['email'])) ? 1 : 0;
 }
 function profile_escape(string $value): string
 {
