@@ -617,14 +617,15 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
                 <a href="pages/mostpopular.php">Most Popular</a>
             </div>
         </div>
-        <div class="home-footer-col footer-accordion">
-            <h4 onclick="toggleFooterAccordion(this)">Resources <span class="footer-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span></h4>
+        <div class="home-footer-col home-footer-hotlines footer-accordion">
+            <h4 onclick="toggleFooterAccordion(this)">Hotlines <span class="footer-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span></h4>
             <div class="footer-accordion-body">
-                <a href="pages/about.php">About</a>
-                <a href="#">Contact Us</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
-                <a href="#">Help Center</a>
+                <p class="home-hotline-group"><strong>National Emergency</strong><a href="tel:911">911</a></p>
+                <p class="home-hotline-group"><strong>Disaster Risk Reduction &amp; Management</strong><a href="tel:+639171797408">MDRRMO Malvar: 0917-179-7408</a><a href="tel:+63432332971">(043) 233-2971</a></p>
+                <p class="home-hotline-group"><strong>Fire &amp; Rescue</strong><a href="tel:+63437848297">BFP Malvar: (043) 784-8297</a><a href="tel:+639276987802">0927-698-7802</a><a href="tel:+639498339974">0949-833-9974</a></p>
+                <p class="home-hotline-group"><strong>Police / Law Enforcement</strong><a href="tel:+639985985695">PNP Malvar: 0998-598-5695</a></p>
+                <p class="home-hotline-group"><strong>Health &amp; Medical Services</strong><a href="tel:+63437280890">RHU Malvar: (043) 728-0890</a><a href="tel:+639773233290">0977-323-3290</a><a href="tel:+639178267634">Malvar Health Center Ambulance: 0917-826-7634</a><a href="tel:+63437785101">(043) 778-5101</a><a href="tel:+639303583051">Philippine Red Cross (Tanauan City Branch): 0930-358-3051</a></p>
+                <p class="home-hotline-group"><strong>Utilities</strong><a href="tel:+63434303507">BATELEC (Batangas I Electric Cooperative – Malvar): (043) 430-3507</a><a href="tel:+639279465460">0927-946-5460</a></p>
             </div>
         </div>
         <div class="home-footer-col home-footer-newsletter">

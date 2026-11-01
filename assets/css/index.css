@@ -1485,6 +1485,30 @@ a.home-partner-card { text-decoration: none; }
     width: fit-content;
 }
 .home-footer-col a:hover { color: var(--sage); }
+.home-footer-hotlines .footer-accordion-body {
+    max-height: none;
+    overflow: visible;
+}
+.home-hotline-group {
+    margin: 0 0 13px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+.home-hotline-group strong {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--cream);
+    font-size: 10px;
+    font-weight: 600;
+}
+.home-footer-col .home-hotline-group a {
+    display: block;
+    width: auto;
+    overflow-wrap: anywhere;
+    margin: 0 0 2px;
+    font-size: 11px;
+}
 .footer-accordion-chevron {
     display: none;
 }
@@ -1849,8 +1873,12 @@ a.home-partner-card { text-decoration: none; }
         overflow: hidden;
         transition: max-height 0.3s ease;
     }
+    .home-footer-hotlines .footer-accordion-body {
+        max-height: 0;
+        overflow: hidden;
+    }
     .footer-accordion.is-open .footer-accordion-body {
-        max-height: 300px;
+        max-height: 900px;
     }
     .mega-menu:not(.mega-menu-simple) .mega-column a,
     .mega-menu-simple .mega-column a {
