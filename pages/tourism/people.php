@@ -57,7 +57,7 @@ if ($openPersonSlug !== '') {
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/people.css">
+    <link rel="stylesheet" href="../../assets/css/people.css?v=20261101-1">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -180,16 +180,10 @@ if ($openPersonSlug !== '') {
     </section>
     <?php else: ?>
     <section class="p-search-row">
-        <form class="p-search-bar" action="people.php" method="get">
-            <input type="text" name="q" placeholder="Search names, roles, barangays…">
-            <select name="category" class="p-category-select">
-                <option>All Categories</option>
-                <option>Local Leader</option>
-                <option>Artist</option>
-                <option>Farmer</option>
-                <option>Community Pillar</option>
-            </select>
+        <form class="p-search-bar" action="people.php" method="get" onsubmit="return false;">
+            <input type="search" name="q" id="peopleSearchInput" placeholder="Search by name..." autocomplete="off">
         </form>
+        <p class="p-search-empty" id="peopleSearchEmpty" hidden>No people match your search.</p>
     </section>
     <section class="t-category" id="people">
         <div class="t-category-header">
@@ -205,7 +199,7 @@ if ($openPersonSlug !== '') {
             <p>Once the admin adds profiles, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
-        <div class="p-card-grid">
+        <div class="p-card-grid" id="peopleCardGrid">
             <?php foreach ($people as $item):
                 $slug = kt_person_slug($item);
                 $achLines = array_values(array_filter(array_map('trim', explode("\n", (string) ($item['achievement'] ?? '')))));
@@ -252,6 +246,23 @@ function ktTrackItemView(type, id) {
     }
 }
 /* ---------- FAVORITE BUTTON ---------- */
+(function () {
+    const input = document.getElementById('peopleSearchInput');
+    const grid = document.getElementById('peopleCardGrid');
+    const empty = document.getElementById('peopleSearchEmpty');
+    if (!input || !grid) return;
+    input.addEventListener('input', function () {
+        const query = input.value.trim().toLocaleLowerCase();
+        let visible = 0;
+        grid.querySelectorAll('.p-card').forEach(function (card) {
+            const name = (card.querySelector('.p-card-title')?.textContent || '').trim().toLocaleLowerCase();
+            const matches = name.includes(query);
+            card.style.display = matches ? '' : 'none';
+            if (matches) visible++;
+        });
+        if (empty) empty.hidden = visible > 0;
+    });
+})();
 let pToastTimer;
 function pShowToast(msg) {
     const t = document.getElementById('pToast');

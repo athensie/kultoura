@@ -54,7 +54,7 @@ $stmt->close();
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/nature.css">
+    <link rel="stylesheet" href="../../assets/css/nature.css?v=20261101-1">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -140,12 +140,7 @@ $stmt->close();
 <main class="t-main">
     <section class="p-search-row">
         <form class="p-search-bar" id="natureSearchForm" action="nature.php" method="get">
-            <input type="text" name="q" id="natureSearchInput" placeholder="Search parks, river and falls…" autocomplete="off">
-            <select name="category" id="natureCategorySelect" class="p-category-select">
-                <option>All Categories</option>
-                <option>Park</option>
-                <option>River / Falls</option>
-            </select>
+            <input type="search" name="q" id="natureSearchInput" placeholder="Search nature spots by name..." autocomplete="off">
         </form>
         <p class="p-search-empty" id="natureSearchEmpty" hidden>No nature spots match your search.</p>
     </section>
@@ -239,42 +234,21 @@ $stmt->close();
 <script>
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }
-/* ---------------- Live search + subcategory filter ---------------- */
-/* Same approach as products.php: filters the already-loaded cards
-   client-side (by name and subcategory — not description), updating
-   instantly as you type. No page reload per keystroke; Enter is
-   harmless since the filter's already live. */
+/* ---------------- Live name search ---------------- */
 (function () {
     const searchInput = document.getElementById('natureSearchInput');
-    const categorySelect = document.getElementById('natureCategorySelect');
     const grid = document.getElementById('natureCardGrid');
     const emptyMsg = document.getElementById('natureSearchEmpty');
     const form = document.getElementById('natureSearchForm');
-    const catLabel = document.getElementById('natureCatLabel');
-    const catTitle = document.getElementById('natureCatTitle');
-    const catDesc = document.getElementById('natureCatDesc');
-    if (!searchInput || !categorySelect || !grid) return;
-    const SUBCATEGORY_META = {
-        'Park': { label: 'Park', desc: 'Open green spaces and recreational parks around Malvar.' },
-        'River / Falls': { label: 'River / Falls', desc: 'Rivers, waterfalls, and natural water spots to explore.' },
-    };
-    const GENERAL_META = { label: 'Nature', desc: 'Green spaces and natural landmarks worth the trip around Malvar.' };
+    if (!searchInput || !grid) return;
     function applyFilters() {
         const query = searchInput.value.trim().toLowerCase();
-        const subcategory = categorySelect.value;
         let visibleCount = 0;
-        const visibleSubcats = new Set();
         grid.querySelectorAll('.p-card[data-id]').forEach((card) => {
             const name = (card.querySelector('.p-card-title')?.textContent || '').toLowerCase();
-            const cardSubcategory = card.dataset.subcategory || '';
-            const matchesCategory = subcategory === '' || subcategory === 'All Categories' || cardSubcategory === subcategory;
-            const matchesQuery = query === ''
-                || name.includes(query)
-                || cardSubcategory.toLowerCase().includes(query);
-            const matches = matchesCategory && matchesQuery;
+            const matches = name.includes(query);
             if (matches) {
                 visibleCount++;
-                visibleSubcats.add(cardSubcategory);
                 if (card.style.display === 'none') {
                     card.style.display = '';
                     card.style.opacity = '0';
@@ -285,19 +259,8 @@ function ktCloseModal(id) { document.getElementById(id).classList.remove('open')
             }
         });
         if (emptyMsg) emptyMsg.hidden = visibleCount > 0;
-        // Heading reflects what's actually showing: a single subcategory
-        // name when everything visible shares one (from the dropdown or
-        // a search that happens to narrow it down), general "Nature"
-        // otherwise (including spots with no subcategory set at all).
-        const meta = (visibleSubcats.size === 1)
-            ? (SUBCATEGORY_META[[...visibleSubcats][0]] || GENERAL_META)
-            : GENERAL_META;
-        if (catLabel) catLabel.textContent = meta.label;
-        if (catTitle) catTitle.textContent = meta.label;
-        if (catDesc) catDesc.textContent = meta.desc;
     }
     searchInput.addEventListener('input', applyFilters);
-    categorySelect.addEventListener('change', applyFilters);
     if (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();

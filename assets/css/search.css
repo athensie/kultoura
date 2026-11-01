@@ -205,7 +205,7 @@
     background: rgba(95, 125, 76, 0.12);
 }
 @media (max-width: 768px) {
-    .navbar-search { order: 2; margin-left: 0; }
+    .navbar-search { order: 2; margin-left: auto; }
     .navbar-search-form.is-open,
     .navbar-search.is-open .navbar-search-form {
         max-width: 160px;

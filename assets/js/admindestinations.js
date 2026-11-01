@@ -196,15 +196,8 @@ function filterDestinations(value) {
   const term = value.trim().toLowerCase();
   document.querySelectorAll('#destinationsTable tbody tr, #destinationsGrid .grid-card').forEach(item => {
     if (item.id === 'destEmptyRow' || item.classList.contains('grid-empty')) return;
-    const text = item.textContent.toLowerCase();
-    item.style.display = text.includes(term) ? '' : 'none';
-  });
-}
-function filterByCategory(value) {
-  document.querySelectorAll('#destinationsTable tbody tr, #destinationsGrid .grid-card').forEach(item => {
-    if (item.id === 'destEmptyRow' || item.classList.contains('grid-empty')) return;
-    const rowCategory = item.dataset.category || '';
-    item.style.display = (value === 'all' || rowCategory === value) ? '' : 'none';
+    const name = (item.dataset.name || '').toLowerCase();
+    item.style.display = name.includes(term) ? '' : 'none';
   });
 }
 async function exportDestinationsExcel() {

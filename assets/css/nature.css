@@ -12,7 +12,8 @@
     max-width: 640px;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
-.p-search-bar input[type="text"] {
+.p-search-bar input[type="text"],
+.p-search-bar input[type="search"] {
     flex: 1;
     border: none;
     outline: none;

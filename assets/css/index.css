@@ -1720,7 +1720,16 @@ a.home-partner-card { text-decoration: none; }
     body.nav-menu-open {
         overflow: hidden;
     }
-    .navbar-hamburger { display: flex; order: 3; }
+    .navbar-hamburger {
+        display: flex;
+        order: 3;
+        position: relative;
+        z-index: 1202;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(240, 235, 216, 0.08);
+    }
     .user-greeting-left { order: 1; }
     .sign-in-btn { order: 2; padding: 9px 16px; }
     .sign-in-btn span { display: none; }

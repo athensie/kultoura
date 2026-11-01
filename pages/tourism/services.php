@@ -53,7 +53,7 @@ $stmt->close();
     <link rel="stylesheet" href="../../assets/css/search.css">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/services.css">
+    <link rel="stylesheet" href="../../assets/css/services.css?v=20261101-1">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -138,17 +138,10 @@ $stmt->close();
 <?php kt_page_widget_render_from($pageWidget, 'services'); ?>
 <main class="t-main">
     <section class="p-search-row">
-        <form class="p-search-bar" action="services.php" method="get">
-            <input type="text" name="q" placeholder="Search hospitals, terminals, gas stations…">
-            <select name="category" class="p-category-select">
-                <option>All Categories</option>
-                <option>Hospital / Clinic</option>
-                <option>Terminal</option>
-                <option>Gas Station</option>
-                <option>Police Station</option>
-                <option>Pharmacy</option>
-            </select>
+        <form class="p-search-bar" action="services.php" method="get" onsubmit="return false;">
+            <input type="search" name="q" id="servicesSearchInput" placeholder="Search services by name..." autocomplete="off">
         </form>
+        <p class="p-search-empty" id="servicesSearchEmpty" hidden>No services match your search.</p>
     </section>
     <section class="t-category" id="services">
         <div class="t-category-header">
@@ -164,7 +157,7 @@ $stmt->close();
             <p>Once the admin adds listings, they'll show up here as cards.</p>
         </div>
         <?php else: ?>
-        <div class="p-card-grid">
+        <div class="p-card-grid" id="servicesCardGrid">
             <?php foreach ($spots as $item): ?>
             <article class="p-card" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
                 <div class="p-card-media">
@@ -238,6 +231,23 @@ $stmt->close();
 </div>
 <div class="p-toast" id="ktFavToast"></div>
 <script>
+(function () {
+    const input = document.getElementById('servicesSearchInput');
+    const grid = document.getElementById('servicesCardGrid');
+    const empty = document.getElementById('servicesSearchEmpty');
+    if (!input || !grid) return;
+    input.addEventListener('input', function () {
+        const query = input.value.trim().toLocaleLowerCase();
+        let visible = 0;
+        grid.querySelectorAll('.p-card').forEach(function (card) {
+            const name = (card.querySelector('.p-card-title')?.textContent || '').trim().toLocaleLowerCase();
+            const matches = name.includes(query);
+            card.style.display = matches ? '' : 'none';
+            if (matches) visible++;
+        });
+        if (empty) empty.hidden = visible > 0;
+    });
+})();
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }
 function ktTrackItemView(type, id) {

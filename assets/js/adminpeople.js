@@ -48,9 +48,10 @@ function confirmDelete(id, name) {
 }
 function filterPeople(val) {
   const rows = document.querySelectorAll('#peopleTable tbody tr, #peopleGrid .grid-card');
+  const query = val.trim().toLocaleLowerCase();
   rows.forEach(row => {
     if (row.classList.contains('grid-empty')) return;
-    row.style.display = row.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
+    row.style.display = (row.dataset.name || '').toLocaleLowerCase().includes(query) ? '' : 'none';
   });
 }
 async function exportPeopleExcel() {

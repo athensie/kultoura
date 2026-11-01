@@ -273,16 +273,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </div>
         <div class="filter-row">
             <input class="search-input" type="text" id="destSearch" placeholder="Search destinations…" oninput="filterDestinations(this.value)">
-            <select class="filter-select" id="destCategoryFilter" onchange="filterByCategory(this.value)">
-                <option value="all">All Categories</option>
-                <option value="nature">Nature</option>
-                <option value="industry">Industry Zone</option>
-                <option value="resort">Resort</option>
-                <option value="accommodation">Accommodation</option>
-                <option value="bank">Banks</option>
-                <option value="service">Other Services</option>
-                <option value="church">Churches</option>
-            </select>
             <div class="view-toggle">
                 <button type="button" class="view-btn" data-view="list" onclick="setView('list')" aria-label="List view"><i data-lucide="list" class="lucide"></i></button>
                 <button type="button" class="view-btn" data-view="grid" onclick="setView('grid')" aria-label="Grid view"><i data-lucide="layout-grid" class="lucide"></i></button>
@@ -312,7 +302,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                     </tr>
                 <?php else: ?>
                     <?php foreach ($destinations as $d): ?>
-                        <tr data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>">
+                        <tr data-name="<?php echo htmlspecialchars($d['destination_name']); ?>">
                             <td>
                                 <div class="destination-name-cell">
                                     <?php if (!empty($d['image'])): ?>
@@ -371,7 +361,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 </div>
             <?php else: ?>
                 <?php foreach ($destinations as $d): ?>
-                    <div class="grid-card" data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>">
+                    <div class="grid-card" data-name="<?php echo htmlspecialchars($d['destination_name']); ?>">
                         <div class="grid-card-media">
                             <?php if (!empty($d['image'])): ?>
                                 <img src="<?php echo htmlspecialchars($d['image']); ?>" alt="">
@@ -626,7 +616,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admindestinations.js?v=20261031-1"></script>
+<script src="../assets/js/admindestinations.js?v=20261101-1"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>

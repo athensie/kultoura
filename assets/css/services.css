@@ -12,7 +12,8 @@
     max-width: 640px;
     box-shadow: 0 1px 8px rgba(44, 26, 14, 0.06);
 }
-.p-search-bar input[type="text"] {
+.p-search-bar input[type="text"],
+.p-search-bar input[type="search"] {
     flex: 1;
     border: none;
     outline: none;
@@ -21,6 +22,12 @@
     padding: 12px 0;
     background: transparent;
     color: #2c1a0e;
+}
+.p-search-empty {
+    margin: 16px 4px 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    color: rgba(44, 26, 14, 0.55);
 }
 .p-category-select {
     font-family: 'Helvetica Neue', Arial, sans-serif;
