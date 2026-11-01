@@ -9,17 +9,7 @@ analytics_track($conn, 'mostpopular');
 $mostpopularHeroPhoto = sitecontent_get_photo($conn, 'mostpopular_hero');
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-$popularRows = [];
-$result = $conn->query(
-    "SELECT item_type, item_id, COUNT(*) AS fav_count
-     FROM favorites
-     GROUP BY item_type, item_id
-     ORDER BY fav_count DESC
-     LIMIT 24"
-);
-if ($result) {
-    $popularRows = $result->fetch_all(MYSQLI_ASSOC);
-}
+$popularRows = analytics_top_items($conn, 24);
 $idsByType = [];
 foreach ($popularRows as $r) {
     $idsByType[$r['item_type']][] = (int) $r['item_id'];
@@ -27,28 +17,37 @@ foreach ($popularRows as $r) {
 $typeMap = [
     'product'     => ['table' => 'products',    'idCol' => 'product_id',     'nameCol' => 'product_name'],
     'restaurant'  => ['table' => 'restaurants',  'idCol' => 'restaurant_id',  'nameCol' => 'restaurant_name'],
-    'destination' => ['table' => 'destination',  'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
+    'nature'        => ['table' => 'destination', 'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
+    'resort'        => ['table' => 'destination', 'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
+    'industry'      => ['table' => 'destination', 'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
+    'accommodation' => ['table' => 'destination', 'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
+    'bank'          => ['table' => 'destination', 'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
+    'service'       => ['table' => 'destination', 'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
+    'church'        => ['table' => 'destination', 'idCol' => 'destination_id', 'nameCol' => 'destination_name'],
     'fiesta'      => ['table' => 'fiestas',      'idCol' => 'fiesta_id',      'nameCol' => 'fiesta_name'],
     'person'      => ['table' => 'people',       'idCol' => 'person_id',      'nameCol' => 'fullname'],
 ];
 $typeLabels = [
     'product'     => 'Product',
     'restaurant'  => 'Restaurant',
-    'destination' => 'Destination',
+    'nature' => 'Nature', 'resort' => 'Resort', 'industry' => 'Industry',
+    'accommodation' => 'Accommodation', 'bank' => 'Bank', 'service' => 'Service', 'church' => 'Church',
     'fiesta'      => 'Fiesta',
-    'person'      => 'Person',
+    'person'      => 'People of Malvar',
 ];
 $typeLabelsPlural = [
     'product'     => 'Products',
     'restaurant'  => 'Restaurants',
-    'destination' => 'Destinations',
+    'nature' => 'Nature', 'resort' => 'Resorts', 'industry' => 'Industry',
+    'accommodation' => 'Accommodation', 'bank' => 'Banks', 'service' => 'Services', 'church' => 'Churches',
     'fiesta'      => 'Fiestas',
     'person'      => 'People',
 ];
 $imageSubfolder = [
     'product'     => 'products',
     'restaurant'  => 'food',
-    'destination' => 'destinations',
+    'nature' => 'destinations', 'resort' => 'destinations', 'industry' => 'destinations',
+    'accommodation' => 'destinations', 'bank' => 'destinations', 'service' => 'destinations', 'church' => 'destinations',
     'fiesta'      => 'fiestas',
     'person'      => 'people',
 ];
@@ -95,7 +94,7 @@ foreach ($popularRows as $r) {
         'restaurant'  => 'restaurants.php',
         'fiesta'      => 'fiestas.php',
         'person'      => 'people.php',
-        'destination' => $destinationPageByCategory[$item['category']] ?? 'tourism.php',
+        'nature', 'resort', 'industry', 'accommodation', 'bank', 'service', 'church' => $destinationPageByCategory[$type] ?? 'tourism.php',
         default       => 'tourism.php',
     };
     $rawImage = $item['image'] ?? '';
@@ -111,7 +110,7 @@ foreach ($popularRows as $r) {
         'name'      => $item[$map['nameCol']],
         'desc'      => $item['description'] ?? '',
         'image'     => $imageSrc,
-        'favCount'  => (int) $r['fav_count'],
+        'views'     => (int) $r['views'],
         'viewPage'  => 'tourism/' . $viewPage,
     ];
 }
@@ -126,7 +125,7 @@ foreach ($popularItems as $p) {
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Most Popular – KULTOURA</title>
+    <title>Most Viewed Content – KULTOURA</title>
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
@@ -173,7 +172,7 @@ foreach ($popularItems as $p) {
                     <a href="foryou.php">For You</a>
                     <a href="traveldiary.php">Travel Diary</a><?php if ($isLoggedIn): ?><a href="profile.php">My Profile</a><?php endif; ?>
                     <a href="favorites.php">Favorites</a>
-                    <a href="mostpopular.php">Most Popular</a>
+                    <a href="mostpopular.php">Most Viewed Content</a>
                     <a href="about.php">About</a>
                 </div>
             </div>
@@ -203,23 +202,23 @@ foreach ($popularItems as $p) {
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
-        <h1 class="t-page-title">Most Popular</h1>
+        <h1 class="t-page-title">Most Viewed Content</h1>
         <p class="t-page-sub">
-            What everyone else is loving right now, ranked by community favorites.
+            Explore the destinations, products, restaurants, fiestas, and people visitors view most around Malvar.
         </p>
     </div>
     <?php if (!empty($popularItems)):
-        $totalFavs = array_sum(array_column($popularItems, 'favCount'));
+        $totalViews = array_sum(array_column($popularItems, 'views'));
     ?>
     <div class="m-stats-row">
         <div class="m-stat">
             <span class="m-stat-num"><?php echo count($popularItems); ?></span>
-            <span class="m-stat-label">Trending Spots</span>
+            <span class="m-stat-label">Content Ranked</span>
         </div>
         <div class="m-stat-divider"></div>
         <div class="m-stat">
-            <span class="m-stat-num"><?php echo $totalFavs; ?></span>
-            <span class="m-stat-label">Community Favorites</span>
+            <span class="m-stat-num"><?php echo $totalViews; ?></span>
+            <span class="m-stat-label">Total Views</span>
         </div>
         <div class="m-stat-divider"></div>
         <div class="m-stat">
@@ -255,8 +254,8 @@ foreach ($popularItems as $p) {
             <?php if (empty($popularItems)): ?>
                 <div class="m-empty">
                     <div class="m-empty-icon">★</div>
-                    <h3>Nothing popular yet</h3>
-                    <p>Once visitors start favoriting products, restaurants, destinations, fiestas, and people, the most-loved ones will show up here.</p>
+                    <h3>No viewed content yet</h3>
+                    <p>Once visitors open content pages, the most viewed destinations, products, restaurants, fiestas, and people will show up here.</p>
                     <a href="tourism.php" class="m-empty-cta">Explore Tourism</a>
                 </div>
             <?php else: ?>
@@ -274,7 +273,7 @@ foreach ($popularItems as $p) {
                             <div class="m-card-body">
                                 <div class="m-card-top">
                                     <span class="m-badge"><?php echo htmlspecialchars($p['typeLabel']); ?></span>
-                                    <span class="m-fav-count">♥ <?php echo (int) $p['favCount']; ?></span>
+                                    <span class="m-fav-count"><?php echo (int) $p['views']; ?> views</span>
                                 </div>
                                 <h3 class="m-card-title"><?php echo htmlspecialchars($p['name']); ?></h3>
                                 <?php if (!empty($p['desc'])): ?>

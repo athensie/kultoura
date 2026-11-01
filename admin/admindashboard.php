@@ -60,9 +60,12 @@ foreach ($topPages as &$tp) {
     $tp['pct'] = $topPagesMax > 0 ? (int) round($tp['views'] / $topPagesMax * 100) : 0;
 }
 unset($tp);
-$itemTypeLabels = ['nature' => 'Nature', 'resort' => 'Resort', 'industry' => 'Industry', 'product' => 'Product', 'restaurant' => 'Restaurant', 'fiesta' => 'Fiesta', 'person' => 'Person'];
-// People can have page views, but they are not places. Keep them out of this ranking.
-$topItems = analytics_top_items($conn, 6, $periodStartSql, ['person']);
+$itemTypeLabels = [
+    'nature' => 'Nature', 'resort' => 'Resort', 'industry' => 'Industry',
+    'accommodation' => 'Accommodation', 'bank' => 'Bank', 'service' => 'Service', 'church' => 'Church',
+    'product' => 'Product', 'restaurant' => 'Restaurant', 'fiesta' => 'Fiesta', 'person' => 'People of Malvar',
+];
+$topItems = analytics_top_items($conn, 6, $periodStartSql);
 $topPeople = analytics_top_items($conn, 6, $periodStartSql, [], ['person']);
 $conversionItems = analytics_conversion_top_items($conn, 8, 3);
 $topSearches = analytics_top_searches($conn, 6);
@@ -345,7 +348,7 @@ if ($aiActions !== null) {
 $chartInsights = ai_chart_insights($conn, [
     'most_viewed_pages' => ['title' => 'Most Viewed Pages', 'data' => $topPages],
     'recently_added' => ['title' => 'Recently Added', 'data' => array_map(fn($t) => ['name' => $t['name'], 'sub' => $t['sub']], $trending)],
-    'most_viewed_places' => ['title' => 'Most Viewed Places', 'data' => array_map(fn($i) => ['name' => $i['name'], 'type' => $i['type'], 'views' => $i['views']], $topItems)],
+    'most_viewed_places' => ['title' => 'Most Viewed Content', 'data' => array_map(fn($i) => ['name' => $i['name'], 'type' => $itemTypeLabels[$i['type']] ?? ucfirst($i['type']), 'views' => $i['views']], $topItems)],
     'most_viewed_people' => ['title' => 'Most Viewed People', 'data' => array_map(fn($i) => ['name' => $i['name'], 'views' => $i['views']], $topPeople)],
     'conversion' => ['title' => 'Favorites & Travel Diary Conversion', 'data' => array_map(fn($c) => ['name' => $c['name'], 'views' => $c['views'], 'favorite_pct' => $c['favoritePct'], 'diary_pct' => $c['diaryPct']], $conversionItems)],
     'top_searches' => ['title' => 'Top Searches', 'data' => $topSearches],
@@ -553,12 +556,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         </div>
         <div class="charts-2col animate">
         <div class="chart-box">
-            <h4>Most Viewed Places <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
+            <h4>Most Viewed Content <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
             <?php if (empty($topItems)): ?>
                 <div class="chart-empty">
                     <i data-lucide="flame" class="lucide"></i>
-                    <div class="chart-empty-title">No listing views yet</div>
-                    <div class="chart-empty-sub">Opens a real per-place view count for every listing (e.g. "how many visitors did BFC have?") as soon as tourists start clicking "View Details."</div>
+                    <div class="chart-empty-title">No content views yet</div>
+                    <div class="chart-empty-sub">Views of active destinations, products, restaurants, fiestas, and people will appear here.</div>
                 </div>
             <?php else: ?>
                 <div class="trending-list">

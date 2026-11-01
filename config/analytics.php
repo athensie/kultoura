@@ -55,7 +55,7 @@ function analytics_page_labels(): array
         'foryou'      => 'For You',
         'traveldiary' => 'Travel Diary',
         'favorites'   => 'Favorites',
-        'mostpopular' => 'Most Popular',
+        'mostpopular' => 'Most Viewed Content',
     ];
 }
 function analytics_track(mysqli $conn, string $page): void
@@ -245,7 +245,7 @@ function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = n
         $sql = "SELECT t.{$meta['id_col']} AS id, t.{$meta['name_col']} AS name, COUNT(v.view_id) AS views
                 FROM {$meta['table']} t
                 INNER JOIN item_views v ON v.item_type = '$slug' AND v.item_id = t.{$meta['id_col']}
-                WHERE {$meta['where']}" . ($sinceSql ? " AND v.viewed_at >= '$sinceSql'" : '') . "
+                WHERE {$meta['where']} AND t.status = 'active'" . ($sinceSql ? " AND v.viewed_at >= '$sinceSql'" : '') . "
                 GROUP BY t.{$meta['id_col']}, t.{$meta['name_col']}";
         if ($res = $conn->query($sql)) {
             foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
