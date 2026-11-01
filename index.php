@@ -480,7 +480,6 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
 <?php endif; ?>
 <section class="home-about">
     <div class="home-about-text reveal">
-        <p class="home-eyebrow home-eyebrow-gold">ABOUT MALVAR</p>
         <h2 class="home-heading home-heading-light home-heading-barabara">About Malvar</h2>
         <p class="home-about-desc">A town of farmers and factories, waterfalls and church bells — this is the story of Malvar.</p>
         <div class="home-facts">
