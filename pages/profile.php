@@ -282,11 +282,21 @@ while ($dateRow = $dateRows->fetch_assoc()) {
                     <input type="hidden" name="action" value="change_password">
                     <label>
                         <span>Current password</span>
-                        <input type="password" name="current_password" autocomplete="current-password" required>
+                        <div class="profile-password-field">
+                            <input type="password" id="profileCurrentPassword" name="current_password" autocomplete="current-password" required>
+                            <button class="profile-password-toggle" type="button" data-password-toggle="profileCurrentPassword" aria-label="Show password" aria-pressed="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
                     </label>
                     <label>
                         <span>New password</span>
-                        <input type="password" id="profileNewPassword" name="new_password" minlength="8" pattern="^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$" title="At least 8 characters, including one uppercase letter and one special character." autocomplete="new-password" required>
+                        <div class="profile-password-field">
+                            <input type="password" id="profileNewPassword" name="new_password" minlength="8" pattern="^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$" title="At least 8 characters, including one uppercase letter and one special character." autocomplete="new-password" required>
+                            <button class="profile-password-toggle" type="button" data-password-toggle="profileNewPassword" aria-label="Show password" aria-pressed="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
                         <ul class="profile-password-requirements" id="profilePasswordRequirements" aria-label="Password requirements">
                             <li data-rule="length"><span aria-hidden="true"></span>Minimum 8 characters</li>
                             <li data-rule="uppercase"><span aria-hidden="true"></span>One uppercase letter</li>
@@ -295,7 +305,12 @@ while ($dateRow = $dateRows->fetch_assoc()) {
                     </label>
                     <label>
                         <span>Confirm new password</span>
-                        <input type="password" id="profileConfirmPassword" name="confirm_new_password" minlength="8" autocomplete="new-password" required>
+                        <div class="profile-password-field">
+                            <input type="password" id="profileConfirmPassword" name="confirm_new_password" minlength="8" autocomplete="new-password" required>
+                            <button class="profile-password-toggle" type="button" data-password-toggle="profileConfirmPassword" aria-label="Show password" aria-pressed="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
                     </label>
                     <button type="submit">Update password</button>
                 </form>
@@ -305,6 +320,6 @@ while ($dateRow = $dateRows->fetch_assoc()) {
     </main>
     <script src="../assets/js/navbar.js"></script>
     <script src="../assets/js/navbar-search.js?v=20261101-2"></script>
-    <script src="../assets/js/profile.js"></script>
+    <script src="../assets/js/profile.js?v=20261101-1"></script>
 </body>
 </html>

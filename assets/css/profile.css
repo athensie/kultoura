@@ -61,6 +61,12 @@ body {
 .profile-form > label:not(.profile-check) { display: grid; gap: 8px; font-size: .9rem; font-weight: 700; }
 .profile-form input:not([type="checkbox"]) { width: 100%; padding: 13px 14px; border: 1px solid #d8cfc3; border-radius: 10px; background: #fff; color: #2c1a0e; font: inherit; }
 .profile-form input:focus { outline: 3px solid rgba(47, 102, 144, .18); border-color: #2f6690; }
+.profile-password-field { position: relative; width: 100%; }
+.profile-password-field input { padding-right: 50px !important; }
+.profile-password-toggle { position: absolute; top: 50%; right: 8px; display: grid; width: 36px; height: 36px; place-items: center; padding: 0; transform: translateY(-50%); border: 0; border-radius: 8px; background: transparent; color: rgba(44, 26, 14, .55); cursor: pointer; }
+.profile-password-toggle:hover { background: rgba(44, 26, 14, .06); color: #2c1a0e; }
+.profile-password-toggle:focus-visible { outline: 3px solid rgba(47, 102, 144, .3); outline-offset: 1px; }
+.profile-password-toggle svg { display: block; width: 19px; height: 19px; }
 .profile-form small { color: #776c62; font-weight: 400; }
 .profile-check { display: flex; align-items: flex-start; gap: 10px; color: #51463d; font-size: .9rem; line-height: 1.5; }
 .profile-check input { margin: 3px 0 0; accent-color: #315f46; }
