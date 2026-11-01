@@ -14,6 +14,20 @@ if (!function_exists('kt_session_ensure_columns')) {
                 INDEX account_lookup (account_table, account_id)
             ) ENGINE=InnoDB'
         );
+        // Older deployments stored a single active-session token on each account.
+        // Keep the column available during the one-time migration below.
+        foreach (['users', 'admins'] as $accountTable) {
+            $column = $conn->query("SHOW COLUMNS FROM `$accountTable` LIKE 'session_token'");
+            if ($column && $column->num_rows === 0) {
+                try {
+                    $conn->query("ALTER TABLE `$accountTable` ADD COLUMN session_token VARCHAR(128) NULL");
+                } catch (mysqli_sql_exception $e) {
+                    // Another request may have added it at the same time.
+                    if ((int) $e->getCode() !== 1060) throw $e;
+                }
+            }
+            if ($column) $column->close();
+        }
     }
 }
 if (!function_exists('kt_session_issue')) {
@@ -26,6 +40,7 @@ if (!function_exists('kt_session_issue')) {
         $stmt->bind_param('ssi', $sessionKey, $table, $id);
         $stmt->execute();
         $stmt->close();
+        // A legacy session can be migrated once; keep its token until it does.
         return $token;
     }
 }
@@ -40,6 +55,31 @@ if (!function_exists('kt_session_is_current')) {
         $stmt->execute();
         $valid = (bool) $stmt->get_result()->fetch_row();
         $stmt->close();
+        if (!$valid && in_array($table, ['users', 'admins'], true)
+            && (($table === 'users' && $idCol === 'id') || ($table === 'admins' && $idCol === 'admin_id'))) {
+            // Migrate a still-valid session from the former single-device model.
+            // Compare-and-clear makes migration one-time and safe across requests.
+            $conn->begin_transaction();
+            try {
+                $legacy = $conn->prepare("UPDATE `$table` SET session_token = NULL WHERE `$idCol` = ? AND session_token = ?");
+                $legacy->bind_param('is', $id, $token);
+                $legacy->execute();
+                $claimed = $legacy->affected_rows === 1;
+                $legacy->close();
+                if ($claimed) {
+                    $insert = $conn->prepare('INSERT INTO account_sessions (session_key, account_table, account_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE account_table = VALUES(account_table), account_id = VALUES(account_id)');
+                    $insert->bind_param('ssi', $sessionKey, $table, $id);
+                    $insert->execute();
+                    $insert->close();
+                    $conn->commit();
+                    return true;
+                }
+                $conn->rollback();
+            } catch (Throwable $e) {
+                $conn->rollback();
+                throw $e;
+            }
+        }
         return $valid;
     }
 }
@@ -52,6 +92,12 @@ if (!function_exists('kt_session_revoke_others')) {
         $stmt->bind_param('sis', $table, $id, $currentKey);
         $stmt->execute();
         $stmt->close();
+        if (in_array($table, ['users', 'admins'], true)) {
+            $clear = $conn->prepare("UPDATE `$table` SET session_token = NULL WHERE " . ($table === 'admins' ? 'admin_id' : 'id') . ' = ?');
+            $clear->bind_param('i', $id);
+            $clear->execute();
+            $clear->close();
+        }
     }
 }
 if (!function_exists('kt_session_revoke_all')) {
@@ -62,5 +108,11 @@ if (!function_exists('kt_session_revoke_all')) {
         $stmt->bind_param('si', $table, $id);
         $stmt->execute();
         $stmt->close();
+        if (in_array($table, ['users', 'admins'], true)) {
+            $clear = $conn->prepare("UPDATE `$table` SET session_token = NULL WHERE " . ($table === 'admins' ? 'admin_id' : 'id') . ' = ?');
+            $clear->bind_param('i', $id);
+            $clear->execute();
+            $clear->close();
+        }
     }
 }
