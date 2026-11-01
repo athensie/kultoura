@@ -55,7 +55,7 @@ function analytics_page_labels(): array
         'foryou'      => 'For You',
         'traveldiary' => 'Travel Diary',
         'favorites'   => 'Favorites',
-        'mostpopular' => 'Most Viewed Content',
+        'mostpopular' => 'Most Popular',
     ];
 }
 function analytics_track(mysqli $conn, string $page): void

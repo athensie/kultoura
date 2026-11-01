@@ -125,7 +125,7 @@ foreach ($popularItems as $p) {
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Most Viewed Content – KULTOURA</title>
+    <title>Most Popular – KULTOURA</title>
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
@@ -172,7 +172,7 @@ foreach ($popularItems as $p) {
                     <a href="foryou.php">For You</a>
                     <a href="traveldiary.php">Travel Diary</a><?php if ($isLoggedIn): ?><a href="profile.php">My Profile</a><?php endif; ?>
                     <a href="favorites.php">Favorites</a>
-                    <a href="mostpopular.php">Most Viewed Content</a>
+                    <a href="mostpopular.php">Most Popular</a>
                     <a href="about.php">About</a>
                 </div>
             </div>
@@ -202,7 +202,7 @@ foreach ($popularItems as $p) {
     <?php endif; ?>
     <div class="t-hero-inner">
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
-        <h1 class="t-page-title">Most Viewed Content</h1>
+        <h1 class="t-page-title">Most Popular</h1>
         <p class="t-page-sub">
             Explore the destinations, products, restaurants, fiestas, and people visitors view most around Malvar.
         </p>
