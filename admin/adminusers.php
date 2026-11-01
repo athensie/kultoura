@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $accounts = [];
 $adminAccounts = [];
 $adminResult = $conn->query("SELECT admin_id, first_name, last_name, username, email, role, status, created_at,
-                                    (last_activity IS NOT NULL AND last_activity >= NOW() - INTERVAL 5 MINUTE) AS is_online
+                                    (last_activity IS NOT NULL AND last_activity >= NOW() - INTERVAL 1 MINUTE) AS is_online
                              FROM admins ORDER BY created_at DESC");
 if ($adminResult) {
     foreach ($adminResult->fetch_all(MYSQLI_ASSOC) as $a) {
@@ -158,7 +158,7 @@ if ($adminResult) {
 }
 $userAccounts = [];
 $userResult = $conn->query("SELECT id, fullname, username, email, promotional_email, status, created_at,
-                                   (last_activity IS NOT NULL AND last_activity >= NOW() - INTERVAL 5 MINUTE) AS is_online
+                                   (last_activity IS NOT NULL AND last_activity >= NOW() - INTERVAL 1 MINUTE) AS is_online
                             FROM users ORDER BY created_at DESC");
 if ($userResult) {
     foreach ($userResult->fetch_all(MYSQLI_ASSOC) as $u) {
