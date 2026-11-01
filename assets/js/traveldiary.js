@@ -1154,6 +1154,27 @@ const tdWrappedMap = (function () {
     function setLabel(text) {
         if (btnLabel) btnLabel.textContent = text;
     }
+    function showRandomPlaces(message) {
+        const rows = Array.from(checklist.querySelectorAll('.td-check-row'));
+        for (let i = rows.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [rows[i], rows[j]] = [rows[j], rows[i]];
+        }
+        const stillCollapsed = !!expandBtn && document.body.contains(expandBtn);
+        rows.forEach((row, i) => {
+            row.classList.remove('td-is-nearby');
+            row.classList.toggle('td-hidden-extra', stillCollapsed && i >= VISIBLE_COUNT);
+            const badge = row.querySelector('.td-nearby-badge');
+            if (badge) {
+                badge.hidden = true;
+                const distanceLabel = badge.querySelector('.td-nearby-distance-label');
+                if (distanceLabel) distanceLabel.textContent = 'Nearby';
+            }
+            checklist.appendChild(row);
+        });
+        statusEl.textContent = message;
+        statusEl.hidden = false;
+    }
     function applyNearby(userLat, userLng) {
         const rows = Array.from(checklist.querySelectorAll('.td-check-row'));
         const withDist = [];
@@ -1170,8 +1191,7 @@ const tdWrappedMap = (function () {
             withDist.push({ row, dist: haversineMeters(userLat, userLng, lat, lng) });
         });
         if (withDist.length === 0) {
-            statusEl.textContent = "None of your places have a location on file yet.";
-            statusEl.hidden = false;
+            showRandomPlaces('No saved place coordinates are available. Showing places in a random order.');
             return;
         }
         withDist.sort((a, b) => a.dist - b.dist);
@@ -1198,8 +1218,7 @@ const tdWrappedMap = (function () {
     }
     function requestLocation() {
         if (!navigator.geolocation) {
-            statusEl.textContent = "Your browser doesn't support location access.";
-            statusEl.hidden = false;
+            showRandomPlaces("Your browser doesn't support location access. Showing places in a random order.");
             return;
         }
         btn.disabled = true;
@@ -1213,22 +1232,17 @@ const tdWrappedMap = (function () {
             (error) => {
                 btn.disabled = false;
                 setLabel('Show places near me first');
-                statusEl.textContent = error.code === error.PERMISSION_DENIED
-                    ? 'Location access was denied. Allow location for this site in your browser settings, then try again.'
+                const reason = error.code === error.PERMISSION_DENIED
+                    ? 'Location access was denied. Allow location for this site in your browser settings.'
                     : error.code === error.POSITION_UNAVAILABLE
-                        ? 'Your device could not determine your location. Turn on device location services and try again.'
-                        : 'Finding your location took too long. Check device location services and try again.';
-                statusEl.hidden = false;
+                        ? 'Your device could not determine your location. Turn on device location services.'
+                        : 'Finding your location took too long. Check device location services.';
+                showRandomPlaces(`${reason} Showing places in a random order.`);
             },
             { enableHighAccuracy: false, timeout: 20000, maximumAge: 120000 }
         );
     }
     btn.addEventListener('click', requestLocation);
-    if (navigator.permissions && navigator.permissions.query) {
-        navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-            if (result.state === 'granted') requestLocation();
-        }).catch(() => {});
-    }
 })();
 document.querySelectorAll('.td-timeline-delete').forEach((btn) => {
     btn.addEventListener('click', async function () {
