@@ -58,12 +58,7 @@ function ktRefreshEditMap(savedGoogleMaps) {
 }
 function ktToggleSubcategoryField(which) {
   const categorySelect = document.getElementById(which === 'add' ? 'addCategoryInput' : 'editDestinationCategoryInput');
-  const group = document.getElementById(which === 'add' ? 'addSubcategoryGroup' : 'editSubcategoryGroup');
-  const select = document.getElementById(which === 'add' ? 'addSubcategoryInput' : 'editDestinationSubcategoryInput');
-  if (!categorySelect || !group) return;
-  const isNature = categorySelect.value === 'nature';
-  group.hidden = !isNature;
-  if (!isNature && select) select.value = '';
+  if (!categorySelect) return;
   const scheduleGroup = document.getElementById(which === 'add' ? 'addChurchScheduleGroup' : 'editChurchScheduleGroup');
   if (scheduleGroup) scheduleGroup.hidden = categorySelect.value !== 'church';
 }
@@ -118,6 +113,8 @@ document.addEventListener('DOMContentLoaded', function () {
 /* ---------- ADD ---------- */
 function openAddDestination() {
   document.getElementById('addDestinationForm').reset();
+  document.getElementById('addCategoryInput').value = 'nature';
+  document.getElementById('addSubcategoryInput').value = '';
   ktLoadChurchSchedule('add', '[]');
   const addGoogleMaps = document.getElementById('addGoogleMaps');
   if (addGoogleMaps) addGoogleMaps.value = '';
@@ -128,7 +125,6 @@ function openAddDestination() {
 /* ---------- VIEW ---------- */
 function openViewDestination(btn) {
   const d = btn.dataset;
-  const categoryLabels = { nature: 'Nature', industry: 'Industry Zone', resort: 'Resort', accommodation: 'Accommodation', bank: 'Banks', service: 'Other Services', church: 'Churches' };
   const imgEl = document.getElementById('vdImage');
   if (imgEl) {
     if (d.image) {
@@ -149,9 +145,6 @@ function openViewDestination(btn) {
   scheduleWrap.hidden = d.category !== 'church' || !scheduleText;
   document.getElementById('vdScheduleMonth').textContent = d.scheduleMonth || '';
   document.getElementById('vdScheduleText').innerHTML = ktScheduleRowsHtml(scheduleText);
-  const categoryEl = document.getElementById('vdCategory');
-  categoryEl.textContent = categoryLabels[d.category] || d.category || '—';
-  categoryEl.className = 'category-badge ' + (d.category || '');
   const mapLink = document.getElementById('vdMapLink');
   if (mapLink) {
     const saved = d.googleMaps || '';
@@ -237,24 +230,23 @@ async function exportDestinationsExcel() {
       ['KulToura — Destinations Export'],
       [`Generated: ${dateStr}`],
       [],
-      ['#', 'Destination', 'Category', 'Address', 'Views'],
+      ['#', 'Destination', 'Address', 'Views'],
     ];
     rows.forEach((row, i) => {
       const cells = row.querySelectorAll('td');
       const name = cells[0]?.textContent.trim() || '';
-      const category = cells[1]?.textContent.trim() || '';
-      const address = cells[2]?.textContent.trim() || '';
-      const views = cells[3]?.textContent.trim() || '';
-      sheetRows.push([i + 1, name, category, address, views]);
+      const address = cells[1]?.textContent.trim() || '';
+      const views = cells[2]?.textContent.trim() || '';
+      sheetRows.push([i + 1, name, address, views]);
     });
     sheetRows.push([]);
     sheetRows.push(['Total Destinations', rows.length]);
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
-    ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 16 }, { wch: 28 }, { wch: 10 }];
+    ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 28 }, { wch: 10 }];
     ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Destinations');
     XLSX.writeFile(wb, `KulToura-Destinations-${now.toISOString().slice(0, 10)}.xlsx`);

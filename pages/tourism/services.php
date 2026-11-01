@@ -32,7 +32,6 @@ while ($row = $result->fetch_assoc()) {
     $spots[] = [
         'id'          => (int) $row['destination_id'],
         'name'        => $row['destination_name'],
-        'category'    => ucfirst($row['category']),
         'tag'         => $row['address'],
         'desc'        => $row['description'],
         'image'       => $row['image'],
@@ -168,7 +167,6 @@ $stmt->close();
                         onclick="event.stopPropagation(); ktToggleFavorite(<?= (int) $item['id'] ?>)"><?= $item['isFavorited'] ? '&#9829;' : '&#9825;' ?></button>
                 </div>
                 <div class="p-card-body">
-                    <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['name']) ?></h3>
                     <p class="p-card-location">📍 <?= htmlspecialchars($item['tag']) ?></p>
                     <p class="p-card-desc"><?= htmlspecialchars($item['desc']) ?></p>
@@ -176,7 +174,6 @@ $stmt->close();
                         <button type="button" class="p-btn p-btn-primary"
                             data-id="<?= (int) $item['id'] ?>"
                             data-name="<?= htmlspecialchars($item['name']) ?>"
-                            data-category="<?= htmlspecialchars($item['category']) ?>"
                             data-tag="<?= htmlspecialchars($item['tag']) ?>"
                             data-desc="<?= htmlspecialchars($item['desc']) ?>"
                             data-image="<?= htmlspecialchars($item['image']) ?>"
@@ -205,7 +202,6 @@ $stmt->close();
             <img id="ktVdImage" src="" alt="" style="display:none;">
             <button type="button" class="p-modal-fav-icon" id="ktVdFavIcon" onclick="ktToggleFavorite(document.getElementById('ktViewDetailsModal').dataset.itemId)" aria-label="Save to favorites">&#9825;</button>
         </div>
-        <p class="p-modal-eyebrow" id="ktVdCategory"></p>
         <h3 class="p-modal-title" id="ktVdName"></h3>
         <p class="p-modal-desc" id="ktVdDesc"></p>
         <div class="p-modal-facts" id="ktVdFacts"></div>
@@ -266,7 +262,6 @@ function ktOpenViewDetails(btn) {
     const imgEl = document.getElementById('ktVdImage');
     imgEl.src = image;
     imgEl.style.display = image ? 'block' : 'none';
-    document.getElementById('ktVdCategory').textContent = btn.dataset.category || '';
     document.getElementById('ktVdName').textContent = btn.dataset.name || '';
     document.getElementById('ktVdDesc').textContent = btn.dataset.desc || 'No description available yet.';
     let facts = '';

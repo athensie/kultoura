@@ -202,8 +202,6 @@ if ($openPersonSlug !== '') {
         <div class="p-card-grid" id="peopleCardGrid">
             <?php foreach ($people as $item):
                 $slug = kt_person_slug($item);
-                $achLines = array_values(array_filter(array_map('trim', explode("\n", (string) ($item['achievement'] ?? '')))));
-                $achPreview = $achLines[0] ?? '';
                 $isFav = isset($favoritedIds[(int) $item['person_id']]);
             ?>
             <article class="p-card">
@@ -211,10 +209,8 @@ if ($openPersonSlug !== '') {
                     <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
                             data-person-id="<?= (int) $item['person_id'] ?>"
                             aria-label="<?= $isFav ? 'Remove from favorites' : 'Save to favorites' ?>"><?= $isFav ? '&#9829;' : '&#9825;' ?></button>
-                    <?php if (!empty($item['title'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['title']) ?></span><?php endif; ?>
                 </div>
                 <div class="p-card-body">
-                    <?php if ($achPreview !== ''): ?><p class="p-card-category"><?= htmlspecialchars($achPreview) ?><?= count($achLines) > 1 ? ' +' . (count($achLines) - 1) : '' ?></p><?php endif; ?>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['fullname']) ?></h3>
                     <div class="p-card-actions">
                         <a class="p-btn p-btn-primary" href="?person=<?= urlencode($slug) ?>">View Details</a>
