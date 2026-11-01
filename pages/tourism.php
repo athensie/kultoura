@@ -154,7 +154,6 @@ foreach ($hubImages as $key => $value) {
     <section class="t-category" id="products">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Category 01</p>
                 <h2 class="t-cat-title">Local Products</h2>
                 <p class="t-cat-desc">
                     Taste what Malvar is made of — farm-fresh local products and native delicacies.
@@ -180,7 +179,6 @@ foreach ($hubImages as $key => $value) {
     <section class="t-category" id="destinations">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Category 02</p>
                 <h2 class="t-cat-title">Local Destinations</h2>
                 <p class="t-cat-desc">
                     Explore Malvar's landscapes — green nature spots, thriving industrial zones, and refreshing resorts.
@@ -242,7 +240,6 @@ foreach ($hubImages as $key => $value) {
     <section class="t-category" id="culture">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Category 03</p>
                 <h2 class="t-cat-title">Culture</h2>
                 <p class="t-cat-desc">
                     The soul of Malvar lives in its festivals and its people. Meet both.
@@ -280,7 +277,6 @@ foreach ($hubImages as $key => $value) {
     <section class="t-category" id="services">
         <div class="t-category-header">
             <div>
-                <p class="t-cat-label">Category 04</p>
                 <h2 class="t-cat-title">Other Services</h2>
                 <p class="t-cat-desc">
                     The primary places a tourist will actually use — hospitals, terminals, and everyday essentials.
