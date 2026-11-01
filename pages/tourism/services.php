@@ -140,14 +140,6 @@ $stmt->close();
     <section class="p-search-row">
         <form class="p-search-bar" action="services.php" method="get" onsubmit="return false;">
             <input type="search" name="q" id="servicesSearchInput" placeholder="Search services by name..." autocomplete="off">
-            <select id="servicesCategorySelect" class="p-category-select" aria-label="Filter services by category">
-                <option value="">All Categories</option>
-                <option value="hospital / clinic">Hospital / Clinic</option>
-                <option value="terminal">Terminal</option>
-                <option value="gas station">Gas Station</option>
-                <option value="police station">Police Station</option>
-                <option value="pharmacy">Pharmacy</option>
-            </select>
         </form>
         <p class="p-search-empty" id="servicesSearchEmpty" hidden>No services match your search.</p>
     </section>
@@ -167,7 +159,7 @@ $stmt->close();
         <?php else: ?>
         <div class="p-card-grid" id="servicesCardGrid">
             <?php foreach ($spots as $item): ?>
-            <article class="p-card" data-category="<?= htmlspecialchars(strtolower((string) $item['category'])) ?>" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
+            <article class="p-card" onclick="ktOpenViewDetails(this.querySelector('.p-btn-primary'))">
                 <div class="p-card-media">
                     <?php if (!empty($item['image'])): ?><img src="<?= htmlspecialchars($item['image']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php endif; ?>
                     <button class="p-fav-btn <?= $item['isFavorited'] ? 'is-favorited' : '' ?>" type="button"
@@ -241,24 +233,21 @@ $stmt->close();
 <script>
 (function () {
     const input = document.getElementById('servicesSearchInput');
-    const category = document.getElementById('servicesCategorySelect');
     const grid = document.getElementById('servicesCardGrid');
     const empty = document.getElementById('servicesSearchEmpty');
     if (!input || !grid) return;
     function filterServiceCards() {
         const query = input.value.trim().toLocaleLowerCase();
-        const selectedCategory = category ? category.value : '';
         let visible = 0;
         grid.querySelectorAll('.p-card').forEach(function (card) {
             const name = (card.querySelector('.p-card-title')?.textContent || '').trim().toLocaleLowerCase();
-            const matches = name.includes(query) && (!selectedCategory || card.dataset.category === selectedCategory);
+            const matches = name.includes(query);
             card.style.display = matches ? '' : 'none';
             if (matches) visible++;
         });
         if (empty) empty.hidden = visible > 0;
     }
     input.addEventListener('input', filterServiceCards);
-    if (category) category.addEventListener('change', filterServiceCards);
 })();
 function ktShowModal(id) { document.getElementById(id).classList.add('open'); }
 function ktCloseModal(id) { document.getElementById(id).classList.remove('open'); }

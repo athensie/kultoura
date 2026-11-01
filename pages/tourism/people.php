@@ -182,13 +182,6 @@ if ($openPersonSlug !== '') {
     <section class="p-search-row">
         <form class="p-search-bar" action="people.php" method="get" onsubmit="return false;">
             <input type="search" name="q" id="peopleSearchInput" placeholder="Search by name..." autocomplete="off">
-            <select id="peopleCategorySelect" class="p-category-select" aria-label="Filter people by category">
-                <option value="">All Categories</option>
-                <option value="local leader">Local Leader</option>
-                <option value="artist">Artist</option>
-                <option value="farmer">Farmer</option>
-                <option value="community pillar">Community Pillar</option>
-            </select>
         </form>
         <p class="p-search-empty" id="peopleSearchEmpty" hidden>No people match your search.</p>
     </section>
@@ -213,7 +206,7 @@ if ($openPersonSlug !== '') {
                 $achPreview = $achLines[0] ?? '';
                 $isFav = isset($favoritedIds[(int) $item['person_id']]);
             ?>
-            <article class="p-card" data-category="<?= htmlspecialchars(strtolower((string) ($item['title'] ?? ''))) ?>">
+            <article class="p-card">
                 <div class="p-card-media" <?= !empty($item['image']) ? 'style="background-image:url(\'' . htmlspecialchars($item['image']) . '\')"' : '' ?>>
                     <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
                             data-person-id="<?= (int) $item['person_id'] ?>"
@@ -255,24 +248,21 @@ function ktTrackItemView(type, id) {
 /* ---------- FAVORITE BUTTON ---------- */
 (function () {
     const input = document.getElementById('peopleSearchInput');
-    const category = document.getElementById('peopleCategorySelect');
     const grid = document.getElementById('peopleCardGrid');
     const empty = document.getElementById('peopleSearchEmpty');
     if (!input || !grid) return;
     function filterPeopleCards() {
         const query = input.value.trim().toLocaleLowerCase();
-        const selectedCategory = category ? category.value : '';
         let visible = 0;
         grid.querySelectorAll('.p-card').forEach(function (card) {
             const name = (card.querySelector('.p-card-title')?.textContent || '').trim().toLocaleLowerCase();
-            const matches = name.includes(query) && (!selectedCategory || card.dataset.category === selectedCategory);
+            const matches = name.includes(query);
             card.style.display = matches ? '' : 'none';
             if (matches) visible++;
         });
         if (empty) empty.hidden = visible > 0;
     }
     input.addEventListener('input', filterPeopleCards);
-    if (category) category.addEventListener('change', filterPeopleCards);
 })();
 let pToastTimer;
 function pShowToast(msg) {
