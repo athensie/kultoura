@@ -341,7 +341,6 @@ foreach ($favoriteRows as $r) {
         <p class="p-modal-desc" id="ktVdDesc"></p>
         <div class="p-modal-facts" id="ktVdFacts"></div>
         <div class="p-modal-actions">
-            <button type="button" id="ktVdFavBtn" class="p-btn p-btn-primary" onclick="ktUnfavoriteFromModal()">♥ Remove from Favorites</button>
             <button type="button" class="p-btn p-btn-outline" id="ktVdNavigateBtn">Navigate</button>
             <a href="#" id="ktVdFullPageLink" class="p-btn p-btn-outline">View Full Page</a>
         </div>
