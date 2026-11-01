@@ -141,7 +141,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
+    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
     <link rel="stylesheet" href="../assets/css/admineventandfiesta.css">
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">

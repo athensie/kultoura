@@ -194,7 +194,7 @@ sort($allCategories);
     <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
-    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
+    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
     <style>
         .image-current-hint { font-size: .7rem; color: rgba(245,237,216,.45); margin-top: 6px; }
     </style>

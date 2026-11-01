@@ -174,7 +174,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261016">
+    <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
 </head>
 <body>
 <aside class="sidebar" id="sidebar">
