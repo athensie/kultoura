@@ -67,19 +67,27 @@ function confirmDeleteAccount(btn) {
   openModal('deleteModal');
 }
 function filterUsers(val) {
-  const term = val.toLowerCase();
-  document.querySelectorAll('#usersTable tbody tr').forEach(row => {
-    row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-  });
+  applyAccountFilters();
 }
 function filterByRole(val) {
-  document.querySelectorAll('#usersTable tbody tr').forEach(row => {
-    row.style.display = (val === 'all' || row.dataset.role === val) ? '' : 'none';
-  });
+  applyAccountFilters();
 }
 function filterByOnlineStatus(val) {
-  document.querySelectorAll('#usersTable tbody tr').forEach(row => {
-    row.style.display = (val === 'all' || row.dataset.online === val) ? '' : 'none';
+  applyAccountFilters();
+}
+function applyAccountFilters() {
+  const table = document.getElementById('usersTable');
+  if (!table) return;
+  const tab = window.ktAccountsTab || 'all';
+  const term = (document.querySelector('.search-input')?.value || '').trim().toLowerCase();
+  const role = document.getElementById('roleFilter')?.value || 'all';
+  const status = document.getElementById('statusFilter')?.value || 'all';
+  table.querySelectorAll('tbody tr').forEach(row => {
+    const matchesTab = tab === 'all' || row.dataset.tab === tab;
+    const matchesSearch = !term || row.textContent.toLowerCase().includes(term);
+    const matchesRole = role === 'all' || row.dataset.role === role;
+    const matchesStatus = status === 'all' || row.dataset.status === status;
+    row.style.display = matchesTab && matchesSearch && matchesRole && matchesStatus ? '' : 'none';
   });
 }
 let _toastTimer;

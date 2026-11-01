@@ -106,9 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 $accounts = [];
-$onlineThreshold = date('Y-m-d H:i:s', strtotime('-5 minutes'));
 $adminAccounts = [];
-$adminResult = $conn->query("SELECT admin_id, first_name, last_name, username, email, role, status, last_activity, created_at FROM admins ORDER BY created_at DESC");
+$adminResult = $conn->query("SELECT admin_id, first_name, last_name, username, email, role, status, created_at,
+                                    (last_activity IS NOT NULL AND last_activity >= NOW() - INTERVAL 5 MINUTE) AS is_online
+                             FROM admins ORDER BY created_at DESC");
 if ($adminResult) {
     foreach ($adminResult->fetch_all(MYSQLI_ASSOC) as $a) {
         $normalizedRole = strtolower(trim($a['role'] ?? ''));
@@ -119,7 +120,8 @@ if ($adminResult) {
             $roleLabel = 'Admin';
             $roleClass = 'admin';
         }
-        $isOnline = !empty($a['last_activity']) && $a['last_activity'] >= $onlineThreshold;
+        $isOnline = (int) $a['is_online'] === 1;
+        $isActive = strcasecmp(trim((string) ($a['status'] ?? 'Active')), 'Inactive') !== 0;
         $row = [
             'source'      => 'admin',
             'id'          => (int) $a['admin_id'],
@@ -132,7 +134,8 @@ if ($adminResult) {
             'roleClass'   => $roleClass,
             'promo'       => null,
             'online'      => $isOnline,
-            'active'      => ($a['status'] ?? 'Active') !== 'Inactive',
+            'active'      => $isActive,
+            'accountStatus' => !$isActive ? 'deactivated' : ($isOnline ? 'active' : 'offline'),
             'created_at'  => $a['created_at'],
         ];
         $adminAccounts[] = $row;
@@ -140,10 +143,13 @@ if ($adminResult) {
     }
 }
 $userAccounts = [];
-$userResult = $conn->query("SELECT id, fullname, username, email, promotional_email, status, last_activity, created_at FROM users ORDER BY created_at DESC");
+$userResult = $conn->query("SELECT id, fullname, username, email, promotional_email, status, created_at,
+                                   (last_activity IS NOT NULL AND last_activity >= NOW() - INTERVAL 5 MINUTE) AS is_online
+                            FROM users ORDER BY created_at DESC");
 if ($userResult) {
     foreach ($userResult->fetch_all(MYSQLI_ASSOC) as $u) {
-        $isOnline = !empty($u['last_activity']) && $u['last_activity'] >= $onlineThreshold;
+        $isOnline = (int) $u['is_online'] === 1;
+        $isActive = strcasecmp(trim((string) ($u['status'] ?? 'Active')), 'Inactive') !== 0;
         $row = [
             'source'      => 'user',
             'id'          => (int) $u['id'],
@@ -156,7 +162,8 @@ if ($userResult) {
             'roleClass'   => 'user',
             'promo'       => (int) $u['promotional_email'] === 1,
             'online'      => $isOnline,
-            'active'      => ($u['status'] ?? 'Active') !== 'Inactive',
+            'active'      => $isActive,
+            'accountStatus' => !$isActive ? 'deactivated' : ($isOnline ? 'active' : 'offline'),
             'created_at'  => $u['created_at'],
         ];
         $userAccounts[] = $row;
@@ -168,7 +175,7 @@ $totalAccounts    = count($accounts);
 $totalAdmins      = count(array_filter($accounts, fn($acc) => $acc['source'] === 'admin'));
 $totalUsers       = count(array_filter($accounts, fn($acc) => $acc['source'] === 'user'));
 $subscribedCount  = count(array_filter($accounts, fn($acc) => $acc['promo'] === true));
-$onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
+$onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && $acc['online']));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -260,6 +267,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
         </div>
         <?php endif; ?>
         <div class="status-tabs" style="display:flex;gap:8px;margin-bottom:18px;">
+            <a href="#" id="tabAllBtn" onclick="showAccountsTab('all', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:var(--gold,#C8A96E);color:#1a1812;font-weight:600;">All Accounts (<?php echo $totalAccounts; ?>)</a>
             <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Site Users (<?php echo $totalUsers; ?>)</a>
             <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
         </div>
@@ -297,6 +305,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="offline">Offline</option>
+                <option value="deactivated">Deactivated</option>
             </select>
         </div>
         <div class="data-table-wrap animate">
@@ -320,7 +329,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                     </thead>
                     <tbody>
                         <?php foreach ($accounts as $acc): ?>
-                            <tr data-role="<?php echo $acc['roleClass']; ?>" data-tab="<?php echo $acc['source'] === 'admin' ? 'admin' : 'user'; ?>" data-online="<?php echo $acc['online'] ? 'active' : 'offline'; ?>">
+                            <tr data-role="<?php echo $acc['roleClass']; ?>" data-tab="<?php echo $acc['source'] === 'admin' ? 'admin' : 'user'; ?>" data-status="<?php echo $acc['accountStatus']; ?>">
                                 <td><?php echo htmlspecialchars($acc['username']); ?></td>
                                 <td><span class="role-badge <?php echo $acc['roleClass']; ?>"><?php echo htmlspecialchars($acc['role']); ?></span></td>
                                 <td>
@@ -343,7 +352,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
                                             data-username="<?php echo htmlspecialchars($acc['username'], ENT_QUOTES); ?>"
                                             data-email="<?php echo htmlspecialchars($acc['email'], ENT_QUOTES); ?>"
                                             data-role="<?php echo htmlspecialchars($acc['role'], ENT_QUOTES); ?>"
-                                            data-online="<?php echo $acc['online'] ? 'Active' : 'Offline'; ?>"
+                                            data-online="<?php echo $acc['accountStatus'] === 'active' ? 'Active' : ($acc['accountStatus'] === 'deactivated' ? 'Deactivated' : 'Offline'); ?>"
                                             data-joined="<?php echo htmlspecialchars(date('M j, Y', strtotime($acc['created_at'])), ENT_QUOTES); ?>"
                                             data-promo="<?php echo $acc['promo'] === null ? '' : (int) $acc['promo']; ?>"
                                             onclick="openViewAccount(this)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
@@ -524,14 +533,12 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['online']));
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
-<script src="../assets/js/adminusers.js"></script>
+<script src="../assets/js/adminusers.js?v=20261101-1"></script>
 <script>initSidebarCollapse();</script>
 <script>
 function showAccountsTab(tab, btn) {
-    document.querySelectorAll('#usersTable tbody tr').forEach(function (row) {
-        row.style.display = (tab === 'all' || row.dataset.tab === tab) ? '' : 'none';
-    });
-    ['tabUsersBtn', 'tabAdminsBtn'].forEach(function (id) {
+    window.ktAccountsTab = tab;
+    ['tabAllBtn', 'tabUsersBtn', 'tabAdminsBtn'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         var active = el === btn;
@@ -539,8 +546,9 @@ function showAccountsTab(tab, btn) {
         el.style.color = active ? '#1a1812' : 'rgba(245,237,216,.6)';
         el.style.fontWeight = active ? '600' : 'normal';
     });
+    applyAccountFilters();
 }
-showAccountsTab('user', document.getElementById('tabUsersBtn'));
+showAccountsTab('all', document.getElementById('tabAllBtn'));
 </script>
 <?php if ($flashMessage): ?>
 <script>
