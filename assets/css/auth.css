@@ -17,6 +17,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    margin: 0 auto 22px;
     padding: 5px;
     border: 1px solid rgba(44, 26, 14, 0.1);
     border-radius: 999px;

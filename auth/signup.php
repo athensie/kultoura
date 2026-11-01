@@ -66,11 +66,11 @@ unset($_SESSION['error']);
         </button>
     </header>
     <main class="auth-content">
-        <nav class="auth-mode-switch" aria-label="Account access">
-            <a href="login.php">Log In</a>
-            <a href="signup.php" class="is-active" aria-current="page">Sign Up</a>
-        </nav>
         <div class="auth-card">
+            <nav class="auth-mode-switch" aria-label="Account access">
+                <a href="login.php">Log In</a>
+                <a href="signup.php" class="is-active" aria-current="page">Sign Up</a>
+            </nav>
             <div class="auth-brand">
                 <img src="../assets/images/kultoura.png" alt="KulToura">
             </div>
