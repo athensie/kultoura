@@ -646,7 +646,7 @@ usort($checklist, function ($a, $b) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Diary – KULTOURA</title>
     <link rel="stylesheet" href="../assets/css/index.css">
-    <link rel="stylesheet" href="../assets/css/search.css">
+    <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/traveldiary.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/traveldiary.css') ?: time(); ?>">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -1449,7 +1449,7 @@ const TD_CATEGORY_ICONS = <?php echo $categoryIconsJson; ?>;
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../assets/js/navbar.js"></script>
-<script src="../assets/js/navbar-search.js"></script>
+<script src="../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="../assets/js/traveldiary.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/traveldiary.js') ?: time(); ?>"></script>
 </body>
 </html>

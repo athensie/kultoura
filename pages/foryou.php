@@ -438,7 +438,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>For You · <?php echo $siteName; ?></title>
     <link rel="stylesheet" href="../assets/css/index.css">
-    <link rel="stylesheet" href="../assets/css/search.css">
+    <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/foryou.css">
 </head>
@@ -667,7 +667,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
 const KULTOURA_PLACES = <?php echo $placesJson; ?>;
 </script>
 <script src="../assets/js/navbar.js"></script>
-<script src="../assets/js/navbar-search.js"></script>
+<script src="../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="../assets/js/foryou.js"></script>
 </body>
 </html>

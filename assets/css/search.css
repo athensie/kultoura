@@ -308,3 +308,11 @@
     border-color: #5f7d4c;
     box-shadow: 0 0 0 3px rgba(95, 125, 76, 0.18);
 }
+@media (min-width: 769px) {
+    .navbar .nav-links {
+        transition: transform 0.28s ease;
+    }
+    .navbar.search-open .nav-links {
+        transform: translateX(calc(-1 * clamp(280px, 18vw, 320px)));
+    }
+}

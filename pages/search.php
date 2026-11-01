@@ -26,7 +26,7 @@ if ($query !== '') {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/foryou.css">
-    <link rel="stylesheet" href="../assets/css/search.css">
+    <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
 </head>
 <body>
 

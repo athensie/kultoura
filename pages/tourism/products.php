@@ -79,7 +79,7 @@ foreach ($rows as $r) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products – KULTOURA</title>
     <link rel="stylesheet" href="../../assets/css/index.css">
-    <link rel="stylesheet" href="../../assets/css/search.css">
+    <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/product.css">
@@ -257,7 +257,7 @@ foreach ($rows as $r) {
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
 <script src="../../assets/js/navbar.js"></script>
-<script src="../../assets/js/navbar-search.js"></script>
+<script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 <script>
 const productsData = <?php echo json_encode($products); ?>;
 function findProduct(id) { return productsData.find(p => p.id === id); }

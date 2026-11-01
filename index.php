@@ -213,7 +213,7 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
     <link rel="stylesheet" href="assets/css/index.css?v=20261101-1">
-    <link rel="stylesheet" href="assets/css/search.css?v=20261101-1">
+    <link rel="stylesheet" href="assets/css/search.css?v=20261101-2">
 </head>
 <body>
 <div class="hero<?php echo $heroBgPhoto ? '' : ' hero-no-bg-photo'; ?>">
@@ -644,7 +644,7 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
     </div>
 </footer>
 <script src="assets/js/navbar.js"></script>
-<script src="assets/js/navbar-search.js"></script>
+<script src="assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="assets/js/home.js?v=20261031-3"></script>
 </body>
 </html>

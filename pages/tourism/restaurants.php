@@ -63,7 +63,7 @@ foreach ($rows as $r) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurants – KULTOURA</title>
     <link rel="stylesheet" href="../../assets/css/index.css">
-    <link rel="stylesheet" href="../../assets/css/search.css">
+    <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/restaurants.css">
@@ -246,7 +246,7 @@ foreach ($rows as $r) {
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
 <script src="../../assets/js/navbar.js"></script>
-<script src="../../assets/js/navbar-search.js"></script>
+<script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 <script>
 const restaurantsData = <?php echo json_encode($restaurants); ?>;
 function findProduct(id) { return restaurantsData.find(p => p.id === id); }

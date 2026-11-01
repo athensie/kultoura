@@ -107,7 +107,7 @@ if (isset($_GET['ajax_calendar'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiestas – KULTOURA</title>
     <link rel="stylesheet" href="../../assets/css/index.css">
-    <link rel="stylesheet" href="../../assets/css/search.css">
+    <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261015c">
@@ -484,7 +484,7 @@ if (isset($_GET['ajax_calendar'])) {
     <p>© KULTOURA · Malvar, Batangas ·
 </footer>
 <script src="../../assets/js/navbar.js"></script>
-<script src="../../assets/js/navbar-search.js"></script>
+<script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 <script>
 // Data for every fiesta currently on the page (mirrors the eventsData
 // pattern used in admineventandfiesta.php) so modals don't need extra

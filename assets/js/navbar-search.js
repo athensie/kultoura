@@ -5,17 +5,20 @@
     const form = root.querySelector('.navbar-search-form');
     const input = root.querySelector('.navbar-search-input');
     const dropdown = root.querySelector('.navbar-search-dropdown');
+    const navbar = root.closest('.navbar');
     const API_PATH = root.dataset.api || 'search_api.php';
     const RESULTS_PATH = root.dataset.results || 'search.php';
     let debounceTimer = null;
     let currentQuery = '';
     function openSearch() {
         root.classList.add('is-open');
+        if (navbar) navbar.classList.add('search-open');
         toggleBtn.setAttribute('aria-expanded', 'true');
         setTimeout(() => input.focus(), 50);
     }
     function closeSearch() {
         root.classList.remove('is-open');
+        if (navbar) navbar.classList.remove('search-open');
         toggleBtn.setAttribute('aria-expanded', 'false');
         closeDropdown();
     }

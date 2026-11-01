@@ -81,7 +81,7 @@ unset($sec);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About – KULTOURA</title>
     <link rel="stylesheet" href="../assets/css/index.css">
-    <link rel="stylesheet" href="../assets/css/search.css">
+    <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/about.css">
 </head>
@@ -227,7 +227,7 @@ unset($sec);
     <p class="a-footer-tag">Promoting culture. Preserving heritage. Inspiring journeys.</p>
 </footer>
 <script src="../assets/js/navbar.js"></script>
-<script src="../assets/js/navbar-search.js"></script>
+<script src="../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="../assets/js/about.js"></script>
 </body>
 </html>

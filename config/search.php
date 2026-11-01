@@ -58,20 +58,42 @@ if (!function_exists('kt_search_all')) {
         $query = trim($query);
         if ($query === '') return [];
         $like = '%' . $conn->real_escape_string($query) . '%';
+        $categoryNeedle = mb_strtolower($query);
+        $categoryAliases = [
+            'nature' => 'nature',
+            'industry zone' => 'industry',
+            'resort' => 'resort',
+            'accommodation' => 'accommodation',
+            'banks' => 'bank',
+            'other services' => 'service',
+            'churches' => 'church',
+        ];
+        $categoryLike = $like;
+        foreach ($categoryAliases as $label => $value) {
+            if (str_contains($label, $categoryNeedle) || str_contains($categoryNeedle, $label)) {
+                $categoryLike = '%' . $conn->real_escape_string($value) . '%';
+                break;
+            }
+        }
+        $destinationCategoryLabels = [
+            'nature' => 'Nature', 'industry' => 'Industry Zone', 'resort' => 'Resort',
+            'accommodation' => 'Accommodation', 'bank' => 'Banks', 'service' => 'Other Services',
+            'church' => 'Churches',
+        ];
         $results = [];
         $stmt = $conn->prepare(
-            "SELECT destination_id, destination_name, category, description, image
-             FROM destination WHERE status = 'active' AND (destination_name LIKE ? OR description LIKE ? OR address LIKE ?)
+            "SELECT destination_id, destination_name, category, subcategory, description, image
+             FROM destination WHERE status = 'active' AND (destination_name LIKE ? OR description LIKE ? OR address LIKE ? OR category LIKE ? OR COALESCE(subcategory, '') LIKE ?)
              ORDER BY destination_name ASC LIMIT ?"
         );
-        $stmt->bind_param('sssi', $like, $like, $like, $limitPerType);
+        $stmt->bind_param('sssssi', $like, $like, $like, $categoryLike, $like, $limitPerType);
         $stmt->execute();
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $results[] = [
                 'type'      => 'destination',
                 'id'        => (int) $row['destination_id'],
                 'name'      => $row['destination_name'],
-                'badgeText' => ucfirst($row['category']),
+                'badgeText' => $destinationCategoryLabels[$row['category']] ?? ucfirst($row['category']),
                 'category'  => $row['category'],
                 'image'     => kt_search_image_src($row['category'], $row['image']),
                 'link'      => kt_search_link('destination', $row['category'], (int) $row['destination_id']),
