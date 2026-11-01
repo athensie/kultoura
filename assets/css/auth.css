@@ -14,9 +14,10 @@
     padding: 32px 20px 64px;
 }
 .auth-mode-switch {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 4px;
+    width: max-content;
     margin: 0 auto 22px;
     padding: 5px;
     border: 1px solid rgba(44, 26, 14, 0.1);
