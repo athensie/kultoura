@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('si', $newPasswordHash, $userId);
             $stmt->execute();
             $stmt->close();
+            kt_session_revoke_others($conn, 'users', $userId);
             $_SESSION['profile_success'] = 'Your password has been changed.';
             header('Location: profile.php');
             exit;

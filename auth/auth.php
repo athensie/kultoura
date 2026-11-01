@@ -257,7 +257,7 @@ if ($action === 'do_reset') {
     $stmt->bind_param('si', $hash, $verifiedId);
     $stmt->execute();
     $stmt->close();
-    kt_session_issue($conn, $verifiedTable, $idCol, (int) $verifiedId);
+    kt_session_revoke_all($conn, $verifiedTable, (int) $verifiedId);
     unset($_SESSION['reset_verified_id'], $_SESSION['reset_verified_table'], $_SESSION['reset_verified_expires']);
     $_SESSION['success'] = 'Your password has been reset. You can now sign in.';
     header("Location: " . BASE_URL . "/auth/login.php");
@@ -291,7 +291,7 @@ if ($action === 'set_admin_password') {
     $stmt->execute();
     $stmt->close();
     kt_pwreq_clear($conn, $adminId);
-    kt_session_issue($conn, 'admins', 'admin_id', $adminId);
+    kt_session_revoke_others($conn, 'admins', $adminId);
     $_SESSION['success'] = 'Your password has been changed. Please sign in again.';
     header("Location: " . BASE_URL . "/auth/login.php");
     exit;
