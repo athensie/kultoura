@@ -1143,7 +1143,13 @@ const tdWrappedMap = (function () {
         const dLat = toRad(lat2 - lat1);
         const dLon = toRad(lon2 - lon1);
         const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const safeA = Math.min(1, Math.max(0, a));
+        return R * 2 * Math.atan2(Math.sqrt(safeA), Math.sqrt(1 - safeA));
+    }
+    function formatDistance(meters) {
+        return meters < 1000
+            ? `${Math.round(meters / 10) * 10} m`
+            : `${(meters / 1000).toFixed(1)} km`;
     }
     function setLabel(text) {
         if (btnLabel) btnLabel.textContent = text;
@@ -1155,7 +1161,9 @@ const tdWrappedMap = (function () {
         rows.forEach((row) => {
             const lat = parseFloat(row.dataset.lat);
             const lng = parseFloat(row.dataset.lng);
-            if (Number.isNaN(lat) || Number.isNaN(lng)) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)
+                || Math.abs(lat) > 90 || Math.abs(lng) > 180
+                || (lat === 0 && lng === 0)) {
                 withoutCoords.push(row);
                 return;
             }
@@ -1168,7 +1176,6 @@ const tdWrappedMap = (function () {
         }
         withDist.sort((a, b) => a.dist - b.dist);
         const stillCollapsed = !!expandBtn && document.body.contains(expandBtn);
-        let nearbyCount = 0;
         const ordered = [...withDist.map((d) => d.row), ...withoutCoords];
         ordered.forEach((row, i) => {
             row.classList.toggle('td-hidden-extra', stillCollapsed && i >= VISIBLE_COUNT);
@@ -1178,14 +1185,15 @@ const tdWrappedMap = (function () {
             const isNearby = dist <= GEOFENCE_METERS;
             const badge = row.querySelector('.td-nearby-badge');
             row.classList.toggle('td-is-nearby', isNearby);
-            if (badge) badge.hidden = !isNearby;
-            if (isNearby) nearbyCount++;
+            if (badge) {
+                const distanceLabel = badge.querySelector('.td-nearby-distance-label');
+                if (distanceLabel) distanceLabel.textContent = `${formatDistance(dist)} away`;
+                badge.hidden = false;
+            }
         });
-        statusEl.textContent = nearbyCount === 0
-            ? 'Sorted by distance — closest places are now at the top.'
-            : (nearbyCount === 1
-                ? '1 place near you is now at the top of the list.'
-                : `${nearbyCount} places near you are now at the top of the list.`);
+        const nearest = withDist[0];
+        const nearestName = nearest.row.dataset.place || 'A place';
+        statusEl.textContent = `Location found. Nearest: ${nearestName} (${formatDistance(nearest.dist)}). Closest places are at the top.`;
         statusEl.hidden = false;
     }
     function requestLocation() {
@@ -1195,7 +1203,7 @@ const tdWrappedMap = (function () {
             return;
         }
         btn.disabled = true;
-        setLabel('Locating…');
+        setLabel('Finding your location…');
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 btn.disabled = false;
@@ -1206,11 +1214,13 @@ const tdWrappedMap = (function () {
                 btn.disabled = false;
                 setLabel('Show places near me first');
                 statusEl.textContent = error.code === error.PERMISSION_DENIED
-                    ? 'Location access was denied — you can enable it anytime in your browser settings.'
-                    : "Couldn't get your location. Please try again.";
+                    ? 'Location access was denied. Allow location for this site in your browser settings, then try again.'
+                    : error.code === error.POSITION_UNAVAILABLE
+                        ? 'Your device could not determine your location. Turn on device location services and try again.'
+                        : 'Finding your location took too long. Check device location services and try again.';
                 statusEl.hidden = false;
             },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            { enableHighAccuracy: false, timeout: 20000, maximumAge: 120000 }
         );
     }
     btn.addEventListener('click', requestLocation);

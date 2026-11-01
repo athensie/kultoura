@@ -1049,7 +1049,7 @@ usort($checklist, function ($a, $b) {
                                     <div class="td-check-top">
                                         <span class="td-check-name"><?php echo htmlspecialchars($c['name']); ?></span>
                                         <span class="td-badge td-badge-<?php echo htmlspecialchars($c['category']); ?>"><?php echo htmlspecialchars($c['badgeText']); ?></span>
-                                        <span class="td-nearby-badge" hidden><span class="td-btn-icon"><?php echo $uiIcons['pin']; ?></span>Nearby</span>
+                                        <span class="td-nearby-badge" hidden><span class="td-btn-icon"><?php echo $uiIcons['pin']; ?></span><span class="td-nearby-distance-label">Nearby</span></span>
                                     </div>
                                     <p class="td-check-status">
                                         <?php if ($c['visited']): ?>
