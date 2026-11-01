@@ -58,7 +58,9 @@ function ktRefreshEditMap(savedGoogleMaps) {
 }
 function ktToggleSubcategoryField(which) {
   const categorySelect = document.getElementById(which === 'add' ? 'addCategoryInput' : 'editDestinationCategoryInput');
+  const select = document.getElementById(which === 'add' ? 'addSubcategoryInput' : 'editDestinationSubcategoryInput');
   if (!categorySelect) return;
+  if (categorySelect.value !== 'nature' && select) select.value = '';
   const scheduleGroup = document.getElementById(which === 'add' ? 'addChurchScheduleGroup' : 'editChurchScheduleGroup');
   if (scheduleGroup) scheduleGroup.hidden = categorySelect.value !== 'church';
 }
@@ -113,7 +115,6 @@ document.addEventListener('DOMContentLoaded', function () {
 /* ---------- ADD ---------- */
 function openAddDestination() {
   document.getElementById('addDestinationForm').reset();
-  document.getElementById('addCategoryInput').value = 'nature';
   document.getElementById('addSubcategoryInput').value = '';
   ktLoadChurchSchedule('add', '[]');
   const addGoogleMaps = document.getElementById('addGoogleMaps');
@@ -125,6 +126,7 @@ function openAddDestination() {
 /* ---------- VIEW ---------- */
 function openViewDestination(btn) {
   const d = btn.dataset;
+  const categoryLabels = { nature: 'Nature', industry: 'Industry Zone', resort: 'Resort', accommodation: 'Accommodation', bank: 'Banks', service: 'Other Services', church: 'Churches' };
   const imgEl = document.getElementById('vdImage');
   if (imgEl) {
     if (d.image) {
@@ -145,6 +147,9 @@ function openViewDestination(btn) {
   scheduleWrap.hidden = d.category !== 'church' || !scheduleText;
   document.getElementById('vdScheduleMonth').textContent = d.scheduleMonth || '';
   document.getElementById('vdScheduleText').innerHTML = ktScheduleRowsHtml(scheduleText);
+  const categoryEl = document.getElementById('vdCategory');
+  categoryEl.textContent = categoryLabels[d.category] || d.category || '—';
+  categoryEl.className = 'category-badge ' + (d.category || '');
   const mapLink = document.getElementById('vdMapLink');
   if (mapLink) {
     const saved = d.googleMaps || '';
@@ -173,9 +178,9 @@ function openEditDestination(btn) {
   ktLoadChurchSchedule('edit', d.schedule || '');
   const categorySelect = document.getElementById('editDestinationCategoryInput');
   if (categorySelect) categorySelect.value = d.category || 'nature';
-  ktToggleSubcategoryField('edit');
   const subcategorySelect = document.getElementById('editDestinationSubcategoryInput');
   if (subcategorySelect) subcategorySelect.value = d.subcategory || '';
+  ktToggleSubcategoryField('edit');
   openModal('editDestinationModal');
   ktRefreshEditMap(d.googleMaps || '');
 }
@@ -185,14 +190,18 @@ function confirmDeleteDestination(btn) {
   document.getElementById('deleteDestinationId').value = d.id || '';
   openModal('deleteDestinationModal');
 }
-function filterDestinations(value) {
-  const term = value.trim().toLowerCase();
+function filterDestinations() {
+  const term = (document.getElementById('destSearch')?.value || '').trim().toLowerCase();
+  const category = document.getElementById('destCategoryFilter')?.value || 'all';
   document.querySelectorAll('#destinationsTable tbody tr, #destinationsGrid .grid-card').forEach(item => {
     if (item.id === 'destEmptyRow' || item.classList.contains('grid-empty')) return;
     const name = (item.dataset.name || '').toLowerCase();
-    item.style.display = name.includes(term) ? '' : 'none';
+    const matchesName = name.includes(term);
+    const matchesCategory = category === 'all' || item.dataset.category === category;
+    item.style.display = matchesName && matchesCategory ? '' : 'none';
   });
 }
+function filterByCategory() { filterDestinations(); }
 async function exportDestinationsExcel() {
   const btn = document.getElementById('exportExcelBtn');
   if (!btn) return;
@@ -230,23 +239,24 @@ async function exportDestinationsExcel() {
       ['KulToura — Destinations Export'],
       [`Generated: ${dateStr}`],
       [],
-      ['#', 'Destination', 'Address', 'Views'],
+      ['#', 'Destination', 'Category', 'Address', 'Views'],
     ];
     rows.forEach((row, i) => {
       const cells = row.querySelectorAll('td');
       const name = cells[0]?.textContent.trim() || '';
-      const address = cells[1]?.textContent.trim() || '';
-      const views = cells[2]?.textContent.trim() || '';
-      sheetRows.push([i + 1, name, address, views]);
+      const category = cells[1]?.textContent.trim() || '';
+      const address = cells[2]?.textContent.trim() || '';
+      const views = cells[3]?.textContent.trim() || '';
+      sheetRows.push([i + 1, name, category, address, views]);
     });
     sheetRows.push([]);
     sheetRows.push(['Total Destinations', rows.length]);
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
-    ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 28 }, { wch: 10 }];
+    ws['!cols'] = [{ wch: 4 }, { wch: 32 }, { wch: 16 }, { wch: 28 }, { wch: 10 }];
     ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Destinations');
     XLSX.writeFile(wb, `KulToura-Destinations-${now.toISOString().slice(0, 10)}.xlsx`);

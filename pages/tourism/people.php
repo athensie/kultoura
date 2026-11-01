@@ -182,6 +182,13 @@ if ($openPersonSlug !== '') {
     <section class="p-search-row">
         <form class="p-search-bar" action="people.php" method="get" onsubmit="return false;">
             <input type="search" name="q" id="peopleSearchInput" placeholder="Search by name..." autocomplete="off">
+            <select id="peopleCategorySelect" class="p-category-select" aria-label="Filter people by category">
+                <option value="">All Categories</option>
+                <option value="local leader">Local Leader</option>
+                <option value="artist">Artist</option>
+                <option value="farmer">Farmer</option>
+                <option value="community pillar">Community Pillar</option>
+            </select>
         </form>
         <p class="p-search-empty" id="peopleSearchEmpty" hidden>No people match your search.</p>
     </section>
@@ -202,15 +209,19 @@ if ($openPersonSlug !== '') {
         <div class="p-card-grid" id="peopleCardGrid">
             <?php foreach ($people as $item):
                 $slug = kt_person_slug($item);
+                $achLines = array_values(array_filter(array_map('trim', explode("\n", (string) ($item['achievement'] ?? '')))));
+                $achPreview = $achLines[0] ?? '';
                 $isFav = isset($favoritedIds[(int) $item['person_id']]);
             ?>
-            <article class="p-card">
+            <article class="p-card" data-category="<?= htmlspecialchars(strtolower((string) ($item['title'] ?? ''))) ?>">
                 <div class="p-card-media" <?= !empty($item['image']) ? 'style="background-image:url(\'' . htmlspecialchars($item['image']) . '\')"' : '' ?>>
                     <button class="p-fav-btn<?= $isFav ? ' is-favorited' : '' ?>" type="button"
                             data-person-id="<?= (int) $item['person_id'] ?>"
                             aria-label="<?= $isFav ? 'Remove from favorites' : 'Save to favorites' ?>"><?= $isFav ? '&#9829;' : '&#9825;' ?></button>
+                    <?php if (!empty($item['title'])): ?><span class="p-tag-pill"><?= htmlspecialchars($item['title']) ?></span><?php endif; ?>
                 </div>
                 <div class="p-card-body">
+                    <?php if ($achPreview !== ''): ?><p class="p-card-category"><?= htmlspecialchars($achPreview) ?><?= count($achLines) > 1 ? ' +' . (count($achLines) - 1) : '' ?></p><?php endif; ?>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['fullname']) ?></h3>
                     <div class="p-card-actions">
                         <a class="p-btn p-btn-primary" href="?person=<?= urlencode($slug) ?>">View Details</a>
@@ -244,20 +255,24 @@ function ktTrackItemView(type, id) {
 /* ---------- FAVORITE BUTTON ---------- */
 (function () {
     const input = document.getElementById('peopleSearchInput');
+    const category = document.getElementById('peopleCategorySelect');
     const grid = document.getElementById('peopleCardGrid');
     const empty = document.getElementById('peopleSearchEmpty');
     if (!input || !grid) return;
-    input.addEventListener('input', function () {
+    function filterPeopleCards() {
         const query = input.value.trim().toLocaleLowerCase();
+        const selectedCategory = category ? category.value : '';
         let visible = 0;
         grid.querySelectorAll('.p-card').forEach(function (card) {
             const name = (card.querySelector('.p-card-title')?.textContent || '').trim().toLocaleLowerCase();
-            const matches = name.includes(query);
+            const matches = name.includes(query) && (!selectedCategory || card.dataset.category === selectedCategory);
             card.style.display = matches ? '' : 'none';
             if (matches) visible++;
         });
         if (empty) empty.hidden = visible > 0;
-    });
+    }
+    input.addEventListener('input', filterPeopleCards);
+    if (category) category.addEventListener('change', filterPeopleCards);
 })();
 let pToastTimer;
 function pShowToast(msg) {

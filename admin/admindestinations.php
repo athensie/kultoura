@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $data = [
         'destination_name' => $_POST['name'] ?? '',
         'address'           => $_POST['location'] ?? '',
-        'category'          => $_POST['category'] ?? ($entityAction === 'create' ? 'nature' : ''),
+        'category'          => $_POST['category'] ?? '',
         'subcategory'       => $_POST['subcategory'] ?? '',
         'status'            => 'active',
         'description'       => $_POST['description'] ?? '',
@@ -137,6 +137,15 @@ $destinationViews = array_merge(
     analytics_item_views_bulk($conn, 'service'),
     analytics_item_views_bulk($conn, 'church')
 );
+$categoryLabels = [
+    'nature'        => 'Nature',
+    'industry'      => 'Industry Zone',
+    'resort'        => 'Resort',
+    'accommodation' => 'Accommodation',
+    'bank'          => 'Banks',
+    'service'       => 'Other Services',
+    'church'        => 'Churches',
+];
 $totalCount     = count($destinations);
 $totalViews     = array_sum(array_map(fn($d) => $destinationViews[(int) $d['destination_id']] ?? 0, $destinations));
 $favoritedCount = count(array_filter($destinations, fn($d) => !empty($d['favorited'])));
@@ -264,6 +273,16 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </div>
         <div class="filter-row">
             <input class="search-input" type="text" id="destSearch" placeholder="Search destinations…" oninput="filterDestinations(this.value)">
+            <select class="filter-select" id="destCategoryFilter" onchange="filterByCategory(this.value)">
+                <option value="all">All Categories</option>
+                <option value="nature">Nature</option>
+                <option value="industry">Industry Zone</option>
+                <option value="resort">Resort</option>
+                <option value="accommodation">Accommodation</option>
+                <option value="bank">Banks</option>
+                <option value="service">Other Services</option>
+                <option value="church">Churches</option>
+            </select>
             <div class="view-toggle">
                 <button type="button" class="view-btn" data-view="list" onclick="setView('list')" aria-label="List view"><i data-lucide="list" class="lucide"></i></button>
                 <button type="button" class="view-btn" data-view="grid" onclick="setView('grid')" aria-label="Grid view"><i data-lucide="layout-grid" class="lucide"></i></button>
@@ -274,6 +293,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <thead>
                     <tr>
                         <th>Destination</th>
+                        <th>Category</th>
                         <th>Address</th>
                         <th>Views</th>
                         <th>Actions</th>
@@ -282,7 +302,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <tbody>
                 <?php if (empty($destinations)): ?>
                     <tr id="destEmptyRow">
-                        <td colspan="4">
+                        <td colspan="5">
                             <div class="table-empty">
                                 <i data-lucide="map-pin" class="lucide"></i>
                                 <div class="table-empty-title">No destinations yet</div>
@@ -292,7 +312,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                     </tr>
                 <?php else: ?>
                     <?php foreach ($destinations as $d): ?>
-                        <tr data-name="<?php echo htmlspecialchars($d['destination_name']); ?>">
+                        <tr data-name="<?php echo htmlspecialchars($d['destination_name']); ?>" data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>">
                             <td>
                                 <div class="destination-name-cell">
                                     <?php if (!empty($d['image'])): ?>
@@ -301,6 +321,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                     <span><?php echo htmlspecialchars($d['destination_name']); ?></span>
                                 </div>
                             </td>
+                            <td><span class="category-badge <?php echo htmlspecialchars($d['category'] ?? ''); ?>"><?php echo htmlspecialchars($categoryLabels[$d['category']] ?? ucfirst($d['category'] ?? '—')); ?></span></td>
                             <td><?php echo htmlspecialchars($d['address']); ?></td>
                             <td><?php echo (int) ($destinationViews[(int) $d['destination_id']] ?? 0); ?></td>
                             <td>
@@ -350,13 +371,14 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 </div>
             <?php else: ?>
                 <?php foreach ($destinations as $d): ?>
-                    <div class="grid-card" data-name="<?php echo htmlspecialchars($d['destination_name']); ?>">
+                    <div class="grid-card" data-name="<?php echo htmlspecialchars($d['destination_name']); ?>" data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>">
                         <div class="grid-card-media">
                             <?php if (!empty($d['image'])): ?>
                                 <img src="<?php echo htmlspecialchars($d['image']); ?>" alt="">
                             <?php else: ?>
                                 <i data-lucide="image" class="lucide"></i>
                             <?php endif; ?>
+                            <span class="category-badge grid-card-badge <?php echo htmlspecialchars($d['category'] ?? ''); ?>"><?php echo htmlspecialchars($categoryLabels[$d['category']] ?? ucfirst($d['category'] ?? '—')); ?></span>
                         </div>
                         <div class="grid-card-body">
                             <div class="grid-card-title"><?php echo htmlspecialchars($d['destination_name']); ?></div>
@@ -410,12 +432,26 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         <form id="addDestinationForm" action="<?php echo BASE_URL; ?>/admin/admindestinations.php" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="create">
             <?php echo csrf_field(); ?>
-            <input type="hidden" name="category" id="addCategoryInput" value="nature">
-            <input type="hidden" name="subcategory" id="addSubcategoryInput" value="">
             <div class="form-group">
                 <label class="form-label">Destination Name</label>
                 <input class="form-input" type="text" name="name" placeholder="e.g. Malvar Rice Terraces" required>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="filter-select" name="category" id="addCategoryInput" style="width:100%; padding:11px 14px; border-radius:8px;" onchange="ktToggleSubcategoryField('add')" required>
+                        <option value="" disabled selected>Select a category…</option>
+                        <option value="nature">Nature</option>
+                        <option value="industry">Industry Zone</option>
+                        <option value="resort">Resort</option>
+                        <option value="accommodation">Accommodation</option>
+                        <option value="bank">Banks</option>
+                        <option value="service">Other Services</option>
+                        <option value="church">Churches</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" name="subcategory" id="addSubcategoryInput" value="">
             <div class="form-group" id="addChurchScheduleGroup" hidden>
                 <label class="form-label">Church Schedule (one month)</label>
                 <input class="form-input" type="month" name="schedule_month" id="addChurchScheduleMonth">
@@ -458,12 +494,25 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             <input type="hidden" name="action" value="update">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="editDestinationId" value="">
-            <input type="hidden" name="category" id="editDestinationCategoryInput" value="nature">
-            <input type="hidden" name="subcategory" id="editDestinationSubcategoryInput" value="">
             <div class="form-group">
                 <label class="form-label">Destination Name</label>
                 <input class="form-input" type="text" name="name" id="editDestinationNameInput" placeholder="Destination name" required>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="filter-select" name="category" id="editDestinationCategoryInput" style="width:100%; padding:11px 14px; border-radius:8px;" onchange="ktToggleSubcategoryField('edit')" required>
+                        <option value="nature">Nature</option>
+                        <option value="industry">Industry Zone</option>
+                        <option value="resort">Resort</option>
+                        <option value="accommodation">Accommodation</option>
+                        <option value="bank">Banks</option>
+                        <option value="service">Other Services</option>
+                        <option value="church">Churches</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" name="subcategory" id="editDestinationSubcategoryInput" value="">
             <div class="form-group" id="editChurchScheduleGroup" hidden>
                 <label class="form-label">Church Schedule (one month)</label>
                 <input class="form-input" type="month" name="schedule_month" id="editChurchScheduleMonth">
@@ -506,6 +555,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         <div id="vdIcon" style="font-size:2rem;text-align:center;margin-bottom:8px;">📍</div>
         <div class="modal-title" style="text-align:center;" id="vdName">—</div>
         <div style="display:flex;justify-content:center;gap:10px;margin:10px 0 18px;flex-wrap:wrap;">
+            <span class="category-badge nature" id="vdCategory">—</span>
             <span style="font-size:.75rem;color:rgba(245,237,216,.4);align-self:center;" id="vdLocation">—</span>
         </div>
         <div style="text-align:center;margin:-6px 0 16px;">
@@ -562,7 +612,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <script src="../assets/js/admin-theme.js"></script>
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admindestinations.js?v=20261101-2"></script>
+<script src="../assets/js/admindestinations.js?v=20261101-3"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
