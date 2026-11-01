@@ -201,15 +201,10 @@ if (!function_exists('kt_search_all')) {
             ];
         }
         $stmt->close();
-        $needle = mb_strtolower($query);
-        usort($results, function ($a, $b) use ($needle) {
-            $rank = function ($r) use ($needle) {
-                $name = mb_strtolower($r['name']);
-                if ($name === $needle) return 0;
-                if (str_starts_with($name, $needle)) return 1;
-                return 2;
-            };
-            return $rank($a) <=> $rank($b);
+        usort($results, function ($a, $b) {
+            $nameOrder = strnatcasecmp($a['name'], $b['name']);
+            if ($nameOrder !== 0) return $nameOrder;
+            return strcasecmp($a['badgeText'], $b['badgeText']);
         });
         return $results;
     }
