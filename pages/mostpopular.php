@@ -12,7 +12,7 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?
 $popularRows = analytics_top_items($conn, 24);
 $idsByType = [];
 foreach ($popularRows as $r) {
-    $idsByType[$r['item_type']][] = (int) $r['item_id'];
+    $idsByType[$r['type']][] = (int) $r['id'];
 }
 $typeMap = [
     'product'     => ['table' => 'products',    'idCol' => 'product_id',     'nameCol' => 'product_name'],
@@ -81,8 +81,8 @@ $destinationPageByCategory = [
 $popularItems = [];
 $rank = 0;
 foreach ($popularRows as $r) {
-    $type = $r['item_type'];
-    $id   = (int) $r['item_id'];
+    $type = $r['type'];
+    $id   = (int) $r['id'];
     if (!isset($typeMap[$type]) || !isset($itemDetails[$type][$id])) {
         continue;
     }
