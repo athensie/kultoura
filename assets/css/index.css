@@ -1655,6 +1655,12 @@ a.home-partner-card { text-decoration: none; }
     color: #9fb88a;
     padding-left: 10px;
 }
+.mega-column a.nav-sub-active {
+    color: #315f46;
+    font-weight: 700;
+    background: rgba(159, 184, 138, 0.16);
+}
+.mega-column a.nav-sub-active::before { background: #315f46; }
 .mega-menu-simple {
     width: 220px;
     grid-template-columns: 1fr;

@@ -1,4 +1,30 @@
 (function () {
+    document.querySelectorAll('.navbar .nav-links').forEach(function (navLinks) {
+        const normalizePath = (path) => {
+            try { path = decodeURIComponent(path); } catch (err) {}
+            return path.replace(/\/+$/, '') || '/';
+        };
+        const currentPath = normalizePath(window.location.pathname);
+        const links = Array.from(navLinks.querySelectorAll('a[href]'));
+        links.forEach((link) => {
+            link.classList.remove('nav-active', 'nav-sub-active');
+            link.removeAttribute('aria-current');
+        });
+        links.forEach((link) => {
+            const rawHref = link.getAttribute('href');
+            if (!rawHref || rawHref.startsWith('#')) return;
+            let target;
+            try { target = new URL(rawHref, window.location.href); } catch (err) { return; }
+            if (target.origin !== window.location.origin || normalizePath(target.pathname) !== currentPath) return;
+            const isSubmenuLink = link.closest('.mega-column');
+            link.classList.add(isSubmenuLink ? 'nav-sub-active' : 'nav-active');
+            link.setAttribute('aria-current', 'page');
+            const dropdown = link.closest('.dropdown');
+            const trigger = dropdown && dropdown.querySelector(':scope > .nav-item');
+            if (trigger) trigger.classList.add('nav-active');
+        });
+    });
+
     function updateNavbarHeightVar() {
         const navbar = document.querySelector('.navbar');
         if (navbar) {
