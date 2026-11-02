@@ -943,5 +943,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admindashboard.js"></script>
 <script>initSidebarCollapse();</script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

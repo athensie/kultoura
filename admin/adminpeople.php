@@ -449,5 +449,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
     });
     <?php endif; ?>
 </script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

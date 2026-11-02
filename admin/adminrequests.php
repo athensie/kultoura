@@ -251,5 +251,7 @@ $pendingCount = kt_requests_pending_count($conn);
         else { document.addEventListener('DOMContentLoaded', function () { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
     })();
 </script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

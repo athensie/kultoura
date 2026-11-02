@@ -467,5 +467,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/adminhomepage.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/adminhomepage.js') ?: time(); ?>"></script>
 <script>initSidebarCollapse();</script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

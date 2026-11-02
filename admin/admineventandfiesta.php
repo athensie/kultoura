@@ -495,5 +495,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
     });
     <?php endif; ?>
 </script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

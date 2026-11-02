@@ -308,5 +308,7 @@ unset($group);
         else { document.addEventListener('DOMContentLoaded', function () { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
     })();
 </script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

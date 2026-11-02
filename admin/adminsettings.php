@@ -281,5 +281,7 @@ const KT_CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
 showToast(<?php echo json_encode($flashMessage); ?>);
 <?php endif; ?>
 </script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

@@ -602,5 +602,7 @@ sort($allCategories);
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
 <script src="../assets/js/adminfoodanddining.js?v=20261016"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

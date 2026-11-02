@@ -568,5 +568,7 @@ document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo
         }
     })();
 </script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>

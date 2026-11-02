@@ -347,6 +347,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 <?php endif; ?>
 </script>
+
+    <script src="../assets/js/admin-filter-state.js"></script>
 </body>
 </html>
 <?php
