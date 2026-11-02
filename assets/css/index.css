@@ -1805,6 +1805,10 @@ a.home-partner-card { text-decoration: none; }
     .cta-buttons { flex-direction: column; width: 80%; }
     .cta-buttons .btn { border-radius: 999px; padding: 15px 28px; }
     .home-foryou, .home-about, .home-news { padding: 64px 24px; }
+    .home-about-photo {
+        width: min(100%, 360px);
+        height: clamp(280px, 74vw, 340px);
+    }
     .home-footer-top { grid-template-columns: 1fr; }
     .home-footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
     .home-card { flex: 0 0 85%; }
