@@ -177,6 +177,7 @@ function analytics_traffic_sources(mysqli $conn, ?string $sinceSql = null, int $
 function analytics_item_types(): array
 {
     return [
+        'destination'   => ['table' => 'destination',  'id_col' => 'destination_id', 'name_col' => 'destination_name', 'where' => '1=1'],
         'nature'        => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'nature'"],
         'resort'        => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'resort'"],
         'industry'      => ['table' => 'destination',  'id_col' => 'destination_id',  'name_col' => 'destination_name', 'where' => "category = 'industry'"],

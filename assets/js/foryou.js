@@ -80,6 +80,12 @@ const fyDetailModal = (function () {
     function open(itemType, itemId) {
         const p = findPlace(itemType, itemId);
         if (!p) return;
+        fetch('track_item_view.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ item_type: p.itemType, item_id: p.itemId }),
+            keepalive: true
+        }).catch(() => {});
         mediaEl.innerHTML = '';
         badgeEl.textContent = p.badgeText;
         badgeEl.className = 'fy-gcard-badge fy-badge-' + p.category;

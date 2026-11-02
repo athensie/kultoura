@@ -24,6 +24,7 @@ require_once __DIR__ . '/config/maintenance.php';
 kt_maintenance_gate($conn);
 include 'config/sitecontent.php';
 include 'config/analytics.php';
+require_once __DIR__ . '/config/promotions.php';
 include 'config/announcements.php';
 require_once __DIR__ . '/config/homepage_content.php';
 kt_homepage_content_ensure_schema($conn);
@@ -119,6 +120,7 @@ if ($result = $conn->query("SELECT restaurant_name AS name, image, description, 
         ];
     }
 }
+$promotedHomeItems = kt_promoted_home_items($conn, 6);
 $homeNews = [];
 $homeNewsTypeMeta = announcements_type_meta();
 if ($result = $conn->query(
@@ -345,6 +347,29 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
                 </div>
             </article>
             <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <?php if (!empty($promotedHomeItems)): ?>
+    <div class="home-promoted-wrap reveal">
+        <h3 class="home-heading home-check-this-out">Check This Out</h3>
+        <div class="home-instagram-grid">
+            <?php foreach ($promotedHomeItems as $item): ?>
+            <article class="home-instagram-post">
+                <div class="home-instagram-post-head">
+                    <span class="home-instagram-avatar" aria-hidden="true">K</span>
+                    <div class="home-instagram-account"><strong>kultoura</strong><span><?php echo htmlspecialchars($item['badge']); ?> · Malvar, Batangas</span></div>
+                    <span class="home-instagram-more" aria-hidden="true">•••</span>
+                </div>
+                <a href="<?php echo htmlspecialchars($item['link']); ?>" class="home-instagram-media" aria-label="Explore <?php echo htmlspecialchars($item['name']); ?>">
+                    <?php if ($item['image'] !== ''): ?><img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" loading="lazy"><?php endif; ?>
+                    <span class="home-instagram-category"><?php echo htmlspecialchars(strtoupper($item['badge'])); ?></span>
+                </a>
+                <div class="home-instagram-caption">
+                    <p><strong><?php echo htmlspecialchars($item['name']); ?></strong> <?php echo htmlspecialchars(mb_strimwidth(trim($item['summary']), 0, 125, '…')); ?></p>
+                </div>
+            </article>
+            <?php endforeach; ?>
+        </div>
     </div>
     <?php endif; ?>
 </section>

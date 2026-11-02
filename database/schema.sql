@@ -202,6 +202,15 @@ CREATE TABLE `place_embeddings` (
   PRIMARY KEY (`item_type`,`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `promoted_content`;
+CREATE TABLE `promoted_content` (
+  `item_type` varchar(20) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `promoted_by` int(11) DEFAULT NULL,
+  `promoted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`item_type`,`item_id`),
+  KEY `promoted_at` (`promoted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 DROP TABLE IF EXISTS `products`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
