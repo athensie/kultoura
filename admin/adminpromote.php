@@ -61,9 +61,10 @@ $candidateGroups = kt_promotion_candidates($conn);
     <title>Promote Content · KULTOURA Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="../assets/css/admindashboard.css">
     <link rel="stylesheet" href="../assets/css/admin-theme.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
-    <link rel="stylesheet" href="../assets/css/adminpromote.css">
+    <link rel="stylesheet" href="../assets/css/adminpromote.css?v=20261102-1">
 </head>
 <body>
 <aside class="sidebar" id="sidebar">
