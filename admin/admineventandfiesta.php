@@ -71,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = $row['name'] ?? ('Event #' . $id);
         } else {
             $name = trim($_POST['name'] ?? '');
-            if (!kt_description_has_two_paragraphs((string) ($_POST['desc'] ?? ''))) {
-                $_SESSION['flash'] = 'Write the description in at least two paragraphs, separated by a blank line.';
+            if (!kt_description_is_valid((string) ($_POST['desc'] ?? ''), (string) ($_POST['summary'] ?? ''))) {
+                $_SESSION['flash'] = 'Keep the card summary and write a longer description in exactly two paragraphs, separated by a blank line.';
                 header('Location: admineventandfiesta.php');
                 exit;
             }
@@ -373,7 +373,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="desc" placeholder="Describe this event…"></textarea>
-                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
+                <p class="description-paragraph-hint">Keep the Summary above for cards. Add longer, detailed information here in exactly two paragraphs separated by a blank line.</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Event</button>
@@ -433,7 +433,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="desc" id="editDescInput" placeholder="Description…"></textarea>
-                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
+                <p class="description-paragraph-hint">Keep the Summary above for cards. Add longer, detailed information here in exactly two paragraphs separated by a blank line.</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>

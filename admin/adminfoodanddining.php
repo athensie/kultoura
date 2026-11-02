@@ -92,8 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     $category = trim($_POST['category'] ?? '');
     $entityAction = $formAction === 'add_listing' ? 'create' : ($formAction === 'edit_listing' ? 'update' : 'archive');
     $id = ($formAction === 'edit_listing' || $formAction === 'delete_listing') ? (int) ($_POST['id'] ?? 0) : null;
-    if ($entityAction !== 'archive' && !kt_description_has_two_paragraphs((string) ($_POST['desc'] ?? ''))) {
-        $_SESSION['admin_flash'] = 'Write the description in at least two paragraphs, separated by a blank line.';
+    if ($entityAction !== 'archive' && !kt_description_is_valid((string) ($_POST['desc'] ?? ''), (string) ($_POST['summary'] ?? ''))) {
+        $_SESSION['admin_flash'] = 'Keep the card summary and write a longer description in exactly two paragraphs, separated by a blank line.';
         header('Location: adminfoodanddining.php');
         exit;
     }
@@ -494,7 +494,7 @@ sort($allCategories);
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="desc" placeholder="Describe this listing…"></textarea>
-                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
+                <p class="description-paragraph-hint">Keep the Summary above for cards. Add longer, detailed information here in exactly two paragraphs separated by a blank line.</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Listing</button>
@@ -578,7 +578,7 @@ sort($allCategories);
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="desc" id="editDescInput" placeholder="Description…"></textarea>
-                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
+                <p class="description-paragraph-hint">Keep the Summary above for cards. Add longer, detailed information here in exactly two paragraphs separated by a blank line.</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>

@@ -55,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $formAction = $_POST['action'];
     $entityAction = $formAction === 'delete' ? 'archive' : $formAction;
     $id = isset($_POST['id']) && $_POST['id'] !== '' ? (int) $_POST['id'] : null;
-    if (in_array($entityAction, ['create', 'update'], true) && !kt_description_has_two_paragraphs((string) ($_POST['description'] ?? ''))) {
-        $_SESSION['admin_flash'] = 'Write the description in at least two paragraphs, separated by a blank line.';
+    if (in_array($entityAction, ['create', 'update'], true) && !kt_description_is_valid((string) ($_POST['description'] ?? ''), (string) ($_POST['summary'] ?? ''))) {
+        $_SESSION['admin_flash'] = 'Keep the card summary and write a longer description in exactly two paragraphs, separated by a blank line.';
         header('Location: ' . BASE_URL . '/admin/admindestinations.php');
         exit;
     }
@@ -474,7 +474,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="description" placeholder="Describe this destination…"></textarea>
-                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
+                <p class="description-paragraph-hint">Keep the Summary above for cards. Add longer, detailed information here in exactly two paragraphs separated by a blank line.</p>
             </div>
             <div class="form-group">
                 <label class="form-label">Image</label>
@@ -540,7 +540,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="description" id="editDestinationDescInput" placeholder="Description…"></textarea>
-                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
+                <p class="description-paragraph-hint">Keep the Summary above for cards. Add longer, detailed information here in exactly two paragraphs separated by a blank line.</p>
             </div>
             <div class="form-group">
                 <label class="form-label">Image</label>
