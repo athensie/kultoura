@@ -56,6 +56,7 @@ CREATE TABLE `announcements` (
   `image` varchar(255) DEFAULT NULL,
   `status` enum('live','archived','draft','scheduled') NOT NULL DEFAULT 'draft',
   `scheduled_at` datetime DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
   `published_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)

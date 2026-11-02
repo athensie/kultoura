@@ -124,7 +124,7 @@ $homeNewsTypeMeta = announcements_type_meta();
 if ($result = $conn->query(
     "SELECT id, title, body, type, image, published_at, created_at
      FROM announcements
-     WHERE status = 'live'
+     WHERE status = 'live' AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
      ORDER BY COALESCE(published_at, created_at) DESC
      LIMIT 5"
 )) {

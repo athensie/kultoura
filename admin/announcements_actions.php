@@ -82,9 +82,43 @@ if ($entityAction === 'archive') {
     $image    = $entityAction === 'create' ? ($newImage ?? '') : ($newImage ?? trim($_POST['existing_image'] ?? ''));
     $scheduledAt = null;
     if ($status === 'scheduled' && !empty($_POST['scheduled_at'])) {
-        $ts = strtotime($_POST['scheduled_at']);
-        if ($ts !== false) $scheduledAt = date('Y-m-d H:i:s', $ts);
+        $scheduleTimezone = ($_POST['scheduled_timezone'] ?? '') === 'UTC' ? 'UTC' : 'Asia/Manila';
+        $scheduledDate = DateTimeImmutable::createFromFormat(
+            '!Y-m-d\\TH:i',
+            (string) $_POST['scheduled_at'],
+            new DateTimeZone($scheduleTimezone)
+        );
+        $dateErrors = DateTimeImmutable::getLastErrors();
+        if ($scheduledDate && ($dateErrors === false || ($dateErrors['warning_count'] === 0 && $dateErrors['error_count'] === 0))) {
+            $scheduledAt = $scheduledDate->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        }
         if (!$scheduledAt) $status = 'draft';
+    }
+    $expiresAt = null;
+    $expiresInput = trim((string) ($_POST['expires_at'] ?? ''));
+    if ($expiresInput !== '') {
+        $expiresDate = DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i', $expiresInput, new DateTimeZone('Asia/Manila'));
+        $dateErrors = DateTimeImmutable::getLastErrors();
+        if (!$expiresDate || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))) {
+            $_SESSION['admin_flash'] = 'Please choose a valid effective-until date and time.';
+            header('Location: adminannouncements.php');
+            exit;
+        }
+        $expiresAt = $expiresDate->setTimezone(new DateTimeZone('UTC'));
+        if (in_array($status, ['live', 'scheduled'], true)) {
+            $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+            $effectiveStart = $scheduledAt
+                ? new DateTimeImmutable($scheduledAt, new DateTimeZone('UTC'))
+                : $nowUtc;
+            if ($expiresAt <= $effectiveStart) {
+                $_SESSION['admin_flash'] = $status === 'scheduled'
+                    ? 'The effective-until time must be after the scheduled publish time.'
+                    : 'The effective-until time must be in the future.';
+                header('Location: adminannouncements.php');
+                exit;
+            }
+        }
+        $expiresAt = $expiresAt->format('Y-m-d H:i:s');
     }
     if ($title === '' || $body === '') {
         $_SESSION['admin_flash'] = 'Please enter a title and a message.';
@@ -99,6 +133,7 @@ if ($entityAction === 'archive') {
         'image'        => $image,
         'status'       => $status,
         'scheduled_at' => $scheduledAt,
+        'expires_at'   => $expiresAt,
     ];
 }
 if ($isSuperAdmin) {

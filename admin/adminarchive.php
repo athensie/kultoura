@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/session_boot.php';
 define('BASE_URL', '/kultoura');
 require_once __DIR__ . '/../config/dbmain.php';
+require_once __DIR__ . '/../config/announcements.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
 if (!isset($_SESSION['user_id'])) {

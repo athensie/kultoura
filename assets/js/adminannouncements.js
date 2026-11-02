@@ -25,7 +25,7 @@ function openScheduleModal() {
   openModal('scheduleModal');
 }
 document.addEventListener('change', function (e) {
-  if (e.target && e.target.id === 'scheduleDateTime') {
+  if (e.target && (e.target.id === 'scheduleDateTime' || e.target.id === 'scheduleTimezone')) {
     updateSchedulePreview();
   }
 });
@@ -37,7 +37,8 @@ function updateSchedulePreview() {
     preview.textContent = 'Select a date to preview.';
     return;
   }
-  const date = new Date(input.value);
+  const timezone = document.getElementById('scheduleTimezone')?.value || 'Asia/Manila';
+  const date = new Date(input.value + (timezone === 'UTC' ? 'Z' : ''));
   const formatted = date.toLocaleString('en-PH', {
     year: 'numeric', month: 'long', day: 'numeric',
     hour: 'numeric', minute: '2-digit'
@@ -61,6 +62,15 @@ function confirmSchedule() {
     document.getElementById('announceForm').appendChild(hiddenDate);
   }
   hiddenDate.value = dateInput.value;
+  let timezoneInput = document.getElementById('announceScheduledTimezoneInput');
+  if (!timezoneInput) {
+    timezoneInput = document.createElement('input');
+    timezoneInput.type = 'hidden';
+    timezoneInput.name = 'scheduled_timezone';
+    timezoneInput.id = 'announceScheduledTimezoneInput';
+    document.getElementById('announceForm').appendChild(timezoneInput);
+  }
+  timezoneInput.value = document.getElementById('scheduleTimezone')?.value || 'Asia/Manila';
   closeModal('scheduleModal');
   document.getElementById('announceForm').submit();
 }
@@ -70,6 +80,8 @@ function openEditAnnouncement(btn) {
   document.getElementById('editAnnId').value = d.id || '';
   document.getElementById('editAnnTitle').value = d.title || '';
   document.getElementById('editAnnBody').value = d.body || '';
+  const expiresInput = document.getElementById('editAnnExpiresAt');
+  if (expiresInput) expiresInput.value = d.expires || '';
   const typeSelect = document.getElementById('editAnnType');
   if (typeSelect) typeSelect.value = d.type || 'info';
   const statusSelect = document.getElementById('editAnnStatus');

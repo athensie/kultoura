@@ -183,7 +183,9 @@ if (!function_exists('kt_search_all')) {
         $stmt->close();
         $stmt = $conn->prepare(
             "SELECT id, title, body, image
-             FROM announcements WHERE status = 'live' AND (title LIKE ? OR body LIKE ?)
+             FROM announcements WHERE status = 'live'
+               AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
+               AND (title LIKE ? OR body LIKE ?)
              ORDER BY published_at DESC LIMIT ?"
         );
         $stmt->bind_param('ssi', $like, $like, $limitPerType);

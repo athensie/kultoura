@@ -147,6 +147,11 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                     </div>
                 </div>
                 <div class="form-group">
+                    <label class="form-label" for="announceExpiresAt">Effective Until (Asia/Manila, optional)</label>
+                    <input class="form-input" type="datetime-local" name="expires_at" id="announceExpiresAt">
+                    <div class="image-current-hint">After this time, the announcement will move to Archive automatically.</div>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Message</label>
                     <textarea class="form-textarea" name="body" placeholder="Write your announcement here…" id="announceBody" required></textarea>
                 </div>
@@ -181,6 +186,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                         <th>Type</th>
                         <th>Audience</th>
                         <th>Published</th>
+                        <th>Effective Until</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -188,7 +194,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                 <tbody>
                 <?php if (empty($announcements)): ?>
                     <tr id="annEmptyRow">
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="table-empty">
                                 <i data-lucide="megaphone" class="lucide"></i>
                                 <div class="table-empty-title">No announcements yet</div>
@@ -208,6 +214,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                             <td><span class="type-badge <?php echo htmlspecialchars($a['type']); ?>"><?php echo htmlspecialchars(ucfirst($a['type'])); ?></span></td>
                             <td><?php echo htmlspecialchars($a['audience']); ?></td>
                             <td style="color:rgba(245,237,216,.4)"><?php echo $a['published_at'] ? htmlspecialchars(date('M j, Y', strtotime($a['published_at']))) : '—'; ?></td>
+                            <td style="color:rgba(245,237,216,.6)"><?php echo !empty($a['expires_at']) ? htmlspecialchars(date('M j, Y g:i A', strtotime($a['expires_at'] . ' UTC'))) . ' PHT' : 'No expiry'; ?></td>
                             <td>
                                 <?php
                                     $statusMap = ['live' => 'active', 'archived' => 'inactive', 'draft' => 'pending', 'scheduled' => 'pending'];
@@ -224,6 +231,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                                         data-type="<?php echo htmlspecialchars($a['type']); ?>"
                                         data-status="<?php echo htmlspecialchars($a['status']); ?>"
                                         data-image="<?php echo htmlspecialchars($a['image'] ?? ''); ?>"
+                                        data-expires="<?php echo !empty($a['expires_at']) ? htmlspecialchars((new DateTimeImmutable($a['expires_at'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('Asia/Manila'))->format('Y-m-d\\TH:i')) : ''; ?>"
                                         onclick="openEditAnnouncement(this)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
                                     <button class="tbl-btn delete"
                                         data-id="<?php echo (int) $a['id']; ?>"
@@ -252,8 +260,8 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         <div class="form-group">
             <label class="form-label">Timezone</label>
             <select class="filter-select" id="scheduleTimezone" style="width:100%;padding:11px 14px;border-radius:8px;">
-                <option>Asia/Manila (PHT, UTC+8)</option>
-                <option>UTC</option>
+                <option value="Asia/Manila">Asia/Manila (PHT, UTC+8)</option>
+                <option value="UTC">UTC</option>
             </select>
         </div>
         <div style="background:rgba(232,168,66,.08);border:1px solid rgba(232,168,66,.2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:.78rem;color:var(--gold);" id="schedulePreview">Select a date to preview.</div>
@@ -280,6 +288,11 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
             <div class="form-group">
                 <label class="form-label">Message</label>
                 <textarea class="form-textarea" name="body" id="editAnnBody" style="min-height:100px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="editAnnExpiresAt">Effective Until (Asia/Manila, optional)</label>
+                <input class="form-input" type="datetime-local" name="expires_at" id="editAnnExpiresAt">
+                <div class="image-current-hint">After this time, the announcement will move to Archive automatically.</div>
             </div>
             <div class="form-group">
                 <label class="form-label">Image</label>

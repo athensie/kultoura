@@ -74,7 +74,8 @@ function kt_newsletter_digest_text(mysqli $conn, string $token): string
 {
     $txt = "Thanks for subscribing to KULTOURA!\nHere is what is happening in Malvar:\n\n";
     $news = $conn->query("SELECT title, body, published_at, created_at FROM announcements
-                          WHERE status = 'live' ORDER BY COALESCE(published_at, created_at) DESC LIMIT 5");
+                          WHERE status = 'live' AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
+                          ORDER BY COALESCE(published_at, created_at) DESC LIMIT 5");
     if ($news && $news->num_rows) {
         $txt .= "LATEST ANNOUNCEMENTS\n--------------------\n";
         while ($a = $news->fetch_assoc()) $txt .= kt_newsletter_item_text($a) . "\n";
@@ -220,7 +221,9 @@ function kt_newsletter_dispatch_pending(mysqli $conn): void
         $conn->query("UPDATE announcements SET newsletter_sent = 1
                       WHERE status = 'live' AND newsletter_sent = 0 AND audience = 'Website Only'");
         $res = $conn->query("SELECT id, title, body, type, published_at, created_at FROM announcements
-                             WHERE status = 'live' AND newsletter_sent = 0 ORDER BY id ASC LIMIT 3");
+                             WHERE status = 'live' AND newsletter_sent = 0
+                               AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
+                             ORDER BY id ASC LIMIT 3");
         if (!$res || !$res->num_rows) return;
         $items = $res->fetch_all(MYSQLI_ASSOC);
         kt_newsletter_sync_opted_in_users($conn);

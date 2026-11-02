@@ -36,7 +36,7 @@ $fieldLabels = [
     'price' => 'Price', 'latitude' => 'Latitude', 'longitude' => 'Longitude',
     'contact_number' => 'Contact Number', 'opening_hours' => 'Opening Hours',
     'type' => 'Type', 'celebration_date' => 'Date', 'achievement' => 'Achievement',
-    'audience' => 'Audience', 'scheduled_at' => 'Scheduled For', 'icon_key' => 'Icon',
+    'audience' => 'Audience', 'scheduled_at' => 'Scheduled For', 'expires_at' => 'Effective Until', 'icon_key' => 'Icon',
     'remove_image' => 'Remove Image',
 ];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {

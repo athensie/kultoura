@@ -577,6 +577,8 @@ if (!function_exists('kt_apply_announcement')) {
     function kt_apply_announcement(mysqli $conn, string $action, ?int $id, array $d): string
     {
         $title = (string) ($d['title'] ?? '');
+        $expiresAt = $d['expires_at'] ?? null;
+        $scheduledAt = $d['scheduled_at'] ?? null;
         if ($action === 'archive') {
             $stmt = $conn->prepare("UPDATE announcements SET status = 'archived' WHERE id = ?");
             $stmt->bind_param('i', $id);
@@ -588,18 +590,19 @@ if (!function_exists('kt_apply_announcement')) {
         if ($action === 'create') {
             $publishedAt = $d['status'] === 'live' ? date('Y-m-d H:i:s') : null;
             $stmt = $conn->prepare(
-                "INSERT INTO announcements (title, body, type, audience, image, status, scheduled_at, published_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO announcements (title, body, type, audience, image, status, scheduled_at, expires_at, published_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->bind_param('ssssssss', $title, $d['body'], $d['type'], $d['audience'], $image, $d['status'], $d['scheduled_at'], $publishedAt);
+            $stmt->bind_param('sssssssss', $title, $d['body'], $d['type'], $d['audience'], $image, $d['status'], $scheduledAt, $expiresAt, $publishedAt);
         } else {
             $stmt = $conn->prepare(
                 "UPDATE announcements
                  SET title=?, body=?, type=?, status=?, image=?,
+                     expires_at=?,
                      published_at = CASE WHEN ? = 'live' AND published_at IS NULL THEN NOW() ELSE published_at END
                  WHERE id=?"
             );
-            $stmt->bind_param('ssssssi', $title, $d['body'], $d['type'], $d['status'], $image, $d['status'], $id);
+            $stmt->bind_param('sssssssi', $title, $d['body'], $d['type'], $d['status'], $image, $expiresAt, $d['status'], $id);
         }
         $stmt->execute();
         $stmt->close();
