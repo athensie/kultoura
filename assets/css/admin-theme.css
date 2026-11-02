@@ -72,3 +72,9 @@
 :root[data-theme="light"] .search-input:focus,
 :root[data-theme="light"] .form-input:focus,
 :root[data-theme="light"] .form-textarea:focus { box-shadow: 0 0 0 3px rgba(74, 124, 71, .12); }
+.description-paragraph-hint {
+    margin: 6px 0 0;
+    color: rgba(245, 237, 216, .5);
+    font-size: .72rem;
+    line-height: 1.45;
+}

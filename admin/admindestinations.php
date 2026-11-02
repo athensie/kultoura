@@ -55,6 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $formAction = $_POST['action'];
     $entityAction = $formAction === 'delete' ? 'archive' : $formAction;
     $id = isset($_POST['id']) && $_POST['id'] !== '' ? (int) $_POST['id'] : null;
+    if (in_array($entityAction, ['create', 'update'], true) && !kt_description_has_two_paragraphs((string) ($_POST['description'] ?? ''))) {
+        $_SESSION['admin_flash'] = 'Write the description in at least two paragraphs, separated by a blank line.';
+        header('Location: ' . BASE_URL . '/admin/admindestinations.php');
+        exit;
+    }
     $imagePath = in_array($entityAction, ['create', 'update'], true) ? handleDestinationImageUpload() : null;
     $data = [
         'destination_name' => $_POST['name'] ?? '',
@@ -468,7 +473,8 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>
-                <textarea class="form-textarea" name="description" placeholder="Describe this destination…"></textarea>
+                <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="description" placeholder="Describe this destination…"></textarea>
+                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
             </div>
             <div class="form-group">
                 <label class="form-label">Image</label>
@@ -533,7 +539,8 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>
-                <textarea class="form-textarea" name="description" id="editDestinationDescInput" placeholder="Description…"></textarea>
+                <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="description" id="editDestinationDescInput" placeholder="Description…"></textarea>
+                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
             </div>
             <div class="form-group">
                 <label class="form-label">Image</label>
@@ -563,7 +570,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         </div>
         <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:16px;">
             <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Description</div>
-            <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.6;" id="vdDesc">—</div>
+            <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.6;white-space:pre-line;" id="vdDesc">—</div>
         </div>
         <div id="vdScheduleWrap" hidden style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:16px;">
             <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Church Schedule</div>
@@ -611,6 +618,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 
 <script src="../assets/js/admin-notifications.js"></script>
+<script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
 <script src="../assets/js/admindestinations.js?v=20261101-3"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>

@@ -1,5 +1,13 @@
 <?php
 require_once __DIR__ . '/product_locations.php';
+if (!function_exists('kt_description_has_two_paragraphs')) {
+    function kt_description_has_two_paragraphs(string $description): bool
+    {
+        $paragraphs = preg_split('/(?:\r\n|\r|\n)[\t ]*(?:\r\n|\r|\n)+/u', trim($description));
+        $paragraphs = array_filter(array_map('trim', $paragraphs ?: []), static fn($paragraph) => $paragraph !== '');
+        return count($paragraphs) === 2;
+    }
+}
 if (!function_exists('kt_requests_ensure_schema')) {
     function kt_requests_ensure_schema(mysqli $conn): void
     {

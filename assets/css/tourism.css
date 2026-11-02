@@ -338,6 +338,7 @@ img.p-modal-media {
     font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 .p-modal-desc {
+    white-space: pre-line;
     font-size: 14px;
     line-height: 1.65;
     color: rgba(44, 26, 14, 0.75);

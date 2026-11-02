@@ -71,6 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fullname = $row['name'] ?? ('Profile #' . $id);
         } else {
             $fullname = trim($_POST['fullname'] ?? '');
+            if (!kt_description_has_two_paragraphs((string) ($_POST['desc'] ?? ''))) {
+                $_SESSION['flash'] = 'Write the description in at least two paragraphs, separated by a blank line.';
+                header('Location: adminpeople.php');
+                exit;
+            }
             $uploadedImage = kt_person_handle_image_upload();
             $photoAttemptFailed = $uploadedImage === null
                 && !empty($_FILES['image_file']['name'])
@@ -339,7 +344,8 @@ $addedThisMonth = count(array_filter($people, function ($p) {
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>
-                <textarea class="form-textarea" name="desc" placeholder="Tell their story…"></textarea>
+                <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="desc" placeholder="Tell their story…"></textarea>
+                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1">Add Profile</button>
@@ -382,7 +388,8 @@ $addedThisMonth = count(array_filter($people, function ($p) {
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>
-                <textarea class="form-textarea" name="desc" id="editDescInput" placeholder="Tell their story…"></textarea>
+                <textarea class="form-textarea" rows="6" required data-two-paragraph-description name="desc" id="editDescInput" placeholder="Tell their story…"></textarea>
+                <p class="description-paragraph-hint">Write exactly two paragraphs and separate them with a blank line.</p>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check" class="lucide" style="width:.85rem;height:.85rem;"></i> Save Changes</button>
@@ -401,7 +408,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
         </div>
         <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:18px;">
             <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Description</div>
-            <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.6;" id="vpDesc">—</div>
+            <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.6;white-space:pre-line;" id="vpDesc">—</div>
         </div>
         <div style="display:flex;gap:10px;">
             <button class="btn-primary" style="flex:1;" id="vpEditBtn"><i data-lucide="pencil" class="lucide" style="width:.85rem;height:.85rem;"></i> Edit Profile</button>
@@ -440,6 +447,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 
 <script src="../assets/js/admin-notifications.js"></script>
+<script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
 <script src="../assets/js/adminpeople.js"></script>
 <script>initViewToggle('people', '.data-table-wrap', '#peopleGrid'); initSidebarCollapse();</script>
 <script>
