@@ -10,7 +10,16 @@ document.addEventListener('DOMContentLoaded', function () {
   toggleCategoryField('add');
   const addTypeInput = document.getElementById('addTypeInput');
   if (addTypeInput) {
-    addTypeInput.addEventListener('change', function () { toggleCategoryField('add'); });
+    addTypeInput.addEventListener('change', function () {
+      toggleCategoryField('add');
+      setTimeout(() => {
+        if (addTypeInput.value === 'product') setupProductLocationMap('add');
+        else {
+          const picker = ktSetupFoodMap('add');
+          if (picker) picker.map.invalidateSize();
+        }
+      }, 180);
+    });
   }
   const flash = window.__adminFlash;
   if (flash) showToast(flash);
@@ -69,63 +78,95 @@ function toggleTypeFields(prefix) {
   if (locationInput) locationInput.name = isProduct ? 'location' : 'address';
   const picker = ktFoodMaps[prefix];
   if (!isProduct && picker) setTimeout(() => picker.map.invalidateSize(), 180);
+  if (isProduct && productLocationMaps[prefix]) setTimeout(() => productLocationMaps[prefix].map.invalidateSize(), 180);
 }
-const storeLocationPickers = {};
+const productLocationMaps = { add: null, edit: null };
 const storeLocationCounters = { add: 0, edit: 0 };
+function setupProductLocationMap(prefix) {
+  if (productLocationMaps[prefix]) {
+    setTimeout(() => productLocationMaps[prefix].map.invalidateSize(), 180);
+    return productLocationMaps[prefix];
+  }
+  const picker = KtAddressPicker.setup({
+    mapElId: prefix + 'ProductMapCanvas',
+    inputElId: prefix + 'ProductMapAddress',
+    statusElId: prefix + 'ProductMapStatus',
+    onPosition: (lat, lng) => {
+      document.getElementById(prefix + 'CurrentLocationLat').value = Number(lat).toFixed(7);
+      document.getElementById(prefix + 'CurrentLocationLng').value = Number(lng).toFixed(7);
+    },
+  });
+  productLocationMaps[prefix] = picker;
+  return picker;
+}
 function addStoreLocation(prefix, location = {}) {
   const list = document.getElementById(prefix + 'StoreLocations');
   if (!list) return;
   const index = storeLocationCounters[prefix]++;
-  const key = prefix + '-' + index;
   const row = document.createElement('div');
-  row.className = 'store-location-editor';
-  row.dataset.locationKey = key;
-  row.innerHTML = `<div class="store-location-editor-head"><strong>Store location</strong><button type="button" class="btn-ghost" data-remove-location>Remove</button></div>
-    <div class="form-row"><div class="form-group"><label class="form-label">Store name</label><input class="form-input" name="store_locations[${index}][store_name]" value=""></div>
-    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="${key}-address" name="store_locations[${index}][address]" value="" autocomplete="off" placeholder="Search or type a store address"></div></div>
-    <div class="store-location-coordinates"><label>Latitude <input class="form-input" id="${key}-lat" name="store_locations[${index}][latitude]" value="" readonly></label>
-    <label>Longitude <input class="form-input" id="${key}-lng" name="store_locations[${index}][longitude]" value="" readonly></label></div>
-    <div class="store-location-map" id="${key}-map"></div><p class="image-current-hint" id="${key}-status">Search for the store address or click the map to place its pin.</p>`;
-  const inputs = row.querySelectorAll('input');
-  inputs[0].value = location.store_name || '';
-  inputs[1].value = location.address || '';
-  inputs[2].value = location.lat || '';
-  inputs[3].value = location.lng || '';
-  inputs[1].addEventListener('input', function () {
-    inputs[2].value = '';
-    inputs[3].value = '';
-  });
-  row.querySelector('[data-remove-location]').addEventListener('click', function () {
-    if (storeLocationPickers[key]) {
-      storeLocationPickers[key].map.remove();
-      delete storeLocationPickers[key];
-    }
+  row.className = 'pinned-product-location';
+  const address = document.createElement('span');
+  address.textContent = `Location ${index + 1} · ${location.address || 'Pinned location'}`;
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'btn-ghost';
+  remove.textContent = 'Remove';
+  remove.addEventListener('click', () => {
     row.remove();
+    renumberProductLocations(prefix);
   });
+  [
+    ['address', location.address || ''],
+    ['latitude', location.lat ?? ''],
+    ['longitude', location.lng ?? ''],
+  ].forEach(([field, value]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = `store_locations[${index}][${field}]`;
+    input.value = value;
+    row.appendChild(input);
+  });
+  row.prepend(address);
+  row.appendChild(remove);
   list.appendChild(row);
-  requestAnimationFrame(() => {
-    const picker = KtAddressPicker.setup({
-      mapElId: key + '-map', inputElId: key + '-address', statusElId: key + '-status',
-      onPosition: (lat, lng) => {
-        document.getElementById(key + '-lat').value = Number(lat).toFixed(7);
-        document.getElementById(key + '-lng').value = Number(lng).toFixed(7);
-      },
+  return row;
+}
+function renumberProductLocations(prefix) {
+  const rows = [...document.querySelectorAll(`#${prefix}StoreLocations .pinned-product-location`)];
+  rows.forEach((row, index) => {
+    const span = row.querySelector('span');
+    const address = row.querySelector('[name$="[address]"]').value;
+    span.textContent = `Location ${index + 1} · ${address || 'Pinned location'}`;
+    row.querySelectorAll('input[type="hidden"]').forEach(input => {
+      const field = input.name.match(/\[(address|latitude|longitude)\]$/)?.[1];
+      if (field) input.name = `store_locations[${index}][${field}]`;
     });
-    if (picker) {
-      storeLocationPickers[key] = picker;
-      if (location.lat && location.lng) picker.setPosition(parseFloat(location.lat), parseFloat(location.lng), 16);
-    }
   });
+  storeLocationCounters[prefix] = rows.length;
+}
+function pinProductLocation(prefix) {
+  const typedAddress = document.getElementById(prefix + 'ProductMapAddress').value.trim();
+  const lat = document.getElementById(prefix + 'CurrentLocationLat').value;
+  const lng = document.getElementById(prefix + 'CurrentLocationLng').value;
+  if (!lat || !lng) {
+    showToast('Choose or click a location on the map first.');
+    return;
+  }
+  const address = typedAddress || `Map pin ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+  const existing = [...document.querySelectorAll(`#${prefix}StoreLocations [name$="[latitude]"]`)];
+  if (existing.some(input => input.value === lat && input.parentElement.querySelector('[name$="[longitude]"]')?.value === lng)) {
+    showToast('That location is already pinned.');
+    return;
+  }
+  addStoreLocation(prefix, { address, lat, lng });
+  document.getElementById(prefix + 'ProductMapStatus').textContent = 'Location pinned. Search or click the map to add another one.';
+  document.getElementById(prefix + 'ProductMapAddress').value = '';
+  document.getElementById(prefix + 'CurrentLocationLat').value = '';
+  document.getElementById(prefix + 'CurrentLocationLng').value = '';
 }
 function clearStoreLocations(prefix) {
   const list = document.getElementById(prefix + 'StoreLocations');
   if (!list) return;
-  Object.keys(storeLocationPickers).forEach(key => {
-    if (key.startsWith(prefix + '-')) {
-      storeLocationPickers[key].map.remove();
-      delete storeLocationPickers[key];
-    }
-  });
   list.replaceChildren();
   storeLocationCounters[prefix] = 0;
 }
@@ -232,9 +273,17 @@ function openAddListing() {
   toggleTypeFields('add');
   toggleCategoryField('add');
   openModal('addListingModal');
+  document.getElementById('addProductMapAddress').value = '';
+  document.getElementById('addCurrentLocationLat').value = '';
+  document.getElementById('addCurrentLocationLng').value = '';
   setTimeout(() => {
-    const picker = ktSetupFoodMap('add');
-    if (picker) { picker.map.invalidateSize(); picker.reset(); }
+    if (document.getElementById('addTypeInput').value === 'product') {
+      const picker = setupProductLocationMap('add');
+      if (picker) picker.reset();
+    } else {
+      const picker = ktSetupFoodMap('add');
+      if (picker) { picker.map.invalidateSize(); picker.reset(); }
+    }
   }, 150);
 }
 function validateListingForm(mode) {
@@ -246,17 +295,13 @@ function validateListingForm(mode) {
   }
   const type = document.getElementById(prefix + 'TypeInput')?.value;
   if (type === 'product') {
-    const rows = [...document.querySelectorAll(`#${prefix}StoreLocations .store-location-editor`)];
+    const rows = [...document.querySelectorAll(`#${prefix}StoreLocations .pinned-product-location`)];
     for (const row of rows) {
       const address = row.querySelector('[name$="[address]"]')?.value.trim() || '';
       const lat = row.querySelector('[name$="[latitude]"]')?.value || '';
       const lng = row.querySelector('[name$="[longitude]"]')?.value || '';
-      if (address && (!lat || !lng)) {
-        showToast('Set a map pin for every store location.');
-        return false;
-      }
-      if (!address && (lat || lng || row.querySelector('[name$="[store_name]"]')?.value.trim())) {
-        showToast('Enter an address for every store location.');
+      if (!address || !lat || !lng) {
+        showToast('Each pinned location must include its map pin.');
         return false;
       }
     }
@@ -315,6 +360,9 @@ function openEditListing(id, type) {
   clearStoreLocations('edit');
   if (type === 'product') {
     (l.store_locations || []).forEach(location => addStoreLocation('edit', location));
+    document.getElementById('editProductMapAddress').value = '';
+    document.getElementById('editCurrentLocationLat').value = '';
+    document.getElementById('editCurrentLocationLng').value = '';
   }
   updateCategoryOptions('editTypeInput', 'editCategoryInput', l.category);
   toggleTypeFields('edit');
@@ -332,10 +380,10 @@ function openEditListing(id, type) {
   document.getElementById('editLngInput').value = hasCoords ? l.longitude : '';
   openModal('editListingModal');
   setTimeout(() => {
-    const picker = ktSetupFoodMap('edit');
+    const picker = type === 'product' ? setupProductLocationMap('edit') : ktSetupFoodMap('edit');
     if (!picker) return;
     picker.map.invalidateSize();
-    if (hasCoords) {
+    if (type !== 'product' && hasCoords) {
       picker.setPosition(parseFloat(l.latitude), parseFloat(l.longitude), 16);
     } else {
       picker.reset();

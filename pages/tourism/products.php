@@ -193,7 +193,7 @@ foreach ($rows as $r) {
                     <?php endif; ?>
                     <div class="p-card-actions">
                         <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= (int) $item['id'] ?>)">View Details</button>
-                        <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= (int) $item['id'] ?>)"><?= count($item['locations']) > 1 ? 'Choose Store' : 'Navigate' ?></button>
+                        <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= (int) $item['id'] ?>)"><?= count($item['locations']) > 1 ? 'Choose Location' : 'Navigate' ?></button>
                     </div>
                 </div>
             </article>
@@ -353,14 +353,14 @@ function openViewDetails(id) {
     storesEl.hidden = locations.length === 0;
     if (locations.length) {
         const heading = document.createElement('h4');
-        heading.textContent = locations.length === 1 ? 'Where to buy' : 'Stores that sell this product';
+        heading.textContent = locations.length === 1 ? 'Where to buy' : 'Places that sell this product';
         storesEl.appendChild(heading);
         locations.forEach((location, index) => {
             const row = document.createElement('div');
             row.className = 'p-store-location';
             const details = document.createElement('div');
             const storeName = document.createElement('strong');
-            storeName.textContent = location.store_name || `Store ${index + 1}`;
+            storeName.textContent = `Location ${index + 1}`;
             const address = document.createElement('span');
             address.textContent = location.address || 'Address unavailable';
             details.append(storeName, address);
@@ -428,7 +428,7 @@ function openNavigate(id, locationIndex) {
     }
     if (locationIndex === undefined) locationIndex = 0;
     const location = locations[locationIndex] || locations[0] || {};
-    document.getElementById('navTitle').textContent = location.store_name ? `${item.name} · ${location.store_name}` : item.name;
+    document.getElementById('navTitle').textContent = `${item.name} · Location ${locationIndex + 1}`;
     const distEl = document.getElementById('navDistance');
     const frame = document.getElementById('navFrame');
     const directLink = document.getElementById('navDirectLink');

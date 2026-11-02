@@ -201,13 +201,11 @@ sort($allCategories);
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
     <style>
         .image-current-hint { font-size: .7rem; color: rgba(245,237,216,.45); margin-top: 6px; }
-        .store-location-editor { border: 1px solid rgba(245,237,216,.14); background: rgba(255,255,255,.035); border-radius: 12px; padding: 14px; margin: 12px 0; }
-        .store-location-editor-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:#f5edd8; }
-        .store-location-editor-head .btn-ghost { padding:6px 10px; }
-        .store-location-coordinates { display:flex; gap:12px; margin-bottom:10px; }
-        .store-location-coordinates label { flex:1; color:rgba(245,237,216,.65); font-size:.75rem; }
-        .store-location-coordinates input { margin-top:5px; }
-        .store-location-map { height:190px; border-radius:9px; overflow:hidden; }
+        .product-pin-map { height:250px; border-radius:9px; overflow:hidden; margin-top:10px; }
+        .store-location-list { display:grid; gap:8px; margin-top:12px; }
+        .pinned-product-location { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; border-radius:9px; background:rgba(255,255,255,.06); color:#f5edd8; font-size:.8rem; }
+        .pinned-product-location span { min-width:0; overflow-wrap:anywhere; }
+        @media(max-width:600px) { .product-pin-map { height:210px; } }
     </style>
 </head>
 <body>
@@ -445,10 +443,14 @@ sort($allCategories);
                 </div>
             </div>
             <div class="form-group add-product-fields">
-                <label class="form-label">Stores that sell this product</label>
-                <p class="image-current-hint">Add each store and set its pin on the map. Visitors can choose which store to navigate to.</p>
+                <label class="form-label">Pin places that sell this product</label>
+                <p class="image-current-hint">Find or click a location on the map, then select Pin Location. Repeat for every place that sells this product.</p>
+                <div class="kt-map-field"><input class="form-input" id="addProductMapAddress" type="text" autocomplete="off" placeholder="Search for a place or address"></div>
+                <div id="addProductMapCanvas" class="product-pin-map"></div>
+                <div class="kt-map-status" id="addProductMapStatus">Search for an address or click the map to place a pin.</div>
+                <input type="hidden" id="addCurrentLocationLat"><input type="hidden" id="addCurrentLocationLng">
+                <button type="button" class="btn-primary" style="margin-top:10px;" onclick="pinProductLocation('add')">Pin Location</button>
                 <div class="store-location-list" id="addStoreLocations"></div>
-                <button type="button" class="btn-ghost" onclick="addStoreLocation('add')">Add Store Location</button>
             </div>
             <div class="add-restaurant-fields" style="display:none;">
                 <div class="form-row">
@@ -523,10 +525,14 @@ sort($allCategories);
                 </div>
             </div>
             <div class="form-group edit-product-fields">
-                <label class="form-label">Stores that sell this product</label>
-                <p class="image-current-hint">Add each store and set its pin on the map. Visitors can choose which store to navigate to.</p>
+                <label class="form-label">Pin places that sell this product</label>
+                <p class="image-current-hint">Find or click a location on the map, then select Pin Location. Repeat for every place that sells this product.</p>
+                <div class="kt-map-field"><input class="form-input" id="editProductMapAddress" type="text" autocomplete="off" placeholder="Search for a place or address"></div>
+                <div id="editProductMapCanvas" class="product-pin-map"></div>
+                <div class="kt-map-status" id="editProductMapStatus">Search for an address or click the map to place a pin.</div>
+                <input type="hidden" id="editCurrentLocationLat"><input type="hidden" id="editCurrentLocationLng">
+                <button type="button" class="btn-primary" style="margin-top:10px;" onclick="pinProductLocation('edit')">Pin Location</button>
                 <div class="store-location-list" id="editStoreLocations"></div>
-                <button type="button" class="btn-ghost" onclick="addStoreLocation('edit')">Add Store Location</button>
             </div>
             <div class="edit-restaurant-fields" style="display:none;">
                 <div class="form-row">
@@ -639,7 +645,7 @@ sort($allCategories);
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261102-1"></script>
-<script src="../assets/js/adminfoodanddining.js?v=20261102-1"></script>
+<script src="../assets/js/adminfoodanddining.js?v=20261102-3"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
 
     <script src="../assets/js/admin-filter-state.js"></script>
