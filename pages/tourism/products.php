@@ -67,7 +67,8 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/product.css?v=20261102-1">
+    <link rel="stylesheet" href="../../assets/css/product.css?v=20261102-2">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -213,7 +214,12 @@ foreach ($rows as $r) {
         <h3 class="p-modal-title" id="vdTitle">—</h3>
         <p class="p-modal-desc" id="vdDesc">—</p>
         <div class="p-modal-facts" id="vdFacts"></div>
-        <div class="p-product-stores" id="vdStores" hidden></div>
+        <div class="p-product-stores" id="vdStores" hidden>
+            <h4 id="vdStoresHeading">Places that sell this product</h4>
+            <p class="p-map-hint">Select a numbered pin to see the location and directions.</p>
+            <div class="p-product-locations-map" id="vdStoresMap"></div>
+            <div class="p-map-unmapped" id="vdUnmappedLocations" hidden></div>
+        </div>
         <div class="p-modal-actions">
             <button type="button" class="p-btn p-btn-primary" id="vdFavToggleBtn" onclick="toggleFavorite(document.getElementById('vdFavBtn'))">
                 <span id="vdFavLabel">♡ Add to Favorites</span>
@@ -239,9 +245,72 @@ foreach ($rows as $r) {
 </footer>
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const productsData = <?php echo json_encode($products, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 function findProduct(id) { return productsData.find(p => p.id === id); }
+let productLocationsMap = null;
+let productLocationsLayer = null;
+function renderProductLocationsMap(locations) {
+    const mapEl = document.getElementById('vdStoresMap');
+    const unmappedEl = document.getElementById('vdUnmappedLocations');
+    const mapped = locations.map((location, index) => ({ location, index }))
+        .filter(({ location }) => location.lat !== null && location.lat !== '' && location.lng !== null && location.lng !== ''
+            && Number.isFinite(Number(location.lat)) && Number.isFinite(Number(location.lng)));
+    const unmapped = locations.map((location, index) => ({ location, index })).filter(({ location }) =>
+        location.lat === null || location.lat === '' || location.lng === null || location.lng === ''
+        || !Number.isFinite(Number(location.lat)) || !Number.isFinite(Number(location.lng)));
+    mapEl.hidden = mapped.length === 0;
+    unmappedEl.hidden = unmapped.length === 0;
+    unmappedEl.replaceChildren();
+    unmapped.forEach(({ location, index }) => {
+        const line = document.createElement('p');
+        line.textContent = `Location ${index + 1} needs a map pin: ${location.address || 'Address unavailable'}`;
+        unmappedEl.appendChild(line);
+    });
+    if (!mapped.length || typeof L === 'undefined') return;
+    if (!productLocationsMap) {
+        productLocationsMap = L.map(mapEl, { scrollWheelZoom: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+        }).addTo(productLocationsMap);
+        productLocationsLayer = L.layerGroup().addTo(productLocationsMap);
+    }
+    productLocationsLayer.clearLayers();
+    const bounds = [];
+    mapped.forEach(({ location, index }) => {
+        const lat = Number(location.lat);
+        const lng = Number(location.lng);
+        bounds.push([lat, lng]);
+        const icon = L.divIcon({
+            className: 'p-location-marker-wrap',
+            html: `<span class="p-location-marker"><span>${index + 1}</span></span>`,
+            iconSize: [34, 42],
+            iconAnchor: [17, 40],
+            popupAnchor: [0, -38],
+        });
+        const marker = L.marker([lat, lng], { icon }).addTo(productLocationsLayer);
+        const popup = document.createElement('div');
+        popup.className = 'p-location-popup';
+        const title = document.createElement('strong');
+        title.textContent = `Location ${index + 1}`;
+        const address = document.createElement('span');
+        address.textContent = location.address || 'Address unavailable';
+        const directions = document.createElement('a');
+        directions.textContent = 'Get directions';
+        directions.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        directions.target = '_blank';
+        directions.rel = 'noopener';
+        popup.append(title, address, directions);
+        marker.bindPopup(popup);
+    });
+    setTimeout(() => {
+        productLocationsMap.invalidateSize();
+        if (bounds.length === 1) productLocationsMap.setView(bounds[0], 16);
+        else productLocationsMap.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
+    }, 120);
+}
 /* ---------------- Live search + category filter ---------------- */
 /* Filters the already-loaded productsData/cards client-side, so results
    update instantly as you type — no page reload per keystroke. Pressing
@@ -347,38 +416,16 @@ function openViewDetails(id) {
     facts += `<div><p class="p-fact-label">Location</p><p class="p-fact-value">${item.address || '—'}</p></div>`;
     document.getElementById('vdFacts').innerHTML = facts;
     const storesEl = document.getElementById('vdStores');
-    storesEl.replaceChildren();
     const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
     document.getElementById('vdNavigateBtn').style.display = locations.length > 1 ? 'none' : '';
     storesEl.hidden = locations.length === 0;
-    if (locations.length) {
-        const heading = document.createElement('h4');
-        heading.textContent = locations.length === 1 ? 'Where to buy' : 'Places that sell this product';
-        storesEl.appendChild(heading);
-        locations.forEach((location, index) => {
-            const row = document.createElement('div');
-            row.className = 'p-store-location';
-            const details = document.createElement('div');
-            const storeName = document.createElement('strong');
-            storeName.textContent = `Location ${index + 1}`;
-            const address = document.createElement('span');
-            address.textContent = location.address || 'Address unavailable';
-            details.append(storeName, address);
-            const directions = document.createElement('button');
-            directions.type = 'button';
-            directions.className = 'p-btn p-btn-outline';
-            directions.textContent = 'Directions';
-            directions.disabled = location.lat === null || location.lat === '' || location.lng === null || location.lng === '';
-            directions.onclick = () => { closeModalX('viewDetailsModal'); openNavigate(item.id, index); };
-            row.append(details, directions);
-            storesEl.appendChild(row);
-        });
-    }
+    document.getElementById('vdStoresHeading').textContent = locations.length === 1 ? 'Where to buy' : 'Places that sell this product';
     document.getElementById('vdNavigateBtn').onclick = function () {
         closeModalX('viewDetailsModal');
         openNavigate(item.id);
     };
     openModalX('viewDetailsModal');
+    renderProductLocationsMap(locations);
 }
 /* ---------------- Favorites (used by card hearts + modal heart) ---------------- */
 function toggleFavorite(btn) {
