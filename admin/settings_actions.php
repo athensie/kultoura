@@ -118,7 +118,7 @@ if ($action === 'change_password') {
 if ($action === 'toggle_setting') {
     $validKeys = [
         'maintenance_mode',
-        'email_alerts', 'new_listing_alert', 'flagged_content_alert', 'weekly_summary',
+        'email_alerts', 'new_listing_alert',
     ];
     $key = $_POST['key'] ?? '';
     if (!in_array($key, $validKeys, true)) {
@@ -128,25 +128,5 @@ if ($action === 'toggle_setting') {
     site_settings_set($conn, $key, ($_POST['value'] ?? '') === '1');
     http_response_code(200);
     exit;
-}
-if (in_array($action, ['reset_analytics', 'clear_sessions'], true) && !kt_is_super_admin()) {
-    settings_redirect_with_message('Only a Super Admin can do that.');
-}
-if ($action === 'reset_analytics') {
-    $conn->query("TRUNCATE TABLE page_views");
-    $conn->query("TRUNCATE TABLE item_views");
-    settings_redirect_with_message('Analytics data has been reset.');
-}
-if ($action === 'clear_sessions') {
-    $savePath = session_save_path() ?: sys_get_temp_dir();
-    $ownFile  = $savePath . '/sess_' . session_id();
-    $cleared  = 0;
-    foreach (glob($savePath . '/sess_*') ?: [] as $file) {
-        if ($file !== $ownFile && is_file($file)) {
-            @unlink($file);
-            $cleared++;
-        }
-    }
-    settings_redirect_with_message($cleared > 0 ? "Cleared {$cleared} active session(s)." : 'No other active sessions to clear.');
 }
 settings_redirect_with_message('Unknown action.');

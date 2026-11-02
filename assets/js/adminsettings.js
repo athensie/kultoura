@@ -41,8 +41,6 @@ function formatSettingLabel(key) {
     show_visitor_count: 'Live visitor count',
     email_alerts: 'Email alerts',
     new_listing_alert: 'New listing alert',
-    flagged_content_alert: 'Flagged content alert',
-    weekly_summary: 'Weekly summary email',
   };
   return labels[key] || 'Setting';
 }

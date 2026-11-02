@@ -8,25 +8,6 @@ include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
 $pageWidget = kt_page_widget_get($conn, 'products');
 analytics_track($conn, 'products');
-$productsHeroPhoto = sitecontent_get_photo($conn, 'products_hero');
-if ($productsHeroPhoto !== null) {
-    $productsHeroPhoto = trim($productsHeroPhoto);
-    if ($productsHeroPhoto !== '' && !preg_match('~^https?://~i', $productsHeroPhoto)) {
-        if ($productsHeroPhoto[0] !== '/') {
-            $productsHeroPhoto = '/kultoura/' . ltrim($productsHeroPhoto, '/');
-        }
-        if (str_starts_with($productsHeroPhoto, '/kultoura/')) {
-            $relativePhotoPath = substr($productsHeroPhoto, strlen('/kultoura/'));
-            $localPhotoPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR
-                . str_replace('/', DIRECTORY_SEPARATOR, $relativePhotoPath);
-            if (!is_file($localPhotoPath)) {
-                $productsHeroPhoto = null;
-            }
-        }
-    } elseif ($productsHeroPhoto === '') {
-        $productsHeroPhoto = null;
-    }
-}
 $_SESSION['history'][] = 'product';
 $_SESSION['history'] = array_slice($_SESSION['history'], -30);
 $isLoggedIn = isset($_SESSION['user_id']);
@@ -148,14 +129,9 @@ foreach ($rows as $r) {
     </button>
 </header>
 <?php if (!$pageWidget): ?>
-<section class="t-hero<?php echo $productsHeroPhoto ? ' t-hero-has-photo' : ''; ?>">
-    <?php if ($productsHeroPhoto): ?>
-        <img class="t-hero-photo" src="<?php echo htmlspecialchars($productsHeroPhoto); ?>" alt="">
-        <div class="t-hero-scrim"></div>
-    <?php else: ?>
-        <div class="t-hero-orb t-orb-1"></div>
-        <div class="t-hero-orb t-orb-2"></div>
-    <?php endif; ?>
+<section class="t-hero">
+    <div class="t-hero-orb t-orb-1"></div>
+    <div class="t-hero-orb t-orb-2"></div>
     <div class="t-hero-inner">
         <p class="t-eyebrow">FOOD · MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Products</h1>

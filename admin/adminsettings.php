@@ -36,8 +36,6 @@ $settings = site_settings_get_all($conn, [
     'maintenance_mode'      => false,
     'email_alerts'          => true,
     'new_listing_alert'     => true,
-    'flagged_content_alert' => true,
-    'weekly_summary'        => false,
 ]);
 $aiActive = ai_configured();
 $aiTextActive = ai_text_configured();
@@ -179,20 +177,6 @@ $aiTextModel = ai_configured() && groq_configured()
                     </div>
                     <button class="toggle <?php echo $settings['new_listing_alert'] ? 'on' : ''; ?>" data-key="new_listing_alert" onclick="toggleSetting(this)"></button>
                 </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <div class="setting-label">Flagged Content Alert</div>
-                        <div class="setting-desc">Alert on flagged reviews or users</div>
-                    </div>
-                    <button class="toggle <?php echo $settings['flagged_content_alert'] ? 'on' : ''; ?>" data-key="flagged_content_alert" onclick="toggleSetting(this)"></button>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <div class="setting-label">Weekly Summary Email</div>
-                        <div class="setting-desc">Receive weekly analytics digest</div>
-                    </div>
-                    <button class="toggle <?php echo $settings['weekly_summary'] ? 'on' : ''; ?>" data-key="weekly_summary" onclick="toggleSetting(this)"></button>
-                </div>
             </div>
             <div class="settings-card">
                 <h3><i data-lucide="user-cog" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Admin Account</h3>
@@ -215,35 +199,6 @@ $aiTextModel = ai_configured() && groq_configured()
                 </form>
             </div>
         </div>
-        <?php if ($isSuperAdmin): ?>
-        <div style="margin-top: 20px;" class="animate">
-            <div class="settings-card danger">
-                <h3><i data-lucide="triangle-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Danger Zone</h3>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <div class="setting-label danger-label">Reset All Analytics</div>
-                        <div class="setting-desc">Clears all visitor data and statistics. Irreversible.</div>
-                    </div>
-                    <form action="<?php echo BASE_URL; ?>/admin/settings_actions.php" method="POST" onsubmit="return confirm('Reset all analytics data? This cannot be undone.');">
-                        <input type="hidden" name="action" value="reset_analytics">
-                        <?php echo csrf_field(); ?>
-                        <button type="submit" class="tbl-btn delete" style="padding:8px 16px;"><i data-lucide="rotate-ccw" class="lucide" style="width:.75rem;height:.75rem;"></i> Reset</button>
-                    </form>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <div class="setting-label danger-label">Clear All User Sessions</div>
-                        <div class="setting-desc">Logs out all currently active users.</div>
-                    </div>
-                    <form action="<?php echo BASE_URL; ?>/admin/settings_actions.php" method="POST" onsubmit="return confirm('Log out every currently active user?');">
-                        <input type="hidden" name="action" value="clear_sessions">
-                        <?php echo csrf_field(); ?>
-                        <button type="submit" class="tbl-btn delete" style="padding:8px 16px;"><i data-lucide="x-circle" class="lucide" style="width:.75rem;height:.75rem;"></i> Clear</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
 </div>
 <div class="modal-overlay" id="changePasswordModal" onclick="closeModalOutside(event, 'changePasswordModal')">
