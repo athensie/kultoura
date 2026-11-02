@@ -106,6 +106,18 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
 .chart-box { background: rgba(var(--overlay-rgb),.05); border: 1px solid rgba(var(--overlay-rgb),.08); border-radius: 16px; padding: 28px; }
 .chart-box-full { margin-bottom: 24px; }
+.promo-effectiveness-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 22px; }
+.promo-effectiveness-summary > div { display: grid; gap: 4px; padding: 16px 18px; border: 1px solid rgba(var(--overlay-rgb), .08); border-radius: 12px; background: rgba(var(--overlay-rgb), .035); }
+.promo-effectiveness-summary strong { color: var(--gold); font: 700 1.6rem 'Bebas Neue', sans-serif; }
+.promo-effectiveness-summary span { color: rgba(var(--cream-rgb), .4); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; }
+.promo-effectiveness-chart { position: relative; width: 100%; height: 280px; margin-bottom: 22px; }
+.promo-effectiveness-table-wrap { overflow-x: auto; }
+.promo-effectiveness-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.promo-effectiveness-table th,
+.promo-effectiveness-table td { padding: 12px 10px; border-bottom: 1px solid rgba(var(--overlay-rgb), .07); text-align: left; }
+.promo-effectiveness-table th { color: rgba(var(--cream-rgb), .4); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; }
+.promo-effectiveness-table td { color: rgba(var(--cream-rgb), .72); }
+.promo-effectiveness-table td:first-child { color: var(--cream); font-family: 'Playfair Display', Georgia, serif; }
 .chart-box h4 { font-family: 'Playfair Display', serif; font-size: .95rem; color: var(--cream); margin-bottom: 22px; display: flex; align-items: center; gap: 8px; }
 .chart-box h4 .chart-sub { font-size: .68rem; color: rgba(var(--cream-rgb),.3); font-weight: 400; font-family: 'DM Sans', sans-serif; margin-left: 4px; }
 .chart-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 34px 12px; color: rgba(var(--cream-rgb),.3); }
@@ -230,6 +242,8 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 768px) {
+  .promo-effectiveness-summary { grid-template-columns: 1fr; }
+  .promo-effectiveness-chart { height: 330px; }
   .dash-wrapper { padding: 60px 16px 60px; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .charts-2col { grid-template-columns: 1fr; }

@@ -11,6 +11,16 @@ function kt_promotions_ensure_schema(mysqli $conn): void
             INDEX (promoted_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS promoted_content_analytics (
+            item_type VARCHAR(20) NOT NULL,
+            item_id INT NOT NULL,
+            impressions BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            clicks BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (item_type, item_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
 }
 
 function kt_promotion_types(): array
@@ -35,6 +45,7 @@ function kt_promotion_candidates(mysqli $conn): array
     kt_promotions_ensure_schema($conn);
     $items = [];
     foreach (kt_promotion_types() as $type => $meta) {
+        $items[$meta['label']] = [];
         $sql = "SELECT t.{$meta['id']} AS item_id, t.{$meta['name']} AS item_name,
                        t.summary, t.description, t.image,
                        COALESCE(v.views, 0) AS views,
@@ -61,12 +72,12 @@ function kt_promotion_candidates(mysqli $conn): array
     return $items;
 }
 
-function kt_promoted_home_items(mysqli $conn, int $limit = 6): array
+function kt_promoted_home_items(mysqli $conn): array
 {
     kt_promotions_ensure_schema($conn);
     $items = [];
     $types = kt_promotion_types();
-    $result = $conn->query('SELECT item_type, item_id FROM promoted_content ORDER BY promoted_at DESC LIMIT ' . max(1, min(24, $limit)));
+    $result = $conn->query('SELECT item_type, item_id FROM promoted_content ORDER BY promoted_at DESC');
     if (!$result) return $items;
     while ($promotion = $result->fetch_assoc()) {
         $type = (string) $promotion['item_type'];
@@ -82,12 +93,45 @@ function kt_promoted_home_items(mysqli $conn, int $limit = 6): array
         $stmt->close();
         if (!$row) continue;
         $items[] = [
+            'type' => $type,
+            'id' => $id,
             'name' => (string) $row['name'],
             'badge' => $meta['label'],
             'image' => trim((string) ($row['image'] ?? '')) !== '' ? 'assets/uploads/' . $meta['image_folder'] . '/' . basename($row['image']) : '',
             'summary' => (string) ($row['summary'] ?: $row['description'] ?: ''),
+            'description' => (string) ($row['description'] ?: $row['summary'] ?: ''),
             'link' => $meta['link'],
         ];
     }
+    return $items;
+}
+
+function kt_promotion_effectiveness(mysqli $conn): array
+{
+    kt_promotions_ensure_schema($conn);
+    $items = [];
+    foreach (kt_promotion_types() as $type => $meta) {
+        $sql = "SELECT t.{$meta['name']} AS name, COALESCE(a.impressions, 0) AS impressions,
+                       COALESCE(a.clicks, 0) AS clicks
+                FROM promoted_content p
+                INNER JOIN {$meta['table']} t ON t.{$meta['id']} = p.item_id
+                LEFT JOIN promoted_content_analytics a ON a.item_type = p.item_type AND a.item_id = p.item_id
+                WHERE p.item_type = '$type' AND t.status = 'active' AND {$meta['category']}
+                ORDER BY impressions DESC, clicks DESC, name ASC";
+        $result = $conn->query($sql);
+        if (!$result) continue;
+        while ($row = $result->fetch_assoc()) {
+            $impressions = (int) $row['impressions'];
+            $clicks = (int) $row['clicks'];
+            $items[] = [
+                'type' => $type,
+                'name' => (string) $row['name'],
+                'impressions' => $impressions,
+                'clicks' => $clicks,
+                'ctr' => $impressions > 0 ? round(($clicks / $impressions) * 100, 1) : 0,
+            ];
+        }
+    }
+    usort($items, static fn($a, $b) => ($b['impressions'] <=> $a['impressions']) ?: ($b['clicks'] <=> $a['clicks']));
     return $items;
 }

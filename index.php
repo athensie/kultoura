@@ -120,7 +120,7 @@ if ($result = $conn->query("SELECT restaurant_name AS name, image, description, 
         ];
     }
 }
-$promotedHomeItems = kt_promoted_home_items($conn, 6);
+$promotedHomeItems = kt_promoted_home_items($conn);
 $homeNews = [];
 $homeNewsTypeMeta = announcements_type_meta();
 if ($result = $conn->query(
@@ -218,7 +218,7 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
-    <link rel="stylesheet" href="assets/css/index.css?v=20261102-2">
+    <link rel="stylesheet" href="assets/css/index.css?v=20261102-3">
     <link rel="stylesheet" href="assets/css/search.css?v=20261101-2">
 </head>
 <body>
@@ -354,16 +354,23 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
         <h2 class="home-heading home-heading-barabara home-check-this-out">Check This Out</h2>
         <div class="home-instagram-grid">
             <?php foreach ($promotedHomeItems as $item): ?>
-            <article class="home-instagram-post">
+            <article class="home-instagram-post home-promoted-card" role="button" tabindex="0" aria-label="View details for <?php echo htmlspecialchars($item['name']); ?>"
+                data-item-type="<?php echo htmlspecialchars($item['type']); ?>"
+                data-item-id="<?php echo (int) $item['id']; ?>"
+                data-name="<?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?>"
+                data-badge="<?php echo htmlspecialchars($item['badge'], ENT_QUOTES); ?>"
+                data-image="<?php echo htmlspecialchars($item['image'], ENT_QUOTES); ?>"
+                data-description="<?php echo htmlspecialchars($item['description'], ENT_QUOTES); ?>"
+                data-link="<?php echo htmlspecialchars($item['link'], ENT_QUOTES); ?>">
                 <div class="home-instagram-post-head">
                     <span class="home-instagram-avatar" aria-hidden="true">K</span>
                     <div class="home-instagram-account"><strong>kultoura</strong><span><?php echo htmlspecialchars($item['badge']); ?> · Malvar, Batangas</span></div>
                     <span class="home-instagram-more" aria-hidden="true">•••</span>
                 </div>
-                <a href="<?php echo htmlspecialchars($item['link']); ?>" class="home-instagram-media" aria-label="Explore <?php echo htmlspecialchars($item['name']); ?>">
+                <div class="home-instagram-media">
                     <?php if ($item['image'] !== ''): ?><img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" loading="lazy"><?php endif; ?>
                     <span class="home-instagram-category"><?php echo htmlspecialchars(strtoupper($item['badge'])); ?></span>
-                </a>
+                </div>
                 <div class="home-instagram-caption">
                     <p><strong><?php echo htmlspecialchars($item['name']); ?></strong> <?php echo htmlspecialchars(mb_strimwidth(trim($item['summary']), 0, 125, '…')); ?></p>
                 </div>
@@ -373,6 +380,19 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
     </div>
     <?php endif; ?>
 </section>
+<div class="home-promo-modal" id="homePromoModal" aria-hidden="true">
+    <div class="home-promo-backdrop" data-promo-close></div>
+    <section class="home-promo-dialog" role="dialog" aria-modal="true" aria-labelledby="homePromoTitle">
+        <button type="button" class="home-promo-close" data-promo-close aria-label="Close details">&times;</button>
+        <div class="home-promo-image-wrap"><img id="homePromoImage" src="" alt=""></div>
+        <div class="home-promo-details">
+            <span class="home-promo-badge" id="homePromoBadge"></span>
+            <h2 id="homePromoTitle"></h2>
+            <p id="homePromoDescription"></p>
+            <a id="homePromoLink" href="">Explore this category</a>
+        </div>
+    </section>
+</div>
 <?php if (!empty($homeUpcoming)): ?>
 <section class="home-upcoming">
     <div class="home-upcoming-top reveal">
@@ -674,6 +694,7 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
 <script src="assets/js/navbar.js"></script>
 <script src="assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="assets/js/home.js?v=20261031-3"></script>
+<script src="assets/js/home-promotions.js?v=20261102-1"></script>
 </body>
 </html>
 <?php

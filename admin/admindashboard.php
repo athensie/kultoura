@@ -14,6 +14,7 @@ $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 include '../config/dbmain.php';
 include '../config/analytics.php';
+require_once '../config/promotions.php';
 require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
 $isSuperAdmin = kt_is_super_admin();
@@ -68,6 +69,11 @@ $itemTypeLabels = [
 $topItems = analytics_top_items($conn, 6, $periodStartSql);
 $topPeople = analytics_top_items($conn, 6, $periodStartSql, [], ['person']);
 $conversionItems = analytics_conversion_top_items($conn, 8, 3);
+$promotedEffectiveness = kt_promotion_effectiveness($conn);
+$promotedImpressions = array_sum(array_column($promotedEffectiveness, 'impressions'));
+$promotedClicks = array_sum(array_column($promotedEffectiveness, 'clicks'));
+$promotedCtr = $promotedImpressions > 0 ? round(($promotedClicks / $promotedImpressions) * 100, 1) : 0;
+$promotedChartItems = array_slice($promotedEffectiveness, 0, 8);
 $topSearches = analytics_top_searches($conn, 6);
 $zeroResultSearches = analytics_zero_result_searches($conn, 6);
 $trending = [];
@@ -383,7 +389,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="../assets/css/admindashboard.css">
+    <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261102-1">
     <link rel="stylesheet" href="../assets/css/admin-theme.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <style>.period-selector .period-btn { text-decoration: none; display: inline-block; }</style>
@@ -638,6 +644,43 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                     <?php endforeach; ?>
                 </div>
                 <?php kt_render_chart_insight($chartInsights, 'conversion'); ?>
+            <?php endif; ?>
+        </div>
+        </div>
+        <div class="analytics-section" data-category="descriptive">
+        <div class="alabel-desc">Check This Out Effectiveness <span class="analytics-tag">Promotion Analytics</span></div>
+        <div class="chart-box chart-box-full animate">
+            <h4>Homepage Exposure &amp; Modal Opens <span class="chart-sub">lifetime</span></h4>
+            <div class="promo-effectiveness-summary">
+                <div><strong><?php echo number_format($promotedImpressions); ?></strong><span>Visible impressions</span></div>
+                <div><strong><?php echo number_format($promotedClicks); ?></strong><span>Modal opens</span></div>
+                <div><strong><?php echo number_format($promotedCtr, 1); ?>%</strong><span>Click-through rate</span></div>
+            </div>
+            <?php if (empty($promotedEffectiveness)): ?>
+                <div class="chart-empty">
+                    <i data-lucide="megaphone" class="lucide"></i>
+                    <div class="chart-empty-title">No promoted content yet</div>
+                    <div class="chart-empty-sub">Promote an item first; its visible impressions and modal opens will be measured here.</div>
+                </div>
+            <?php else: ?>
+                <div class="promo-effectiveness-chart"><canvas id="promotedEffectivenessChart" aria-label="Visible impressions compared with modal opens by promoted item" role="img"></canvas></div>
+                <div class="promo-effectiveness-table-wrap">
+                    <table class="promo-effectiveness-table">
+                        <thead><tr><th>Content</th><th>Category</th><th>Impressions</th><th>Modal Opens</th><th>CTR</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($promotedEffectiveness as $item): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($item['name']); ?></td>
+                                <td><?php echo htmlspecialchars($itemTypeLabels[$item['type']] ?? ucfirst($item['type'])); ?></td>
+                                <td><?php echo number_format($item['impressions']); ?></td>
+                                <td><?php echo number_format($item['clicks']); ?></td>
+                                <td><?php echo number_format($item['ctr'], 1); ?>%</td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <script type="application/json" id="promotedEffectivenessData"><?php echo json_encode($promotedChartItems, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?></script>
             <?php endif; ?>
         </div>
         </div>
@@ -943,6 +986,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admindashboard.js"></script>
+<script src="../assets/js/promoted-analytics.js?v=20261102-1"></script>
 <script>initSidebarCollapse();</script>
 
     <script src="../assets/js/admin-filter-state.js"></script>

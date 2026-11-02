@@ -670,6 +670,26 @@ body {
 .home-check-this-out { display: block; width: fit-content; margin: 56px 0 28px; }
 .home-check-this-out::after { left: 0; transform: none; }
 .home-promoted-wrap { margin-top: 12px; }
+.home-promoted-card { cursor: pointer; }
+.home-promo-modal { position: fixed; inset: 0; z-index: 10000; display: none; align-items: center; justify-content: center; padding: 22px; }
+.home-promo-modal.is-open { display: flex; }
+.home-promo-backdrop { position: absolute; inset: 0; background: rgba(10, 18, 9, .76); backdrop-filter: blur(5px); }
+.home-promo-dialog { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr); width: min(900px, 100%); max-height: min(82vh, 760px); overflow: auto; border: 1px solid rgba(44, 26, 14, .12); border-radius: 22px; background: #f0ebd8; color: #2c1a0e; box-shadow: 0 24px 80px rgba(0, 0, 0, .28); }
+.home-promo-image-wrap { min-height: 300px; background: #ded7c4; }
+.home-promo-image-wrap[hidden] { display: none; }
+.home-promo-image-wrap img { display: block; width: 100%; height: 100%; min-height: 300px; object-fit: cover; }
+.home-promo-details { align-self: center; padding: clamp(28px, 5vw, 54px); }
+.home-promo-badge { display: inline-flex; margin-bottom: 12px; padding: 6px 10px; border-radius: 999px; background: #1c3322; color: #f0ebd8; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.home-promo-details h2 { margin: 0 0 14px; font: 700 clamp(1.5rem, 3vw, 2.1rem)/1.15 Georgia, serif; }
+.home-promo-details p { margin: 0 0 22px; color: rgba(44, 26, 14, .72); line-height: 1.7; white-space: pre-line; }
+.home-promo-details > a { display: inline-flex; align-items: center; justify-content: center; padding: 11px 18px; border-radius: 999px; background: #1c3322; color: #fff; font-weight: 700; text-decoration: none; }
+.home-promo-close { position: absolute; top: 12px; right: 12px; z-index: 2; display: grid; width: 40px; height: 40px; place-items: center; border: 0; border-radius: 50%; background: rgba(28, 51, 34, .88); color: #fff; font-size: 28px; cursor: pointer; }
+@media (max-width: 700px) {
+    .home-promo-dialog { grid-template-columns: 1fr; max-height: 88vh; }
+    .home-promo-image-wrap { min-height: 0; max-height: 42vh; }
+    .home-promo-image-wrap img { min-height: 0; max-height: 42vh; }
+    .home-promo-details { padding: 24px; }
+}
 .home-foryou-desc {
     font-size: 14.5px;
     color: rgba(44, 26, 14, 0.6);

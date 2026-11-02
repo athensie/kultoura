@@ -61,12 +61,12 @@ $candidateGroups = kt_promotion_candidates($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Promote Content · KULTOURA Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/admindestinations.css?v=20261031-1">
     <link rel="stylesheet" href="../assets/css/admin-theme.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
-    <link rel="stylesheet" href="../assets/css/adminpromote.css?v=20261102-2">
+    <link rel="stylesheet" href="../assets/css/adminpromote.css?v=20261102-4">
 </head>
 <body>
 <aside class="sidebar" id="sidebar">
@@ -118,18 +118,30 @@ $candidateGroups = kt_promotion_candidates($conn);
             <h1>Promote <em>Content</em></h1>
             <p>Review active listings by category and feature selected items below For You on the homepage.</p>
         </div>
-        <div class="header-actions"><a class="promote-back" href="<?php echo BASE_URL; ?>/index.php">View homepage</a></div>
     </header>
     <?php if ($notice !== ''): ?><div class="promote-notice"><?php echo htmlspecialchars($notice); ?></div><?php endif; ?>
-    <?php if (empty($candidateGroups)): ?>
+    <?php if (array_sum(array_map('count', $candidateGroups)) === 0): ?>
         <div class="promote-empty">No active content is available to promote yet.</div>
     <?php endif; ?>
-    <?php foreach ($candidateGroups as $groupName => $items): ?>
-    <section class="promote-category">
-        <div class="promote-category-head"><h2><?php echo htmlspecialchars($groupName); ?></h2><span><?php echo count($items); ?> active</span></div>
-        <div class="promote-list">
+    <?php $folderIndex = 0; foreach ($candidateGroups as $groupName => $items): $folderIndex++; $folderId = 'promote-folder-' . $folderIndex; ?>
+    <details class="promote-folder">
+        <summary class="promote-folder-summary">
+            <span class="promote-folder-icon"><i data-lucide="folder" class="lucide"></i></span>
+            <span class="promote-folder-title"><strong><?php echo htmlspecialchars($groupName); ?></strong><small><?php echo count($items); ?> active listings</small></span>
+            <span class="promote-folder-chevron"><i data-lucide="chevron-down" class="lucide"></i></span>
+        </summary>
+        <div class="promote-folder-content">
+        <div class="promote-sortbar">
+            <label for="<?php echo $folderId; ?>-sort">Sort by views</label>
+            <select id="<?php echo $folderId; ?>-sort" data-promote-sort="<?php echo $folderId; ?>-items">
+                <option value="least">Least views first</option>
+                <option value="greatest">Most views first</option>
+            </select>
+        </div>
+        <div class="promote-list" id="<?php echo $folderId; ?>-items">
+            <?php if (empty($items)): ?><div class="promote-category-empty">No active listings in this category.</div><?php endif; ?>
             <?php foreach ($items as $item): ?>
-            <article class="promote-row">
+            <article class="promote-row" data-views="<?php echo $item['views']; ?>">
                 <div class="promote-item-thumb">
                     <?php if ($item['image'] !== ''): ?><img src="../assets/uploads/<?php echo htmlspecialchars(kt_promotion_types()[$item['type']]['image_folder']); ?>/<?php echo htmlspecialchars(basename($item['image'])); ?>" alt="">
                     <?php else: ?><i data-lucide="image" class="lucide"></i><?php endif; ?>
@@ -147,11 +159,13 @@ $candidateGroups = kt_promotion_candidates($conn);
             </article>
             <?php endforeach; ?>
         </div>
-    </section>
+        </div>
+    </details>
     <?php endforeach; ?>
 </div>
 </main>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
+<script src="../assets/js/adminpromote.js?v=20261102-1"></script>
 <script>
 function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle('open'); }
 initSidebarCollapse();

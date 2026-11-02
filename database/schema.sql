@@ -211,6 +211,15 @@ CREATE TABLE `promoted_content` (
   PRIMARY KEY (`item_type`,`item_id`),
   KEY `promoted_at` (`promoted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+DROP TABLE IF EXISTS `promoted_content_analytics`;
+CREATE TABLE `promoted_content_analytics` (
+  `item_type` varchar(20) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `impressions` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `clicks` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`item_type`,`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 DROP TABLE IF EXISTS `products`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
