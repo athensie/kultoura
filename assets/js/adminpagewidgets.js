@@ -29,13 +29,15 @@ function openEditWidget(id) {
         container.hidden = container.childElementCount === 0;
     };
     renderPreviews('editWidgetMainPreview', [{ label: 'Main', src: w.main_image }]);
-    renderPreviews('editWidgetGridPreviews', [
-        { label: 'Grid 1', src: w.gallery_image_1 },
-        { label: 'Grid 2', src: w.gallery_main_image },
-        { label: 'Grid 3', src: w.gallery_image_2 },
-        { label: 'Grid 4', src: w.gallery_image_3 },
-        { label: 'Grid 5', src: w.gallery_image_4 }
-    ]);
+    [
+        ['gallery_image_1', 'Grid 1'],
+        ['gallery_main_image', 'Grid 2'],
+        ['gallery_image_2', 'Grid 3'],
+        ['gallery_image_3', 'Grid 4'],
+        ['gallery_image_4', 'Grid 5']
+    ].forEach(([field, label], index) => {
+        renderPreviews(`editWidgetGridPreview${index + 1}`, [{ label, src: w[field] }]);
+    });
     renderPreviews('editWidgetStripPreviews', Array.from({ length: 5 }, (_, index) => ({
         label: `Photo ${index + 1}`,
         src: w[`photo_${index + 1}`]

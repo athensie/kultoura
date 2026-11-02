@@ -88,11 +88,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'card1_text'       => $existingWidget['card1_text'] ?? null,
             'card2_text'       => $postedText('card2_text', $existingWidget),
             'main_image'       => $uploadedImage('main_image', kt_page_widget_handle_image_upload('main_image_file'), $existingWidget),
-            'gallery_image_1'    => $uploadedImage('gallery_image_1', kt_page_widget_handle_multi_image_upload('grid_photos', 0), $existingWidget),
-            'gallery_main_image' => $uploadedImage('gallery_main_image', kt_page_widget_handle_multi_image_upload('grid_photos', 1), $existingWidget),
-            'gallery_image_2'    => $uploadedImage('gallery_image_2', kt_page_widget_handle_multi_image_upload('grid_photos', 2), $existingWidget),
-            'gallery_image_3'    => $uploadedImage('gallery_image_3', kt_page_widget_handle_multi_image_upload('grid_photos', 3), $existingWidget),
-            'gallery_image_4'    => $uploadedImage('gallery_image_4', kt_page_widget_handle_multi_image_upload('grid_photos', 4), $existingWidget),
+            'gallery_image_1'    => $uploadedImage('gallery_image_1', kt_page_widget_handle_image_upload('grid_photo_1'), $existingWidget),
+            'gallery_main_image' => $uploadedImage('gallery_main_image', kt_page_widget_handle_image_upload('grid_photo_2'), $existingWidget),
+            'gallery_image_2'    => $uploadedImage('gallery_image_2', kt_page_widget_handle_image_upload('grid_photo_3'), $existingWidget),
+            'gallery_image_3'    => $uploadedImage('gallery_image_3', kt_page_widget_handle_image_upload('grid_photo_4'), $existingWidget),
+            'gallery_image_4'    => $uploadedImage('gallery_image_4', kt_page_widget_handle_image_upload('grid_photo_5'), $existingWidget),
             'photo_1'             => $uploadedImage('photo_1', kt_page_widget_handle_multi_image_upload('photos', 0), $existingWidget),
             'photo_1_caption'     => $postedText('photo_1_caption', $existingWidget),
             'photo_1_description' => $postedText('photo_1_description', $existingWidget),
@@ -261,13 +261,20 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <?php if (!empty($pendingWidgets)): ?>
             <h3 class="pending-heading">Pending Super Admin Approval</h3>
             <div class="pw-admin-list">
-                <?php foreach ($pendingWidgets as $req): $d = $req['payload']; ?>
+                <?php foreach ($pendingWidgets as $req):
+                    $d = $req['payload'];
+                    $pendingGridImage = $d['gallery_image_1'] ?? $d['gallery_main_image'] ?? $d['gallery_image_2'] ?? $d['gallery_image_3'] ?? $d['gallery_image_4'] ?? null;
+                    $pendingPreview = $d['main_image'] ?? $pendingGridImage ?? ($d['photo_1'] ?? null);
+                ?>
                     <div class="pw-admin-row pending-card">
                         <span class="pending-badge"><?php echo htmlspecialchars(ucfirst($req['action'])); ?> pending</span>
-                        <div class="pw-admin-swatch" style="background:<?php echo htmlspecialchars($d['bg_color'] ?? '#f0ebe3'); ?>"></div>
+                        <div class="pw-admin-swatch" title="Pending image">
+                            <?php if ($pendingPreview): ?><img src="<?php echo htmlspecialchars($pendingPreview); ?>" alt="Pending widget image preview"><?php endif; ?>
+                            <span class="pw-admin-swatch-label">Pending</span>
+                        </div>
                         <div class="pw-admin-row-body">
                             <div class="pw-admin-row-title"><?php echo htmlspecialchars($pageChoices[$d['page_slug'] ?? ''] ?? $req['entity_label']); ?></div>
-                            <div class="pw-admin-row-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?></div>
+                            <div class="pw-admin-row-sub">Submitted by <?php echo htmlspecialchars($req['requested_by_name']); ?> · Images appear on the public page after approval.</div>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -285,11 +292,13 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <input type="hidden" name="page_slug" id="addWidgetPageSlug">
             <?php echo csrf_field(); ?>
             <p class="pw-form-section">Grid Pictures (up to 5)</p>
-            <p class="pw-form-hint">Choose up to five images for the grid, including the slot previously used for the colored panel.</p>
+            <p class="pw-form-hint">Choose an image for each grid position. The fifth position replaces the old colored panel.</p>
+            <?php for ($n = 1; $n <= 5; $n++): ?>
             <div class="form-group">
-                <label class="form-label">Grid photos</label>
-                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
+                <label class="form-label">Grid picture <?php echo $n; ?></label>
+                <input class="form-input" type="file" name="grid_photo_<?php echo $n; ?>" accept="image/*">
             </div>
+            <?php endfor; ?>
             <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
                 <label class="form-label">This is where the page's title appears</label>
@@ -331,12 +340,14 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <input type="hidden" name="page_slug" id="editWidgetPageSlug">
             <?php echo csrf_field(); ?>
             <p class="pw-form-section">Grid Pictures (up to 5)</p>
-            <p class="pw-form-hint">Upload selected images to replace matching positions. Any other existing grid photos stay in place.</p>
+            <p class="pw-form-hint">Each position shows its current image. Upload a replacement in that position; all other grid pictures stay in place.</p>
+            <?php for ($n = 1; $n <= 5; $n++): ?>
             <div class="form-group">
-                <label class="form-label">Grid photos</label>
-                <div class="pw-current-images" id="editWidgetGridPreviews"></div>
-                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
+                <label class="form-label">Grid picture <?php echo $n; ?></label>
+                <div class="pw-current-images" id="editWidgetGridPreview<?php echo $n; ?>"></div>
+                <input class="form-input" type="file" name="grid_photo_<?php echo $n; ?>" accept="image/*">
             </div>
+            <?php endfor; ?>
             <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
                 <label class="form-label">Replace (where the page's title appears)</label>
