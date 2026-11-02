@@ -199,7 +199,7 @@ sort($allCategories);
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
-    <link rel="stylesheet" href="../assets/css/product-location-map.css?v=20261102-3">
+    <link rel="stylesheet" href="../assets/css/product-location-map.css?v=20261102-4">
     <style>
         .image-current-hint { font-size: .7rem; color: rgba(245,237,216,.45); margin-top: 6px; }
         .product-pin-map { height:250px; border-radius:9px; overflow:hidden; margin-top:10px; }
@@ -646,7 +646,7 @@ sort($allCategories);
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261102-1"></script>
-<script src="../assets/js/product-location-map.js?v=20261102-3"></script>
+<script src="../assets/js/product-location-map.js?v=20261102-4"></script>
 <script src="../assets/js/adminfoodanddining.js?v=20261102-4"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
 

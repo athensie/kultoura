@@ -68,7 +68,7 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/product.css?v=20261102-2">
-    <link rel="stylesheet" href="../../assets/css/product-location-map.css?v=20261102-3">
+    <link rel="stylesheet" href="../../assets/css/product-location-map.css?v=20261102-4">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
@@ -247,7 +247,7 @@ foreach ($rows as $r) {
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../../assets/js/product-location-map.js?v=20261102-3"></script>
+<script src="../../assets/js/product-location-map.js?v=20261102-4"></script>
 <script>
 const productsData = <?php echo json_encode($products, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 function findProduct(id) { return productsData.find(p => p.id === id); }
