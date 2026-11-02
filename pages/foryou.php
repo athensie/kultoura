@@ -576,7 +576,6 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <?php endforeach; ?>
             </nav>
             <div class="fy-near-widget">
-                <p class="fy-sidebar-label">Near You</p>
                 <p class="fy-near-widget-sub">Top spots near your current location</p>
                 <div id="fy-near-widget-list" class="fy-near-widget-list"></div>
                 <p id="fy-near-widget-status" class="fy-near-widget-status">Enable location to see this.</p>
