@@ -459,8 +459,8 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     const STORAGE_KEY = 'tdExpandedGroup';
     const REDUCE_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
-    const D_OPEN = 650;
-    const D_CLOSE = 500;
+    const D_OPEN = 820;
+    const D_CLOSE = 680;
     let placeholder = null;
     let busy = false;
     function readExpandedKey() {
@@ -513,6 +513,19 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         const close = row.querySelector('.td-group-close');
         if (close) close.style.opacity = visible ? '' : '0';
     }
+    function animateFolderContent(row, opening) {
+        const keyframes = opening
+            ? [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }]
+            : [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-6px)' }];
+        return [row.querySelector('.td-group-header'), row.querySelector('.td-folder-page-left')]
+            .filter(Boolean)
+            .map((element) => element.animate(keyframes, {
+                duration: opening ? D_OPEN * 0.55 : D_CLOSE * 0.5,
+                delay: opening ? D_OPEN * 0.22 : 0,
+                easing: EASE_OUT,
+                fill: 'both',
+            }));
+    }
     function folderColors(row) {
         const cs = getComputedStyle(row);
         return {
@@ -523,6 +536,10 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     function settleRow(row, animations) {
         animations.forEach((a) => { try { a.commitStyles(); } catch (err) {} a.cancel(); });
         row.style.opacity = '';
+        row.querySelectorAll('.td-group-header, .td-folder-page-left').forEach((el) => {
+            el.style.opacity = '';
+            el.style.transform = '';
+        });
         setPageRightFolded(row, false);
         setAccentsVisible(row, true);
     }
@@ -542,6 +559,10 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
             row.removeAttribute('style');
             setPageRightFolded(row, false);
             setAccentsVisible(row, true);
+            row.querySelectorAll('.td-group-header, .td-folder-page-left').forEach((el) => {
+                el.style.opacity = '';
+                el.style.transform = '';
+            });
             if (placeholder && placeholder.parentNode) {
                 placeholder.parentNode.insertBefore(row, placeholder);
             } else {
@@ -563,6 +584,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         const animations = [
             row.animate([{ ...px(from), opacity: 1 }, { ...px(to), opacity: 0 }], { duration: D_CLOSE, easing: EASE_OUT, fill: 'both' }),
             row.animate([{ backgroundColor: colors.open }, { backgroundColor: colors.closed }], { duration: D_CLOSE, fill: 'both' }),
+            ...animateFolderContent(row, false),
         ];
         const pageRight = row.querySelector('.td-folder-page-right');
         if (pageRight) {
@@ -614,6 +636,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
             const animations = [
                 row.animate([{ ...px(from), opacity: 0 }, { ...px(to), opacity: 1 }], { duration: D_OPEN, easing: EASE_OUT, fill: 'both' }),
                 row.animate([{ backgroundColor: colors.closed }, { backgroundColor: colors.open }], { duration: D_OPEN, fill: 'both' }),
+                ...animateFolderContent(row, true),
             ];
             const pageRight = row.querySelector('.td-folder-page-right');
             if (pageRight) {
