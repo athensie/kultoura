@@ -256,6 +256,7 @@ CREATE TABLE `users` (
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `promotional_email` tinyint(1) NOT NULL DEFAULT 0,
+  `google_password_set` tinyint(1) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `last_activity` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
