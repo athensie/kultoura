@@ -187,7 +187,7 @@ foreach ($favoriteRows as $r) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
-    <link rel="stylesheet" href="../assets/css/favorites.css?v=20261103-1">
+    <link rel="stylesheet" href="../assets/css/favorites.css?v=20261103-3">
 </head>
 <body>
 <header class="navbar navbar-solid">
