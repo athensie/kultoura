@@ -177,3 +177,4 @@
     .f-main { padding: 32px 16px 64px; }
     .f-grid { grid-template-columns: 1fr; }
 }
+.t-hero .t-page-title { font-family: 'Barabara', 'Fraunces', Georgia, serif; }

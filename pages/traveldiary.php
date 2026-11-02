@@ -1113,15 +1113,6 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
     </section>
-    <section class="td-section td-section-flush">
-        <div class="td-cta-banner">
-            <span class="td-cta-leaf td-cta-leaf-1" aria-hidden="true"><?php echo $statIcons['memories']; ?></span>
-            <span class="td-cta-leaf td-cta-leaf-2" aria-hidden="true"><?php echo $categoryIcons['nature']; ?></span>
-            <span class="td-cta-quote-mark" aria-hidden="true">&ldquo;</span>
-            <blockquote class="td-cta-quote">The best stories are the ones we collect<br>along the way. <span class="td-cta-heart">&#9825;</span></blockquote>
-            <button type="button" class="td-wrapped-btn td-wrapped-btn-light td-wrapped-trigger">+ Generate My Travel Wrapped</button>
-        </div>
-    </section>
 </main>
 <div class="tw-period-overlay" id="twPeriodOverlay">
     <div class="tw-period-card">
