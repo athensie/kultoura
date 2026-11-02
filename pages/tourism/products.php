@@ -195,7 +195,6 @@ foreach ($rows as $r) {
                     <?php endif; ?>
                     <div class="p-card-actions">
                         <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= (int) $item['id'] ?>)">View Details</button>
-                        <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= (int) $item['id'] ?>)"><?= count($item['locations']) > 1 ? 'Choose Location' : 'Navigate' ?></button>
                     </div>
                 </div>
             </article>
@@ -217,7 +216,7 @@ foreach ($rows as $r) {
         <div class="p-modal-facts" id="vdFacts"></div>
         <div class="p-product-stores" id="vdStores" hidden>
             <h4 id="vdStoresHeading">Places that sell this product</h4>
-            <p class="p-map-hint">Select a numbered pin to see the location and directions.</p>
+            <p class="p-map-hint">Select a pin to see the location, distance, and directions.</p>
             <div class="p-product-locations-map" id="vdStoresMap"></div>
             <div class="p-map-unmapped" id="vdUnmappedLocations" hidden></div>
         </div>
@@ -225,19 +224,6 @@ foreach ($rows as $r) {
             <button type="button" class="p-btn p-btn-primary" id="vdFavToggleBtn" onclick="toggleFavorite(document.getElementById('vdFavBtn'))">
                 <span id="vdFavLabel">♡ Add to Favorites</span>
             </button>
-            <button type="button" class="p-btn p-btn-outline" id="vdNavigateBtn">Navigate</button>
-        </div>
-    </div>
-</div>
-<div class="p-modal-overlay" id="navigateModal" onclick="closeModalOutsideX(event, 'navigateModal')">
-    <div class="p-modal-card p-modal-card-wide">
-        <button class="p-modal-close" onclick="closeModalX('navigateModal')">&times;</button>
-        <p class="p-modal-eyebrow">Navigate to</p>
-        <h3 class="p-modal-title" id="navTitle">—</h3>
-        <p class="p-nav-distance" id="navDistance">Locating you…</p>
-        <iframe class="p-map-frame" id="navFrame" src="" loading="lazy" allowfullscreen></iframe>
-        <div class="p-modal-actions">
-            <a href="#" target="_blank" rel="noopener" id="navDirectLink" class="p-btn p-btn-primary" style="display:none;">Open Directions in Google Maps</a>
         </div>
     </div>
 </div>
@@ -399,13 +385,8 @@ function openViewDetails(id) {
     document.getElementById('vdFacts').innerHTML = facts;
     const storesEl = document.getElementById('vdStores');
     const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
-    document.getElementById('vdNavigateBtn').style.display = locations.length > 1 ? 'none' : '';
     storesEl.hidden = locations.length === 0;
     document.getElementById('vdStoresHeading').textContent = locations.length === 1 ? 'Where to buy' : 'Places that sell this product';
-    document.getElementById('vdNavigateBtn').onclick = function () {
-        closeModalX('viewDetailsModal');
-        openNavigate(item.id);
-    };
     openModalX('viewDetailsModal');
     renderProductLocationsMap(locations);
 }
@@ -436,59 +417,6 @@ function toggleFavorite(btn) {
             }
         })
         .catch(() => { /* network hiccup — leave the button state as-is */ });
-}
-/* ---------------- Navigate (Google Maps embed) ---------------- */
-function haversineKm(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-function openNavigate(id, locationIndex) {
-    const item = findProduct(id);
-    if (!item) return;
-    const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
-    if (locationIndex === undefined && locations.length > 1) {
-        openViewDetails(id);
-        return;
-    }
-    if (locationIndex === undefined) locationIndex = 0;
-    const location = locations[locationIndex] || locations[0] || {};
-    document.getElementById('navTitle').textContent = `${item.name} · Location ${locationIndex + 1}`;
-    const distEl = document.getElementById('navDistance');
-    const frame = document.getElementById('navFrame');
-    const directLink = document.getElementById('navDirectLink');
-    const hasCoords = location.lat !== null && location.lat !== '' && location.lng !== null && location.lng !== '';
-    openModalX('navigateModal');
-    if (!hasCoords) {
-        distEl.textContent = "This store hasn't been mapped yet. Contact the store for directions.";
-        frame.src = '';
-        directLink.style.display = 'none';
-        return;
-    }
-    const destLat = parseFloat(location.lat);
-    const destLng = parseFloat(location.lng);
-    frame.src = 'https://www.google.com/maps?q=' + destLat + ',' + destLng + '&z=15&output=embed';
-    directLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng;
-    directLink.style.display = 'inline-block';
-    distEl.textContent = 'Locating you…';
-    if (!navigator.geolocation) {
-        distEl.textContent = "Your browser doesn't support location — showing the destination only.";
-        return;
-    }
-    navigator.geolocation.getCurrentPosition(function (pos) {
-        const userLat = pos.coords.latitude;
-        const userLng = pos.coords.longitude;
-        const km = haversineKm(userLat, userLng, destLat, destLng);
-        distEl.textContent = (km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km') + ' away from your current location';
-        frame.src = 'https://www.google.com/maps?saddr=' + userLat + ',' + userLng + '&daddr=' + destLat + ',' + destLng + '&output=embed';
-        directLink.href = 'https://www.google.com/maps/dir/?api=1&origin=' + userLat + ',' + userLng + '&destination=' + destLat + ',' + destLng;
-    }, function () {
-        distEl.textContent = 'Enable location access in your browser to see your distance and directions.';
-    }, { enableHighAccuracy: true, timeout: 10000 });
 }
 </script>
 </body>
