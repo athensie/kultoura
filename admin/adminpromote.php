@@ -51,6 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $adminName = htmlspecialchars((string) ($_SESSION['username'] ?? 'Admin'));
 $adminRole = htmlspecialchars((string) ($_SESSION['role'] ?? 'Admin'));
+$isSuperAdmin = strtolower((string) ($_SESSION['role'] ?? '')) === 'super admin';
+$pendingRequestCount = kt_requests_pending_count($conn);
 $candidateGroups = kt_promotion_candidates($conn);
 ?>
 <!DOCTYPE html>
@@ -61,10 +63,10 @@ $candidateGroups = kt_promotion_candidates($conn);
     <title>Promote Content · KULTOURA Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-    <link rel="stylesheet" href="../assets/css/admindashboard.css">
+    <link rel="stylesheet" href="../assets/css/admindestinations.css?v=20261031-1">
     <link rel="stylesheet" href="../assets/css/admin-theme.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
-    <link rel="stylesheet" href="../assets/css/adminpromote.css?v=20261102-1">
+    <link rel="stylesheet" href="../assets/css/adminpromote.css?v=20261102-2">
 </head>
 <body>
 <aside class="sidebar" id="sidebar">
@@ -77,8 +79,8 @@ $candidateGroups = kt_promotion_candidates($conn);
     </ul>
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminpromote.php" class="active"><span class="nav-icon"><i data-lucide="sparkles" class="lucide"></i></span> Promote Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminpromote.php" class="active"><span class="nav-icon"><i data-lucide="sparkles" class="lucide"></i></span> Promote Content</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminfoodanddining.php"><span class="nav-icon"><i data-lucide="utensils" class="lucide"></i></span> Food &amp; Dining</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/admineventandfiesta.php"><span class="nav-icon"><i data-lucide="calendar-heart" class="lucide"></i></span> Events &amp; Fiesta</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminpeople.php"><span class="nav-icon"><i data-lucide="users-round" class="lucide"></i></span> People of Malvar</a></li>
@@ -90,11 +92,26 @@ $candidateGroups = kt_promotion_candidates($conn);
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span class="sidebar-badge"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
+        <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
-    <div class="sidebar-footer"><div class="avatar-name"><?php echo $adminName; ?></div><div class="avatar-role"><?php echo $adminRole; ?></div></div>
+    <div class="sidebar-footer">
+        <div class="admin-avatar">
+            <div class="avatar-circle"><i data-lucide="user" class="lucide" style="width:1.1rem;height:1.1rem;"></i></div>
+            <div>
+                <div class="avatar-name"><?php echo $adminName; ?></div>
+                <div class="avatar-role"><?php echo $adminRole; ?></div>
+            </div>
+        </div>
+        <a href="<?php echo BASE_URL; ?>/auth/auth.php?action=logout" class="logout-link"><i data-lucide="log-out" class="lucide" style="width:.9rem;height:.9rem;"></i> Log Out</a>
+    </div>
 </aside>
-<main class="promote-main">
+<button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Open admin navigation"><i data-lucide="menu" class="lucide"></i></button>
+<main class="main-content">
+<div class="dash-wrapper promote-wrapper">
     <header class="promote-header">
         <div>
             <p class="promote-eyebrow">HOMEPAGE DISCOVERY</p>
@@ -132,8 +149,13 @@ $candidateGroups = kt_promotion_candidates($conn);
         </div>
     </section>
     <?php endforeach; ?>
+</div>
 </main>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
-<script>if (window.lucide) lucide.createIcons();</script>
+<script>
+function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle('open'); }
+initSidebarCollapse();
+if (window.lucide) lucide.createIcons();
+</script>
 </body>
 </html>
