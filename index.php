@@ -351,7 +351,7 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
     <?php endif; ?>
     <?php if (!empty($promotedHomeItems)): ?>
     <div class="home-promoted-wrap reveal">
-        <h3 class="home-heading home-check-this-out">Check This Out</h3>
+        <h2 class="home-heading home-heading-barabara home-check-this-out">Check This Out</h2>
         <div class="home-instagram-grid">
             <?php foreach ($promotedHomeItems as $item): ?>
             <article class="home-instagram-post">
