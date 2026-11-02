@@ -207,3 +207,190 @@ document.addEventListener('click', function (e) {
         }
     });
 })();
+(function () {
+    const gate = document.getElementById('fy-location-gate');
+    const enableBtn = document.getElementById('fy-enable-location');
+    const statusEl = document.getElementById('fy-location-status');
+    const nearbyGrid = document.getElementById('fy-nearby-grid');
+    const widgetList = document.getElementById('fy-near-widget-list');
+    const widgetStatus = document.getElementById('fy-near-widget-status');
+    if (!enableBtn) return;
+    const NEARBY_RADIUS_KM = 2;
+    function distanceKm(lat1, lng1, lat2, lng2) {
+        const R = 6371;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+    function toRad(deg) {
+        return deg * (Math.PI / 180);
+    }
+    function formatDistance(km) {
+        return Math.round(km * 1000) + ' m away';
+    }
+    function nearbyList(userLat, userLng) {
+        return KULTOURA_PLACES
+            .filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
+            .map(p => ({ ...p, distance: distanceKm(userLat, userLng, p.lat, p.lng) }))
+            .filter(p => p.distance <= NEARBY_RADIUS_KM)
+            .sort((a, b) => a.distance - b.distance);
+    }
+    function renderNearbyGrid(list) {
+        if (list.length === 0) {
+            nearbyGrid.innerHTML = '';
+            statusEl.textContent = "Nothing within 2 km of you right now — try again once you're closer to a listed spot.";
+            gate.hidden = false;
+            nearbyGrid.hidden = true;
+            return;
+        }
+        nearbyGrid.innerHTML = list.map(p => `
+            <div class="fy-card" data-item-type="${p.itemType}" data-item-id="${p.itemId}">
+                <a class="fy-card-link" href="${p.link}">
+                    <div class="fy-gcard-media">
+                        <span class="fy-gcard-badge fy-badge-${p.category}">${fyEscapeHtml(p.badgeText)}</span>
+                        ${p.image
+                            ? `<img src="${p.image}" alt="" loading="lazy">`
+                            : `<span class="fy-gcard-initial">${fyEscapeHtml(p.name.charAt(0))}</span>`}
+                    </div>
+                    <div class="fy-gcard-body">
+                        <h3 class="fy-card-name">${fyEscapeHtml(p.name)}</h3>
+                        ${p.summary ? `<p class="fy-card-desc">${fyEscapeHtml(p.summary)}</p>` : ''}
+                        <p class="fy-gcard-meta">Malvar, Batangas · ${formatDistance(p.distance)}</p>
+                    </div>
+                </a>
+                <div class="fy-card-actions">
+                    <button type="button" class="fy-action-btn fy-fav-btn${p.favorited ? ' is-favorited' : ''}"
+                            data-item-type="${p.itemType}" data-item-id="${p.itemId}"
+                            aria-label="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
+                            title="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
+                            onclick="fyToggleFavorite(this)">
+                        <span class="fy-action-icon" aria-label="Save to favorites">${p.favorited ? '&#9829;' : '&#9825;'}</span>
+                    </button>
+                    <a class="fy-action-btn fy-view-btn" href="${p.link}" data-item-type="${p.itemType}" data-item-id="${p.itemId}">View</a>
+                    <button type="button" class="fy-action-btn" onclick="fyShare(this, '${p.link}')">
+                        <span class="fy-action-icon">↗</span> Share
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        gate.hidden = true;
+        nearbyGrid.hidden = false;
+    }
+    function renderNearWidget(list) {
+        if (!widgetList) return;
+        if (list.length === 0) {
+            widgetList.innerHTML = '';
+            widgetStatus.textContent = 'Nothing within 2 km of you right now.';
+            widgetStatus.hidden = false;
+            return;
+        }
+        widgetStatus.hidden = true;
+        widgetList.innerHTML = list.slice(0, 3).map(p => `
+            <a class="fy-near-widget-item" href="${p.link}">
+                <div class="fy-near-widget-thumb">
+                    ${p.image ? `<img src="${p.image}" alt="">` : fyEscapeHtml(p.name.charAt(0))}
+                </div>
+                <div class="fy-near-widget-text">
+                    <span class="fy-near-widget-name">${fyEscapeHtml(p.name)}</span>
+                    <span class="fy-near-widget-dist">${formatDistance(p.distance)}</span>
+                </div>
+            </a>
+        `).join('');
+    }
+    function renderNearby(userLat, userLng) {
+        const list = nearbyList(userLat, userLng);
+        renderNearbyGrid(list);
+        renderNearWidget(list);
+        applyLocationBoost(userLat, userLng);
+    }
+    const LOCATION_SOFT_RADIUS_KM = 5;
+    const recommendedGrid = document.getElementById('fyRecommendedGrid');
+    const recommendedHeading = document.querySelector('#fy-recommended h2');
+    function applyLocationBoost(userLat, userLng) {
+        if (!recommendedGrid || typeof KULTOURA_PLACES === 'undefined') return;
+        const scored = KULTOURA_PLACES
+            .filter((p) => !p.viewed)
+            .map((p) => {
+                const hasCoords = typeof p.lat === 'number' && typeof p.lng === 'number';
+                const distance = hasCoords ? distanceKm(userLat, userLng, p.lat, p.lng) : null;
+                const proximityScore = hasCoords ? Math.max(0, 1 - distance / LOCATION_SOFT_RADIUS_KM) : 0;
+                const interestScore = p.interestScore || 0;
+                const blended = hasCoords ? (0.6 * interestScore) + (0.4 * proximityScore) : interestScore;
+                return { place: p, distance, blended };
+            })
+            .sort((a, b) => b.blended - a.blended)
+            .slice(0, 6);
+        if (!scored.length) return;
+        recommendedGrid.innerHTML = scored.map(({ place: p, distance }) => `
+            <div class="fy-card" data-group="${p.group}" data-created="${p.createdAt}" data-item-type="${p.itemType}" data-item-id="${p.itemId}">
+                <a class="fy-card-link" href="${p.link}">
+                    <div class="fy-gcard-media">
+                        <span class="fy-gcard-badge fy-badge-${p.category}">${fyEscapeHtml(p.badgeText)}</span>
+                        ${p.image
+                            ? `<img src="${p.image}" alt="" loading="lazy">`
+                            : `<span class="fy-gcard-initial">${fyEscapeHtml(p.name.charAt(0))}</span>`}
+                    </div>
+                    <div class="fy-gcard-body">
+                        <h3 class="fy-card-name">${fyEscapeHtml(p.name)}</h3>
+                        ${p.summary ? `<p class="fy-card-desc">${fyEscapeHtml(p.summary)}</p>` : ''}
+                        <p class="fy-gcard-meta">Malvar, Batangas${distance !== null ? ' · ' + formatDistance(distance) : (p.location ? ' · ' + fyEscapeHtml(p.location) : '')}</p>
+                    </div>
+                </a>
+                <div class="fy-card-actions">
+                    <button type="button" class="fy-action-btn fy-fav-btn${p.favorited ? ' is-favorited' : ''}"
+                            data-item-type="${p.itemType}" data-item-id="${p.itemId}"
+                            aria-label="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
+                            title="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
+                            onclick="fyToggleFavorite(this)">
+                        <span class="fy-action-icon" aria-label="Save to favorites">${p.favorited ? '&#9829;' : '&#9825;'}</span>
+                    </button>
+                    <a class="fy-action-btn fy-view-btn" href="${p.link}" data-item-type="${p.itemType}" data-item-id="${p.itemId}">View</a>
+                    <button type="button" class="fy-action-btn" onclick="fyShare(this, '${p.link}')">
+                        <span class="fy-action-icon">↗</span> Share
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        if (recommendedHeading) recommendedHeading.textContent = 'Because You Explored';
+        document.dispatchEvent(new CustomEvent('fy:grid-replaced'));
+    }
+    function requestLocation() {
+        if (!navigator.geolocation) {
+            statusEl.textContent = "Your browser doesn't support location access.";
+            if (widgetStatus) widgetStatus.textContent = "Location isn't supported on this browser.";
+            return;
+        }
+        statusEl.textContent = 'Requesting your location…';
+        if (widgetStatus) widgetStatus.textContent = 'Locating…';
+        enableBtn.disabled = true;
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                renderNearby(position.coords.latitude, position.coords.longitude);
+            },
+            (error) => {
+                enableBtn.disabled = false;
+                if (error.code === error.PERMISSION_DENIED) {
+                    statusEl.textContent = "Location access was denied — you can enable it anytime in your browser settings.";
+                    if (widgetStatus) widgetStatus.textContent = 'Location access denied.';
+                } else {
+                    statusEl.textContent = "Couldn't get your location. Please try again.";
+                    if (widgetStatus) widgetStatus.textContent = "Couldn't get your location.";
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+    }
+    enableBtn.addEventListener('click', requestLocation);
+    if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+            if (result.state === 'granted') {
+                requestLocation();
+            }
+        }).catch(() => {});
+    }
+})();

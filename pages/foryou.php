@@ -527,6 +527,39 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
     </button>
 </header>
 <main class="fy-page">
+    <section class="fy-hero">
+        <div class="fy-hero-text">
+            <p class="section-label">CURATED FOR YOU</p>
+            <h1 class="fy-title">
+                <?php if ($isLoggedIn): ?>
+                    Welcome back, <span class="brand-accent-text"><?php echo $userName; ?></span>
+                <?php else: ?>
+                    Made <span class="brand-accent-text">Just for You</span>
+                <?php endif; ?>
+            </h1>
+            <p class="fy-sub">
+                <?php if ($hasHistory): ?>
+                    Picked based on what you've been exploring around Malvar.
+                <?php else: ?>
+                    New to KULTOURA? Explore these random picks around Malvar. Your recommendations will get more personal as you explore.
+                <?php endif; ?>
+            </p>
+            <?php if ($hasHistory): ?>
+            <div class="fy-history-chips">
+                <span class="fy-history-label">You've been exploring</span>
+                <?php foreach (array_slice($topCategories, 0, 5) as $cat): ?>
+                    <span class="fy-chip"><?php echo htmlspecialchars($categoryLabels[$cat] ?? $cat); ?></span>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            <a href="#fy-recommended" class="fy-hero-cta">Explore Now →</a>
+        </div>
+        <?php if ($heroImage): ?>
+        <div class="fy-hero-media">
+            <img src="<?php echo htmlspecialchars($heroImage); ?>" alt="">
+        </div>
+        <?php endif; ?>
+    </section>
     <div class="fy-layout-wrap">
     <div class="fy-page-layout">
         <aside class="fy-sidebar">
@@ -542,6 +575,13 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                     </a>
                 <?php endforeach; ?>
             </nav>
+            <div class="fy-near-widget">
+                <p class="fy-sidebar-label">Near You</p>
+                <p class="fy-near-widget-sub">Top spots near your current location</p>
+                <div id="fy-near-widget-list" class="fy-near-widget-list"></div>
+                <p id="fy-near-widget-status" class="fy-near-widget-status">Enable location to see this.</p>
+                <a href="#fy-nearby" class="fy-near-widget-link">View all nearby →</a>
+            </div>
         </aside>
         <div class="fy-content-col">
     <section class="fy-section" id="fy-recommended">
@@ -606,6 +646,18 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 </div>
             <?php endforeach; ?>
         </div>
+    </section>
+    <section class="fy-section fy-nearby" id="fy-nearby">
+        <div class="fy-section-head">
+            <h2>Near You</h2>
+            <p>Turn on location to see what's closest to where you are right now.</p>
+        </div>
+        <div id="fy-location-gate" class="fy-location-gate">
+            <p>See destinations sorted by distance from you.</p>
+            <button id="fy-enable-location" class="btn btn-filled fy-location-btn">ENABLE LOCATION</button>
+            <p id="fy-location-status" class="fy-location-status"></p>
+        </div>
+        <div id="fy-nearby-grid" class="fy-grid fy-nearby-grid" hidden></div>
     </section>
         </div>
     </div>
