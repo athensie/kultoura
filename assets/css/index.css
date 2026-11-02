@@ -667,8 +667,8 @@ body {
 }
 .home-foryou-intro { max-width: 460px; }
 .home-heading-barabara { font-family: 'Barabara', Georgia, serif; text-transform: uppercase; }
-.home-check-this-out { display: block; width: fit-content; margin: 56px auto 28px; }
-.home-check-this-out::after { left: 50%; transform: translateX(-50%); }
+.home-check-this-out { display: block; width: fit-content; margin: 56px 0 28px; }
+.home-check-this-out::after { left: 0; transform: none; }
 .home-promoted-wrap { margin-top: 12px; }
 .home-foryou-desc {
     font-size: 14.5px;

@@ -112,13 +112,13 @@ $candidateGroups = kt_promotion_candidates($conn);
 <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Open admin navigation"><i data-lucide="menu" class="lucide"></i></button>
 <main class="main-content">
 <div class="dash-wrapper promote-wrapper">
-    <header class="promote-header">
+    <header class="page-header promote-header">
         <div>
-            <p class="promote-eyebrow">HOMEPAGE DISCOVERY</p>
-            <h1>Promote low-view content</h1>
+            <div class="section-label">Content Management</div>
+            <h1>Promote <em>Content</em></h1>
             <p>Review active listings by category and feature selected items below For You on the homepage.</p>
         </div>
-        <a class="promote-back" href="<?php echo BASE_URL; ?>/index.php">View homepage</a>
+        <div class="header-actions"><a class="promote-back" href="<?php echo BASE_URL; ?>/index.php">View homepage</a></div>
     </header>
     <?php if ($notice !== ''): ?><div class="promote-notice"><?php echo htmlspecialchars($notice); ?></div><?php endif; ?>
     <?php if (empty($candidateGroups)): ?>

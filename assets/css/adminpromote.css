@@ -1,27 +1,11 @@
 .promote-wrapper { max-width: 1280px; }
 .promote-header {
-    display: flex;
     align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 30px;
 }
-.promote-eyebrow {
-    margin: 0 0 8px;
-    color: var(--gold);
-    font-size: .72rem;
-    font-weight: 700;
-    letter-spacing: .18em;
-}
-.promote-header h1 {
-    margin: 0;
-    color: var(--cream);
-    font: 700 clamp(1.8rem, 3vw, 2.7rem)/1.1 'Playfair Display', Georgia, serif;
-}
-.promote-header p:not(.promote-eyebrow) {
+.promote-header p {
     max-width: 700px;
     margin: 10px 0 0;
-    color: var(--muted);
+    color: rgba(var(--cream-rgb), .4);
 }
 .promote-back,
 .promote-action button {
@@ -89,12 +73,13 @@
 }
 .promote-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .promote-item-info { min-width: 0; }
-.promote-item-info h3 { margin: 0 0 5px; color: var(--cream); font-size: 1rem; }
-.promote-item-info p { margin: 0; overflow: hidden; color: var(--muted); font-size: .86rem; text-overflow: ellipsis; white-space: nowrap; }
-.promote-views { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); white-space: nowrap; }
+.promote-item-info h3 { margin: 0 0 5px; color: var(--cream); font: 600 1rem 'Playfair Display', Georgia, serif; }
+.promote-item-info p { margin: 0; overflow: hidden; color: rgba(var(--cream-rgb), .5); font-size: .86rem; text-overflow: ellipsis; white-space: nowrap; }
+.promote-views { display: inline-flex; align-items: center; gap: 6px; color: rgba(var(--cream-rgb), .55); white-space: nowrap; }
 .promote-views .lucide,
 .promote-action .lucide { width: 16px; height: 16px; }
 .promote-action button.is-promoted { border-color: rgba(159, 184, 138, .4); background: rgba(159, 184, 138, .12); color: #b6d39e; }
+.promote-action button:not(.is-promoted) { border-color: transparent; background: linear-gradient(135deg, var(--clay), var(--warm)); color: #fff; }
 @media (max-width: 800px) {
     .promote-wrapper { padding: 60px 16px; }
     .promote-header { align-items: flex-start; flex-direction: column; }

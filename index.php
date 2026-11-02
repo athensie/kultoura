@@ -218,7 +218,7 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $siteName; ?></title>
-    <link rel="stylesheet" href="assets/css/index.css?v=20261101-1">
+    <link rel="stylesheet" href="assets/css/index.css?v=20261102-2">
     <link rel="stylesheet" href="assets/css/search.css?v=20261101-2">
 </head>
 <body>
