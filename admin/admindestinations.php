@@ -158,18 +158,10 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Destinations – KULTOURA Admin</title>
-    <script>
-        (function () {
-            var saved = localStorage.getItem('kt-admin-theme');
-            if (saved === 'light' || saved === 'dark') {
-                document.documentElement.setAttribute('data-theme', saved);
-            }
-        })();
-    </script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/admindestinations.css?v=20261031-1">
-    <link rel="stylesheet" href="../assets/css/admin-theme-toggle.css">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -206,11 +198,6 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
     <div class="sidebar-footer">
-        <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Switch between dark and light mode">
-            <span class="theme-toggle-option" data-theme-option="dark"><i data-lucide="moon" class="lucide"></i> Dark</span>
-            <span class="theme-toggle-option" data-theme-option="light"><i data-lucide="sun" class="lucide"></i> Light</span>
-            <span class="theme-toggle-thumb"></span>
-        </button>
         <div class="admin-avatar">
             <div class="avatar-circle"><i data-lucide="user" class="lucide" style="width:1.1rem;height:1.1rem;"></i></div>
             <div>
@@ -609,7 +596,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <div class="toast" id="toast"></div>
 <script src="../assets/js/admin-viewtoggle.js"></script>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
-<script src="../assets/js/admin-theme.js"></script>
+
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261016"></script>
 <script src="../assets/js/admindestinations.js?v=20261101-3"></script>
