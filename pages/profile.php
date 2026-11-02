@@ -218,7 +218,7 @@ while ($dateRow = $dateRows->fetch_assoc()) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
-    <link rel="stylesheet" href="../assets/css/profile.css">
+    <link rel="stylesheet" href="../assets/css/profile.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/profile.css') ?: time(); ?>">
 </head>
 <body>
     <header class="navbar navbar-solid">

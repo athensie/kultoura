@@ -63,9 +63,9 @@ body {
 .profile-form input:focus { outline: 3px solid rgba(47, 102, 144, .18); border-color: #2f6690; }
 .profile-password-field { position: relative; width: 100%; }
 .profile-password-field input { padding-right: 50px !important; }
-.profile-password-toggle { position: absolute; top: 50%; right: 8px; display: grid; width: 36px; height: 36px; place-items: center; padding: 0; transform: translateY(-50%); border: 0; border-radius: 8px; background: transparent; color: rgba(44, 26, 14, .55); cursor: pointer; }
-.profile-password-toggle:hover { background: rgba(44, 26, 14, .06); color: #2c1a0e; }
-.profile-password-toggle:focus-visible { outline: 3px solid rgba(47, 102, 144, .3); outline-offset: 1px; }
+.profile-form .profile-password-toggle { position: absolute; top: 50%; right: 10px; display: grid; width: 30px; height: 30px; place-items: center; padding: 0; transform: translateY(-50%); border: 0; border-radius: 7px; background: transparent; color: rgba(44, 26, 14, .4); cursor: pointer; transition: color .2s, background .2s; }
+.profile-form .profile-password-toggle:hover { background: rgba(44, 26, 14, .05); color: #2c1a0e; }
+.profile-form .profile-password-toggle:focus-visible { outline: 3px solid rgba(47, 102, 144, .3); outline-offset: 1px; }
 .profile-password-toggle svg { display: block; width: 19px; height: 19px; }
 .profile-form small { color: #776c62; font-weight: 400; }
 .profile-check { display: flex; align-items: flex-start; gap: 10px; color: #51463d; font-size: .9rem; line-height: 1.5; }
