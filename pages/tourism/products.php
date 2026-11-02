@@ -68,6 +68,7 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
     <link rel="stylesheet" href="../../assets/css/product.css?v=20261102-2">
+    <link rel="stylesheet" href="../../assets/css/product-location-map.css?v=20261102-3">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
@@ -246,6 +247,7 @@ foreach ($rows as $r) {
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../../assets/js/product-location-map.js?v=20261102-3"></script>
 <script>
 const productsData = <?php echo json_encode($products, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 function findProduct(id) { return productsData.find(p => p.id === id); }
@@ -283,27 +285,7 @@ function renderProductLocationsMap(locations) {
         const lat = Number(location.lat);
         const lng = Number(location.lng);
         bounds.push([lat, lng]);
-        const icon = L.divIcon({
-            className: 'p-location-marker-wrap',
-            html: `<span class="p-location-marker"><span>${index + 1}</span></span>`,
-            iconSize: [34, 42],
-            iconAnchor: [17, 40],
-            popupAnchor: [0, -38],
-        });
-        const marker = L.marker([lat, lng], { icon }).addTo(productLocationsLayer);
-        const popup = document.createElement('div');
-        popup.className = 'p-location-popup';
-        const title = document.createElement('strong');
-        title.textContent = `Location ${index + 1}`;
-        const address = document.createElement('span');
-        address.textContent = location.address || 'Address unavailable';
-        const directions = document.createElement('a');
-        directions.textContent = 'Get directions';
-        directions.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-        directions.target = '_blank';
-        directions.rel = 'noopener';
-        popup.append(title, address, directions);
-        marker.bindPopup(popup);
+        window.ktProductLocationMap.addMarker(productLocationsLayer, location, index);
     });
     setTimeout(() => {
         productLocationsMap.invalidateSize();

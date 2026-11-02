@@ -1,0 +1,10 @@
+.kt-product-pin-icon { background: transparent; border: 0; }
+.kt-product-pin-icon svg { display: block; width: 40px; height: 48px; overflow: visible; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.kt-pin-shape { fill: #8b2e1a; stroke: #fff; stroke-width: 2.5; stroke-linejoin: round; }
+.kt-pin-bag { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.kt-pin-popup { display: grid; gap: 7px; min-width: 180px; max-width: 240px; }
+.kt-pin-popup strong { color: #2c1a0e; font-size: 13px; }
+.kt-pin-popup span { color: rgba(44,26,14,.75); font-size: 12px; line-height: 1.4; }
+.kt-pin-popup .kt-pin-distance { color: #1c3828; font-weight: 700; }
+.kt-pin-popup a { color: #8b2e1a; font-size: 12px; font-weight: 700; }
+.kt-pin-popup a[aria-disabled="true"] { opacity: .55; pointer-events: none; }

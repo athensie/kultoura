@@ -81,9 +81,11 @@ function toggleTypeFields(prefix) {
   if (isProduct && productLocationMaps[prefix]) setTimeout(() => productLocationMaps[prefix].map.invalidateSize(), 180);
 }
 const productLocationMaps = { add: null, edit: null };
+const productLocationLayers = { add: null, edit: null };
 const storeLocationCounters = { add: 0, edit: 0 };
 function setupProductLocationMap(prefix) {
   if (productLocationMaps[prefix]) {
+    syncProductLocationMarkers(prefix);
     setTimeout(() => productLocationMaps[prefix].map.invalidateSize(), 180);
     return productLocationMaps[prefix];
   }
@@ -97,7 +99,29 @@ function setupProductLocationMap(prefix) {
     },
   });
   productLocationMaps[prefix] = picker;
+  if (picker) productLocationLayers[prefix] = L.layerGroup().addTo(picker.map);
+  syncProductLocationMarkers(prefix);
   return picker;
+}
+function syncProductLocationMarkers(prefix) {
+  const layer = productLocationLayers[prefix];
+  if (!layer || !window.ktProductLocationMap) return;
+  layer.clearLayers();
+  const points = [...document.querySelectorAll(`#${prefix}StoreLocations .pinned-product-location`)]
+    .map(row => ({
+      address: row.querySelector('[name$="[address]"]')?.value || '',
+      lat: row.querySelector('[name$="[latitude]"]')?.value || '',
+      lng: row.querySelector('[name$="[longitude]"]')?.value || '',
+    }))
+    .filter(point => point.lat !== '' && point.lng !== '' && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)));
+  const bounds = [];
+  points.forEach((point, index) => {
+    window.ktProductLocationMap.addMarker(layer, point, index);
+    bounds.push([Number(point.lat), Number(point.lng)]);
+  });
+  if (bounds.length) {
+    productLocationMaps[prefix].map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
+  }
 }
 function addStoreLocation(prefix, location = {}) {
   const list = document.getElementById(prefix + 'StoreLocations');
@@ -143,6 +167,7 @@ function renumberProductLocations(prefix) {
     });
   });
   storeLocationCounters[prefix] = rows.length;
+  syncProductLocationMarkers(prefix);
 }
 function pinProductLocation(prefix) {
   const typedAddress = document.getElementById(prefix + 'ProductMapAddress').value.trim();
@@ -159,6 +184,9 @@ function pinProductLocation(prefix) {
     return;
   }
   addStoreLocation(prefix, { address, lat, lng });
+  const picker = productLocationMaps[prefix];
+  if (picker?.clearPosition) picker.clearPosition();
+  syncProductLocationMarkers(prefix);
   document.getElementById(prefix + 'ProductMapStatus').textContent = 'Location pinned. Search or click the map to add another one.';
   document.getElementById(prefix + 'ProductMapAddress').value = '';
   document.getElementById(prefix + 'CurrentLocationLat').value = '';

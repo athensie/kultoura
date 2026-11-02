@@ -66,6 +66,7 @@ const KtAddressPicker = (function () {
     function setPosition(lat, lng, zoom, addressText) {
       map.setView([lat, lng], zoom || map.getZoom());
       marker.setLatLng([lat, lng]);
+      marker.setOpacity(1);
       if (addressText) input.value = addressText;
       notifyPosition(lat, lng);
     }
@@ -146,6 +147,11 @@ const KtAddressPicker = (function () {
       setPosition: setPosition,
       setStatus: setStatus,
       locate: locate,
+      clearPosition: function () {
+        hasPosition = false;
+        marker.setOpacity(0);
+        setStatus('Search an address or click the map to place a pin.');
+      },
       hasPosition: function () { return hasPosition; },
       reset: function () {
         hasPosition = false;

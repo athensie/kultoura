@@ -256,25 +256,6 @@
     background: #e9e4d8;
     overflow: hidden;
 }
-.p-location-marker-wrap { background: transparent; border: 0; }
-.p-location-marker {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border: 3px solid #fff;
-    border-radius: 50% 50% 50% 0;
-    transform: rotate(-45deg);
-    background: #8b2e1a;
-    box-shadow: 0 2px 8px rgba(0,0,0,.35);
-    color: #fff;
-    font: 700 13px/1 'Helvetica Neue', Arial, sans-serif;
-}
-.p-location-marker > span { transform: rotate(45deg); }
-.p-location-popup { display: grid; gap: 7px; max-width: 220px; }
-.p-location-popup strong { color: #2c1a0e; }
-.p-location-popup span { color: rgba(44,26,14,.72); line-height: 1.4; }
-.p-location-popup a { color: #8b2e1a; font-weight: 700; }
 .p-map-unmapped { margin-top: 10px; }
 .p-map-unmapped p { margin: 4px 0; color: #8b2e1a; font-size: 12px; }
 @media (max-width: 600px) {
