@@ -64,34 +64,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                 $id = (int) $existingRow['id'];
             }
         }
+        $existingWidget = null;
+        if ($verb === 'update' && $id) {
+            $existingStmt = $conn->prepare("SELECT * FROM page_widgets WHERE id = ? LIMIT 1");
+            $existingStmt->bind_param('i', $id);
+            $existingStmt->execute();
+            $existingWidget = $existingStmt->get_result()->fetch_assoc() ?: null;
+            $existingStmt->close();
+        }
+        $postedText = static function (string $field, ?array $existingWidget): ?string {
+            $posted = trim($_POST[$field] ?? '');
+            return $posted !== '' ? $posted : ($existingWidget[$field] ?? null);
+        };
+        $uploadedImage = static function (string $field, ?string $uploaded, ?array $existingWidget): ?string {
+            return $uploaded ?? ($existingWidget[$field] ?? null);
+        };
         $meta = kt_page_widget_page_meta()[$pageSlug] ?? ['title' => $pageSlug, 'description' => ''];
         $data = [
             'page_slug'        => $pageSlug,
-            'bg_color'         => trim($_POST['bg_color'] ?? '') ?: '#8b2e1a',
+            'bg_color'         => $existingWidget['bg_color'] ?? '#8b2e1a',
             'headline'         => $meta['title'],
             'subtext'          => $meta['description'] ?: null,
-            'card1_text'       => trim($_POST['card1_text'] ?? '') ?: null,
-            'card2_text'       => trim($_POST['card2_text'] ?? '') ?: null,
-            'main_image'       => kt_page_widget_handle_image_upload('main_image_file'),
-            'gallery_image_1'    => kt_page_widget_handle_multi_image_upload('grid_photos', 0),
-            'gallery_main_image' => kt_page_widget_handle_multi_image_upload('grid_photos', 1),
-            'gallery_image_2'    => kt_page_widget_handle_multi_image_upload('grid_photos', 2),
-            'gallery_image_3'    => kt_page_widget_handle_multi_image_upload('grid_photos', 3),
-            'photo_1'             => kt_page_widget_handle_multi_image_upload('photos', 0),
-            'photo_1_caption'     => trim($_POST['photo_1_caption'] ?? '') ?: null,
-            'photo_1_description' => trim($_POST['photo_1_description'] ?? '') ?: null,
-            'photo_2'             => kt_page_widget_handle_multi_image_upload('photos', 1),
-            'photo_2_caption'     => trim($_POST['photo_2_caption'] ?? '') ?: null,
-            'photo_2_description' => trim($_POST['photo_2_description'] ?? '') ?: null,
-            'photo_3'             => kt_page_widget_handle_multi_image_upload('photos', 2),
-            'photo_3_caption'     => trim($_POST['photo_3_caption'] ?? '') ?: null,
-            'photo_3_description' => trim($_POST['photo_3_description'] ?? '') ?: null,
-            'photo_4'             => kt_page_widget_handle_multi_image_upload('photos', 3),
-            'photo_4_caption'     => trim($_POST['photo_4_caption'] ?? '') ?: null,
-            'photo_4_description' => trim($_POST['photo_4_description'] ?? '') ?: null,
-            'photo_5'             => kt_page_widget_handle_multi_image_upload('photos', 4),
-            'photo_5_caption'     => trim($_POST['photo_5_caption'] ?? '') ?: null,
-            'photo_5_description' => trim($_POST['photo_5_description'] ?? '') ?: null,
+            'card1_text'       => $existingWidget['card1_text'] ?? null,
+            'card2_text'       => $postedText('card2_text', $existingWidget),
+            'main_image'       => $uploadedImage('main_image', kt_page_widget_handle_image_upload('main_image_file'), $existingWidget),
+            'gallery_image_1'    => $uploadedImage('gallery_image_1', kt_page_widget_handle_multi_image_upload('grid_photos', 0), $existingWidget),
+            'gallery_main_image' => $uploadedImage('gallery_main_image', kt_page_widget_handle_multi_image_upload('grid_photos', 1), $existingWidget),
+            'gallery_image_2'    => $uploadedImage('gallery_image_2', kt_page_widget_handle_multi_image_upload('grid_photos', 2), $existingWidget),
+            'gallery_image_3'    => $uploadedImage('gallery_image_3', kt_page_widget_handle_multi_image_upload('grid_photos', 3), $existingWidget),
+            'gallery_image_4'    => $uploadedImage('gallery_image_4', kt_page_widget_handle_multi_image_upload('grid_photos', 4), $existingWidget),
+            'photo_1'             => $uploadedImage('photo_1', kt_page_widget_handle_multi_image_upload('photos', 0), $existingWidget),
+            'photo_1_caption'     => $postedText('photo_1_caption', $existingWidget),
+            'photo_1_description' => $postedText('photo_1_description', $existingWidget),
+            'photo_2'             => $uploadedImage('photo_2', kt_page_widget_handle_multi_image_upload('photos', 1), $existingWidget),
+            'photo_2_caption'     => $postedText('photo_2_caption', $existingWidget),
+            'photo_2_description' => $postedText('photo_2_description', $existingWidget),
+            'photo_3'             => $uploadedImage('photo_3', kt_page_widget_handle_multi_image_upload('photos', 2), $existingWidget),
+            'photo_3_caption'     => $postedText('photo_3_caption', $existingWidget),
+            'photo_3_description' => $postedText('photo_3_description', $existingWidget),
+            'photo_4'             => $uploadedImage('photo_4', kt_page_widget_handle_multi_image_upload('photos', 3), $existingWidget),
+            'photo_4_caption'     => $postedText('photo_4_caption', $existingWidget),
+            'photo_4_description' => $postedText('photo_4_description', $existingWidget),
+            'photo_5'             => $uploadedImage('photo_5', kt_page_widget_handle_multi_image_upload('photos', 4), $existingWidget),
+            'photo_5_caption'     => $postedText('photo_5_caption', $existingWidget),
+            'photo_5_description' => $postedText('photo_5_description', $existingWidget),
             'status'              => 'live',
         ];
         $label = $pageChoices[$pageSlug];
@@ -205,7 +221,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
         <div class="pw-admin-list">
             <?php foreach ($pageChoices as $slug => $label):
                 $w = $widgetsBySlug[$slug] ?? null;
-                $firstGridPhoto = $w ? (array_filter([$w['gallery_image_1'] ?? null, $w['gallery_main_image'] ?? null, $w['gallery_image_2'] ?? null, $w['gallery_image_3'] ?? null])[0] ?? null) : null;
+                $firstGridPhoto = $w ? (array_filter([$w['gallery_image_1'] ?? null, $w['gallery_main_image'] ?? null, $w['gallery_image_2'] ?? null, $w['gallery_image_3'] ?? null, $w['gallery_image_4'] ?? null])[0] ?? null) : null;
                 $firstStripPhoto = $w ? (array_filter([$w['photo_1'] ?? null, $w['photo_2'] ?? null, $w['photo_3'] ?? null, $w['photo_4'] ?? null, $w['photo_5'] ?? null])[0] ?? null) : null;
             ?>
                 <div class="pw-admin-row">
@@ -268,29 +284,16 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <input type="hidden" name="form_action" value="add_page_widget">
             <input type="hidden" name="page_slug" id="addWidgetPageSlug">
             <?php echo csrf_field(); ?>
-            <p class="pw-form-section">Left Text Panel</p>
+            <p class="pw-form-section">Grid Pictures (up to 5)</p>
+            <p class="pw-form-hint">Choose up to five images for the grid, including the slot previously used for the colored panel.</p>
             <div class="form-group">
-                <label class="form-label">Panel Background Color</label>
-                <input class="form-input" type="color" name="bg_color" value="#1877f2" style="height:44px;padding:4px;">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Panel Text</label>
-                <textarea class="form-input" name="card1_text" rows="2" maxlength="300" placeholder="e.g. Curated picks from Malvar's local favorites."></textarea>
+                <label class="form-label">Grid photos</label>
+                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
             </div>
             <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
                 <label class="form-label">This is where the page's title appears</label>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
-            </div>
-            <p class="pw-form-section">Grid Pictures (up to 4)</p>
-            <p class="pw-form-hint">Select up to 4 photos at once — they fill the grid above (left-bottom, top-right, bottom-right, and the small bottom-right panel), separate from the photo strip below it.</p>
-            <div class="form-group">
-                <label class="form-label">Photos</label>
-                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Caption for the 4th photo (e.g. "Powered by KulToura")</label>
-                <input class="form-input" type="text" name="card2_text" maxlength="60">
             </div>
             <p class="pw-form-section">Photo Strip Pictures (up to 5)</p>
             <p class="pw-form-hint">Select up to 5 different photos at once for the expanding strip below the grid, in the order you picked them. Caption/description are optional.</p>
@@ -327,35 +330,25 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
             <input type="hidden" name="id" id="editWidgetId">
             <input type="hidden" name="page_slug" id="editWidgetPageSlug">
             <?php echo csrf_field(); ?>
-            <p class="pw-form-section">Left Text Panel</p>
+            <p class="pw-form-section">Grid Pictures (up to 5)</p>
+            <p class="pw-form-hint">Upload selected images to replace matching positions. Any other existing grid photos stay in place.</p>
             <div class="form-group">
-                <label class="form-label">Panel Background Color</label>
-                <input class="form-input" type="color" name="bg_color" id="editWidgetBgColor" style="height:44px;padding:4px;">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Panel Text</label>
-                <textarea class="form-input" name="card1_text" id="editWidgetCard1Text" rows="2" maxlength="300"></textarea>
+                <label class="form-label">Grid photos</label>
+                <div class="pw-current-images" id="editWidgetGridPreviews"></div>
+                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
             </div>
             <p class="pw-form-section">Main Picture</p>
             <div class="form-group">
                 <label class="form-label">Replace (where the page's title appears)</label>
+                <div class="pw-current-images" id="editWidgetMainPreview"></div>
                 <input class="form-input" type="file" name="main_image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current photo.</p>
-            </div>
-            <p class="pw-form-section">Grid Pictures (up to 4)</p>
-            <p class="pw-form-hint">Select up to 4 photos at once to replace these (left-bottom, top-right, bottom-right, bottom-right panel), separate from the photo strip below. Leave empty to keep them as they are.</p>
-            <div class="form-group">
-                <label class="form-label">Photos</label>
-                <input class="form-input" type="file" name="grid_photos[]" accept="image/*" multiple>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Caption for the 4th photo (e.g. "Powered by KulToura")</label>
-                <input class="form-input" type="text" name="card2_text" id="editWidgetCard2Text" maxlength="60">
             </div>
             <p class="pw-form-section">Photo Strip Pictures (up to 5)</p>
             <p class="pw-form-hint">Select up to 5 different photos at once to replace these, in order (Photo 1, Photo 2, …). Leave this empty to keep all 5 exactly as they are — selecting just 1 or 2 replaces only those positions.</p>
             <div class="form-group">
                 <label class="form-label">Photos</label>
+                <div class="pw-current-images" id="editWidgetStripPreviews"></div>
                 <input class="form-input" type="file" name="photos[]" accept="image/*" multiple>
             </div>
             <?php for ($n = 1; $n <= 5; $n++): ?>

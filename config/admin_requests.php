@@ -757,7 +757,7 @@ if (!function_exists('kt_apply_page_widget')) {
             'photo_1_caption', 'photo_1_description', 'photo_2_caption', 'photo_2_description',
             'photo_3_caption', 'photo_3_description', 'photo_4_caption', 'photo_4_description',
             'photo_5_caption', 'photo_5_description'];
-        $imageFields = ['main_image', 'gallery_image_1', 'gallery_main_image', 'gallery_image_2', 'gallery_image_3',
+        $imageFields = ['main_image', 'gallery_image_1', 'gallery_main_image', 'gallery_image_2', 'gallery_image_3', 'gallery_image_4',
             'photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5'];
         if ($action === 'create') {
             $cols = array_merge(['page_slug'], $textFields, $imageFields, ['status']);

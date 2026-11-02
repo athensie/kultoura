@@ -49,6 +49,33 @@
 .pw-admin-row-actions { flex-shrink: 0; display: flex; gap: 8px; }
 .pw-admin-list .pending-card { padding-top: 32px; }
 .pw-modal-card { max-width: 640px; }
+.pw-current-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 10px;
+}
+.pw-current-images[hidden] { display: none; }
+.pw-current-image {
+    position: relative;
+    width: 88px;
+    height: 66px;
+    overflow: hidden;
+    border: 1px solid rgba(var(--cream-rgb), .18);
+    border-radius: 8px;
+    background: rgba(var(--overlay-rgb), .08);
+}
+.pw-current-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pw-current-image span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 3px 5px;
+    color: #fff;
+    font-size: .6rem;
+    background: rgba(0, 0, 0, .65);
+}
 .pw-form-section {
     font-size: .68rem;
     letter-spacing: 1px;

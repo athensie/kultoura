@@ -48,7 +48,7 @@ if (!function_exists('kt_page_widgets_ensure_schema')) {
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
-        foreach (['strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4',
+        foreach (['gallery_image_4', 'strip_main_image', 'strip_image_1', 'strip_image_2', 'strip_image_3', 'strip_image_4',
                   'photo_1', 'photo_1_caption', 'photo_1_description',
                   'photo_2', 'photo_2_caption', 'photo_2_description',
                   'photo_3', 'photo_3_caption', 'photo_3_description',
@@ -179,11 +179,11 @@ if (!function_exists('kt_page_widget_render_from')) {
         ?>
         <section class="pw-widget">
             <div class="pw-grid">
-                <div class="pw-cell pw-cell-panel" style="background:<?php echo htmlspecialchars($w['bg_color']); ?>">
-                    <?php if (!empty($w['card1_text'])): ?>
-                        <p><?php echo nl2br(htmlspecialchars($w['card1_text'])); ?></p>
-                    <?php endif; ?>
-                </div>
+                <?php if (!empty($w['gallery_image_4'])): ?>
+                    <div class="pw-cell pw-cell-panel">
+                        <img src="<?php echo htmlspecialchars($w['gallery_image_4']); ?>" alt="" loading="lazy">
+                    </div>
+                <?php endif; ?>
                 <?php if (!empty($w['gallery_image_1'])): ?>
                     <div class="pw-cell pw-cell-photo">
                         <img src="<?php echo htmlspecialchars($w['gallery_image_1']); ?>" alt="" loading="lazy">
