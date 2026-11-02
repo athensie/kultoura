@@ -8,5 +8,5 @@ if (mb_strlen($query) < 2) {
     echo json_encode(['results' => []]);
     exit;
 }
-$results = kt_search_all($conn, $query, 4);
+$results = kt_search_all($conn, $query, 8);
 echo json_encode(['results' => array_slice($results, 0, 8)]);

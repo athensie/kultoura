@@ -58,23 +58,6 @@ if (!function_exists('kt_search_all')) {
         $query = trim($query);
         if ($query === '') return [];
         $like = '%' . $conn->real_escape_string($query) . '%';
-        $categoryNeedle = mb_strtolower($query);
-        $categoryAliases = [
-            'nature' => 'nature',
-            'industry zone' => 'industry',
-            'resort' => 'resort',
-            'accommodation' => 'accommodation',
-            'banks' => 'bank',
-            'other services' => 'service',
-            'churches' => 'church',
-        ];
-        $categoryLike = $like;
-        foreach ($categoryAliases as $label => $value) {
-            if (str_contains($label, $categoryNeedle) || str_contains($categoryNeedle, $label)) {
-                $categoryLike = '%' . $conn->real_escape_string($value) . '%';
-                break;
-            }
-        }
         $destinationCategoryLabels = [
             'nature' => 'Nature', 'industry' => 'Industry Zone', 'resort' => 'Resort',
             'accommodation' => 'Accommodation', 'bank' => 'Banks', 'service' => 'Other Services',
@@ -83,10 +66,10 @@ if (!function_exists('kt_search_all')) {
         $results = [];
         $stmt = $conn->prepare(
             "SELECT destination_id, destination_name, category, subcategory, description, summary, image
-             FROM destination WHERE status = 'active' AND (destination_name LIKE ? OR description LIKE ? OR address LIKE ? OR category LIKE ? OR COALESCE(subcategory, '') LIKE ?)
+             FROM destination WHERE status = 'active' AND destination_name LIKE ?
              ORDER BY destination_name ASC LIMIT ?"
         );
-        $stmt->bind_param('sssssi', $like, $like, $like, $categoryLike, $like, $limitPerType);
+        $stmt->bind_param('si', $like, $limitPerType);
         $stmt->execute();
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $results[] = [
@@ -103,10 +86,10 @@ if (!function_exists('kt_search_all')) {
         $stmt->close();
         $stmt = $conn->prepare(
             "SELECT product_id, product_name, category, description, summary, image
-             FROM products WHERE status = 'active' AND (product_name LIKE ? OR description LIKE ? OR category LIKE ?)
+             FROM products WHERE status = 'active' AND product_name LIKE ?
              ORDER BY product_name ASC LIMIT ?"
         );
-        $stmt->bind_param('sssi', $like, $like, $like, $limitPerType);
+        $stmt->bind_param('si', $like, $limitPerType);
         $stmt->execute();
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $results[] = [
@@ -123,10 +106,10 @@ if (!function_exists('kt_search_all')) {
         $stmt->close();
         $stmt = $conn->prepare(
             "SELECT restaurant_id, restaurant_name, category, description, summary, image
-             FROM restaurants WHERE status = 'active' AND (restaurant_name LIKE ? OR description LIKE ? OR category LIKE ?)
+             FROM restaurants WHERE status = 'active' AND restaurant_name LIKE ?
              ORDER BY restaurant_name ASC LIMIT ?"
         );
-        $stmt->bind_param('sssi', $like, $like, $like, $limitPerType);
+        $stmt->bind_param('si', $like, $limitPerType);
         $stmt->execute();
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $results[] = [
@@ -143,10 +126,10 @@ if (!function_exists('kt_search_all')) {
         $stmt->close();
         $stmt = $conn->prepare(
             "SELECT fiesta_id, fiesta_name, type, description, summary, image
-             FROM fiestas WHERE status = 'active' AND (fiesta_name LIKE ? OR description LIKE ? OR location LIKE ?)
+             FROM fiestas WHERE status = 'active' AND fiesta_name LIKE ?
              ORDER BY fiesta_name ASC LIMIT ?"
         );
-        $stmt->bind_param('sssi', $like, $like, $like, $limitPerType);
+        $stmt->bind_param('si', $like, $limitPerType);
         $stmt->execute();
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $results[] = [
@@ -163,10 +146,10 @@ if (!function_exists('kt_search_all')) {
         $stmt->close();
         $stmt = $conn->prepare(
             "SELECT person_id, fullname, title, achievement, description, summary, image
-             FROM people WHERE status = 'active' AND (fullname LIKE ? OR title LIKE ? OR achievement LIKE ? OR description LIKE ?)
+             FROM people WHERE status = 'active' AND fullname LIKE ?
              ORDER BY fullname ASC LIMIT ?"
         );
-        $stmt->bind_param('ssssi', $like, $like, $like, $like, $limitPerType);
+        $stmt->bind_param('si', $like, $limitPerType);
         $stmt->execute();
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $results[] = [
@@ -185,10 +168,10 @@ if (!function_exists('kt_search_all')) {
             "SELECT id, title, body, image
              FROM announcements WHERE status = 'live'
                AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
-               AND (title LIKE ? OR body LIKE ?)
-             ORDER BY published_at DESC LIMIT ?"
+               AND title LIKE ?
+             ORDER BY title ASC LIMIT ?"
         );
-        $stmt->bind_param('ssi', $like, $like, $limitPerType);
+        $stmt->bind_param('si', $like, $limitPerType);
         $stmt->execute();
         foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             $results[] = [

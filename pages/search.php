@@ -101,7 +101,7 @@ if ($query !== '') {
         </h1>
 
         <form action="search.php" method="GET" class="search-results-form">
-            <input type="search" name="q" value="<?php echo htmlspecialchars($query); ?>" placeholder="Search destinations, food, events, people…" autofocus>
+            <input type="search" name="q" value="<?php echo htmlspecialchars($query); ?>" placeholder="Search by item name…" autofocus>
             <button type="submit">Search</button>
         </form>
 
@@ -112,7 +112,7 @@ if ($query !== '') {
 
     <?php if ($query === ''): ?>
         <div class="fy-empty-state">
-            <p>Type something above to search across every destination, restaurant, product, fiesta, person, and announcement on the site.</p>
+            <p>Search for an item by its name.</p>
         </div>
     <?php elseif (empty($results)): ?>
         <div class="fy-empty-state">
