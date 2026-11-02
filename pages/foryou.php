@@ -649,7 +649,6 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
     </section>
     <section class="fy-section fy-nearby" id="fy-nearby">
         <div class="fy-section-head">
-            <h2>Near You</h2>
             <p>Turn on location to see what's closest to where you are right now.</p>
         </div>
         <div id="fy-location-gate" class="fy-location-gate">
