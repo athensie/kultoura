@@ -4,6 +4,7 @@ require_once '../config/dbmain.php';
 require_once '../config/analytics.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
+require_once '../config/product_locations.php';
 define('BASE_URL', '/kultoura');
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
@@ -20,6 +21,7 @@ function kt_products_ensure_schema(mysqli $conn): void
     if ($done) return;
     $done = true;
     $conn->query("ALTER TABLE products MODIFY location VARCHAR(255) NULL");
+    kt_product_locations_ensure_schema($conn);
 }
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
@@ -115,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'location'     => trim($_POST['location'] ?? ''),
             'latitude'     => $_POST['latitude'] ?? '',
             'longitude'    => $_POST['longitude'] ?? '',
+            'store_locations' => kt_product_locations_normalize($_POST['store_locations'] ?? []),
             'image'        => $image,
         ];
     } else {
@@ -162,6 +165,13 @@ $sql = "
 if ($result = $conn->query($sql)) {
     $foodListings = $result->fetch_all(MYSQLI_ASSOC);
 }
+$productLocationsById = kt_product_locations_fetch($conn, array_column(array_filter($foodListings, static fn($listing) => $listing['type'] === 'product'), 'id'));
+foreach ($foodListings as &$foodListing) {
+    if ($foodListing['type'] === 'product') {
+        $foodListing['store_locations'] = $productLocationsById[(int) $foodListing['id']] ?? [];
+    }
+}
+unset($foodListing);
 $foodViewsByType = [
     'product'    => analytics_item_views_bulk($conn, 'product'),
     'restaurant' => analytics_item_views_bulk($conn, 'restaurant'),
@@ -191,6 +201,13 @@ sort($allCategories);
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
     <style>
         .image-current-hint { font-size: .7rem; color: rgba(245,237,216,.45); margin-top: 6px; }
+        .store-location-editor { border: 1px solid rgba(245,237,216,.14); background: rgba(255,255,255,.035); border-radius: 12px; padding: 14px; margin: 12px 0; }
+        .store-location-editor-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:#f5edd8; }
+        .store-location-editor-head .btn-ghost { padding:6px 10px; }
+        .store-location-coordinates { display:flex; gap:12px; margin-bottom:10px; }
+        .store-location-coordinates label { flex:1; color:rgba(245,237,216,.65); font-size:.75rem; }
+        .store-location-coordinates input { margin-top:5px; }
+        .store-location-map { height:190px; border-radius:9px; overflow:hidden; }
     </style>
 </head>
 <body>
@@ -427,6 +444,12 @@ sort($allCategories);
                     <input class="form-input" type="number" step="0.01" min="0" name="price" placeholder="e.g. 150.00">
                 </div>
             </div>
+            <div class="form-group add-product-fields">
+                <label class="form-label">Stores that sell this product</label>
+                <p class="image-current-hint">Add each store and set its pin on the map. Visitors can choose which store to navigate to.</p>
+                <div class="store-location-list" id="addStoreLocations"></div>
+                <button type="button" class="btn-ghost" onclick="addStoreLocation('add')">Add Store Location</button>
+            </div>
             <div class="add-restaurant-fields" style="display:none;">
                 <div class="form-row">
                     <div class="form-group">
@@ -447,7 +470,7 @@ sort($allCategories);
                 <label class="form-label">Image</label>
                 <input class="form-input" type="file" name="image_file" accept="image/*">
             </div>
-            <div class="form-group">
+            <div class="form-group add-map-fields">
                 <label class="form-label">Location</label>
                 <div class="kt-map-field">
                     <input class="form-input" type="text" name="location" id="addLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off">
@@ -499,6 +522,12 @@ sort($allCategories);
                     <input class="form-input" type="number" step="0.01" min="0" name="price" id="editPriceInput" placeholder="e.g. 150.00">
                 </div>
             </div>
+            <div class="form-group edit-product-fields">
+                <label class="form-label">Stores that sell this product</label>
+                <p class="image-current-hint">Add each store and set its pin on the map. Visitors can choose which store to navigate to.</p>
+                <div class="store-location-list" id="editStoreLocations"></div>
+                <button type="button" class="btn-ghost" onclick="addStoreLocation('edit')">Add Store Location</button>
+            </div>
             <div class="edit-restaurant-fields" style="display:none;">
                 <div class="form-row">
                     <div class="form-group">
@@ -520,7 +549,7 @@ sort($allCategories);
                 <input class="form-input" type="file" name="image_file" accept="image/*">
                 <p class="image-current-hint">Leave empty to keep the current image.</p>
             </div>
-            <div class="form-group">
+            <div class="form-group edit-map-fields">
                 <label class="form-label">Location</label>
                 <div class="kt-map-field">
                     <input class="form-input" type="text" name="location" id="editLocationInput" placeholder="Start typing an address and pick it from the list…" autocomplete="off">
@@ -609,8 +638,8 @@ sort($allCategories);
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 
 <script src="../assets/js/admin-notifications.js"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/adminfoodanddining.js?v=20261016"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261102-1"></script>
+<script src="../assets/js/adminfoodanddining.js?v=20261102-1"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
 
     <script src="../assets/js/admin-filter-state.js"></script>

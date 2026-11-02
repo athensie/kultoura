@@ -232,3 +232,27 @@
     border-color: #8b2e1a;
     color: #8b2e1a;
 }
+.p-product-stores {
+    margin: 0 0 18px;
+    padding: 16px;
+    border-radius: 14px;
+    background: #f5f0e6;
+}
+.p-product-stores h4 {
+    margin: 0 0 10px;
+    color: #2c1a0e;
+    font: 700 15px Georgia, serif;
+}
+.p-store-location {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 0;
+    border-top: 1px solid rgba(44, 26, 14, .12);
+}
+.p-store-location > div { display: grid; gap: 4px; min-width: 0; }
+.p-store-location strong { color: #2c1a0e; font-size: 13px; }
+.p-store-location span { color: rgba(44, 26, 14, .68); font: 12px/1.45 'Helvetica Neue', Arial, sans-serif; }
+.p-store-location .p-btn { flex: 0 0 auto; }
+.p-store-location .p-btn:disabled { opacity: .45; cursor: not-allowed; }

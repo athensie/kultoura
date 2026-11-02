@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/product_locations.php';
 if (!function_exists('kt_requests_ensure_schema')) {
     function kt_requests_ensure_schema(mysqli $conn): void
     {
@@ -30,6 +31,7 @@ if (!function_exists('kt_requests_ensure_schema')) {
             }
         }
         kt_requests_ensure_status_column($conn, 'products');
+        kt_product_locations_ensure_schema($conn);
         kt_requests_ensure_status_column($conn, 'restaurants');
         kt_requests_ensure_status_column($conn, 'fiestas');
         kt_requests_ensure_status_column($conn, 'people');
@@ -202,6 +204,12 @@ if (!function_exists('kt_archive_permanently_delete')) {
         $ok = $stmt->execute() && $stmt->affected_rows > 0;
         $stmt->close();
         if ($ok) {
+            if ($entityType === 'product') {
+                $locationsStmt = $conn->prepare('DELETE FROM product_locations WHERE product_id = ?');
+                $locationsStmt->bind_param('i', $id);
+                $locationsStmt->execute();
+                $locationsStmt->close();
+            }
             kt_archive_note_clear($conn, $entityType, $id);
         }
         if ($ok && !empty($row['image'])) {
@@ -473,23 +481,32 @@ if (!function_exists('kt_apply_product')) {
             return $name;
         }
         $price = $d['price'] !== null && $d['price'] !== '' ? (float) $d['price'] : null;
-        $lat   = $d['latitude'] !== null && $d['latitude'] !== '' ? (float) $d['latitude'] : null;
-        $lng   = $d['longitude'] !== null && $d['longitude'] !== '' ? (float) $d['longitude'] : null;
+        $hasStoreLocations = array_key_exists('store_locations', $d);
+        $locations = kt_product_locations_normalize($d['store_locations'] ?? []);
+        $primaryLocation = $locations[0] ?? null;
+        $locationText = $primaryLocation['address'] ?? ($hasStoreLocations ? '' : (string) ($d['location'] ?? ''));
+        $lat   = $primaryLocation ? $primaryLocation['latitude'] : ($hasStoreLocations ? null : ($d['latitude'] !== null && $d['latitude'] !== '' ? (float) $d['latitude'] : null));
+        $lng   = $primaryLocation ? $primaryLocation['longitude'] : ($hasStoreLocations ? null : ($d['longitude'] !== null && $d['longitude'] !== '' ? (float) $d['longitude'] : null));
         $image = $d['image'] ?? '';
         if ($action === 'create') {
             $stmt = $conn->prepare(
                 "INSERT INTO products (product_name, category, description, summary, price, location, latitude, longitude, image)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->bind_param('ssssdsdds', $name, $d['category'], $d['description'], $summary, $price, $d['location'], $lat, $lng, $image);
+            $stmt->bind_param('ssssdsdds', $name, $d['category'], $d['description'], $summary, $price, $locationText, $lat, $lng, $image);
+            $stmt->execute();
+            $productId = (int) $conn->insert_id;
+            $stmt->close();
+            kt_product_locations_save($conn, $productId, $locations);
         } else {
             $stmt = $conn->prepare(
                 "UPDATE products SET product_name=?, category=?, description=?, summary=?, price=?, location=?, latitude=?, longitude=?, image=? WHERE product_id=?"
             );
-            $stmt->bind_param('ssssdsddsi', $name, $d['category'], $d['description'], $summary, $price, $d['location'], $lat, $lng, $image, $id);
+            $stmt->bind_param('ssssdsddsi', $name, $d['category'], $d['description'], $summary, $price, $locationText, $lat, $lng, $image, $id);
+            $stmt->execute();
+            $stmt->close();
+            kt_product_locations_save($conn, (int) $id, $locations);
         }
-        $stmt->execute();
-        $stmt->close();
         return $name;
     }
 }

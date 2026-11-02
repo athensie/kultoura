@@ -6,6 +6,7 @@ kt_maintenance_gate($conn);
 require_once '../../config/analytics.php';
 include '../../config/sitecontent.php';
 require_once __DIR__ . '/../../config/page_widgets.php';
+require_once __DIR__ . '/../../config/product_locations.php';
 $pageWidget = kt_page_widget_get($conn, 'products');
 analytics_track($conn, 'products');
 $_SESSION['history'][] = 'product';
@@ -23,6 +24,7 @@ $res  = $conn->query($sql);
 if ($res) {
     $rows = $res->fetch_all(MYSQLI_ASSOC);
 }
+$storeLocationsByProduct = kt_product_locations_fetch($conn, array_column($rows, 'product_id'));
 $favoritedIds = [];
 if ($isLoggedIn && !empty($rows)) {
     $ids          = array_column($rows, 'product_id');
@@ -48,6 +50,7 @@ foreach ($rows as $r) {
         'address'   => $r['location'],
         'lat'       => $r['latitude'],
         'lng'       => $r['longitude'],
+        'locations' => $storeLocationsByProduct[(int) $r['product_id']] ?? [],
         'image'     => $r['image'],
         'favorited' => in_array((int) $r['product_id'], $favoritedIds, true),
     ];
@@ -64,7 +67,7 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/product.css">
+    <link rel="stylesheet" href="../../assets/css/product.css?v=20261102-1">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -190,7 +193,7 @@ foreach ($rows as $r) {
                     <?php endif; ?>
                     <div class="p-card-actions">
                         <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= (int) $item['id'] ?>)">View Details</button>
-                        <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= (int) $item['id'] ?>)">Navigate</button>
+                        <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= (int) $item['id'] ?>)"><?= count($item['locations']) > 1 ? 'Choose Store' : 'Navigate' ?></button>
                     </div>
                 </div>
             </article>
@@ -210,6 +213,7 @@ foreach ($rows as $r) {
         <h3 class="p-modal-title" id="vdTitle">—</h3>
         <p class="p-modal-desc" id="vdDesc">—</p>
         <div class="p-modal-facts" id="vdFacts"></div>
+        <div class="p-product-stores" id="vdStores" hidden></div>
         <div class="p-modal-actions">
             <button type="button" class="p-btn p-btn-primary" id="vdFavToggleBtn" onclick="toggleFavorite(document.getElementById('vdFavBtn'))">
                 <span id="vdFavLabel">♡ Add to Favorites</span>
@@ -236,7 +240,7 @@ foreach ($rows as $r) {
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 <script>
-const productsData = <?php echo json_encode($products); ?>;
+const productsData = <?php echo json_encode($products, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 function findProduct(id) { return productsData.find(p => p.id === id); }
 /* ---------------- Live search + category filter ---------------- */
 /* Filters the already-loaded productsData/cards client-side, so results
@@ -342,6 +346,34 @@ function openViewDetails(id) {
     }
     facts += `<div><p class="p-fact-label">Location</p><p class="p-fact-value">${item.address || '—'}</p></div>`;
     document.getElementById('vdFacts').innerHTML = facts;
+    const storesEl = document.getElementById('vdStores');
+    storesEl.replaceChildren();
+    const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
+    document.getElementById('vdNavigateBtn').style.display = locations.length > 1 ? 'none' : '';
+    storesEl.hidden = locations.length === 0;
+    if (locations.length) {
+        const heading = document.createElement('h4');
+        heading.textContent = locations.length === 1 ? 'Where to buy' : 'Stores that sell this product';
+        storesEl.appendChild(heading);
+        locations.forEach((location, index) => {
+            const row = document.createElement('div');
+            row.className = 'p-store-location';
+            const details = document.createElement('div');
+            const storeName = document.createElement('strong');
+            storeName.textContent = location.store_name || `Store ${index + 1}`;
+            const address = document.createElement('span');
+            address.textContent = location.address || 'Address unavailable';
+            details.append(storeName, address);
+            const directions = document.createElement('button');
+            directions.type = 'button';
+            directions.className = 'p-btn p-btn-outline';
+            directions.textContent = 'Directions';
+            directions.disabled = location.lat === null || location.lat === '' || location.lng === null || location.lng === '';
+            directions.onclick = () => { closeModalX('viewDetailsModal'); openNavigate(item.id, index); };
+            row.append(details, directions);
+            storesEl.appendChild(row);
+        });
+    }
     document.getElementById('vdNavigateBtn').onclick = function () {
         closeModalX('viewDetailsModal');
         openNavigate(item.id);
@@ -386,23 +418,30 @@ function haversineKm(lat1, lng1, lat2, lng2) {
               Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-function openNavigate(id) {
+function openNavigate(id, locationIndex) {
     const item = findProduct(id);
     if (!item) return;
-    document.getElementById('navTitle').textContent = item.name;
+    const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
+    if (locationIndex === undefined && locations.length > 1) {
+        openViewDetails(id);
+        return;
+    }
+    if (locationIndex === undefined) locationIndex = 0;
+    const location = locations[locationIndex] || locations[0] || {};
+    document.getElementById('navTitle').textContent = location.store_name ? `${item.name} · ${location.store_name}` : item.name;
     const distEl = document.getElementById('navDistance');
     const frame = document.getElementById('navFrame');
     const directLink = document.getElementById('navDirectLink');
-    const hasCoords = !!(item.lat && item.lng);
+    const hasCoords = location.lat !== null && location.lat !== '' && location.lng !== null && location.lng !== '';
     openModalX('navigateModal');
     if (!hasCoords) {
-        distEl.textContent = "This location hasn't been mapped yet — the admin needs to set it when adding/editing the listing.";
+        distEl.textContent = "This store hasn't been mapped yet. Contact the store for directions.";
         frame.src = '';
         directLink.style.display = 'none';
         return;
     }
-    const destLat = parseFloat(item.lat);
-    const destLng = parseFloat(item.lng);
+    const destLat = parseFloat(location.lat);
+    const destLng = parseFloat(location.lng);
     frame.src = 'https://www.google.com/maps?q=' + destLat + ',' + destLng + '&z=15&output=embed';
     directLink.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destLat + ',' + destLng;
     directLink.style.display = 'inline-block';

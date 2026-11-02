@@ -62,8 +62,72 @@ function toggleTypeFields(prefix) {
   document.querySelectorAll('.' + prefix + '-restaurant-fields').forEach(el => {
     el.style.display = isProduct ? 'none' : '';
   });
+  document.querySelectorAll('.' + prefix + '-map-fields').forEach(el => {
+    el.style.display = isProduct ? 'none' : '';
+  });
   const locationInput = document.getElementById(prefix + 'LocationInput');
   if (locationInput) locationInput.name = isProduct ? 'location' : 'address';
+  const picker = ktFoodMaps[prefix];
+  if (!isProduct && picker) setTimeout(() => picker.map.invalidateSize(), 180);
+}
+const storeLocationPickers = {};
+const storeLocationCounters = { add: 0, edit: 0 };
+function addStoreLocation(prefix, location = {}) {
+  const list = document.getElementById(prefix + 'StoreLocations');
+  if (!list) return;
+  const index = storeLocationCounters[prefix]++;
+  const key = prefix + '-' + index;
+  const row = document.createElement('div');
+  row.className = 'store-location-editor';
+  row.dataset.locationKey = key;
+  row.innerHTML = `<div class="store-location-editor-head"><strong>Store location</strong><button type="button" class="btn-ghost" data-remove-location>Remove</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Store name</label><input class="form-input" name="store_locations[${index}][store_name]" value=""></div>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="${key}-address" name="store_locations[${index}][address]" value="" autocomplete="off" placeholder="Search or type a store address"></div></div>
+    <div class="store-location-coordinates"><label>Latitude <input class="form-input" id="${key}-lat" name="store_locations[${index}][latitude]" value="" readonly></label>
+    <label>Longitude <input class="form-input" id="${key}-lng" name="store_locations[${index}][longitude]" value="" readonly></label></div>
+    <div class="store-location-map" id="${key}-map"></div><p class="image-current-hint" id="${key}-status">Search for the store address or click the map to place its pin.</p>`;
+  const inputs = row.querySelectorAll('input');
+  inputs[0].value = location.store_name || '';
+  inputs[1].value = location.address || '';
+  inputs[2].value = location.lat || '';
+  inputs[3].value = location.lng || '';
+  inputs[1].addEventListener('input', function () {
+    inputs[2].value = '';
+    inputs[3].value = '';
+  });
+  row.querySelector('[data-remove-location]').addEventListener('click', function () {
+    if (storeLocationPickers[key]) {
+      storeLocationPickers[key].map.remove();
+      delete storeLocationPickers[key];
+    }
+    row.remove();
+  });
+  list.appendChild(row);
+  requestAnimationFrame(() => {
+    const picker = KtAddressPicker.setup({
+      mapElId: key + '-map', inputElId: key + '-address', statusElId: key + '-status',
+      onPosition: (lat, lng) => {
+        document.getElementById(key + '-lat').value = Number(lat).toFixed(7);
+        document.getElementById(key + '-lng').value = Number(lng).toFixed(7);
+      },
+    });
+    if (picker) {
+      storeLocationPickers[key] = picker;
+      if (location.lat && location.lng) picker.setPosition(parseFloat(location.lat), parseFloat(location.lng), 16);
+    }
+  });
+}
+function clearStoreLocations(prefix) {
+  const list = document.getElementById(prefix + 'StoreLocations');
+  if (!list) return;
+  Object.keys(storeLocationPickers).forEach(key => {
+    if (key.startsWith(prefix + '-')) {
+      storeLocationPickers[key].map.remove();
+      delete storeLocationPickers[key];
+    }
+  });
+  list.replaceChildren();
+  storeLocationCounters[prefix] = 0;
 }
 const DEFAULT_CENTER = [14.0570, 121.1610];
 const mapInstances = {};
@@ -162,6 +226,7 @@ function openAddListing() {
   if (form) form.reset();
   document.getElementById('addLatInput').value = '';
   document.getElementById('addLngInput').value = '';
+  clearStoreLocations('add');
   document.getElementById('addTypeInput').value = 'product';
   updateCategoryOptions('addTypeInput', 'addCategoryInput');
   toggleTypeFields('add');
@@ -178,6 +243,23 @@ function validateListingForm(mode) {
   if (!name || !name.value.trim()) {
     showToast('Please enter a listing name.');
     return false;
+  }
+  const type = document.getElementById(prefix + 'TypeInput')?.value;
+  if (type === 'product') {
+    const rows = [...document.querySelectorAll(`#${prefix}StoreLocations .store-location-editor`)];
+    for (const row of rows) {
+      const address = row.querySelector('[name$="[address]"]')?.value.trim() || '';
+      const lat = row.querySelector('[name$="[latitude]"]')?.value || '';
+      const lng = row.querySelector('[name$="[longitude]"]')?.value || '';
+      if (address && (!lat || !lng)) {
+        showToast('Set a map pin for every store location.');
+        return false;
+      }
+      if (!address && (lat || lng || row.querySelector('[name$="[store_name]"]')?.value.trim())) {
+        showToast('Enter an address for every store location.');
+        return false;
+      }
+    }
   }
   return true;
 }
@@ -230,6 +312,10 @@ function openEditListing(id, type) {
   document.getElementById('editDescInput').value = l.desc || '';
   document.getElementById('editSummaryInput').value = l.summary || '';
   document.getElementById('editImageInput').value = l.image || '';
+  clearStoreLocations('edit');
+  if (type === 'product') {
+    (l.store_locations || []).forEach(location => addStoreLocation('edit', location));
+  }
   updateCategoryOptions('editTypeInput', 'editCategoryInput', l.category);
   toggleTypeFields('edit');
   toggleCategoryField('edit');
