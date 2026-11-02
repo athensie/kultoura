@@ -850,7 +850,6 @@ body {
 .home-instagram-account { display: grid; gap: 2px; min-width: 0; font-size: 12px; }
 .home-instagram-account strong { font-size: 13px; }
 .home-instagram-account span { color: rgba(44, 26, 14, 0.58); font-size: 11px; }
-.home-instagram-more { margin-left: auto; font-weight: 700; letter-spacing: 2px; }
 .home-instagram-media {
     position: relative;
     display: block;

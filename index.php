@@ -336,7 +336,6 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
                 <div class="home-instagram-post-head">
                     <span class="home-instagram-avatar" aria-hidden="true">K</span>
                     <div class="home-instagram-account"><strong>kultoura</strong><span><?php echo htmlspecialchars($item['badge']); ?> · Malvar, Batangas</span></div>
-                    <span class="home-instagram-more" aria-hidden="true">•••</span>
                 </div>
                 <a href="<?php echo htmlspecialchars($item['link']); ?>" class="home-instagram-media" aria-label="Explore <?php echo htmlspecialchars($item['name']); ?>">
                     <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" loading="lazy">
@@ -365,7 +364,6 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
                 <div class="home-instagram-post-head">
                     <span class="home-instagram-avatar" aria-hidden="true">K</span>
                     <div class="home-instagram-account"><strong>kultoura</strong><span><?php echo htmlspecialchars($item['badge']); ?> · Malvar, Batangas</span></div>
-                    <span class="home-instagram-more" aria-hidden="true">•••</span>
                 </div>
                 <div class="home-instagram-media">
                     <?php if ($item['image'] !== ''): ?><img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" loading="lazy"><?php endif; ?>
@@ -619,7 +617,6 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
                 <div class="home-instagram-post-head">
                     <span class="home-instagram-avatar" aria-hidden="true">K</span>
                     <div class="home-instagram-account"><strong>kultoura</strong><span>Events in Malvar · Malvar, Batangas</span></div>
-                    <span class="home-instagram-more" aria-hidden="true">•••</span>
                 </div>
                 <button type="button" class="home-instagram-media home-gallery-media" aria-label="Open event moment: <?php echo htmlspecialchars($g['caption']); ?>" data-gallery-images="<?php echo $galleryImagesJson; ?>" data-gallery-image="<?php echo htmlspecialchars($galleryImages[0]); ?>" data-gallery-caption="<?php echo htmlspecialchars($g['caption']); ?>">
                     <img src="<?php echo htmlspecialchars($galleryImages[0]); ?>" alt="" loading="lazy">
