@@ -216,6 +216,7 @@ if ($openPersonSlug !== '') {
                 <div class="p-card-body">
                     <?php if ($achPreview !== ''): ?><p class="p-card-category"><?= htmlspecialchars($achPreview) ?><?= count($achLines) > 1 ? ' +' . (count($achLines) - 1) : '' ?></p><?php endif; ?>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['fullname']) ?></h3>
+                    <?php if (!empty($item['summary']) || !empty($item['description'])): ?><p class="p-card-desc"><?= htmlspecialchars($item['summary'] ?: mb_strimwidth((string) $item['description'], 0, 160, '…')) ?></p><?php endif; ?>
                     <div class="p-card-actions">
                         <a class="p-btn p-btn-primary" href="?person=<?= urlencode($slug) ?>">View Details</a>
                     </div>

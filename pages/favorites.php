@@ -166,6 +166,7 @@ foreach ($favoriteRows as $r) {
         'id'       => $id,
         'name'     => $item[$map['nameCol']],
         'desc'     => $item['description'] ?? '',
+        'summary'  => $item['summary'] ?: mb_strimwidth((string) ($item['description'] ?? ''), 0, 160, '…'),
         'image'    => $imageSrc,
         'tag'      => $item['address'] ?? $item['location'] ?? '',
         'lat'      => $lat,
@@ -293,6 +294,7 @@ foreach ($favoriteRows as $r) {
                     data-category="<?php echo htmlspecialchars($f['category']); ?>"
                     data-tag="<?php echo htmlspecialchars($f['tag']); ?>"
                     data-desc="<?php echo htmlspecialchars($f['desc']); ?>"
+                    data-summary="<?php echo htmlspecialchars($f['summary']); ?>"
                     data-image="<?php echo htmlspecialchars($f['image']); ?>"
                     data-lat="<?php echo htmlspecialchars((string) ($f['lat'] ?? '')); ?>"
                     data-lng="<?php echo htmlspecialchars((string) ($f['lng'] ?? '')); ?>"
@@ -314,8 +316,8 @@ foreach ($favoriteRows as $r) {
                         </form>
                     </div>
                     <h3 class="f-card-title"><?php echo htmlspecialchars($f['name']); ?></h3>
-                    <?php if (!empty($f['desc'])): ?>
-                        <p class="f-card-desc"><?php echo htmlspecialchars(mb_strimwidth($f['desc'], 0, 120, '…')); ?></p>
+                    <?php if (!empty($f['summary'])): ?>
+                        <p class="f-card-desc"><?php echo htmlspecialchars($f['summary']); ?></p>
                     <?php endif; ?>
                     </div>
                 </div>

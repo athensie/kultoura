@@ -63,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         'subcategory'       => $_POST['subcategory'] ?? '',
         'status'            => 'active',
         'description'       => $_POST['description'] ?? '',
+        'summary'           => trim($_POST['summary'] ?? ''),
         'google_maps'       => $_POST['google_maps'] ?? '',
         'image'             => $imagePath,
         'schedule_month'    => null,
@@ -321,6 +322,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                         data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                         data-views="<?php echo htmlspecialchars((string) ($d['views'] ?? 0)); ?>"
                                         data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
+                                        data-summary="<?php echo htmlspecialchars($d['summary'] ?? ''); ?>"
                                         data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                         data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
                                         data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
@@ -333,6 +335,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                         data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                         data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
                                         data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
+                                        data-summary="<?php echo htmlspecialchars($d['summary'] ?? ''); ?>"
                                         data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                         data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
                                         data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
@@ -383,6 +386,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                 data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                 data-views="<?php echo htmlspecialchars((string) ($d['views'] ?? 0)); ?>"
                                 data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
+                                data-summary="<?php echo htmlspecialchars($d['summary'] ?? ''); ?>"
                                 data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                 data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
                                 data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
@@ -395,6 +399,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                                 data-category="<?php echo htmlspecialchars($d['category'] ?? ''); ?>"
                                 data-subcategory="<?php echo htmlspecialchars($d['subcategory'] ?? ''); ?>"
                                 data-desc="<?php echo htmlspecialchars($d['description'] ?? ''); ?>"
+                                data-summary="<?php echo htmlspecialchars($d['summary'] ?? ''); ?>"
                                 data-google-maps="<?php echo htmlspecialchars($d['google_maps'] ?? ''); ?>"
                                 data-schedule-month="<?php echo !empty($d['schedule_month']) ? htmlspecialchars(substr($d['schedule_month'], 0, 7)) : ''; ?>"
                                 data-schedule="<?php echo htmlspecialchars($d['schedule_text'] ?? '', ENT_QUOTES); ?>"
@@ -458,6 +463,10 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="description" placeholder="Describe this destination…"></textarea>
             </div>
@@ -517,6 +526,10 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
                 <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktEditMap && ktEditMap.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
                 <div id="editMapPicker" class="kt-map-canvas"></div>
                 <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" id="editDestinationSummaryInput" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>

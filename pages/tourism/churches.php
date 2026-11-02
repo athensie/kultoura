@@ -49,6 +49,7 @@ while ($row = $result->fetch_assoc()) {
         'category'    => ucfirst($row['category']),
         'tag'         => $row['address'],
         'desc'        => $row['description'],
+        'summary'     => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 160, '…'),
         'image'       => $row['image'],
         'isFavorited' => (bool) $row['is_favorited'],
         'gmaps'       => $row['google_maps'] ?? '',
@@ -199,7 +200,7 @@ $stmt->close();
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
-                    <p class="p-card-desc"><?= htmlspecialchars($item['desc']) ?></p>
+                    <p class="p-card-desc"><?= htmlspecialchars($item['summary']) ?></p>
                     <div class="p-card-actions">
                         <button type="button" class="p-btn p-btn-primary"
                             data-id="<?= (int) $item['id'] ?>"

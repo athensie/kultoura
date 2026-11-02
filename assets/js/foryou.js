@@ -19,6 +19,8 @@ async function fyToggleFavorite(btn) {
                 `.fy-fav-btn[data-item-type="${itemType}"][data-item-id="${itemId}"]`
             ).forEach((b) => {
                 b.classList.toggle('is-favorited', data.favorited);
+                b.setAttribute('aria-label', data.favorited ? 'Remove from favorites' : 'Save to favorites');
+                b.title = data.favorited ? 'Remove from favorites' : 'Save to favorites';
                 const icon = b.querySelector('.fy-action-icon');
                 if (icon) icon.innerHTML = data.favorited ? '&#9829;' : '&#9825;';
             });
@@ -257,15 +259,17 @@ document.addEventListener('click', function (e) {
                     </div>
                     <div class="fy-gcard-body">
                         <h3 class="fy-card-name">${fyEscapeHtml(p.name)}</h3>
-                        ${p.desc ? `<p class="fy-card-desc">${fyEscapeHtml(p.desc)}</p>` : ''}
+                        ${p.summary ? `<p class="fy-card-desc">${fyEscapeHtml(p.summary)}</p>` : ''}
                         <p class="fy-gcard-meta">Malvar, Batangas · ${formatDistance(p.distance)}</p>
                     </div>
                 </a>
                 <div class="fy-card-actions">
                     <button type="button" class="fy-action-btn fy-fav-btn${p.favorited ? ' is-favorited' : ''}"
                             data-item-type="${p.itemType}" data-item-id="${p.itemId}"
+                            aria-label="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
+                            title="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
                             onclick="fyToggleFavorite(this)">
-                        <span class="fy-action-icon">${p.favorited ? '&#9829;' : '&#9825;'}</span> Save
+                        <span class="fy-action-icon" aria-label="Save to favorites">${p.favorited ? '&#9829;' : '&#9825;'}</span>
                     </button>
                     <a class="fy-action-btn fy-view-btn" href="${p.link}" data-item-type="${p.itemType}" data-item-id="${p.itemId}">View</a>
                     <button type="button" class="fy-action-btn" onclick="fyShare(this, '${p.link}')">
@@ -333,15 +337,17 @@ document.addEventListener('click', function (e) {
                     </div>
                     <div class="fy-gcard-body">
                         <h3 class="fy-card-name">${fyEscapeHtml(p.name)}</h3>
-                        ${p.desc ? `<p class="fy-card-desc">${fyEscapeHtml(p.desc)}</p>` : ''}
+                        ${p.summary ? `<p class="fy-card-desc">${fyEscapeHtml(p.summary)}</p>` : ''}
                         <p class="fy-gcard-meta">Malvar, Batangas${distance !== null ? ' · ' + formatDistance(distance) : (p.location ? ' · ' + fyEscapeHtml(p.location) : '')}</p>
                     </div>
                 </a>
                 <div class="fy-card-actions">
                     <button type="button" class="fy-action-btn fy-fav-btn${p.favorited ? ' is-favorited' : ''}"
                             data-item-type="${p.itemType}" data-item-id="${p.itemId}"
+                            aria-label="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
+                            title="${p.favorited ? 'Remove from favorites' : 'Save to favorites'}"
                             onclick="fyToggleFavorite(this)">
-                        <span class="fy-action-icon">${p.favorited ? '&#9829;' : '&#9825;'}</span> Save
+                        <span class="fy-action-icon" aria-label="Save to favorites">${p.favorited ? '&#9829;' : '&#9825;'}</span>
                     </button>
                     <a class="fy-action-btn fy-view-btn" href="${p.link}" data-item-type="${p.itemType}" data-item-id="${p.itemId}">View</a>
                     <button type="button" class="fy-action-btn" onclick="fyShare(this, '${p.link}')">

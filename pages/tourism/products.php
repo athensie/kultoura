@@ -35,7 +35,7 @@ $userId     = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
 $categoryChoices = ['Local Food', 'Local Products', 'Crafts'];
 $q        = trim($_GET['q'] ?? '');
 $category = trim($_GET['category'] ?? '');
-$sql  = "SELECT product_id, product_name, category, description, price, location, latitude, longitude, image
+$sql  = "SELECT product_id, product_name, category, description, summary, price, location, latitude, longitude, image
          FROM products WHERE status = 'active' ORDER BY product_name ASC";
 $rows = [];
 $res  = $conn->query($sql);
@@ -62,6 +62,7 @@ foreach ($rows as $r) {
         'category'  => $r['category'],
         'tag'       => $r['category'],
         'desc'      => $r['description'],
+        'summary'   => $r['summary'] ?: mb_strimwidth((string) ($r['description'] ?? ''), 0, 160, '…'),
         'price'     => $r['price'],
         'address'   => $r['location'],
         'lat'       => $r['latitude'],
@@ -207,7 +208,7 @@ foreach ($rows as $r) {
                 <div class="p-card-body">
                     <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['name']) ?></h3>
-                    <p class="p-card-desc"><?= htmlspecialchars($item['desc']) ?></p>
+                    <p class="p-card-desc"><?= htmlspecialchars($item['summary']) ?></p>
                     <?php if ($item['price'] !== null && $item['price'] !== ''): ?>
                         <p class="p-card-price">₱<?= htmlspecialchars(number_format((float) $item['price'], 2)) ?></p>
                     <?php endif; ?>

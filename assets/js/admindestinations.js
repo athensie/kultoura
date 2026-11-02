@@ -174,6 +174,7 @@ function openEditDestination(btn) {
   document.getElementById('editDestinationNameInput').value = d.name || '';
   document.getElementById('editDestinationLocationInput').value = d.location || '';
   document.getElementById('editDestinationDescInput').value = d.desc || '';
+  document.getElementById('editDestinationSummaryInput').value = btn.dataset.summary || '';
   document.getElementById('editChurchScheduleMonth').value = d.scheduleMonth || '';
   ktLoadChurchSchedule('edit', d.schedule || '');
   const categorySelect = document.getElementById('editDestinationCategoryInput');

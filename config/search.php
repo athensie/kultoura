@@ -82,7 +82,7 @@ if (!function_exists('kt_search_all')) {
         ];
         $results = [];
         $stmt = $conn->prepare(
-            "SELECT destination_id, destination_name, category, subcategory, description, image
+            "SELECT destination_id, destination_name, category, subcategory, description, summary, image
              FROM destination WHERE status = 'active' AND (destination_name LIKE ? OR description LIKE ? OR address LIKE ? OR category LIKE ? OR COALESCE(subcategory, '') LIKE ?)
              ORDER BY destination_name ASC LIMIT ?"
         );
@@ -97,12 +97,12 @@ if (!function_exists('kt_search_all')) {
                 'category'  => $row['category'],
                 'image'     => kt_search_image_src($row['category'], $row['image']),
                 'link'      => kt_search_link('destination', $row['category'], (int) $row['destination_id']),
-                'snippet'   => mb_substr((string) $row['description'], 0, 110),
+                'snippet'   => mb_strimwidth((string) ($row['summary'] ?: $row['description']), 0, 110, '…'),
             ];
         }
         $stmt->close();
         $stmt = $conn->prepare(
-            "SELECT product_id, product_name, category, description, image
+            "SELECT product_id, product_name, category, description, summary, image
              FROM products WHERE status = 'active' AND (product_name LIKE ? OR description LIKE ? OR category LIKE ?)
              ORDER BY product_name ASC LIMIT ?"
         );
@@ -117,12 +117,12 @@ if (!function_exists('kt_search_all')) {
                 'category'  => 'product',
                 'image'     => kt_search_image_src('product', $row['image']),
                 'link'      => kt_search_link('product', '', (int) $row['product_id']),
-                'snippet'   => mb_substr((string) $row['description'], 0, 110),
+                'snippet'   => mb_strimwidth((string) ($row['summary'] ?: $row['description']), 0, 110, '…'),
             ];
         }
         $stmt->close();
         $stmt = $conn->prepare(
-            "SELECT restaurant_id, restaurant_name, category, description, image
+            "SELECT restaurant_id, restaurant_name, category, description, summary, image
              FROM restaurants WHERE status = 'active' AND (restaurant_name LIKE ? OR description LIKE ? OR category LIKE ?)
              ORDER BY restaurant_name ASC LIMIT ?"
         );
@@ -137,12 +137,12 @@ if (!function_exists('kt_search_all')) {
                 'category'  => 'restaurant',
                 'image'     => kt_search_image_src('restaurant', $row['image']),
                 'link'      => kt_search_link('restaurant', '', (int) $row['restaurant_id']),
-                'snippet'   => mb_substr((string) $row['description'], 0, 110),
+                'snippet'   => mb_strimwidth((string) ($row['summary'] ?: $row['description']), 0, 110, '…'),
             ];
         }
         $stmt->close();
         $stmt = $conn->prepare(
-            "SELECT fiesta_id, fiesta_name, type, description, image
+            "SELECT fiesta_id, fiesta_name, type, description, summary, image
              FROM fiestas WHERE status = 'active' AND (fiesta_name LIKE ? OR description LIKE ? OR location LIKE ?)
              ORDER BY fiesta_name ASC LIMIT ?"
         );
@@ -157,12 +157,12 @@ if (!function_exists('kt_search_all')) {
                 'category'  => 'fiesta',
                 'image'     => kt_search_image_src('fiesta', $row['image']),
                 'link'      => kt_search_link('fiesta', '', (int) $row['fiesta_id']),
-                'snippet'   => mb_substr((string) $row['description'], 0, 110),
+                'snippet'   => mb_strimwidth((string) ($row['summary'] ?: $row['description']), 0, 110, '…'),
             ];
         }
         $stmt->close();
         $stmt = $conn->prepare(
-            "SELECT person_id, fullname, title, achievement, description, image
+            "SELECT person_id, fullname, title, achievement, description, summary, image
              FROM people WHERE status = 'active' AND (fullname LIKE ? OR title LIKE ? OR achievement LIKE ? OR description LIKE ?)
              ORDER BY fullname ASC LIMIT ?"
         );
@@ -177,7 +177,7 @@ if (!function_exists('kt_search_all')) {
                 'category'  => 'person',
                 'image'     => kt_search_image_src('person', $row['image']),
                 'link'      => kt_search_link('person', '', (int) $row['person_id']),
-                'snippet'   => mb_substr((string) ($row['achievement'] ?: $row['description']), 0, 110),
+                'snippet'   => mb_strimwidth((string) ($row['summary'] ?: $row['achievement'] ?: $row['description']), 0, 110, '…'),
             ];
         }
         $stmt->close();

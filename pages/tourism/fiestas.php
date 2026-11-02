@@ -435,7 +435,7 @@ if (isset($_GET['ajax_calendar'])) {
                         <div class="p-card-body">
                             <?php if (!empty($item['celebration_date'])): ?><p class="p-card-category"><?= htmlspecialchars(date('F j, Y', strtotime($item['celebration_date']))) ?></p><?php endif; ?>
                             <h3 class="p-card-title"><?= htmlspecialchars($item['fiesta_name']) ?></h3>
-                            <p class="p-card-desc"><?= htmlspecialchars($item['description'] ?? '') ?></p>
+                            <p class="p-card-desc"><?= htmlspecialchars($item['summary'] ?: mb_strimwidth((string) ($item['description'] ?? ''), 0, 160, '…')) ?></p>
                             <div class="p-card-actions">
                                 <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= $fid ?>)">View Details</button>
                                 <button type="button" class="p-btn p-btn-outline" onclick="event.stopPropagation(); openNavigate(<?= $fid ?>)">Navigate</button>

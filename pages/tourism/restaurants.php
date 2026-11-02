@@ -17,7 +17,7 @@ $userId     = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
 $categoryChoices = ['Restaurant', 'Karinderya', 'Cafe', 'Fast Food', 'Bulalo & Lomi House', 'Bakery', 'Milk Tea & Beverage Shop', 'Dessert Shop'];
 $q        = trim($_GET['q'] ?? '');
 $category = trim($_GET['category'] ?? '');
-$sql  = "SELECT restaurant_id, restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, image, google_map
+$sql  = "SELECT restaurant_id, restaurant_name, category, description, summary, address, latitude, longitude, contact_number, opening_hours, image, google_map
          FROM restaurants WHERE status = 'active' ORDER BY restaurant_name ASC";
 $rows = [];
 $res  = $conn->query($sql);
@@ -44,6 +44,7 @@ foreach ($rows as $r) {
         'category'  => $r['category'],
         'tag'       => $r['category'],
         'desc'      => $r['description'],
+        'summary'   => $r['summary'] ?: mb_strimwidth((string) ($r['description'] ?? ''), 0, 160, '…'),
         'address'   => $r['address'],
         'lat'       => $r['latitude'],
         'lng'       => $r['longitude'],
@@ -193,7 +194,7 @@ foreach ($rows as $r) {
                     <?php if (!empty($item['address'])): ?>
                         <p class="p-card-location">📍 <?= htmlspecialchars($item['address']) ?></p>
                     <?php endif; ?>
-                    <p class="p-card-desc"><?= htmlspecialchars($item['desc']) ?></p>
+                    <p class="p-card-desc"><?= htmlspecialchars($item['summary']) ?></p>
                     <?php if (!empty($item['hours'])): ?>
                         <p class="p-card-location">🕒 <?= htmlspecialchars($item['hours']) ?></p>
                     <?php endif; ?>

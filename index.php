@@ -80,40 +80,40 @@ if ($adminHero1) $heroPhotos[0] = ['name' => 'Malvar, Batangas', 'image' => $adm
 if ($adminHero2) $heroPhotos[1] = ['name' => 'Malvar, Batangas', 'image' => $adminHero2];
 $heroBgPhoto = sitecontent_get_photo($conn, 'home_hero_bg');
 $forYouPreview = [];
-if ($result = $conn->query("SELECT destination_name AS name, category, image, description FROM destination WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY destination_id ASC LIMIT 1")) {
+if ($result = $conn->query("SELECT destination_name AS name, category, image, description, summary FROM destination WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY destination_id ASC LIMIT 1")) {
     if ($row = $result->fetch_assoc()) {
         $forYouPreview[] = [
             'itemType'   => 'destination',
             'badge'      => ucfirst($row['category']),
             'badgeColor' => $homeBadgeColors[$row['category']] ?? '#5f7d4c',
             'name'       => $row['name'],
-            'desc'       => $row['description'],
+            'desc'       => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 125, '…'),
             'image'      => home_img($row['category'], $row['image'], $homeImageSubfolder),
             'link'       => 'pages/tourism/' . $row['category'] . '.php',
         ];
     }
 }
-if ($result = $conn->query("SELECT fiesta_name AS name, image, description FROM fiestas WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY fiesta_id ASC LIMIT 1")) {
+if ($result = $conn->query("SELECT fiesta_name AS name, image, description, summary FROM fiestas WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY fiesta_id ASC LIMIT 1")) {
     if ($row = $result->fetch_assoc()) {
         $forYouPreview[] = [
             'itemType'   => 'fiesta',
             'badge'      => 'Fiesta',
             'badgeColor' => $homeBadgeColors['fiesta'],
             'name'       => $row['name'],
-            'desc'       => $row['description'],
+            'desc'       => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 125, '…'),
             'image'      => home_img('fiesta', $row['image'], $homeImageSubfolder),
             'link'       => 'pages/tourism/fiestas.php',
         ];
     }
 }
-if ($result = $conn->query("SELECT restaurant_name AS name, image, description FROM restaurants WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY restaurant_id ASC LIMIT 1")) {
+if ($result = $conn->query("SELECT restaurant_name AS name, image, description, summary FROM restaurants WHERE status = 'active' AND image IS NOT NULL AND image <> '' ORDER BY restaurant_id ASC LIMIT 1")) {
     if ($row = $result->fetch_assoc()) {
         $forYouPreview[] = [
             'itemType'   => 'restaurant',
             'badge'      => 'Food',
             'badgeColor' => $homeBadgeColors['restaurant'],
             'name'       => $row['name'],
-            'desc'       => $row['description'],
+            'desc'       => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 125, '…'),
             'image'      => home_img('restaurant', $row['image'], $homeImageSubfolder),
             'link'       => 'pages/tourism/restaurants.php',
         ];

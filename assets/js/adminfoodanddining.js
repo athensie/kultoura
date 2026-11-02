@@ -228,6 +228,7 @@ function openEditListing(id, type) {
   document.getElementById('editTypeInput').value = l.type;
   document.getElementById('editNameInput').value = l.name || '';
   document.getElementById('editDescInput').value = l.desc || '';
+  document.getElementById('editSummaryInput').value = l.summary || '';
   document.getElementById('editImageInput').value = l.image || '';
   updateCategoryOptions('editTypeInput', 'editCategoryInput', l.category);
   toggleTypeFields('edit');

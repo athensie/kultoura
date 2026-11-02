@@ -85,7 +85,7 @@ $filterGroup = [
     'person'        => 'person',
 ];
 $places = [];
-if ($result = $conn->query("SELECT product_id, product_name, category, description, image, location, latitude, longitude, created_at FROM products WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT product_id, product_name, category, description, summary, image, location, latitude, longitude, created_at FROM products WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['product_id'];
         $places[] = [
@@ -98,6 +98,7 @@ if ($result = $conn->query("SELECT product_id, product_name, category, descripti
             'lat'        => ($row['latitude'] !== null && $row['latitude'] !== '') ? (float) $row['latitude'] : null,
             'lng'        => ($row['longitude'] !== null && $row['longitude'] !== '') ? (float) $row['longitude'] : null,
             'desc'       => $row['description'] ?? '',
+            'summary'    => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 160, '…'),
             'location'   => $row['location'] ?? '',
             'createdAt'  => strtotime($row['created_at']),
             'link'       => 'tourism/products.php',
@@ -107,7 +108,7 @@ if ($result = $conn->query("SELECT product_id, product_name, category, descripti
         ];
     }
 }
-if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, description, image, address, latitude, longitude, created_at FROM restaurants WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, description, summary, image, address, latitude, longitude, created_at FROM restaurants WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['restaurant_id'];
         $places[] = [
@@ -120,6 +121,7 @@ if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, des
             'lat'        => ($row['latitude'] !== null && $row['latitude'] !== '') ? (float) $row['latitude'] : null,
             'lng'        => ($row['longitude'] !== null && $row['longitude'] !== '') ? (float) $row['longitude'] : null,
             'desc'       => $row['description'] ?? '',
+            'summary'    => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 160, '…'),
             'location'   => $row['address'] ?? '',
             'createdAt'  => strtotime($row['created_at']),
             'link'       => 'tourism/restaurants.php',
@@ -138,7 +140,7 @@ $destinationMeta = [
     'service'       => ['link' => 'tourism/services.php'],
     'church'        => ['link' => 'tourism/churches.php'],
 ];
-if ($result = $conn->query("SELECT destination_id, destination_name, description, image, category, address, latitude, longitude, created_at FROM destination WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT destination_id, destination_name, description, summary, image, category, address, latitude, longitude, created_at FROM destination WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $cat = $row['category'];
         if (!isset($destinationMeta[$cat])) continue;
@@ -153,6 +155,7 @@ if ($result = $conn->query("SELECT destination_id, destination_name, description
             'lat'        => ($row['latitude'] !== null && $row['latitude'] !== '') ? (float) $row['latitude'] : null,
             'lng'        => ($row['longitude'] !== null && $row['longitude'] !== '') ? (float) $row['longitude'] : null,
             'desc'       => $row['description'] ?? '',
+            'summary'    => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 160, '…'),
             'location'   => $row['address'] ?? '',
             'createdAt'  => strtotime($row['created_at']),
             'link'       => $destinationMeta[$cat]['link'],
@@ -162,7 +165,7 @@ if ($result = $conn->query("SELECT destination_id, destination_name, description
         ];
     }
 }
-if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, image, location, latitude, longitude, created_at FROM fiestas WHERE status = 'active' AND celebration_date >= CURDATE()")) {
+if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, summary, image, location, latitude, longitude, created_at FROM fiestas WHERE status = 'active' AND celebration_date >= CURDATE()")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['fiesta_id'];
         $places[] = [
@@ -175,6 +178,7 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, im
             'lat'        => ($row['latitude'] !== null && $row['latitude'] !== '') ? (float) $row['latitude'] : null,
             'lng'        => ($row['longitude'] !== null && $row['longitude'] !== '') ? (float) $row['longitude'] : null,
             'desc'       => $row['description'] ?? '',
+            'summary'    => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 160, '…'),
             'location'   => $row['location'] ?? '',
             'createdAt'  => strtotime($row['created_at']),
             'link'       => 'tourism/fiestas.php',
@@ -184,7 +188,7 @@ if ($result = $conn->query("SELECT fiesta_id, fiesta_name, type, description, im
         ];
     }
 }
-if ($result = $conn->query("SELECT person_id, fullname, description, image, title, created_at FROM people WHERE status = 'active'")) {
+if ($result = $conn->query("SELECT person_id, fullname, description, summary, image, title, created_at FROM people WHERE status = 'active'")) {
     while ($row = $result->fetch_assoc()) {
         $itemId = (int) $row['person_id'];
         $places[] = [
@@ -197,6 +201,7 @@ if ($result = $conn->query("SELECT person_id, fullname, description, image, titl
             'lat'        => null,
             'lng'        => null,
             'desc'       => $row['description'] ?? '',
+            'summary'    => $row['summary'] ?: mb_strimwidth((string) ($row['description'] ?? ''), 0, 160, '…'),
             'location'   => $row['title'] ?? '',
             'createdAt'  => strtotime($row['created_at']),
             'link'       => 'tourism/people.php',
@@ -616,8 +621,8 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                         </div>
                         <div class="fy-gcard-body">
                             <h3 class="fy-card-name"><?php echo htmlspecialchars($p['name']); ?></h3>
-                            <?php if (!empty($p['desc'])): ?>
-                                <p class="fy-card-desc"><?php echo htmlspecialchars($p['desc']); ?></p>
+                            <?php if (!empty($p['summary'])): ?>
+                                <p class="fy-card-desc"><?php echo htmlspecialchars($p['summary']); ?></p>
                             <?php endif; ?>
                             <p class="fy-gcard-meta">Malvar, Batangas<?php echo !empty($p['location']) ? ' · ' . htmlspecialchars($p['location']) : ''; ?></p>
                         </div>
@@ -626,8 +631,10 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                         <button type="button" class="fy-action-btn fy-fav-btn<?php echo $p['favorited'] ? ' is-favorited' : ''; ?>"
                                 data-item-type="<?php echo htmlspecialchars($p['itemType']); ?>"
                                 data-item-id="<?php echo (int) $p['itemId']; ?>"
+                                aria-label="<?php echo $p['favorited'] ? 'Remove from favorites' : 'Save to favorites'; ?>"
+                                title="<?php echo $p['favorited'] ? 'Remove from favorites' : 'Save to favorites'; ?>"
                                 onclick="fyToggleFavorite(this)">
-                            <span class="fy-action-icon"><?php echo $p['favorited'] ? '&#9829;' : '&#9825;'; ?></span> Save
+                                <span class="fy-action-icon" aria-label="Save to favorites"><?php echo $p['favorited'] ? '&#9829;' : '&#9825;'; ?></span>
                         </button>
                         <a class="fy-action-btn fy-view-btn" href="<?php echo htmlspecialchars($p['link']); ?>"
                            data-item-type="<?php echo htmlspecialchars($p['itemType']); ?>"

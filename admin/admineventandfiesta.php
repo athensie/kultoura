@@ -84,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'latitude'         => $_POST['latitude'] ?? '',
                 'longitude'        => $_POST['longitude'] ?? '',
                 'description'      => trim($_POST['desc'] ?? ''),
+                'summary'          => trim($_POST['summary'] ?? ''),
                 'image'            => $image ?: null,
             ];
             if ($name === '') {
@@ -361,6 +362,10 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
             </div>
             <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="desc" placeholder="Describe this event…"></textarea>
             </div>
@@ -414,6 +419,10 @@ $upcomingCount = count(array_filter($events, function ($e) {
                 <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktEventMaps.edit && ktEventMaps.edit.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
                 <div id="editMapCanvas" class="kt-map-canvas"></div>
                 <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" id="editSummaryInput" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>

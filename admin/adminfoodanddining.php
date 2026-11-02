@@ -110,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'product_name' => $name,
             'category'     => $category,
             'description'  => trim($_POST['desc'] ?? ''),
+            'summary'      => trim($_POST['summary'] ?? ''),
             'price'        => $_POST['price'] ?? '',
             'location'     => trim($_POST['location'] ?? ''),
             'latitude'     => $_POST['latitude'] ?? '',
@@ -122,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'restaurant_name' => $name,
             'category'        => $category,
             'description'     => trim($_POST['desc'] ?? ''),
+            'summary'         => trim($_POST['summary'] ?? ''),
             'address'         => trim($_POST['address'] ?? ''),
             'latitude'        => $_POST['latitude'] ?? '',
             'longitude'       => $_POST['longitude'] ?? '',
@@ -144,13 +146,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 }
 $foodListings = [];
 $sql = "
-    SELECT product_id AS id, product_name AS name, category, description AS `desc`,
+    SELECT product_id AS id, product_name AS name, category, description AS `desc`, summary,
            price, location AS address, latitude, longitude, NULL AS contact_number, NULL AS opening_hours,
            NULL AS google_map, image, created_at, 'product' AS type
     FROM products
     WHERE status != 'archived'
     UNION ALL
-    SELECT restaurant_id AS id, restaurant_name AS name, category, description AS `desc`,
+    SELECT restaurant_id AS id, restaurant_name AS name, category, description AS `desc`, summary,
            NULL AS price, address, latitude, longitude, contact_number, opening_hours,
            google_map, image, created_at, 'restaurant' AS type
     FROM restaurants
@@ -455,6 +457,10 @@ sort($allCategories);
                 <div class="kt-map-status" id="addMapStatus">Search an address, or click/drag the pin to set the exact spot. This is what powers the "Navigate" button on the site.</div>
             </div>
             <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="desc" placeholder="Describe this listing…"></textarea>
             </div>
@@ -522,6 +528,10 @@ sort($allCategories);
                 <button type="button" class="btn-ghost" style="margin-top:8px;padding:8px 14px;font-size:.78rem;" onclick="ktFoodMaps.edit && ktFoodMaps.edit.locate()"><i data-lucide="locate-fixed" class="lucide" style="width:.85rem;height:.85rem;"></i> Use My Location</button>
                 <div id="editMapCanvas" class="kt-map-canvas"></div>
                 <div class="kt-map-status" id="editMapStatus">Search an address, or click/drag the pin to set the exact spot.</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" id="editSummaryInput" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>

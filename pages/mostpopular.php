@@ -109,6 +109,7 @@ foreach ($popularRows as $r) {
         'id'        => $id,
         'name'      => $item[$map['nameCol']],
         'desc'      => $item['description'] ?? '',
+        'summary'   => $item['summary'] ?: mb_strimwidth((string) ($item['description'] ?? ''), 0, 160, '…'),
         'image'     => $imageSrc,
         'views'     => (int) $r['views'],
         'viewPage'  => 'tourism/' . $viewPage,
@@ -276,8 +277,8 @@ foreach ($popularItems as $p) {
                                     <span class="m-fav-count"><?php echo (int) $p['views']; ?> views</span>
                                 </div>
                                 <h3 class="m-card-title"><?php echo htmlspecialchars($p['name']); ?></h3>
-                                <?php if (!empty($p['desc'])): ?>
-                                    <p class="m-card-desc"><?php echo htmlspecialchars(mb_strimwidth($p['desc'], 0, 120, '…')); ?></p>
+                                <?php if (!empty($p['summary'])): ?>
+                                    <p class="m-card-desc"><?php echo htmlspecialchars($p['summary']); ?></p>
                                 <?php endif; ?>
                                 <a href="<?php echo htmlspecialchars($p['viewPage']); ?>" class="m-card-link">View →</a>
                             </div>

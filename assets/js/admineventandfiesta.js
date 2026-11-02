@@ -48,6 +48,7 @@ function openEditEvent(id) {
   if (typeSel) [...typeSel.options].forEach(o => { o.selected = o.value === e.type; });
   document.getElementById('editDateInput').value = e.celebration_date || '';
   document.getElementById('editDescInput').value = e.description || '';
+  document.getElementById('editSummaryInput').value = e.summary || '';
   document.getElementById('editExistingImage').value = e.image || '';
   document.getElementById('editLocationInput').value = e.location || '';
   const hasCoords = e.latitude !== null && e.latitude !== undefined && e.latitude !== '' &&

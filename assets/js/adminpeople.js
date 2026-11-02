@@ -38,6 +38,7 @@ function openEditPerson(id) {
   document.getElementById('editTitleInput').value = p.title || '';
   document.getElementById('editAchievementInput').value = p.achievement || '';
   document.getElementById('editDescInput').value = p.description || '';
+  document.getElementById('editSummaryInput').value = p.summary || '';
   document.getElementById('editExistingImage').value = p.image || '';
   openModal('editPersonModal');
 }

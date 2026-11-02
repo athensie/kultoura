@@ -34,6 +34,14 @@ if (!function_exists('kt_requests_ensure_schema')) {
         kt_requests_ensure_status_column($conn, 'fiestas');
         kt_requests_ensure_status_column($conn, 'people');
         kt_requests_ensure_status_column($conn, 'about_sections');
+        foreach (['destination', 'products', 'restaurants', 'fiestas', 'people'] as $summaryTable) {
+            $res = $conn->query("SHOW COLUMNS FROM `$summaryTable` LIKE 'summary'");
+            if (!$res || $res->num_rows === 0) {
+                $conn->query("ALTER TABLE `$summaryTable` ADD COLUMN summary VARCHAR(300) NULL AFTER description");
+            }
+            if ($res instanceof mysqli_result) $res->free();
+            $conn->query("UPDATE `$summaryTable` SET summary = LEFT(TRIM(description), 180) WHERE (summary IS NULL OR summary = '') AND description IS NOT NULL AND description != ''");
+        }
         try {
             $conn->query("ALTER TABLE users ADD COLUMN status ENUM('Active','Inactive') NOT NULL DEFAULT 'Active'");
         } catch (mysqli_sql_exception $e) {
@@ -414,6 +422,7 @@ if (!function_exists('kt_apply_destination')) {
     function kt_apply_destination(mysqli $conn, string $action, ?int $id, array $d): string
     {
         $name = (string) ($d['destination_name'] ?? '');
+        $summary = (string) ($d['summary'] ?? '');
         if ($action === 'archive') {
             $stmt = $conn->prepare("UPDATE destination SET status = 'archived' WHERE destination_id = ?");
             $stmt->bind_param('i', $id);
@@ -427,24 +436,24 @@ if (!function_exists('kt_apply_destination')) {
         $image = $d['image'] ?? null;
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO destination (destination_name, address, category, subcategory, status, description, image, google_maps, schedule_month, schedule_text)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO destination (destination_name, address, category, subcategory, status, description, summary, image, google_maps, schedule_month, schedule_text)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->bind_param('ssssssssss', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $image, $d['google_maps'], $scheduleMonth, $scheduleText);
+            $stmt->bind_param('sssssssssss', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $summary, $image, $d['google_maps'], $scheduleMonth, $scheduleText);
             $stmt->execute();
             $stmt->close();
             return $name;
         }
         if ($image !== null) {
             $stmt = $conn->prepare(
-                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, image=?, google_maps=?, schedule_month=?, schedule_text=? WHERE destination_id=?"
+                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, summary=?, image=?, google_maps=?, schedule_month=?, schedule_text=? WHERE destination_id=?"
             );
-            $stmt->bind_param('ssssssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $image, $d['google_maps'], $scheduleMonth, $scheduleText, $id);
+            $stmt->bind_param('sssssssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $summary, $image, $d['google_maps'], $scheduleMonth, $scheduleText, $id);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, google_maps=?, schedule_month=?, schedule_text=? WHERE destination_id=?"
+                "UPDATE destination SET destination_name=?, address=?, category=?, subcategory=?, status=?, description=?, summary=?, google_maps=?, schedule_month=?, schedule_text=? WHERE destination_id=?"
             );
-            $stmt->bind_param('sssssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $d['google_maps'], $scheduleMonth, $scheduleText, $id);
+            $stmt->bind_param('ssssssssssi', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $summary, $d['google_maps'], $scheduleMonth, $scheduleText, $id);
         }
         $stmt->execute();
         $stmt->close();
@@ -455,6 +464,7 @@ if (!function_exists('kt_apply_product')) {
     function kt_apply_product(mysqli $conn, string $action, ?int $id, array $d): string
     {
         $name = (string) ($d['product_name'] ?? '');
+        $summary = (string) ($d['summary'] ?? '');
         if ($action === 'archive') {
             $stmt = $conn->prepare("UPDATE products SET status = 'archived' WHERE product_id = ?");
             $stmt->bind_param('i', $id);
@@ -468,15 +478,15 @@ if (!function_exists('kt_apply_product')) {
         $image = $d['image'] ?? '';
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO products (product_name, category, description, price, location, latitude, longitude, image)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO products (product_name, category, description, summary, price, location, latitude, longitude, image)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->bind_param('sssdsdds', $name, $d['category'], $d['description'], $price, $d['location'], $lat, $lng, $image);
+            $stmt->bind_param('ssssdsdds', $name, $d['category'], $d['description'], $summary, $price, $d['location'], $lat, $lng, $image);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE products SET product_name=?, category=?, description=?, price=?, location=?, latitude=?, longitude=?, image=? WHERE product_id=?"
+                "UPDATE products SET product_name=?, category=?, description=?, summary=?, price=?, location=?, latitude=?, longitude=?, image=? WHERE product_id=?"
             );
-            $stmt->bind_param('sssdsddsi', $name, $d['category'], $d['description'], $price, $d['location'], $lat, $lng, $image, $id);
+            $stmt->bind_param('ssssdsddsi', $name, $d['category'], $d['description'], $summary, $price, $d['location'], $lat, $lng, $image, $id);
         }
         $stmt->execute();
         $stmt->close();
@@ -487,6 +497,7 @@ if (!function_exists('kt_apply_restaurant')) {
     function kt_apply_restaurant(mysqli $conn, string $action, ?int $id, array $d): string
     {
         $name = (string) ($d['restaurant_name'] ?? '');
+        $summary = (string) ($d['summary'] ?? '');
         if ($action === 'archive') {
             $stmt = $conn->prepare("UPDATE restaurants SET status = 'archived' WHERE restaurant_id = ?");
             $stmt->bind_param('i', $id);
@@ -499,15 +510,15 @@ if (!function_exists('kt_apply_restaurant')) {
         $image = $d['image'] ?? '';
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO restaurants (restaurant_name, category, description, address, latitude, longitude, contact_number, opening_hours, google_map, image)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO restaurants (restaurant_name, category, description, summary, address, latitude, longitude, contact_number, opening_hours, google_map, image)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->bind_param('ssssddssss', $name, $d['category'], $d['description'], $d['address'], $lat, $lng, $d['contact_number'], $d['opening_hours'], $d['google_map'], $image);
+            $stmt->bind_param('sssssddssss', $name, $d['category'], $d['description'], $summary, $d['address'], $lat, $lng, $d['contact_number'], $d['opening_hours'], $d['google_map'], $image);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE restaurants SET restaurant_name=?, category=?, description=?, address=?, latitude=?, longitude=?, contact_number=?, opening_hours=?, google_map=?, image=? WHERE restaurant_id=?"
+                "UPDATE restaurants SET restaurant_name=?, category=?, description=?, summary=?, address=?, latitude=?, longitude=?, contact_number=?, opening_hours=?, google_map=?, image=? WHERE restaurant_id=?"
             );
-            $stmt->bind_param('ssssddssssi', $name, $d['category'], $d['description'], $d['address'], $lat, $lng, $d['contact_number'], $d['opening_hours'], $d['google_map'], $image, $id);
+            $stmt->bind_param('sssssddssssi', $name, $d['category'], $d['description'], $summary, $d['address'], $lat, $lng, $d['contact_number'], $d['opening_hours'], $d['google_map'], $image, $id);
         }
         $stmt->execute();
         $stmt->close();
@@ -518,6 +529,7 @@ if (!function_exists('kt_apply_fiesta')) {
     function kt_apply_fiesta(mysqli $conn, string $action, ?int $id, array $d): string
     {
         $name = (string) ($d['fiesta_name'] ?? '');
+        $summary = (string) ($d['summary'] ?? '');
         if ($action === 'archive') {
             $stmt = $conn->prepare("UPDATE fiestas SET status = 'archived' WHERE fiesta_id = ?");
             $stmt->bind_param('i', $id);
@@ -530,15 +542,15 @@ if (!function_exists('kt_apply_fiesta')) {
         $image = $d['image'] ?? null;
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO fiestas (fiesta_name, type, celebration_date, location, latitude, longitude, description, image, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+                "INSERT INTO fiestas (fiesta_name, type, celebration_date, location, latitude, longitude, description, summary, image, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
             );
-            $stmt->bind_param('ssssddss', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description'], $image);
+            $stmt->bind_param('ssssddsss', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description'], $summary, $image);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE fiestas SET fiesta_name=?, type=?, celebration_date=?, location=?, latitude=?, longitude=?, description=?, image=? WHERE fiesta_id=?"
+                "UPDATE fiestas SET fiesta_name=?, type=?, celebration_date=?, location=?, latitude=?, longitude=?, description=?, summary=?, image=? WHERE fiesta_id=?"
             );
-            $stmt->bind_param('ssssddssi', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description'], $image, $id);
+            $stmt->bind_param('ssssddsssi', $name, $d['type'], $d['celebration_date'], $d['location'], $lat, $lng, $d['description'], $summary, $image, $id);
         }
         $stmt->execute();
         $stmt->close();
@@ -549,6 +561,7 @@ if (!function_exists('kt_apply_person')) {
     function kt_apply_person(mysqli $conn, string $action, ?int $id, array $d): string
     {
         $name = (string) ($d['fullname'] ?? '');
+        $summary = (string) ($d['summary'] ?? '');
         if ($action === 'archive') {
             $stmt = $conn->prepare("UPDATE people SET status = 'archived' WHERE person_id = ?");
             $stmt->bind_param('i', $id);
@@ -559,14 +572,14 @@ if (!function_exists('kt_apply_person')) {
         $image = $d['image'] ?? null;
         if ($action === 'create') {
             $stmt = $conn->prepare(
-                "INSERT INTO people (fullname, title, achievement, description, image, created_at) VALUES (?, ?, ?, ?, ?, NOW())"
+                "INSERT INTO people (fullname, title, achievement, description, summary, image, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())"
             );
-            $stmt->bind_param('sssss', $name, $d['title'], $d['achievement'], $d['description'], $image);
+            $stmt->bind_param('ssssss', $name, $d['title'], $d['achievement'], $d['description'], $summary, $image);
         } else {
             $stmt = $conn->prepare(
-                "UPDATE people SET fullname=?, title=?, achievement=?, description=?, image=? WHERE person_id=?"
+                "UPDATE people SET fullname=?, title=?, achievement=?, description=?, summary=?, image=? WHERE person_id=?"
             );
-            $stmt->bind_param('sssssi', $name, $d['title'], $d['achievement'], $d['description'], $image, $id);
+            $stmt->bind_param('ssssssi', $name, $d['title'], $d['achievement'], $d['description'], $summary, $image, $id);
         }
         $stmt->execute();
         $stmt->close();

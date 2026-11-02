@@ -81,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'title'       => trim($_POST['title'] ?? ''),
                 'achievement' => trim($_POST['achievement'] ?? ''),
                 'description' => trim($_POST['desc'] ?? ''),
+                'summary'     => trim($_POST['summary'] ?? ''),
                 'image'       => $image ?: null,
             ];
             if ($fullname === '') {
@@ -333,6 +334,10 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <p class="image-current-hint">One achievement per line.</p>
             </div>
             <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" name="desc" placeholder="Tell their story…"></textarea>
             </div>
@@ -370,6 +375,10 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                 <label class="form-label">Achievements</label>
                 <textarea class="form-textarea" name="achievement" id="editAchievementInput" rows="3" placeholder="One per line"></textarea>
                 <p class="image-current-hint">One achievement per line.</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Summary (shown on cards)</label>
+                <textarea class="form-textarea" name="summary" id="editSummaryInput" maxlength="300" required placeholder="A short overview visitors see before opening details"></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">Description</label>

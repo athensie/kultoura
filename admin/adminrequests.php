@@ -31,7 +31,7 @@ $fieldLabels = [
     'destination_name' => 'Name', 'restaurant_name' => 'Name', 'product_name' => 'Name',
     'fiesta_name' => 'Name', 'fullname' => 'Full Name', 'title' => 'Title', 'body' => 'Message',
     'address' => 'Address', 'location' => 'Location', 'category' => 'Category',
-    'subcategory' => 'Subcategory', 'status' => 'Status', 'description' => 'Description',
+    'subcategory' => 'Subcategory', 'status' => 'Status', 'description' => 'Description', 'summary' => 'Summary',
     'image' => 'Image', 'google_maps' => 'Google Maps Link', 'google_map' => 'Google Maps Link',
     'price' => 'Price', 'latitude' => 'Latitude', 'longitude' => 'Longitude',
     'contact_number' => 'Contact Number', 'opening_hours' => 'Opening Hours',
