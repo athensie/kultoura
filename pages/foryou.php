@@ -552,7 +552,6 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
-            <a href="#fy-recommended" class="fy-hero-cta">Explore Now →</a>
         </div>
         <?php if ($heroImage): ?>
         <div class="fy-hero-media">
@@ -576,10 +575,10 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <?php endforeach; ?>
             </nav>
             <div class="fy-near-widget">
+                <p class="fy-sidebar-label">Near You</p>
                 <p class="fy-near-widget-sub">Top spots near your current location</p>
                 <div id="fy-near-widget-list" class="fy-near-widget-list"></div>
                 <p id="fy-near-widget-status" class="fy-near-widget-status">Enable location to see this.</p>
-                <a href="#fy-nearby" class="fy-near-widget-link">View all nearby →</a>
             </div>
         </aside>
         <div class="fy-content-col">
@@ -648,6 +647,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
     </section>
     <section class="fy-section fy-nearby" id="fy-nearby">
         <div class="fy-section-head">
+            <h2>Near You</h2>
             <p>Turn on location to see what's closest to where you are right now.</p>
         </div>
         <div id="fy-location-gate" class="fy-location-gate">
