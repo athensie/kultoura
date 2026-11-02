@@ -120,37 +120,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         :root{--gp-green:#315c2b;--gp-deep:#10291b;--gp-cream:#faf7f2;--gp-ink:#171916}
         body{min-height:100vh;margin:0;background:radial-gradient(ellipse at 50% 110%,#244b31 0,#112b1d 55%,#0c2016 100%);font-family:'Helvetica Neue',Arial,sans-serif;color:var(--gp-ink)}
-        .google-password-overlay{min-height:100vh;box-sizing:border-box;display:grid;place-items:center;padding:36px 22px}
-        .google-password-card{position:relative;isolation:isolate;overflow:hidden;width:min(100%,1035px);box-sizing:border-box;padding:54px 72px 108px;border:1px solid rgba(49,92,43,.12);border-radius:34px;background:var(--gp-cream);box-shadow:0 24px 80px rgba(0,0,0,.3)}
+        .google-password-overlay{min-height:100vh;box-sizing:border-box;display:grid;place-items:center;padding:22px 16px}
+        .google-password-card{position:relative;isolation:isolate;overflow-y:auto;width:min(100%,500px);max-height:calc(100vh - 44px);box-sizing:border-box;padding:32px 34px 76px;border:1px solid rgba(49,92,43,.12);border-radius:22px;background:var(--gp-cream);box-shadow:0 24px 80px rgba(0,0,0,.3)}
         .google-password-card>*{position:relative;z-index:1}
         .google-password-card:after{content:'';position:absolute;z-index:0;left:0;right:0;bottom:0;height:86px;background:linear-gradient(166deg,transparent 0 28%,#dce6c9 28.5% 49%,#b5ce9b 49.5% 70%,#648c4b 70.5% 100%);clip-path:polygon(0 24%,12% 35%,30% 76%,49% 86%,68% 67%,83% 62%,100% 0,100% 100%,0 100%)}
-        .google-password-card h1{margin:0 0 24px;color:#10120f;font-family:Georgia,'Times New Roman',serif;font-size:clamp(2rem,4.5vw,3.2rem);line-height:1.08;letter-spacing:-.035em}
+        .google-password-card h1{margin:0 0 18px;color:#10120f;font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.65rem,4vw,2.1rem);line-height:1.08;letter-spacing:-.035em}
         .google-password-card p{line-height:1.48;color:#30362e}
-        .google-password-note{display:flex;align-items:flex-start;gap:18px;margin:0 0 14px;padding:16px 20px;border-radius:20px;background:#edf0dd;font-size:1.04rem}
-        .google-password-note svg{width:30px;height:30px;flex:0 0 30px;color:#fff;background:var(--gp-green);border-radius:50%;padding:5px;box-sizing:border-box}
-        .google-password-username{margin:0 0 22px 4px;font-size:1.03rem}
+        .google-password-note{display:flex;align-items:flex-start;gap:12px;margin:0 0 12px;padding:12px 14px;border-radius:14px;background:#edf0dd;font-size:.88rem}
+        .google-password-note svg{width:25px;height:25px;flex:0 0 25px;color:#fff;background:var(--gp-green);border-radius:50%;padding:4px;box-sizing:border-box}
+        .google-password-username{margin:0 0 16px 3px;font-size:.9rem}
         .google-password-error{padding:11px 14px;border:1px solid #efc2bc;border-radius:10px;background:#fff0ed;color:#9d2922!important}
-        .google-password-form{display:flex;flex-direction:column;gap:16px}
+        .google-password-form{display:flex;flex-direction:column;gap:12px}
         .google-password-card .form-group{margin:0;gap:8px}
-        .google-password-card .form-group label{color:#2d4527;font-size:1.05rem;font-weight:750;letter-spacing:0}
+        .google-password-card .form-group label{color:#2d4527;font-size:.92rem;font-weight:750;letter-spacing:0}
         .google-password-field{position:relative}
-        .google-password-field input{width:100%;height:54px;box-sizing:border-box;padding:12px 52px 12px 48px;border:1.5px solid #929a92;border-radius:16px;background:#fffdfa;color:#20251f;font-size:1rem}
+        .google-password-field input{width:100%;height:48px;box-sizing:border-box;padding:10px 46px 10px 42px;border:1.5px solid #929a92;border-radius:13px;background:#fffdfa;color:#20251f;font-size:.95rem}
         .google-password-field input:focus{outline:3px solid rgba(75,119,59,.19);border-color:#527845}
-        .google-password-lock{position:absolute;left:17px;top:50%;width:19px;height:19px;transform:translateY(-50%);color:#647166;pointer-events:none}
+        .google-password-lock{position:absolute;left:14px;top:50%;width:17px;height:17px;transform:translateY(-50%);color:#647166;pointer-events:none}
         .google-password-toggle{position:absolute;right:10px;top:50%;display:grid;place-items:center;width:34px;height:34px;transform:translateY(-50%);border:0;border-radius:50%;background:transparent;color:#626a64;cursor:pointer}
         .google-password-toggle:hover{background:#e9ecdf;color:var(--gp-green)}.google-password-toggle svg{width:22px;height:22px}
-        .google-password-rule{display:flex;align-items:flex-start;gap:12px;margin:0;color:#30362e;font-size:.98rem}
-        .google-password-rule svg{width:29px;height:29px;flex:0 0 29px;color:var(--gp-green)}
-        .google-password-consents{display:flex;flex-direction:column;gap:13px;margin-top:4px;padding-top:17px;border-top:1px solid #d7d5cc}
-        .google-password-consent{display:flex;align-items:flex-start;gap:12px;color:#242822;font-size:.96rem;line-height:1.45;cursor:pointer}
+        .google-password-rule{display:flex;align-items:flex-start;gap:10px;margin:0;color:#30362e;font-size:.84rem}
+        .google-password-rule svg{width:25px;height:25px;flex:0 0 25px;color:var(--gp-green)}
+        .google-password-consents{display:flex;flex-direction:column;gap:10px;margin-top:3px;padding-top:13px;border-top:1px solid #d7d5cc}
+        .google-password-consent{display:flex;align-items:flex-start;gap:10px;color:#242822;font-size:.83rem;line-height:1.4;cursor:pointer}
         .google-password-consent input{width:19px;height:19px;flex:0 0 19px;margin:2px 0 0;accent-color:var(--gp-green)}
         .google-password-consent a,.google-password-consent button{padding:0;border:0;background:none;color:var(--gp-green);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
         .google-password-consent .optional{margin-left:5px;color:#777d75;font-style:italic}
-        .google-password-submit{width:100%;margin-top:4px;padding:17px!important;background:linear-gradient(105deg,#32642d,#467c35)!important;font-size:1rem!important;letter-spacing:.04em!important}
+        .google-password-submit{width:100%;margin-top:3px;padding:13px!important;background:linear-gradient(105deg,#32642d,#467c35)!important;font-size:.88rem!important;letter-spacing:.04em!important}
         .google-password-submit:hover{background:#2c5728!important}
         .gp-dialog{width:min(90vw,620px);max-height:75vh;overflow:auto;padding:30px;border:0;border-radius:18px;background:#fffdf9;color:#26312b;box-shadow:0 20px 70px rgba(0,0,0,.35)}
         .gp-dialog::backdrop{background:rgba(9,24,15,.68)}.gp-dialog h2{margin-top:0;font-family:Georgia,serif}.gp-dialog-close{float:right;padding:6px 11px;border:0;border-radius:50%;background:#edf0dd;font-size:1.2rem;cursor:pointer}
-        @media(max-width:640px){.google-password-overlay{padding:16px 12px}.google-password-card{padding:30px 23px 88px;border-radius:24px}.google-password-note{gap:12px;padding:14px;font-size:.94rem}.google-password-card h1{font-size:2.15rem}.google-password-consent{font-size:.9rem}}
+        @media(max-width:640px){.google-password-overlay{padding:12px}.google-password-card{max-height:calc(100vh - 24px);padding:26px 22px 68px;border-radius:19px}.google-password-card h1{font-size:1.75rem}.google-password-consent{font-size:.8rem}}
     </style>
 </head>
 <body>
