@@ -321,7 +321,10 @@ $diaryItemKeys = array_values(array_unique(array_filter($diaryItemKeys, static f
 $favoritedKeys = array_intersect_key($favoritedKeys, $placesByKey);
 $hasHistory = count($itemHistory) > 0 || ($isLoggedIn && (count($favoritedKeys) > 0 || count($diaryItemKeys) > 0));
 $freq = [];
-$itemHistoryCats = array_map(fn($h) => $h['type'], $itemHistory);
+$itemHistoryCats = array_map(static function ($interaction) use ($placesByKey): string {
+    $key = $interaction['type'] . '-' . (int) $interaction['id'];
+    return $placesByKey[$key]['category'] ?? $interaction['type'];
+}, $itemHistory);
 foreach (fy_recency_weighted_scores($itemHistoryCats, 3.0) as $cat => $score) {
     $freq[$cat] = ($freq[$cat] ?? 0) + $score;
 }
