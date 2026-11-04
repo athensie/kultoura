@@ -17,8 +17,6 @@ include '../config/analytics.php';
 require_once '../config/promotions.php';
 require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
-require_once '../config/reviews.php';
-kt_reviews_ensure_schema($conn);
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
 $validPeriods = ['today', 'week', 'month', 'year'];
@@ -34,36 +32,6 @@ switch ($period) {
     case 'year':  $periodStart = new DateTime('first day of january this year'); break;
 }
 $periodStartSql = $periodStart->format('Y-m-d 00:00:00');
-$reviewSummary = ['review_count' => 0, 'average_rating' => 0];
-$reviewSummaryStmt = $conn->prepare('SELECT COUNT(*) review_count, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE created_at >= ?');
-$reviewSummaryStmt->bind_param('s', $periodStartSql);
-$reviewSummaryStmt->execute();
-$reviewSummary = $reviewSummaryStmt->get_result()->fetch_assoc() ?: $reviewSummary;
-$reviewSummaryStmt->close();
-$reviewRatingCounts = array_fill(1, 5, 0);
-$reviewRatingStmt = $conn->prepare('SELECT rating, COUNT(*) total FROM item_reviews WHERE created_at >= ? GROUP BY rating');
-$reviewRatingStmt->bind_param('s', $periodStartSql);
-$reviewRatingStmt->execute();
-foreach ($reviewRatingStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $reviewRatingRow) $reviewRatingCounts[(int) $reviewRatingRow['rating']] = (int) $reviewRatingRow['total'];
-$reviewRatingStmt->close();
-$reviewTypeStats = [];
-$reviewTypeStmt = $conn->prepare('SELECT item_type, COUNT(*) review_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE created_at >= ? GROUP BY item_type ORDER BY review_count DESC');
-$reviewTypeStmt->bind_param('s', $periodStartSql);
-$reviewTypeStmt->execute();
-$reviewTypeStats = $reviewTypeStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$reviewTypeStmt->close();
-$recentReviewsStmt = $conn->prepare("SELECT r.display_name, r.item_type, r.rating, r.review_text AS comment, r.created_at,
-    COALESCE(d.destination_name, rs.restaurant_name, p.product_name, f.fiesta_name, CONCAT('Item #', r.item_id)) item_name
-    FROM item_reviews r
-    LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id = r.item_id
-    LEFT JOIN restaurants rs ON r.item_type = 'restaurant' AND rs.restaurant_id = r.item_id
-    LEFT JOIN products p ON r.item_type = 'product' AND p.product_id = r.item_id
-    LEFT JOIN fiestas f ON r.item_type = 'fiesta' AND f.fiesta_id = r.item_id
-    WHERE r.created_at >= ? ORDER BY r.created_at DESC LIMIT 8");
-$recentReviewsStmt->bind_param('s', $periodStartSql);
-$recentReviewsStmt->execute();
-$recentReviews = $recentReviewsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$recentReviewsStmt->close();
 $activeUsers = analytics_active_users($conn, 5);
 $listedDestinations = 0;
 if ($res = $conn->query("SELECT COUNT(*) c FROM destination WHERE status = 'active'")) {
@@ -434,6 +402,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php" class="active"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminreviews.php"><span class="nav-icon"><i data-lucide="star" class="lucide"></i></span> Ratings &amp; Reviews</a></li>
     </ul>
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
@@ -504,43 +473,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             <button type="button" class="analytics-filter-pill" data-filter="descriptive">Descriptive</button>
             <button type="button" class="analytics-filter-pill" data-filter="predictive">Predictive</button>
             <button type="button" class="analytics-filter-pill" data-filter="prescriptive">Prescriptive</button>
-        </div>
-        <div class="analytics-section" data-category="descriptive">
-            <div class="alabel-desc">Visitor Ratings &amp; Comments <span class="analytics-tag">Descriptive</span></div>
-            <div class="kpi-grid animate">
-                <div class="kpi-card accent-gold"><div class="kpi-icon"><i data-lucide="star" class="lucide"></i></div><div class="kpi-num"><?php echo number_format((int) $reviewSummary['review_count']); ?></div><div class="kpi-label">Reviews</div><div class="kpi-change"><?php echo htmlspecialchars($periodLabels[$period]); ?></div></div>
-                <div class="kpi-card accent-clay"><div class="kpi-icon"><i data-lucide="messages-square" class="lucide"></i></div><div class="kpi-num"><?php echo $reviewSummary['review_count'] > 0 ? number_format((float) $reviewSummary['average_rating'], 1) . ' / 5' : '—'; ?></div><div class="kpi-label">Average Rating</div><div class="kpi-change">Across submitted reviews</div></div>
-                <div class="kpi-card accent-green"><div class="kpi-icon"><i data-lucide="layers" class="lucide"></i></div><div class="kpi-num"><?php echo count($reviewTypeStats); ?></div><div class="kpi-label">Reviewed Categories</div><div class="kpi-change">Categories receiving feedback</div></div>
-            </div>
-            <div class="charts-2col animate">
-                <div class="chart-box">
-                    <h4>Star Rating Distribution <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
-                    <?php $ratingMax = max(1, max($reviewRatingCounts)); foreach ([5, 4, 3, 2, 1] as $rating): ?>
-                        <div class="bar-row"><span class="bar-name"><?php echo $rating; ?> stars</span><div class="bar-track"><div class="bar-fill" style="width:<?php echo (int) round($reviewRatingCounts[$rating] / $ratingMax * 100); ?>%"></div></div><span class="bar-pct"><?php echo (int) $reviewRatingCounts[$rating]; ?></span></div>
-                    <?php endforeach; ?>
-                </div>
-                <div class="chart-box">
-                    <h4>Ratings by Category <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
-                    <?php if (!$reviewTypeStats): ?><div class="chart-empty"><div class="chart-empty-title">No reviews yet</div><div class="chart-empty-sub">Ratings and comments will appear here when visitors submit them.</div></div><?php else: ?>
-                        <?php foreach ($reviewTypeStats as $typeStat): ?>
-                            <div class="bar-row"><span class="bar-name"><?php echo htmlspecialchars(ucfirst($typeStat['item_type'])); ?></span><div class="bar-track"><div class="bar-fill" style="width:<?php echo (int) round(((float) $typeStat['average_rating'] / 5) * 100); ?>%"></div></div><span class="bar-pct"><?php echo htmlspecialchars(number_format((float) $typeStat['average_rating'], 1)); ?> · <?php echo (int) $typeStat['review_count']; ?></span></div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <div class="chart-box animate" style="margin-bottom:22px;">
-                <h4>Recent Visitor Comments <span class="chart-sub">&mdash; <?php echo htmlspecialchars($periodLabels[$period]); ?></span></h4>
-                <?php if (!$recentReviews): ?><div class="chart-empty"><div class="chart-empty-title">No comments yet</div><div class="chart-empty-sub">Recent public reviews will be listed here.</div></div><?php else: ?>
-                    <div style="display:grid;gap:10px;">
-                    <?php foreach ($recentReviews as $review): ?>
-                        <article style="padding:12px 14px;border:1px solid rgba(245,237,216,.08);border-radius:12px;background:rgba(255,255,255,.02);">
-                            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--gold,#C8A96E);font-size:.8rem;font-weight:700;"><span><?php echo htmlspecialchars($review['item_name']); ?> · <?php echo htmlspecialchars(ucfirst($review['item_type'])); ?></span><span><?php echo (int) $review['rating']; ?> / 5 · <?php echo htmlspecialchars($review['display_name']); ?> · <?php echo htmlspecialchars(date('M j, Y', strtotime($review['created_at']))); ?></span></div>
-                            <p style="color:rgba(245,237,216,.72);margin:7px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;"><?php echo htmlspecialchars($review['comment']); ?></p>
-                        </article>
-                    <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
         </div>
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Trending &amp; Highly Visited Destinations <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
