@@ -9,20 +9,8 @@ analytics_track($conn, 'foryou');
 $siteName = "KULTOURA";
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-if (!isset($_SESSION['history'])) {
-    $_SESSION['history'] = [];
-}
 if (!isset($_SESSION['itemHistory'])) {
     $_SESSION['itemHistory'] = [];
-}
-if (isset($_GET['track'])) {
-    $track = preg_replace('/[^a-z_]/', '', strtolower($_GET['track']));
-    if ($track !== '') {
-        $_SESSION['history'][] = $track;
-        $_SESSION['history'] = array_slice($_SESSION['history'], -30);
-    }
-    header('Location: foryou.php');
-    exit;
 }
 $imageSubfolder = [
     'product'       => 'food',
@@ -301,7 +289,6 @@ foreach ($places as $p) {
         $placeVectors[$p['id']] = fy_tfidf_vector($documents[$p['id']], $docFreq, $totalDocs);
     }
 }
-$history = $_SESSION['history'];
 $itemHistory = $_SESSION['itemHistory'];
 if ($isLoggedIn) {
     $interactionUserId = (int) $_SESSION['user_id'];
@@ -326,8 +313,14 @@ if ($isLoggedIn) {
         $itemHistory = array_slice($persistentInteractions, -50);
     }
 }
-$hasHistory = count($history) > 0 || count($itemHistory) > 0 || count($favoritedKeys) > 0 || count($diaryItemKeys) > 0;
-$freq = fy_recency_weighted_scores($history, 1.0);
+$itemHistory = array_values(array_filter($itemHistory, static function ($interaction) use ($placesByKey): bool {
+    $key = (string) ($interaction['type'] ?? '') . '-' . (int) ($interaction['id'] ?? 0);
+    return isset($placesByKey[$key]);
+}));
+$diaryItemKeys = array_values(array_unique(array_filter($diaryItemKeys, static fn($key) => isset($placesByKey[$key]))));
+$favoritedKeys = array_intersect_key($favoritedKeys, $placesByKey);
+$hasHistory = count($itemHistory) > 0 || ($isLoggedIn && (count($favoritedKeys) > 0 || count($diaryItemKeys) > 0));
+$freq = [];
 $itemHistoryCats = array_map(fn($h) => $h['type'], $itemHistory);
 foreach (fy_recency_weighted_scores($itemHistoryCats, 3.0) as $cat => $score) {
     $freq[$cat] = ($freq[$cat] ?? 0) + $score;
@@ -381,6 +374,11 @@ foreach ($itemHistory as $h) {
 foreach ($diaryItemKeys as $key) {
     $viewedItemKeys[$key] = true;
 }
+if ($isLoggedIn) {
+    foreach (array_keys($favoritedKeys) as $key) {
+        $viewedItemKeys[$key] = true;
+    }
+}
 $interestScores = [];
 foreach ($places as $p) {
     $contentScore = fy_cosine_similarity($profileVector, $placeVectors[$p['id']]);
@@ -411,10 +409,6 @@ if ($hasHistory) {
             }
         }
     }
-} else {
-    $randomizedPlaces = $places;
-    shuffle($randomizedPlaces);
-    $recommended = array_slice($randomizedPlaces, 0, 6);
 }
 $categoryCounts = [];
 foreach ($places as $p) {
@@ -439,7 +433,7 @@ $categoryIcons = [
     'person'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>',
 ];
 $heroImage = '';
-$heroSource = !empty($recommended) ? $recommended : $places;
+$heroSource = $recommended;
 foreach ($heroSource as $p) {
     if (!empty($p['image'])) {
         $heroImage = $p['image'];
@@ -541,7 +535,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <?php if ($hasHistory): ?>
                     Picked based on what you've been exploring around Malvar.
                 <?php else: ?>
-                    New to KULTOURA? Explore these random picks around Malvar. Your recommendations will get more personal as you explore.
+                    View a destination, product, fiesta, restaurant, or person to start building recommendations from your activity.
                 <?php endif; ?>
             </p>
             <?php if ($hasHistory): ?>
@@ -587,8 +581,8 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
             <div class="fy-section-head">
                 <h2><?php echo $hasHistory ? 'Because You Explored' : 'A First Look at Malvar'; ?></h2>
                 <p><?php echo $hasHistory
-                    ? 'More places like the ones you\'ve viewed recently.'
-                    : 'A random mix of places to help you discover what Malvar has to offer.'; ?></p>
+                    ? 'More places related to items you have viewed' . ($isLoggedIn ? ', saved, or added to your travel diary.' : '.')
+                    : 'Recommendations appear after you view an item. Signed-in activity can also include favorites and travel diary entries.'; ?></p>
             </div>
             <div class="fy-toolbar">
                 <div class="fy-filter-bar" id="fyFilterBar">
@@ -606,6 +600,13 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
             </div>
         </div>
         <div class="fy-grid" id="fyRecommendedGrid">
+            <?php if (empty($recommended)): ?>
+                <div class="fy-empty-state">
+                    <h3><?php echo $hasHistory ? 'You have explored everything we can recommend right now' : 'Start with an item you like'; ?></h3>
+                    <p><?php echo $hasHistory ? 'View more items around Malvar and your recommendations will keep adapting.' : 'Open an item to view its details. Your recommendations will be based on those views.'; ?></p>
+                    <a class="fy-action-btn" href="tourism.php">Explore Malvar</a>
+                </div>
+            <?php endif; ?>
             <?php foreach ($recommended as $p): ?>
                 <div class="fy-card" data-group="<?php echo htmlspecialchars($p['group']); ?>" data-created="<?php echo (int) $p['createdAt']; ?>" data-item-type="<?php echo htmlspecialchars($p['itemType']); ?>" data-item-id="<?php echo (int) $p['itemId']; ?>">
                     <a class="fy-card-link" href="<?php echo htmlspecialchars($p['link']); ?>">

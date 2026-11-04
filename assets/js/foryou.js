@@ -24,6 +24,7 @@ async function fyToggleFavorite(btn) {
                 const icon = b.querySelector('.fy-action-icon');
                 if (icon) icon.innerHTML = data.favorited ? '&#9829;' : '&#9825;';
             });
+            window.setTimeout(() => window.location.reload(), 180);
         }
     } catch (err) {
         console.error('Favorite toggle failed:', err);
@@ -31,6 +32,9 @@ async function fyToggleFavorite(btn) {
         btn.disabled = false;
     }
 }
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) window.location.reload();
+});
 async function fyShare(btn, link) {
     const url = new URL(link, window.location.href).href;
     const card = btn.closest('.fy-card');
@@ -74,12 +78,14 @@ const fyDetailModal = (function () {
     const favBtn = document.getElementById('fyDetailFavBtn');
     const shareBtn = document.getElementById('fyDetailShareBtn');
     const fullLink = document.getElementById('fyDetailFullLink');
+    let recommendationNeedsRefresh = false;
     function findPlace(itemType, itemId) {
         return KULTOURA_PLACES.find((p) => p.itemType === itemType && String(p.itemId) === String(itemId));
     }
     function open(itemType, itemId) {
         const p = findPlace(itemType, itemId);
         if (!p) return;
+        recommendationNeedsRefresh = true;
         fetch('track_item_view.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -117,6 +123,7 @@ const fyDetailModal = (function () {
     function close() {
         overlay.classList.remove('is-open');
         document.body.style.overflow = '';
+        if (recommendationNeedsRefresh) window.location.reload();
     }
     closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
@@ -312,7 +319,6 @@ document.addEventListener('click', function (e) {
         const list = nearbyList(userLat, userLng);
         renderNearbyGrid(list);
         renderNearWidget(list);
-        applyLocationBoost(userLat, userLng);
     }
     const LOCATION_SOFT_RADIUS_KM = 5;
     const recommendedGrid = document.getElementById('fyRecommendedGrid');
