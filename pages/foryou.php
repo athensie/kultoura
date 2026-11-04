@@ -396,26 +396,16 @@ foreach ($places as $p) {
 }
 $recommended = [];
 if ($hasHistory) {
-    $scored = [];
-    $preferredCategories = array_fill_keys($topCategories, true);
-    foreach ($places as $p) {
-        $key = $p['itemType'] . '-' . $p['itemId'];
-        if (isset($viewedItemKeys[$key]) || !isset($preferredCategories[$p['category']])) continue;
-        $scored[] = ['place' => $p, 'score' => $interestScores[$p['id']]];
-    }
-    usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
-    $recommended = array_column(array_slice($scored, 0, 6), 'place');
-    if (count($recommended) < 6) {
-        $seen = [];
-        foreach ($recommended as $p) $seen[$p['id']] = true;
-        foreach ($topCategories as $cat) {
-            foreach ($places as $p) {
-                $key = $p['itemType'] . '-' . $p['itemId'];
-                if ($p['category'] !== $cat || isset($seen[$p['id']]) || isset($viewedItemKeys[$key])) continue;
-                $seen[$p['id']] = true;
-                $recommended[] = $p;
-                if (count($recommended) >= 6) break 2;
-            }
+    foreach (array_slice($topCategories, 0, 4) as $cat) {
+        $categoryPicks = [];
+        foreach ($places as $p) {
+            $key = $p['itemType'] . '-' . $p['itemId'];
+            if ($p['category'] !== $cat || isset($viewedItemKeys[$key])) continue;
+            $categoryPicks[] = ['place' => $p, 'score' => $interestScores[$p['id']]];
+        }
+        usort($categoryPicks, fn($a, $b) => $b['score'] <=> $a['score']);
+        foreach (array_slice($categoryPicks, 0, 3) as $pick) {
+            $recommended[] = $pick['place'];
         }
     }
 }
@@ -550,7 +540,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
             <?php if ($hasHistory): ?>
             <div class="fy-history-chips">
                 <span class="fy-history-label">You've been exploring</span>
-                <?php foreach (array_slice($topCategories, 0, 5) as $cat): ?>
+                <?php foreach (array_slice($topCategories, 0, 4) as $cat): ?>
                     <span class="fy-chip"><?php echo htmlspecialchars($categoryLabels[$cat] ?? $cat); ?></span>
                 <?php endforeach; ?>
             </div>
