@@ -687,6 +687,7 @@ function openViewDetails(id) {
     updateFavButtonState(favIcon, fav);
     document.getElementById('pvFavLabel').textContent = fav ? '♥ Saved to Favorites' : '♡ Add to Favorites';
     document.getElementById('pViewModal').dataset.fiestaId = f.fiesta_id;
+    ktReviewsOpen('fiesta', f.fiesta_id);
     openPModal('pViewModal');
 }
 function openNavigateFromView() {
@@ -750,5 +751,6 @@ function showPToast(msg) {
     _pToastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 </script>
+<script>document.body.dataset.loggedIn = '<?php echo isset($_SESSION['user_id']) ? '1' : '0'; ?>';</script><script src="../../assets/js/reviews.js?v=20261104-1"></script>
 </body>
 </html>

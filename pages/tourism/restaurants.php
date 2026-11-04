@@ -362,6 +362,7 @@ function openViewDetails(id) {
         closeModalX('viewDetailsModal');
         openNavigate(item.id);
     };
+    ktReviewsOpen('restaurant', id);
     openModalX('viewDetailsModal');
 }
 /* ---------------- Favorites (used by card hearts + modal heart) ---------------- */
@@ -439,5 +440,6 @@ function openNavigate(id) {
     }, { enableHighAccuracy: true, timeout: 10000 });
 }
 </script>
+<script>document.body.dataset.loggedIn = '<?php echo isset($_SESSION['user_id']) ? '1' : '0'; ?>';</script><script src="../../assets/js/reviews.js?v=20261104-1"></script>
 </body>
 </html>

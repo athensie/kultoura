@@ -288,6 +288,7 @@ function ktOpenViewDetails(btn) {
         ktCloseModal('ktViewDetailsModal');
         setTimeout(() => ktOpenNavigate(btn), 200);
     };
+    ktReviewsOpen('service', itemId);
     ktShowModal('ktViewDetailsModal');
 }
 /* ---------- FAVORITES ---------- */
@@ -395,5 +396,6 @@ function ktOpenNavigate(btn) {
 </script>
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
+<script>document.body.dataset.loggedIn = '<?php echo isset($_SESSION['user_id']) ? '1' : '0'; ?>';</script><script src="../../assets/js/reviews.js?v=20261104-1"></script>
 </body>
 </html>
