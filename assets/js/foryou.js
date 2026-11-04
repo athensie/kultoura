@@ -336,7 +336,7 @@ document.addEventListener('click', function (e) {
                 return { place: p, distance, blended };
             })
             .sort((a, b) => b.blended - a.blended)
-            .slice(0, 6);
+            .slice(0, 12);
         if (!scored.length) return;
         recommendedGrid.innerHTML = scored.map(({ place: p, distance }) => `
             <div class="fy-card" data-group="${p.group}" data-created="${p.createdAt}" data-item-type="${p.itemType}" data-item-id="${p.itemId}">

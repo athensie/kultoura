@@ -46,6 +46,14 @@ function fy_is_favorited(string $itemType, int $itemId, array $favoritedKeys): b
 {
     return isset($favoritedKeys[$itemType . '-' . $itemId]);
 }
+function fy_interest_category(string $category, ?string $subcategory = null): string
+{
+    if ($category !== 'restaurant' || trim((string) $subcategory) === '') {
+        return $category;
+    }
+    $slug = strtolower(trim((string) preg_replace('/[^a-z0-9]+/i', '_', trim($subcategory)), '_'));
+    return $slug !== '' ? $category . '_' . $slug : $category;
+}
 $diaryItemKeys = [];
 if ($isLoggedIn) {
     $diaryUserId = (int) $_SESSION['user_id'];
@@ -103,6 +111,7 @@ if ($result = $conn->query("SELECT restaurant_id, restaurant_name, category, des
             'id'         => 'restaurant-' . $itemId,
             'name'       => $row['restaurant_name'],
             'category'   => 'restaurant',
+            'interestCategory' => fy_interest_category('restaurant', $row['category'] ?? null),
             'group'      => $filterGroup['restaurant'],
             'badgeText'  => $row['category'] ?: 'Restaurant',
             'image'      => fy_image_src('restaurant', $row['image'] ?? null, $imageSubfolder),
@@ -212,6 +221,12 @@ $categoryLabels = [
     'fiesta'        => 'Fiestas & Events',
     'person'        => 'Faces of Malvar',
 ];
+foreach ($places as $place) {
+    $interestCategory = $place['interestCategory'] ?? $place['category'];
+    if ($interestCategory !== $place['category']) {
+        $categoryLabels[$interestCategory] = $place['badgeText'];
+    }
+}
 function fy_tokenize(string $text): array
 {
     $text = strtolower($text);
@@ -323,18 +338,19 @@ $hasHistory = count($itemHistory) > 0 || ($isLoggedIn && (count($favoritedKeys) 
 $freq = [];
 $itemHistoryCats = array_map(static function ($interaction) use ($placesByKey): string {
     $key = $interaction['type'] . '-' . (int) $interaction['id'];
-    return $placesByKey[$key]['category'] ?? $interaction['type'];
+    return $placesByKey[$key]['interestCategory'] ?? $placesByKey[$key]['category'] ?? $interaction['type'];
 }, $itemHistory);
 foreach (fy_recency_weighted_scores($itemHistoryCats, 3.0) as $cat => $score) {
     $freq[$cat] = ($freq[$cat] ?? 0) + $score;
 }
-$diaryCats = array_values(array_filter(array_map(fn($key) => $placesByKey[$key]['category'] ?? null, $diaryItemKeys)));
+$diaryCats = array_values(array_filter(array_map(fn($key) => $placesByKey[$key]['interestCategory'] ?? $placesByKey[$key]['category'] ?? null, $diaryItemKeys)));
 foreach (fy_recency_weighted_scores($diaryCats, 4.0) as $cat => $score) {
     $freq[$cat] = ($freq[$cat] ?? 0) + $score;
 }
 foreach (array_keys($favoritedKeys) as $key) {
     if (isset($placesByKey[$key])) {
-        $freq[$placesByKey[$key]['category']] = ($freq[$placesByKey[$key]['category']] ?? 0) + 5.0;
+        $favoriteCategory = $placesByKey[$key]['interestCategory'] ?? $placesByKey[$key]['category'];
+        $freq[$favoriteCategory] = ($freq[$favoriteCategory] ?? 0) + 5.0;
     }
 }
 arsort($freq);
@@ -389,7 +405,8 @@ if ($isLoggedIn) {
 $interestScores = [];
 foreach ($places as $p) {
     $contentScore = fy_cosine_similarity($profileVector, $placeVectors[$p['id']]);
-    $categoryScore = $maxFreq > 0 ? (($freq[$p['category']] ?? 0) / $maxFreq) : 0;
+    $interestCategory = $p['interestCategory'] ?? $p['category'];
+    $categoryScore = $maxFreq > 0 ? (($freq[$interestCategory] ?? 0) / $maxFreq) : 0;
     $interestScores[$p['id']] = $profileWeight > 0
         ? (0.65 * $contentScore) + (0.35 * $categoryScore)
         : $categoryScore;
@@ -400,7 +417,7 @@ if ($hasHistory) {
         $categoryPicks = [];
         foreach ($places as $p) {
             $key = $p['itemType'] . '-' . $p['itemId'];
-            if ($p['category'] !== $cat || isset($viewedItemKeys[$key])) continue;
+            if (($p['interestCategory'] ?? $p['category']) !== $cat || isset($viewedItemKeys[$key])) continue;
             $categoryPicks[] = ['place' => $p, 'score' => $interestScores[$p['id']]];
         }
         usort($categoryPicks, fn($a, $b) => $b['score'] <=> $a['score']);
