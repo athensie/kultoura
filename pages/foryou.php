@@ -414,14 +414,26 @@ foreach ($places as $p) {
 $recommended = [];
 if ($hasHistory) {
     foreach (array_slice($topCategories, 0, 4) as $cat) {
-        $categoryPicks = [];
+        $unviewedPicks = [];
+        $viewedPicks = [];
         foreach ($places as $p) {
             $key = $p['itemType'] . '-' . $p['itemId'];
-            if (($p['interestCategory'] ?? $p['category']) !== $cat || isset($viewedItemKeys[$key])) continue;
-            $categoryPicks[] = ['place' => $p, 'score' => $interestScores[$p['id']]];
+            if (($p['interestCategory'] ?? $p['category']) !== $cat) continue;
+            $pick = ['place' => $p, 'score' => $interestScores[$p['id']]];
+            if (isset($viewedItemKeys[$key])) {
+                $viewedPicks[] = $pick;
+            } else {
+                $unviewedPicks[] = $pick;
+            }
         }
-        usort($categoryPicks, fn($a, $b) => $b['score'] <=> $a['score']);
-        foreach (array_slice($categoryPicks, 0, 3) as $pick) {
+        $sortPicks = static fn($a, $b) => $b['score'] <=> $a['score'];
+        usort($unviewedPicks, $sortPicks);
+        usort($viewedPicks, $sortPicks);
+        $categoryPicks = array_slice($unviewedPicks, 0, 3);
+        if (count($categoryPicks) < 3) {
+            $categoryPicks = array_merge($categoryPicks, array_slice($viewedPicks, 0, 3 - count($categoryPicks)));
+        }
+        foreach ($categoryPicks as $pick) {
             $recommended[] = $pick['place'];
         }
     }
