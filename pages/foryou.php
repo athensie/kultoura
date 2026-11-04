@@ -402,7 +402,8 @@ if ($hasHistory) {
         foreach ($recommended as $p) $seen[$p['id']] = true;
         foreach ($topCategories as $cat) {
             foreach ($places as $p) {
-                if ($p['category'] !== $cat || isset($seen[$p['id']])) continue;
+                $key = $p['itemType'] . '-' . $p['itemId'];
+                if ($p['category'] !== $cat || isset($seen[$p['id']]) || isset($viewedItemKeys[$key])) continue;
                 $seen[$p['id']] = true;
                 $recommended[] = $p;
                 if (count($recommended) >= 6) break 2;
@@ -692,6 +693,6 @@ const KULTOURA_PLACES = <?php echo $placesJson; ?>;
 </script>
 <script src="../assets/js/navbar.js"></script>
 <script src="../assets/js/navbar-search.js?v=20261101-2"></script>
-<script src="../assets/js/foryou.js"></script>
+<script src="../assets/js/foryou.js?v=20261104-2"></script>
 </body>
 </html>
