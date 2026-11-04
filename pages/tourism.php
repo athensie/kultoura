@@ -77,7 +77,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
     <title>Tourism – KULTOURA</title>
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
-    <link rel="stylesheet" href="../assets/css/tourism.css?v=20261104-1">
+    <link rel="stylesheet" href="../assets/css/tourism.css?v=20261104-2">
     <link rel="stylesheet" href="../assets/css/pagewidget.css">
 </head>
 <body>
@@ -172,6 +172,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
         </div>
         <div class="t-card-row">
             <a href="tourism/products.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Products · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['products'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['products']); ?>" alt="">
@@ -197,6 +198,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
         </div>
         <div class="t-card-row">
             <a href="tourism/nature.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Nature · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['nature'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['nature']); ?>" alt="">
@@ -209,6 +211,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
                 <div class="t-card-arrow">→</div>
             </a>
             <a href="tourism/resort.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Resort · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['resort'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['resort']); ?>" alt="">
@@ -221,6 +224,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
                 <div class="t-card-arrow">→</div>
             </a>
             <a href="tourism/industry.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Industry · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['industry'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['industry']); ?>" alt="">
@@ -233,6 +237,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
                 <div class="t-card-arrow">→</div>
             </a>
             <a href="tourism/churches.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Churches · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['churches'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['churches']); ?>" alt="">
@@ -258,6 +263,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
         </div>
         <div class="t-card-row">
             <a href="tourism/fiestas.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Fiesta · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['fiestas'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['fiestas']); ?>" alt="">
@@ -270,6 +276,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
                 <div class="t-card-arrow">→</div>
             </a>
             <a href="tourism/people.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Culture · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['people'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['people']); ?>" alt="">
@@ -295,6 +302,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
         </div>
         <div class="t-card-row">
             <a href="tourism/services.php" class="t-card">
+                <div class="t-post-head"><span class="t-post-avatar">K</span><span class="t-post-account"><strong>kultoura</strong><small>Services · Malvar, Batangas</small></span><span class="t-post-menu" aria-hidden="true">•••</span></div>
                 <div class="t-card-media">
                     <?php if (!empty($hubImages['services'])): ?>
                         <img src="<?php echo htmlspecialchars($hubImages['services']); ?>" alt="">
