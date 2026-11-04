@@ -329,6 +329,20 @@ if ($isLoggedIn) {
     }
 }
 $destinationTypes = ['nature', 'resort', 'industry', 'accommodation', 'bank', 'service', 'church'];
+$normalizePlaceKey = static function (string $key) use ($placesByKey, $destinationTypes): ?string {
+    if (isset($placesByKey[$key])) {
+        return $key;
+    }
+    if (preg_match('/^destination-(\d+)$/', $key, $matches)) {
+        foreach ($destinationTypes as $destinationType) {
+            $categoryKey = $destinationType . '-' . (int) $matches[1];
+            if (isset($placesByKey[$categoryKey])) {
+                return $categoryKey;
+            }
+        }
+    }
+    return null;
+};
 foreach ($itemHistory as &$interaction) {
     if (($interaction['type'] ?? '') !== 'destination') {
         continue;
@@ -346,8 +360,18 @@ $itemHistory = array_values(array_filter($itemHistory, static function ($interac
     $key = (string) ($interaction['type'] ?? '') . '-' . (int) ($interaction['id'] ?? 0);
     return isset($placesByKey[$key]);
 }));
-$diaryItemKeys = array_values(array_unique(array_filter($diaryItemKeys, static fn($key) => isset($placesByKey[$key]))));
-$favoritedKeys = array_intersect_key($favoritedKeys, $placesByKey);
+$diaryItemKeys = array_values(array_unique(array_filter(array_map(
+    static fn($key) => $normalizePlaceKey((string) $key),
+    $diaryItemKeys
+))));
+$normalizedFavoritedKeys = [];
+foreach ($favoritedKeys as $key => $favorited) {
+    $normalizedKey = $normalizePlaceKey((string) $key);
+    if ($normalizedKey !== null) {
+        $normalizedFavoritedKeys[$normalizedKey] = $favorited;
+    }
+}
+$favoritedKeys = $normalizedFavoritedKeys;
 $hasHistory = count($itemHistory) > 0 || ($isLoggedIn && (count($favoritedKeys) > 0 || count($diaryItemKeys) > 0));
 $freq = [];
 $itemHistoryCats = array_map(static function ($interaction) use ($placesByKey): string {
