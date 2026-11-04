@@ -328,6 +328,20 @@ if ($isLoggedIn) {
         $itemHistory = array_slice($persistentInteractions, -50);
     }
 }
+$destinationTypes = ['nature', 'resort', 'industry', 'accommodation', 'bank', 'service', 'church'];
+foreach ($itemHistory as &$interaction) {
+    if (($interaction['type'] ?? '') !== 'destination') {
+        continue;
+    }
+    $destinationId = (int) ($interaction['id'] ?? 0);
+    foreach ($destinationTypes as $destinationType) {
+        if (isset($placesByKey[$destinationType . '-' . $destinationId])) {
+            $interaction['type'] = $destinationType;
+            break;
+        }
+    }
+}
+unset($interaction);
 $itemHistory = array_values(array_filter($itemHistory, static function ($interaction) use ($placesByKey): bool {
     $key = (string) ($interaction['type'] ?? '') . '-' . (int) ($interaction['id'] ?? 0);
     return isset($placesByKey[$key]);

@@ -6,7 +6,7 @@ header('Content-Type: application/json');
 $itemType = $_POST['item_type'] ?? '';
 $itemId   = (int) ($_POST['item_id'] ?? 0);
 $viewType = $itemType;
-$interactionType = array_key_exists($itemType, analytics_type_group_map()) ? 'destination' : $itemType;
+$interactionType = $itemType;
 if ($itemType === 'destination' && $itemId > 0) {
     $categoryStmt = $conn->prepare("SELECT category FROM destination WHERE destination_id = ? AND status = 'active' LIMIT 1");
     if ($categoryStmt) {
@@ -17,6 +17,9 @@ if ($itemType === 'destination' && $itemId > 0) {
     }
 }
 if ($itemId > 0 && array_key_exists($itemType, analytics_item_types()) && array_key_exists($viewType, analytics_item_types())) {
+    // Preserve destination subcategories so For You can recommend the exact
+    // category the visitor opened (nature, resort, church, and so on).
+    $interactionType = $viewType;
     analytics_track_item($conn, $viewType, $itemId);
     if (isset($_SESSION['user_id'])) {
         analytics_track_user_item($conn, (int) $_SESSION['user_id'], $interactionType, $itemId);
