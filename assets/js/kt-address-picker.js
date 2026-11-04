@@ -15,9 +15,9 @@ const KtAddressPicker = (function () {
   }
   function isMalvarAddress(address) {
     if (!address) return false;
-    const localities = [address.municipality, address.city, address.town, address.village, address.suburb, address.neighbourhood, address.city_district, address.quarter]
+    const localities = [address.municipality, address.city, address.town, address.village, address.suburb, address.neighbourhood, address.city_district, address.quarter, address.county]
       .filter(Boolean).map(v => String(v).toLowerCase());
-    const provinces = [address.province, address.county].filter(Boolean).map(v => String(v).toLowerCase());
+    const provinces = [address.province, address.state_district, address.county].filter(Boolean).map(v => String(v).toLowerCase());
     const inBatangas = provinces.some(v => v.includes('batangas'));
     const isBarangay = localities.some(value => MALVAR_BARANGAYS.some(barangay =>
       value === barangay || value.startsWith(barangay + ' (') || value.startsWith(barangay + ' ')));

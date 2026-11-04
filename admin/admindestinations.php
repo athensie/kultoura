@@ -4,6 +4,7 @@ include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
+require_once __DIR__ . '/../config/malvar_locations.php';
 define('BASE_URL', '/kultoura');
 if (!isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "/index.php");
@@ -75,6 +76,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         'schedule_text'     => null,
         'archive_note'      => $_POST['archive_note'] ?? '',
     ];
+    if (in_array($entityAction, ['create', 'update'], true) && trim((string) $data['google_maps']) !== '') {
+        $coordinates = array_map('trim', explode(',', (string) $data['google_maps']));
+        if (count($coordinates) !== 2
+            || !kt_malvar_coordinates_in_bounds($coordinates[0], $coordinates[1])
+            || !kt_malvar_address_is_allowed((string) $data['address'])) {
+            $_SESSION['admin_flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';
+            header('Location: ' . BASE_URL . '/admin/admindestinations.php');
+            exit;
+        }
+    }
     if (in_array($entityAction, ['create', 'update'], true) && $data['category'] === 'church') {
         $scheduleMonthInput = trim((string) ($_POST['schedule_month'] ?? ''));
         $scheduleJson = trim((string) ($_POST['schedule_entries'] ?? ''));
@@ -620,8 +631,8 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261016"></script>
-<script src="../assets/js/admindestinations.js?v=20261101-3"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261104-2"></script>
+<script src="../assets/js/admindestinations.js?v=20261104-2"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>
 <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?php echo json_encode($_SESSION['admin_flash']); unset($_SESSION['admin_flash']); ?>); });</script>
