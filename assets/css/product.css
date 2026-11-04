@@ -214,6 +214,33 @@
     font-size: 13px;
     line-height: 1.5;
 }
+.p-nearest-shop {
+    margin: 0 0 16px;
+    padding: 14px 16px;
+    border: 1px solid rgba(139, 46, 26, .2);
+    border-radius: 12px;
+    background: #fffaf1;
+}
+.p-nearest-shop-label {
+    margin: 0 0 5px;
+    color: #8b2e1a;
+    font: 700 10px/1.4 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+.p-nearest-shop-name {
+    margin: 0 0 3px;
+    color: #2c1a0e;
+    font: 700 15px/1.4 Georgia, serif;
+}
+.p-nearest-shop-address,
+.p-nearest-shop-distance {
+    margin: 0;
+    color: #58483b;
+    font: 13px/1.5 'Helvetica Neue', Arial, sans-serif;
+    overflow-wrap: anywhere;
+}
+.p-nearest-shop-distance { margin-top: 4px; color: #8b2e1a; font-weight: 700; }
 .p-card-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
