@@ -29,6 +29,7 @@
 .kt-review-star-picker label:hover { transform: translateY(-1px); }
 .kt-review-star-picker input { height: 1px; opacity: 0; position: absolute; width: 1px; }
 .kt-review-star-picker input:focus-visible + span { outline: 2px solid #96341c; outline-offset: 2px; }
+.kt-review-rating-hint { color: #93877d; font-size: .72rem; }
 .kt-review-form textarea { resize: vertical; }
 .kt-review-submit { background: #96341c; border: 0; border-radius: 999px; color: white; cursor: pointer; display: inline-flex; font: inherit; font-size: .85rem; font-weight: 700; justify-content: center; padding: 10px 16px; text-decoration: none; }
 .kt-review-submit:disabled { cursor: wait; opacity: .6; }

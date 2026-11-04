@@ -42,6 +42,7 @@
                 <div class="kt-review-star-picker" role="radiogroup" aria-label="Choose a rating from one to five stars">
                     ${[1, 2, 3, 4, 5].map((rating) => `<label title="${rating} ${rating === 1 ? 'star' : 'stars'}"><input type="radio" name="rating" value="${rating}" required aria-label="${rating} ${rating === 1 ? 'star' : 'stars'}"><span aria-hidden="true">★</span></label>`).join('')}
                 </div>
+                <span class="kt-review-rating-hint">Click the selected star again to clear your rating.</span>
                 <label for="ktReviewComment">Comment</label>
                 <textarea id="ktReviewComment" name="comment" rows="3" minlength="3" maxlength="1500" placeholder="What should other visitors know?" required></textarea>
                 <button type="submit" class="kt-review-submit">Submit review</button>
@@ -105,9 +106,25 @@
             const status = reviewForm.querySelector('.kt-review-form-status');
             if (status) status.textContent = '';
             reviewForm.querySelectorAll('input[name="rating"]').forEach((input) => {
-                input.onchange = () => reviewForm.querySelectorAll('.kt-review-star-picker label').forEach((label) => {
-                    label.classList.toggle('is-selected', Number(label.querySelector('input').value) <= Number(input.value));
+                const label = input.closest('label');
+                label.addEventListener('pointerdown', () => { input.dataset.wasChecked = input.checked ? '1' : '0'; });
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === ' ' || event.key === 'Enter') input.dataset.wasChecked = input.checked ? '1' : '0';
                 });
+                input.addEventListener('click', (event) => {
+                    if (input.dataset.wasChecked !== '1') return;
+                    event.preventDefault();
+                    window.setTimeout(() => {
+                        input.checked = false;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }, 0);
+                });
+                input.onchange = () => {
+                    const selected = reviewForm.querySelector('input[name="rating"]:checked');
+                    reviewForm.querySelectorAll('.kt-review-star-picker label').forEach((starLabel) => {
+                        starLabel.classList.toggle('is-selected', !!selected && Number(starLabel.querySelector('input').value) <= Number(selected.value));
+                    });
+                };
             });
             reviewForm.onreset = () => reviewForm.querySelectorAll('.kt-review-star-picker label').forEach((label) => label.classList.remove('is-selected'));
             reviewForm.onsubmit = (event) => submitReview(event, panel, type, itemId);
