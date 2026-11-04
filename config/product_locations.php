@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/malvar_locations.php';
 if (!function_exists('kt_product_locations_ensure_schema')) {
     function kt_product_locations_ensure_schema(mysqli $conn): void
     {
@@ -66,6 +67,7 @@ if (!function_exists('kt_product_locations_normalize')) {
             if ($address === '') continue;
             $lat = is_numeric($latText) && (float) $latText >= -90 && (float) $latText <= 90 ? (float) $latText : null;
             $lng = is_numeric($lngText) && (float) $lngText >= -180 && (float) $lngText <= 180 ? (float) $lngText : null;
+            if (($lat !== null || $lng !== null) && ($lat === null || $lng === null || !kt_malvar_coordinates_in_bounds($lat, $lng))) continue;
             if ($lat === null || $lng === null) {
                 $lat = null;
                 $lng = null;

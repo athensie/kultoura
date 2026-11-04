@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/analytics.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
+require_once __DIR__ . '/../config/malvar_locations.php';
 define('BASE_URL', '/kultoura');
 function kt_fiesta_handle_image_upload(string $fieldName = 'image_file'): ?string
 {
@@ -92,6 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'summary'          => trim($_POST['summary'] ?? ''),
                 'image'            => $image ?: null,
             ];
+            $hasLat = trim((string) $data['latitude']) !== '';
+            $hasLng = trim((string) $data['longitude']) !== '';
+            if (($hasLat || $hasLng) && (!$hasLat || !$hasLng
+                || !kt_malvar_coordinates_in_bounds($data['latitude'], $data['longitude'])
+                || stripos($data['location'], 'Malvar') === false)) {
+                $_SESSION['flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';
+                header('Location: admineventandfiesta.php');
+                exit;
+            }
             if ($name === '') {
                 $_SESSION['flash'] = $entityAction === 'create' ? 'Event name is required.' : 'Could not update — event name is required.';
                 header('Location: admineventandfiesta.php');
@@ -494,7 +504,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261016"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261104-1"></script>
 <script src="../assets/js/admineventandfiesta.js?v=20261016"></script>
 <script>initViewToggle('events', '.data-table-wrap', '#eventsGrid'); initSidebarCollapse();</script>
 <script>

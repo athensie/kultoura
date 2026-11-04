@@ -67,7 +67,7 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/product.css?v=20261102-2">
+    <link rel="stylesheet" href="../../assets/css/product.css?v=20261104-1">
     <link rel="stylesheet" href="../../assets/css/product-location-map.css?v=20261102-4">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
@@ -190,6 +190,7 @@ foreach ($rows as $r) {
                     <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['name']) ?></h3>
                     <p class="p-card-desc"><?= htmlspecialchars($item['summary']) ?></p>
+                    <?php if (!empty($item['locations']) || !empty($item['address'])): ?><p class="p-card-location"><span aria-hidden="true">📍</span> Location of a shop near you</p><?php endif; ?>
                     <?php if ($item['price'] !== null && $item['price'] !== ''): ?>
                         <p class="p-card-price">₱<?= htmlspecialchars(number_format((float) $item['price'], 2)) ?></p>
                     <?php endif; ?>
@@ -216,6 +217,7 @@ foreach ($rows as $r) {
         <div class="p-modal-facts" id="vdFacts"></div>
         <div class="p-product-stores" id="vdStores" hidden>
             <h4 id="vdStoresHeading">Places that sell this product</h4>
+            <ul class="p-product-store-addresses" id="vdStoresList"></ul>
             <p class="p-map-hint">Select a pin to see the location, distance, and directions.</p>
             <div class="p-product-locations-map" id="vdStoresMap"></div>
             <div class="p-map-unmapped" id="vdUnmappedLocations" hidden></div>
@@ -377,14 +379,21 @@ function openViewDetails(id) {
     favBtn.classList.toggle('is-favorited', !!item.favorited);
     favBtn.innerHTML = item.favorited ? '&#9829;' : '&#9825;';
     document.getElementById('vdFavLabel').textContent = item.favorited ? '♥ Saved to Favorites' : '♡ Add to Favorites';
+    const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
     let facts = '';
     if (item.price !== null && item.price !== '') {
         facts += `<div><p class="p-fact-label">Price</p><p class="p-fact-value">₱${Number(item.price).toFixed(2)}</p></div>`;
     }
-    facts += `<div><p class="p-fact-label">Location</p><p class="p-fact-value">${item.address || '—'}</p></div>`;
+    if (locations.length) facts += `<div><p class="p-fact-label">Shop locations</p><p class="p-fact-value">${locations.length} ${locations.length === 1 ? 'shop' : 'shops'} in Malvar</p></div>`;
     document.getElementById('vdFacts').innerHTML = facts;
     const storesEl = document.getElementById('vdStores');
-    const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
+    const storesList = document.getElementById('vdStoresList');
+    storesList.replaceChildren();
+    locations.forEach(location => {
+        const line = document.createElement('li');
+        line.textContent = location.store_name ? `${location.store_name} — ${location.address || 'Address unavailable'}` : (location.address || 'Address unavailable');
+        storesList.appendChild(line);
+    });
     storesEl.hidden = locations.length === 0;
     document.getElementById('vdStoresHeading').textContent = locations.length === 1 ? 'Where to buy' : 'Places that sell this product';
     openModalX('viewDetailsModal');

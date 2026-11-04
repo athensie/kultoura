@@ -344,6 +344,17 @@
     color: #2c1a0e;
     margin-bottom: 8px;
 }
+.p-card-location {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 8px 0;
+    color: #8b2e1a;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+.p-card-location span { flex: 0 0 auto; }
 .p-card-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;

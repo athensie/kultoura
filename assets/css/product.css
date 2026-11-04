@@ -180,6 +180,27 @@
     color: #2c1a0e;
     margin: 0 0 8px;
 }
+.p-card-location {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0 0 12px;
+    color: #8b2e1a;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+.p-card-location span { flex: 0 0 auto; }
+.p-product-store-addresses {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0;
+    padding-left: 20px;
+    color: #58483b;
+    font-size: 13px;
+    line-height: 1.5;
+}
 .p-card-desc {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;

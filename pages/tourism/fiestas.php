@@ -110,7 +110,7 @@ if (isset($_GET['ajax_calendar'])) {
     <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261015c">
+    <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261104-1">
     <style>
         /* ── Calendar: clickable month label ── */
         #pCalendarWrap { position: relative; }
@@ -435,6 +435,7 @@ if (isset($_GET['ajax_calendar'])) {
                         <div class="p-card-body">
                             <?php if (!empty($item['celebration_date'])): ?><p class="p-card-category"><?= htmlspecialchars(date('F j, Y', strtotime($item['celebration_date']))) ?></p><?php endif; ?>
                             <h3 class="p-card-title"><?= htmlspecialchars($item['fiesta_name']) ?></h3>
+                            <p class="p-card-location"><span aria-hidden="true">📍</span> <?= htmlspecialchars(trim((string) ($item['location'] ?? '')) ?: 'Location not provided yet') ?></p>
                             <p class="p-card-desc"><?= htmlspecialchars($item['summary'] ?: mb_strimwidth((string) ($item['description'] ?? ''), 0, 160, '…')) ?></p>
                             <div class="p-card-actions">
                                 <button type="button" class="p-btn p-btn-primary" onclick="event.stopPropagation(); openViewDetails(<?= $fid ?>)">View Details</button>

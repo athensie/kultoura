@@ -102,6 +102,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         header("Location: adminfoodanddining.php");
         exit;
     }
+    if ($entityAction !== 'archive') {
+        $pinRows = $listingType === 'product' ? ($_POST['store_locations'] ?? []) : [];
+        $invalidPin = false;
+        foreach (is_array($pinRows) ? $pinRows : [] as $pinRow) {
+            if (!is_array($pinRow)) continue;
+            $pinLat = trim((string) ($pinRow['latitude'] ?? ''));
+            $pinLng = trim((string) ($pinRow['longitude'] ?? ''));
+            $pinAddress = trim((string) ($pinRow['address'] ?? ''));
+            if (($pinLat !== '' || $pinLng !== '') && (!$pinLat || !$pinLng || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || stripos($pinAddress, 'Malvar') === false)) {
+                $invalidPin = true;
+                break;
+            }
+        }
+        if ($listingType === 'restaurant') {
+            $pinLat = trim((string) ($_POST['latitude'] ?? ''));
+            $pinLng = trim((string) ($_POST['longitude'] ?? ''));
+            $address = trim((string) ($_POST['address'] ?? ''));
+            $invalidPin = ($pinLat !== '' || $pinLng !== '') && (!$pinLat || !$pinLng
+                || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || stripos($address, 'Malvar') === false);
+        }
+        if ($invalidPin) {
+            $_SESSION['admin_flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';
+            header('Location: adminfoodanddining.php');
+            exit;
+        }
+    }
     if ($entityAction === 'archive') {
         $data = ['archive_note' => $_POST['archive_note'] ?? ''];
         $nameCol = $map['nameCol'];
@@ -654,9 +680,9 @@ sort($allCategories);
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261102-1"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261104-1"></script>
 <script src="../assets/js/product-location-map.js?v=20261102-4"></script>
-<script src="../assets/js/adminfoodanddining.js?v=20261102-4"></script>
+<script src="../assets/js/adminfoodanddining.js?v=20261104-1"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>
 
     <script src="../assets/js/admin-filter-state.js"></script>

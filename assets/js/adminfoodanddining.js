@@ -177,7 +177,11 @@ function pinProductLocation(prefix) {
     showToast('Choose or click a location on the map first.');
     return;
   }
-  const address = typedAddress || `Map pin ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+  const address = typedAddress;
+  if (!address || !/malvar/i.test(address)) {
+    showToast('Select or place a pin in Malvar to get its detailed address first.');
+    return;
+  }
   const existing = [...document.querySelectorAll(`#${prefix}StoreLocations [name$="[latitude]"]`)];
   if (existing.some(input => input.value === lat && input.parentElement.querySelector('[name$="[longitude]"]')?.value === lng)) {
     showToast('That location is already pinned.');
