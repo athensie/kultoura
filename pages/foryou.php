@@ -339,6 +339,10 @@ foreach (array_keys($favoritedKeys) as $key) {
 }
 arsort($freq);
 $topCategories = array_keys($freq);
+$latestViewedCategory = $itemHistoryCats ? end($itemHistoryCats) : null;
+if ($latestViewedCategory !== null && isset($freq[$latestViewedCategory])) {
+    $topCategories = array_values(array_unique(array_merge([$latestViewedCategory], $topCategories)));
+}
 $maxFreq = !empty($freq) ? max($freq) : 0;
 $profileVector = [];
 $profileWeight = 0.0;
