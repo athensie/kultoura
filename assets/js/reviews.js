@@ -9,6 +9,39 @@
     }[char]));
     const stars = (count) => '★'.repeat(Number(count) || 0) + '☆'.repeat(5 - (Number(count) || 0));
 
+    async function decorateListingRatings() {
+        const page = location.pathname.split('/').pop().replace(/\.php$/i, '').toLowerCase();
+        const type = ({ products: 'product', restaurants: 'restaurant', fiestas: 'fiesta' })[page] || page;
+        const allowed = ['product', 'restaurant', 'fiesta', 'nature', 'resort', 'industry', 'accommodation', 'church', 'service'];
+        if (!allowed.includes(type)) return;
+        const cards = Array.from(document.querySelectorAll('.p-card[data-id]'));
+        const ids = [...new Set(cards.map((card) => Number(card.dataset.id)).filter((id) => id > 0))];
+        if (!ids.length) return;
+        try {
+            const params = new URLSearchParams({ item_type: type, summary_ids: ids.join(',') });
+            const response = await fetch(`../reviews_api.php?${params}`, { credentials: 'same-origin', cache: 'no-store' });
+            const data = await response.json();
+            if (!data.success) return;
+            cards.forEach((card) => {
+                const summary = data.summaries?.[card.dataset.id];
+                if (!summary || !summary.count) return;
+                const body = card.querySelector('.p-card-body');
+                if (!body || body.querySelector('.kt-card-rating')) return;
+                const badge = document.createElement('div');
+                badge.className = 'kt-card-rating';
+                badge.setAttribute('aria-label', `${Number(summary.average).toFixed(1)} out of 5 stars from ${summary.count} reviews`);
+                badge.innerHTML = `<span class="kt-card-rating-stars" aria-hidden="true">${'★'.repeat(Math.round(Number(summary.average)))}</span><span>${Number(summary.average).toFixed(1)}</span><span class="kt-card-rating-count">(${Number(summary.count)} ${Number(summary.count) === 1 ? 'review' : 'reviews'})</span>`;
+                const actions = body.querySelector('.p-card-actions');
+                if (actions) body.insertBefore(badge, actions);
+                else body.appendChild(badge);
+            });
+        } catch (_) { /* The item detail panel can still load its ratings. */ }
+    }
+    const listingStyles = document.createElement('style');
+    listingStyles.textContent = '.kt-card-rating{display:flex;align-items:center;gap:6px;margin:9px 0 2px;color:#8f321b;font-size:.88rem;font-weight:700}.kt-card-rating-stars{color:#d49b31;letter-spacing:.05em}.kt-card-rating-count{color:#8d8176;font-size:.8rem;font-weight:500}';
+    document.head.appendChild(listingStyles);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorateListingRatings);
+    else decorateListingRatings();
     function modalForReviews() {
         return document.querySelector('#ktViewDetailsModal, #viewDetailsModal, #pViewModal');
     }

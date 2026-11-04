@@ -15,9 +15,24 @@ function kt_review_response(int $status, array $data): void
 if (!kt_reviews_ensure_schema($conn)) kt_review_response(500, ['success' => false, 'message' => 'Reviews are temporarily unavailable.']);
 $type = strtolower(trim((string) ($_REQUEST['item_type'] ?? '')));
 $itemId = (int) ($_REQUEST['item_id'] ?? 0);
-if (!in_array($type, kt_reviews_allowed_types(), true) || $itemId < 1) {
+if (!in_array($type, kt_reviews_allowed_types(), true)) {
     kt_review_response(400, ['success' => false, 'message' => 'Choose a valid item to review.']);
 }
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['summary_ids'])) {
+    $ids = array_values(array_unique(array_filter(array_map('intval', explode(',', (string) $_GET['summary_ids'])), static fn($id) => $id > 0)));
+    $ids = array_slice($ids, 0, 100);
+    if (!$ids) kt_review_response(200, ['success' => true, 'summaries' => []]);
+    $idList = implode(',', $ids);
+    $summaryStmt = $conn->prepare("SELECT item_id, COUNT(*) review_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE item_type = ? AND item_id IN ($idList) GROUP BY item_id");
+    if (!$summaryStmt) kt_review_response(500, ['success' => false, 'message' => 'Ratings are temporarily unavailable.']);
+    $summaryStmt->bind_param('s', $type);
+    $summaryStmt->execute();
+    $summaries = [];
+    foreach ($summaryStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $summaries[(int) $row['item_id']] = ['count' => (int) $row['review_count'], 'average' => (float) $row['average_rating']];
+    $summaryStmt->close();
+    kt_review_response(200, ['success' => true, 'summaries' => $summaries]);
+}
+if ($itemId < 1) kt_review_response(400, ['success' => false, 'message' => 'Choose a valid item to review.']);
 $destinationCategories = ['nature', 'resort', 'industry', 'accommodation', 'church', 'service'];
 $table = in_array($type, $destinationCategories, true) ? 'destination' : match ($type) {
     'restaurant' => 'restaurants', 'product' => 'products', 'fiesta' => 'fiestas', default => '',
