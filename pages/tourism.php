@@ -77,7 +77,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
     <title>Tourism – KULTOURA</title>
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
-    <link rel="stylesheet" href="../assets/css/tourism.css">
+    <link rel="stylesheet" href="../assets/css/tourism.css?v=20261104-1">
     <link rel="stylesheet" href="../assets/css/pagewidget.css">
 </head>
 <body>

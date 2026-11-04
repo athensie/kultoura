@@ -134,8 +134,8 @@ body {
 }
 .t-card-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
 }
 .t-card {
     min-width: 0;
@@ -146,10 +146,10 @@ body {
     padding: 0;
     background: #d9d0c5;
     border: 0;
-    border-radius: 4px;
+    border-radius: 0;
     text-decoration: none;
     color: #2c1a0e;
-    transition: all 0.22s;
+    transition: transform 0.22s;
     position: relative;
     overflow: hidden;
     box-shadow: none;
@@ -174,17 +174,21 @@ body {
     position: absolute;
     inset: 35% 0 0;
     width: auto;
-    background: linear-gradient(transparent, rgba(20, 16, 12, .82));
+    background: rgba(15, 20, 16, .5);
     transform: none;
+    opacity: 0;
     transition: opacity 0.22s ease;
 }
 .t-card:hover {
-    transform: scale(1.015);
-    box-shadow: 0 8px 24px rgba(44, 26, 14, .18);
+    z-index: 2;
+    box-shadow: 0 4px 18px rgba(44, 26, 14, .2);
 }
-.t-card:hover::before { opacity: .8; }
+.t-card:hover::before,
+.t-card:focus-visible::before { opacity: 1; }
 .t-card-icon { font-size: 26px; flex-shrink: 0; }
-.t-card-body { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; padding: 34px 16px 16px; color: #fff; }
+.t-card-body { position: absolute; z-index: 1; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; color: #fff; text-align: center; opacity: 0; transition: opacity 0.22s ease; }
+.t-card:hover .t-card-body,
+.t-card:focus-visible .t-card-body { opacity: 1; }
 .t-card-body h3 {
     font-size: 15px;
     font-weight: 700;
@@ -201,10 +205,10 @@ body {
 .t-card-arrow {
     position: absolute;
     right: 20px;
-    bottom: 18px;
+    bottom: 14px;
     font-size: 16px;
     color: #fff;
-    opacity: .8;
+    opacity: 0;
     transition: opacity 0.2s, transform 0.2s;
     flex-shrink: 0;
 }
@@ -229,12 +233,15 @@ body {
     .t-hero { padding: 72px 24px 52px; }
     .t-main { padding: 56px 16px 80px; }
     .t-category-header { flex-direction: column; gap: 10px; }
-    .t-card-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .t-card-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .t-card { min-width: unset; }
+    .t-card-body { opacity: 1; inset: auto 0 0; align-items: flex-start; text-align: left; padding: 34px 10px 10px; background: linear-gradient(transparent, rgba(15, 20, 16, .76)); }
+    .t-card-body p { display: none; }
+    .t-card-arrow { display: none; }
 }
 @media (max-width: 420px) {
-    .t-card-row { gap: 8px; }
-    .t-card-body { padding: 28px 10px 10px; }
+    .t-card-row { gap: 2px; }
+    .t-card-body { padding: 28px 7px 7px; }
     .t-card-body h3 { font-size: 13px; }
     .t-card-body p { font-size: 10px; }
 }
