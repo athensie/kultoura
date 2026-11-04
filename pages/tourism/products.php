@@ -67,7 +67,7 @@ foreach ($rows as $r) {
     <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/product.css?v=20261104-1">
+    <link rel="stylesheet" href="../../assets/css/product.css?v=20261104-2">
     <link rel="stylesheet" href="../../assets/css/product-location-map.css?v=20261102-4">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
@@ -190,7 +190,7 @@ foreach ($rows as $r) {
                     <p class="p-card-category"><?= htmlspecialchars($item['category']) ?></p>
                     <h3 class="p-card-title"><?= htmlspecialchars($item['name']) ?></h3>
                     <p class="p-card-desc"><?= htmlspecialchars($item['summary']) ?></p>
-                    <?php if (!empty($item['locations']) || !empty($item['address'])): ?><p class="p-card-location"><span aria-hidden="true">📍</span> Location of a shop near you</p><?php endif; ?>
+                    <?php if (!empty($item['locations']) || !empty($item['address'])): ?><button type="button" class="p-card-location" data-item-id="<?= (int) $item['id'] ?>" onclick="event.stopPropagation(); findNearbyShop(this)"><span aria-hidden="true">📍</span><span class="p-card-location-text">Find a shop near you</span></button><?php endif; ?>
                     <?php if ($item['price'] !== null && $item['price'] !== ''): ?>
                         <p class="p-card-price">₱<?= htmlspecialchars(number_format((float) $item['price'], 2)) ?></p>
                     <?php endif; ?>
@@ -239,6 +239,35 @@ foreach ($rows as $r) {
 <script>
 const productsData = <?php echo json_encode($products, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
 function findProduct(id) { return productsData.find(p => p.id === id); }
+function ktDistanceKm(aLat, aLng, bLat, bLng) {
+    const rad = Math.PI / 180;
+    const dLat = (bLat - aLat) * rad;
+    const dLng = (bLng - aLng) * rad;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function findNearbyShop(button) {
+    const text = button.querySelector('.p-card-location-text');
+    const item = findProduct(Number(button.dataset.itemId));
+    if (!item || !text) return;
+    if (!navigator.geolocation) { text.textContent = 'Location unavailable on this device'; return; }
+    text.textContent = 'Finding the nearest shop…';
+    navigator.geolocation.getCurrentPosition(position => {
+        const shops = (item.locations?.length ? item.locations : (item.address ? [{ address: item.address, lat: item.lat, lng: item.lng }] : []))
+            .filter(shop => shop.lat !== null && shop.lat !== '' && shop.lng !== null && shop.lng !== ''
+                && Number.isFinite(Number(shop.lat)) && Number.isFinite(Number(shop.lng)));
+        if (!shops.length) { text.textContent = 'Shop locations are not pinned yet'; return; }
+        const { latitude, longitude } = position.coords;
+        window.ktVisitorLocation = { lat: latitude, lng: longitude };
+        shops.sort((a, b) => ktDistanceKm(latitude, longitude, Number(a.lat), Number(a.lng))
+            - ktDistanceKm(latitude, longitude, Number(b.lat), Number(b.lng)));
+        const nearest = shops[0];
+        const km = ktDistanceKm(latitude, longitude, Number(nearest.lat), Number(nearest.lng));
+        const distance = km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+        text.textContent = `${nearest.store_name ? nearest.store_name + ' · ' : ''}${nearest.address || 'Nearest shop'} · ${distance}`;
+        button.title = 'Based on your current location';
+    }, () => { text.textContent = 'Allow location access to find the nearest shop'; }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+}
 let productLocationsMap = null;
 let productLocationsLayer = null;
 function renderProductLocationsMap(locations) {
@@ -379,7 +408,11 @@ function openViewDetails(id) {
     favBtn.classList.toggle('is-favorited', !!item.favorited);
     favBtn.innerHTML = item.favorited ? '&#9829;' : '&#9825;';
     document.getElementById('vdFavLabel').textContent = item.favorited ? '♥ Saved to Favorites' : '♡ Add to Favorites';
-    const locations = item.locations?.length ? item.locations : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
+    const locations = item.locations?.length ? [...item.locations] : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
+    if (window.ktVisitorLocation) {
+        locations.sort((a, b) => ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(a.lat), Number(a.lng))
+            - ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(b.lat), Number(b.lng)));
+    }
     let facts = '';
     if (item.price !== null && item.price !== '') {
         facts += `<div><p class="p-fact-label">Price</p><p class="p-fact-value">₱${Number(item.price).toFixed(2)}</p></div>`;
@@ -391,7 +424,11 @@ function openViewDetails(id) {
     storesList.replaceChildren();
     locations.forEach(location => {
         const line = document.createElement('li');
-        line.textContent = location.store_name ? `${location.store_name} — ${location.address || 'Address unavailable'}` : (location.address || 'Address unavailable');
+        const km = window.ktVisitorLocation && location.lat !== null && location.lat !== '' && location.lng !== null && location.lng !== ''
+            && Number.isFinite(Number(location.lat)) && Number.isFinite(Number(location.lng))
+            ? ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(location.lat), Number(location.lng)) : null;
+        const distance = km === null ? '' : ` · ${km.toFixed(1)} km away`;
+        line.textContent = (location.store_name ? `${location.store_name} — ` : '') + (location.address || 'Address unavailable') + distance;
         storesList.appendChild(line);
     });
     storesEl.hidden = locations.length === 0;

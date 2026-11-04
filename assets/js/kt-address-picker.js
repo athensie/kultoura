@@ -13,7 +13,7 @@ const KtAddressPicker = (function () {
       && lat >= MALVAR_BOUNDS.south && lat <= MALVAR_BOUNDS.north
       && lng >= MALVAR_BOUNDS.west && lng <= MALVAR_BOUNDS.east;
   }
-  function isMalvarAddress(address) {
+  function isMalvarAddress(address, displayName) {
     if (!address) return false;
     const localities = [address.municipality, address.city, address.town, address.village, address.suburb, address.neighbourhood, address.city_district, address.quarter, address.county]
       .filter(Boolean).map(v => String(v).toLowerCase());
@@ -23,7 +23,12 @@ const KtAddressPicker = (function () {
       value === barangay || value.startsWith(barangay + ' (') || value.startsWith(barangay + ' ')));
     const isAlias = localities.some(value => value.startsWith('san isidro west')
       || value.startsWith('san pedro i east') || value.startsWith('san pedro ii west'));
-    return inBatangas && (localities.includes('malvar') || isBarangay || isAlias);
+    const display = String(displayName || '').toLowerCase();
+    const displayConfirmsMalvar = display.includes('malvar') && display.includes('batangas');
+    const displayConfirmsBarangay = display.includes('batangas')
+      && MALVAR_BARANGAYS.some(barangay => display.includes(barangay));
+    return (inBatangas && (localities.includes('malvar') || isBarangay || isAlias))
+      || displayConfirmsMalvar || displayConfirmsBarangay;
   }
   function debounce(fn, wait) {
     let t = null;
@@ -44,7 +49,7 @@ const KtAddressPicker = (function () {
       const res = await fetch(url);
       const results = await res.json();
       suggestBox.innerHTML = '';
-      results.filter(r => isMalvarAddress(r.address)).forEach(function (r) {
+      results.filter(r => isMalvarAddress(r.address, r.display_name)).forEach(function (r) {
         const item = document.createElement('div');
         item.className = 'kt-suggest-item';
         item.textContent = r.display_name;
@@ -110,7 +115,7 @@ const KtAddressPicker = (function () {
         if (lastValidPosition) marker.setLatLng(lastValidPosition);
         return false;
       }
-      if (!isMalvarAddress(geocoded.address)) {
+      if (!isMalvarAddress(geocoded.address, geocoded.display_name || addressText)) {
         setStatus('That pin is outside Malvar, Batangas. Choose a location inside Malvar.');
         if (lastValidPosition) marker.setLatLng(lastValidPosition);
         return false;
@@ -165,7 +170,7 @@ const KtAddressPicker = (function () {
             const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=ph&viewbox=121.103757,14.066481,121.183872,13.997231&bounded=1&q=' + encodeURIComponent(query);
             const res = await fetch(url);
             const results = await res.json();
-            if (results.length && isMalvarAddress(results[0].address)) {
+            if (results.length && isMalvarAddress(results[0].address, results[0].display_name)) {
               setPosition(parseFloat(results[0].lat), parseFloat(results[0].lon), 16, results[0].display_name, results[0].address);
             } else {
               setStatus('Choose an address inside Malvar, Batangas.');

@@ -190,8 +190,15 @@
     font-size: 12px;
     font-weight: 600;
     line-height: 1.45;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
 }
 .p-card-location span { flex: 0 0 auto; }
+.p-card-location-text { flex: 1 1 auto; }
 .p-product-store-addresses {
     display: grid;
     gap: 7px;

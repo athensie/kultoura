@@ -504,7 +504,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261104-2"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261104-3"></script>
 <script src="../assets/js/admineventandfiesta.js?v=20261016"></script>
 <script>initViewToggle('events', '.data-table-wrap', '#eventsGrid'); initSidebarCollapse();</script>
 <script>
