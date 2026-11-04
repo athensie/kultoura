@@ -333,26 +333,22 @@ $normalizePlaceKey = static function (string $key) use ($placesByKey, $destinati
     if (isset($placesByKey[$key])) {
         return $key;
     }
-    if (preg_match('/^destination-(\d+)$/', $key, $matches)) {
-        foreach ($destinationTypes as $destinationType) {
-            $categoryKey = $destinationType . '-' . (int) $matches[1];
-            if (isset($placesByKey[$categoryKey])) {
-                return $categoryKey;
-            }
+    $typePattern = implode('|', array_map(static fn($type) => preg_quote($type, '/'), $destinationTypes));
+    if (preg_match('/^(?:destination|' . $typePattern . ')-(\d+)$/', $key, $matches)) {
+        $destinationKey = 'destination-' . (int) $matches[1];
+        if (isset($placesByKey[$destinationKey])) {
+            return $destinationKey;
         }
     }
     return null;
 };
 foreach ($itemHistory as &$interaction) {
-    if (($interaction['type'] ?? '') !== 'destination') {
+    if (!in_array(($interaction['type'] ?? ''), $destinationTypes, true)) {
         continue;
     }
     $destinationId = (int) ($interaction['id'] ?? 0);
-    foreach ($destinationTypes as $destinationType) {
-        if (isset($placesByKey[$destinationType . '-' . $destinationId])) {
-            $interaction['type'] = $destinationType;
-            break;
-        }
+    if (isset($placesByKey['destination-' . $destinationId])) {
+        $interaction['type'] = 'destination';
     }
 }
 unset($interaction);
