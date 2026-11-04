@@ -38,10 +38,10 @@
             <div class="kt-review-list" aria-live="polite"><p class="kt-review-empty">Loading reviews…</p></div>
             <form class="kt-review-form">
                 <h4>Share your experience</h4>
-                <label for="ktReviewRating">Your rating</label>
-                <select id="ktReviewRating" name="rating" required>
-                    <option value="5">5 stars — Excellent</option><option value="4">4 stars — Good</option><option value="3">3 stars — Average</option><option value="2">2 stars — Poor</option><option value="1">1 star — Very poor</option>
-                </select>
+                <span class="kt-review-rating-label">Your rating</span>
+                <div class="kt-review-star-picker" role="radiogroup" aria-label="Choose a rating from one to five stars">
+                    ${[1, 2, 3, 4, 5].map((rating) => `<label title="${rating} ${rating === 1 ? 'star' : 'stars'}"><input type="radio" name="rating" value="${rating}" required aria-label="${rating} ${rating === 1 ? 'star' : 'stars'}"><span aria-hidden="true">★</span></label>`).join('')}
+                </div>
                 <label for="ktReviewComment">Comment</label>
                 <textarea id="ktReviewComment" name="comment" rows="3" minlength="3" maxlength="1500" placeholder="What should other visitors know?" required></textarea>
                 <button type="submit" class="kt-review-submit">Submit review</button>
@@ -104,6 +104,12 @@
             reviewForm.reset();
             const status = reviewForm.querySelector('.kt-review-form-status');
             if (status) status.textContent = '';
+            reviewForm.querySelectorAll('input[name="rating"]').forEach((input) => {
+                input.onchange = () => reviewForm.querySelectorAll('.kt-review-star-picker label').forEach((label) => {
+                    label.classList.toggle('is-selected', Number(label.querySelector('input').value) <= Number(input.value));
+                });
+            });
+            reviewForm.onreset = () => reviewForm.querySelectorAll('.kt-review-star-picker label').forEach((label) => label.classList.remove('is-selected'));
             reviewForm.onsubmit = (event) => submitReview(event, panel, type, itemId);
         }
         await loadReviews(panel, type, itemId, 0);

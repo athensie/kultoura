@@ -21,8 +21,14 @@
 .kt-review-empty,.kt-review-signin { color: #82766b; font-size: .86rem; line-height: 1.5; }
 .kt-review-form { background: #f8f4ee; border: 1px solid #ebe1d5; border-radius: 12px; display: grid; gap: 8px; margin-top: 16px; padding: 14px; }
 .kt-review-form h4 { font: 700 1rem Georgia,serif; margin: 0 0 3px; }
-.kt-review-form label { color: #82766b; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.kt-review-form select,.kt-review-form textarea { background: white; border: 1px solid #e2d8cb; border-radius: 8px; color: #382417; font: inherit; padding: 9px 10px; width: 100%; }
+.kt-review-form label,.kt-review-rating-label { color: #82766b; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.kt-review-form textarea { background: white; border: 1px solid #e2d8cb; border-radius: 8px; color: #382417; font: inherit; padding: 9px 10px; width: 100%; }
+.kt-review-star-picker { display: flex; gap: 3px; }
+.kt-review-star-picker label { color: #c9bcae; cursor: pointer; font-size: 1.8rem; font-weight: 400; letter-spacing: 0; line-height: 1; position: relative; text-transform: none; transition: color .15s, transform .15s; }
+.kt-review-star-picker label:hover,.kt-review-star-picker label.is-selected { color: #b27a24; }
+.kt-review-star-picker label:hover { transform: translateY(-1px); }
+.kt-review-star-picker input { height: 1px; opacity: 0; position: absolute; width: 1px; }
+.kt-review-star-picker input:focus-visible + span { outline: 2px solid #96341c; outline-offset: 2px; }
 .kt-review-form textarea { resize: vertical; }
 .kt-review-submit { background: #96341c; border: 0; border-radius: 999px; color: white; cursor: pointer; display: inline-flex; font: inherit; font-size: .85rem; font-weight: 700; justify-content: center; padding: 10px 16px; text-decoration: none; }
 .kt-review-submit:disabled { cursor: wait; opacity: .6; }
