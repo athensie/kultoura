@@ -181,6 +181,7 @@
     margin: 0 0 8px;
 }
 .p-card-location {
+    box-sizing: border-box;
     display: flex;
     align-items: flex-start;
     gap: 6px;
@@ -197,8 +198,13 @@
     text-align: left;
     cursor: pointer;
 }
-.p-card-location span { flex: 0 0 auto; }
-.p-card-location-text { flex: 1 1 auto; }
+.p-card-location > span:first-child { flex: 0 0 auto; }
+.p-card-location-text {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
 .p-product-store-addresses {
     display: grid;
     gap: 7px;

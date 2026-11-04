@@ -204,7 +204,7 @@ foreach ($rows as $r) {
         <?php endif; ?>
     </section>
 </main>
-<div class="p-modal-overlay" id="viewDetailsModal" onclick="closeModalOutsideX(event, 'viewDetailsModal')">
+<div class="p-modal-overlay" id="viewDetailsModal" data-item-id="" onclick="closeModalOutsideX(event, 'viewDetailsModal')">
     <div class="p-modal-card">
         <button class="p-modal-close" onclick="closeModalX('viewDetailsModal')">&times;</button>
         <div class="p-modal-media">
@@ -267,6 +267,37 @@ function findNearbyShop(button) {
         text.textContent = `${nearest.store_name ? nearest.store_name + ' · ' : ''}${nearest.address || 'Nearest shop'} · ${distance}`;
         button.title = 'Based on your current location';
     }, () => { text.textContent = 'Allow location access to find the nearest shop'; }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+}
+function showNearestShopInDetails(itemId, locations) {
+    const mappedLocations = locations.filter(location => location.lat !== null && location.lat !== ''
+        && location.lng !== null && location.lng !== ''
+        && Number.isFinite(Number(location.lat)) && Number.isFinite(Number(location.lng)));
+    if (!navigator.geolocation || !mappedLocations.length) return;
+    navigator.geolocation.getCurrentPosition(position => {
+        const modal = document.getElementById('viewDetailsModal');
+        if (modal.dataset.itemId !== String(itemId)) return;
+        const { latitude, longitude } = position.coords;
+        window.ktVisitorLocation = { lat: latitude, lng: longitude };
+        const nearbyLocations = mappedLocations.slice();
+        nearbyLocations.sort((a, b) => ktDistanceKm(latitude, longitude, Number(a.lat), Number(a.lng))
+            - ktDistanceKm(latitude, longitude, Number(b.lat), Number(b.lng)));
+        const storesList = document.getElementById('vdStoresList');
+        storesList.replaceChildren();
+        nearbyLocations.forEach((location, index) => {
+            const line = document.createElement('li');
+            const km = ktDistanceKm(latitude, longitude, Number(location.lat), Number(location.lng));
+            const distance = km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+            line.textContent = `${index === 0 ? 'Nearest shop · ' : ''}${location.store_name ? location.store_name + ' — ' : ''}${location.address || 'Address unavailable'} · ${distance}`;
+            storesList.appendChild(line);
+        });
+        locations.filter(location => !nearbyLocations.includes(location)).forEach(location => {
+            const line = document.createElement('li');
+            line.textContent = `${location.store_name ? location.store_name + ' — ' : ''}${location.address || 'Address unavailable'}`;
+            storesList.appendChild(line);
+        });
+        document.getElementById('vdStoresHeading').textContent = nearbyLocations.length ? 'Nearest shops near you' : 'Shop locations';
+        renderProductLocationsMap(locations);
+    }, () => {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
 }
 let productLocationsMap = null;
 let productLocationsLayer = null;
@@ -410,8 +441,14 @@ function openViewDetails(id) {
     document.getElementById('vdFavLabel').textContent = item.favorited ? '♥ Saved to Favorites' : '♡ Add to Favorites';
     const locations = item.locations?.length ? [...item.locations] : (item.address ? [{ store_name: '', address: item.address, lat: item.lat, lng: item.lng }] : []);
     if (window.ktVisitorLocation) {
-        locations.sort((a, b) => ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(a.lat), Number(a.lng))
-            - ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(b.lat), Number(b.lng)));
+        locations.sort((a, b) => {
+            const aMapped = a.lat !== null && a.lat !== '' && a.lng !== null && a.lng !== '' && Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lng));
+            const bMapped = b.lat !== null && b.lat !== '' && b.lng !== null && b.lng !== '' && Number.isFinite(Number(b.lat)) && Number.isFinite(Number(b.lng));
+            if (aMapped !== bMapped) return aMapped ? -1 : 1;
+            if (!aMapped) return 0;
+            return ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(a.lat), Number(a.lng))
+                - ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(b.lat), Number(b.lng));
+        });
     }
     let facts = '';
     if (item.price !== null && item.price !== '') {
@@ -420,22 +457,27 @@ function openViewDetails(id) {
     if (locations.length) facts += `<div><p class="p-fact-label">Shop locations</p><p class="p-fact-value">${locations.length} ${locations.length === 1 ? 'shop' : 'shops'} in Malvar</p></div>`;
     document.getElementById('vdFacts').innerHTML = facts;
     const storesEl = document.getElementById('vdStores');
+    document.getElementById('viewDetailsModal').dataset.itemId = String(id);
     const storesList = document.getElementById('vdStoresList');
     storesList.replaceChildren();
-    locations.forEach(location => {
+    locations.forEach((location, index) => {
         const line = document.createElement('li');
         const km = window.ktVisitorLocation && location.lat !== null && location.lat !== '' && location.lng !== null && location.lng !== ''
             && Number.isFinite(Number(location.lat)) && Number.isFinite(Number(location.lng))
             ? ktDistanceKm(window.ktVisitorLocation.lat, window.ktVisitorLocation.lng, Number(location.lat), Number(location.lng)) : null;
         const distance = km === null ? '' : ` · ${km.toFixed(1)} km away`;
-        line.textContent = (location.store_name ? `${location.store_name} — ` : '') + (location.address || 'Address unavailable') + distance;
+        line.textContent = (window.ktVisitorLocation && index === 0 ? 'Nearest shop · ' : '')
+            + (location.store_name ? `${location.store_name} — ` : '') + (location.address || 'Address unavailable') + distance;
         storesList.appendChild(line);
     });
     storesEl.hidden = locations.length === 0;
-    document.getElementById('vdStoresHeading').textContent = locations.length === 1 ? 'Where to buy' : 'Places that sell this product';
+    document.getElementById('vdStoresHeading').textContent = window.ktVisitorLocation
+        ? 'Nearest shops near you'
+        : (locations.length === 1 ? 'Where to buy' : 'Places that sell this product');
     ktReviewsOpen('product', id);
     openModalX('viewDetailsModal');
     renderProductLocationsMap(locations);
+    if (!window.ktVisitorLocation) showNearestShopInDetails(id, locations);
 }
 /* ---------------- Favorites (used by card hearts + modal heart) ---------------- */
 function toggleFavorite(btn) {
