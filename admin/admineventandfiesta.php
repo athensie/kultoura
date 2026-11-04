@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hasLng = trim((string) $data['longitude']) !== '';
             if (($hasLat || $hasLng) && (!$hasLat || !$hasLng
                 || !kt_malvar_coordinates_in_bounds($data['latitude'], $data['longitude'])
-                || stripos($data['location'], 'Malvar') === false)) {
+                || !kt_malvar_address_is_allowed((string) $data['location']))) {
                 $_SESSION['flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';
                 header('Location: admineventandfiesta.php');
                 exit;

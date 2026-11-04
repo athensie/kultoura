@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             $pinLat = trim((string) ($pinRow['latitude'] ?? ''));
             $pinLng = trim((string) ($pinRow['longitude'] ?? ''));
             $pinAddress = trim((string) ($pinRow['address'] ?? ''));
-            if (($pinLat !== '' || $pinLng !== '') && (!$pinLat || !$pinLng || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || stripos($pinAddress, 'Malvar') === false)) {
+            if (($pinLat !== '' || $pinLng !== '') && (!$pinLat || !$pinLng || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || !kt_malvar_address_is_allowed($pinAddress))) {
                 $invalidPin = true;
                 break;
             }
@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             $pinLng = trim((string) ($_POST['longitude'] ?? ''));
             $address = trim((string) ($_POST['address'] ?? ''));
             $invalidPin = ($pinLat !== '' || $pinLng !== '') && (!$pinLat || !$pinLng
-                || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || stripos($address, 'Malvar') === false);
+                || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || !kt_malvar_address_is_allowed($address));
         }
         if ($invalidPin) {
             $_SESSION['admin_flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';

@@ -3,6 +3,11 @@ const KtAddressPicker = (function () {
   // Malvar municipality envelope; reverse-geocoded municipality/province checks
   // below reject neighboring towns that happen to fall inside this envelope.
   const MALVAR_BOUNDS = { south: 13.997231, west: 121.103757, north: 14.066481, east: 121.183872 };
+  const MALVAR_BARANGAYS = [
+    'bagong pook', 'bilucao', 'san isidro west', 'bulihan', 'luta del norte', 'luta del sur',
+    'poblacion', 'san andres', 'san fernando', 'san isidro east', 'san gregorio', 'san juan',
+    'san pedro i', 'san pedro ii', 'san pioquinto', 'santiago',
+  ];
   function isInsideMalvarBounds(lat, lng) {
     return Number.isFinite(lat) && Number.isFinite(lng)
       && lat >= MALVAR_BOUNDS.south && lat <= MALVAR_BOUNDS.north
@@ -10,9 +15,15 @@ const KtAddressPicker = (function () {
   }
   function isMalvarAddress(address) {
     if (!address) return false;
-    const localities = [address.municipality, address.city, address.town].filter(Boolean).map(v => String(v).toLowerCase());
+    const localities = [address.municipality, address.city, address.town, address.village, address.suburb, address.neighbourhood, address.city_district, address.quarter]
+      .filter(Boolean).map(v => String(v).toLowerCase());
     const provinces = [address.province, address.county].filter(Boolean).map(v => String(v).toLowerCase());
-    return localities.includes('malvar') && provinces.some(v => v.includes('batangas'));
+    const inBatangas = provinces.some(v => v.includes('batangas'));
+    const isBarangay = localities.some(value => MALVAR_BARANGAYS.some(barangay =>
+      value === barangay || value.startsWith(barangay + ' (') || value.startsWith(barangay + ' ')));
+    const isAlias = localities.some(value => value.startsWith('san isidro west')
+      || value.startsWith('san pedro i east') || value.startsWith('san pedro ii west'));
+    return inBatangas && (localities.includes('malvar') || isBarangay || isAlias);
   }
   function debounce(fn, wait) {
     let t = null;
