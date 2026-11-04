@@ -383,5 +383,6 @@ function ktOpenNavigate(btn) {
 </script>
 <script src="../../assets/js/navbar.js"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
+<script src="../../assets/js/open-popular-item.js?v=20261104-1"></script>
 </body>
 </html>

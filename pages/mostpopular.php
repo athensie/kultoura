@@ -97,6 +97,11 @@ foreach ($popularRows as $r) {
         'nature', 'resort', 'industry', 'accommodation', 'bank', 'service', 'church' => $destinationPageByCategory[$type] ?? 'tourism.php',
         default       => 'tourism.php',
     };
+    $personSlug = strtolower(trim((string) ($item['fullname'] ?? '')));
+    $personSlug = trim((string) preg_replace('/[^a-z0-9]+/', '-', $personSlug), '-') . '-' . $id;
+    $viewUrl = 'tourism/' . $viewPage . ($type === 'person'
+        ? '?person=' . rawurlencode($personSlug)
+        : '?open_item=' . $id);
     $rawImage = $item['image'] ?? '';
     $imageSrc = '';
     if ($rawImage !== '') {
@@ -113,6 +118,7 @@ foreach ($popularRows as $r) {
         'image'     => $imageSrc,
         'views'     => (int) $r['views'],
         'viewPage'  => 'tourism/' . $viewPage,
+        'viewUrl'   => $viewUrl,
     ];
 }
 $typeCounts = [];
@@ -280,7 +286,7 @@ foreach ($popularItems as $p) {
                                 <?php if (!empty($p['summary'])): ?>
                                     <p class="m-card-desc"><?php echo htmlspecialchars($p['summary']); ?></p>
                                 <?php endif; ?>
-                                <a href="<?php echo htmlspecialchars($p['viewPage']); ?>" class="m-card-link">View →</a>
+                                <a href="<?php echo htmlspecialchars($p['viewUrl']); ?>" class="m-card-link">View →</a>
                             </div>
                         </div>
                     <?php endforeach; ?>

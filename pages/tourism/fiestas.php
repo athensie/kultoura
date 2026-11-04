@@ -752,5 +752,6 @@ function showPToast(msg) {
 }
 </script>
 <script>document.body.dataset.loggedIn = '<?php echo isset($_SESSION['user_id']) ? '1' : '0'; ?>';</script><script src="../../assets/js/reviews.js?v=20261104-2"></script>
+<script src="../../assets/js/open-popular-item.js?v=20261104-1"></script>
 </body>
 </html>
