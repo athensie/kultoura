@@ -393,9 +393,10 @@ foreach ($places as $p) {
 $recommended = [];
 if ($hasHistory) {
     $scored = [];
+    $preferredCategories = array_fill_keys($topCategories, true);
     foreach ($places as $p) {
         $key = $p['itemType'] . '-' . $p['itemId'];
-        if (isset($viewedItemKeys[$key])) continue;
+        if (isset($viewedItemKeys[$key]) || !isset($preferredCategories[$p['category']])) continue;
         $scored[] = ['place' => $p, 'score' => $interestScores[$p['id']]];
     }
     usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
@@ -585,7 +586,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
             <div class="fy-section-head">
                 <h2><?php echo $hasHistory ? 'Because You Explored' : 'A First Look at Malvar'; ?></h2>
                 <p><?php echo $hasHistory
-                    ? 'More places related to items you have viewed' . ($isLoggedIn ? ', saved, or added to your travel diary.' : '.')
+                    ? 'More items from categories you have viewed' . ($isLoggedIn ? ', saved, or added to your travel diary.' : '.')
                     : 'Recommendations appear after you view an item. Signed-in activity can also include favorites and travel diary entries.'; ?></p>
             </div>
             <div class="fy-toolbar">
