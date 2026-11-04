@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
-        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero'], true)) {
+        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero', 'tourism_products', 'tourism_destinations', 'tourism_culture', 'tourism_services'], true)) {
             if (!empty($_POST['remove_image'])) {
                 $stmt = $conn->prepare("INSERT INTO site_photos (photo_key, image) VALUES (?, NULL) ON DUPLICATE KEY UPDATE image = NULL");
                 $stmt->bind_param('s', $key);
@@ -133,6 +133,15 @@ $heroPhotoGroups = [
             'about_hero' => ['label' => 'Hero Photo', 'hint' => 'The full-width background photo behind "About / Malvar".', 'url' => BASE_URL . '/pages/about.php', 'highlight' => '.a-hero'],
         ],
     ],
+    'Tourism Page' => [
+        'icon' => 'map',
+        'slots' => [
+            'tourism_products' => ['label' => 'Local Products', 'hint' => 'Featured image for the Local Products section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#products', 'highlight' => '#products'],
+            'tourism_destinations' => ['label' => 'Local Destinations', 'hint' => 'Featured image for the Local Destinations section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#destinations', 'highlight' => '#destinations'],
+            'tourism_culture' => ['label' => 'Culture', 'hint' => 'Featured image for the Culture section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#culture', 'highlight' => '#culture'],
+            'tourism_services' => ['label' => 'Other Services', 'hint' => 'Featured image for the Other Services section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#services', 'highlight' => '#services'],
+        ],
+    ],
 ];
 foreach ($heroPhotoGroups as &$group) {
     foreach ($group['slots'] as $key => &$slot) {
@@ -208,7 +217,7 @@ $iconLabels = sitecontent_icon_labels();
             <div>
                 <div class="section-label">Content Management</div>
                 <h1>Site <em>Content</em></h1>
-                <p>Control the Homepage and About page hero photos, plus the About page's History, Geography, and other story sections.</p>
+                <p>Control featured photos across the Homepage, About, and Tourism pages, plus the About page's story sections.</p>
             </div>
         </div>
         <?php if (!$isSuperAdmin): ?>

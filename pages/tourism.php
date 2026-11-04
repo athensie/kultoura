@@ -9,6 +9,12 @@ require_once __DIR__ . '/../config/page_widgets.php';
 $pageWidget = kt_page_widget_get($conn, 'tourism');
 analytics_track($conn, 'tourism');
 $tourismHeroPhoto = sitecontent_get_photo($conn, 'tourism_hero');
+$tourismCategoryPhotos = [
+    'products' => sitecontent_get_photo($conn, 'tourism_products'),
+    'destinations' => sitecontent_get_photo($conn, 'tourism_destinations'),
+    'culture' => sitecontent_get_photo($conn, 'tourism_culture'),
+    'services' => sitecontent_get_photo($conn, 'tourism_services'),
+];
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
 function kt_latest_image(mysqli $conn, string $table, ?string $categoryColumn = null, ?string $categoryValue = null): ?string
@@ -57,6 +63,10 @@ foreach ($hubImages as $key => $value) {
         $hubImages[$key] = '../assets/uploads/' . $hubImageSubfolder[$key] . '/' . basename($value);
     }
 }
+$hubImages['products'] = $tourismCategoryPhotos['products'] ?: ($hubImages['products'] ?? null);
+$hubImages['nature'] = $tourismCategoryPhotos['destinations'] ?: ($hubImages['nature'] ?? null);
+$hubImages['fiestas'] = $tourismCategoryPhotos['culture'] ?: ($hubImages['fiestas'] ?? null);
+$hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['services'] ?? null);
 ?>
 <!DOCTYPE html>
 <html lang="en">
