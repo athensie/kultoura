@@ -471,6 +471,19 @@ if ($hasHistory) {
             $recommended[] = $pick['place'];
         }
     }
+} elseif (!empty($places)) {
+    if (empty($_SESSION['fy_recommendation_seed'])) {
+        $_SESSION['fy_recommendation_seed'] = bin2hex(random_bytes(16));
+    }
+    $recommendationSeed = (string) $_SESSION['fy_recommendation_seed'];
+    $randomPlaces = $places;
+    usort($randomPlaces, static function (array $a, array $b) use ($recommendationSeed): int {
+        return strcmp(
+            hash('sha256', $recommendationSeed . '|' . $a['id']),
+            hash('sha256', $recommendationSeed . '|' . $b['id'])
+        );
+    });
+    $recommended = array_slice($randomPlaces, 0, 12);
 }
 $categoryCounts = [];
 foreach ($places as $p) {
@@ -597,7 +610,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <?php if ($hasHistory): ?>
                     Picked based on what you've been exploring around Malvar.
                 <?php else: ?>
-                    View a destination, product, fiesta, restaurant, or person to start building recommendations from your activity.
+                    Here's a fresh mix of Malvar places and local finds. Open, save, or add an item to your travel diary to personalize your recommendations.
                 <?php endif; ?>
             </p>
             <?php if ($hasHistory): ?>
@@ -644,7 +657,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
                 <h2><?php echo $hasHistory ? 'Because You Explored' : 'A First Look at Malvar'; ?></h2>
                 <p><?php echo $hasHistory
                     ? 'More items from categories you have viewed' . ($isLoggedIn ? ', saved, or added to your travel diary.' : '.')
-                    : 'Recommendations appear after you view an item. Signed-in activity can also include favorites and travel diary entries.'; ?></p>
+                    : 'A different mix to get you started. Recommendations will adapt to your views, favorites, and travel diary.'; ?></p>
             </div>
             <div class="fy-toolbar">
                 <div class="fy-filter-bar" id="fyFilterBar">
