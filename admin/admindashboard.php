@@ -392,7 +392,20 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
     <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261102-1">
     <link rel="stylesheet" href="../assets/css/admin-theme.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
-    <style>.period-selector .period-btn { text-decoration: none; display: inline-block; }</style>
+    <style>
+        .period-selector .period-btn { text-decoration: none; display: inline-block; }
+        .print-analytics-btn { background: #a5be91; border: 0; border-radius: 999px; color: #152318; cursor: pointer; font: inherit; font-weight: 700; padding: 11px 17px; }
+        @media print {
+            body, .main-content, .dash-wrapper { background: #fff !important; color: #111 !important; }
+            .sidebar, .hamburger-btn, .admin-site-switch-row, .period-selector, .analytics-filter-bar, .traffic-range-switch, .print-analytics-btn { display: none !important; }
+            .main-content { margin: 0 !important; padding: 0 !important; }
+            .dash-wrapper { max-width: none !important; padding: 0 !important; }
+            .page-header, .chart-box, .kpi-card, .analytics-section { background: #fff !important; color: #111 !important; box-shadow: none !important; break-inside: avoid; }
+            .page-header p, .chart-box p, .chart-box h2, .chart-box h3, .chart-box h4, .kpi-label, .kpi-change, .alabel-desc { color: #222 !important; }
+            .chart-box, .kpi-card { border: 1px solid #bbb !important; }
+            canvas { max-width: 100% !important; }
+        }
+    </style>
 </head>
 <body>
 <aside class="sidebar" id="sidebar">
@@ -453,6 +466,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <a href="?period=week" class="period-btn<?php echo $period === 'week' ? ' active' : ''; ?>">This Week</a>
                 <a href="?period=month" class="period-btn<?php echo $period === 'month' ? ' active' : ''; ?>">This Month</a>
                 <a href="?period=year" class="period-btn<?php echo $period === 'year' ? ' active' : ''; ?>">This Year</a>
+                <button type="button" class="print-analytics-btn" onclick="window.print()">Print Analytics</button>
             </div>
         </div>
         <section class="traffic-overview chart-box animate" aria-labelledby="trafficOverviewTitle">

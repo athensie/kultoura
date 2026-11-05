@@ -68,6 +68,7 @@ $aiTextModel = ai_configured() && groq_configured()
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminreviews.php"><span class="nav-icon"><i data-lucide="star" class="lucide"></i></span> Ratings &amp; Reviews</a></li>
     </ul>
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">
