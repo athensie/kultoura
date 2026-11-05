@@ -447,7 +447,9 @@ foreach ($places as $p) {
 }
 $recommended = [];
 if ($hasHistory) {
-    foreach (array_slice($topCategories, 0, 4) as $cat) {
+    $recommendationCategories = array_slice($topCategories, 0, 4);
+    $categoryQueues = [];
+    foreach ($recommendationCategories as $cat) {
         $unviewedPicks = [];
         $viewedPicks = [];
         foreach ($places as $p) {
@@ -463,13 +465,18 @@ if ($hasHistory) {
         $sortPicks = static fn($a, $b) => $b['score'] <=> $a['score'];
         usort($unviewedPicks, $sortPicks);
         usort($viewedPicks, $sortPicks);
-        $categoryPicks = array_slice($unviewedPicks, 0, 3);
-        if (count($categoryPicks) < 3) {
-            $categoryPicks = array_merge($categoryPicks, array_slice($viewedPicks, 0, 3 - count($categoryPicks)));
+        $categoryQueues[] = array_column(array_merge($unviewedPicks, $viewedPicks), 'place');
+    }
+    while (count($recommended) < 12) {
+        $addedInRound = false;
+        foreach ($categoryQueues as &$queue) {
+            if (!$queue) continue;
+            $recommended[] = array_shift($queue);
+            $addedInRound = true;
+            if (count($recommended) >= 12) break;
         }
-        foreach ($categoryPicks as $pick) {
-            $recommended[] = $pick['place'];
-        }
+        unset($queue);
+        if (!$addedInRound) break;
     }
 } elseif (!empty($places)) {
     if (empty($_SESSION['fy_recommendation_seed'])) {
