@@ -1,7 +1,7 @@
 (function () {
     const stylesheet = document.createElement('link');
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = '../../assets/css/reviews.css?v=20261104-1';
+    stylesheet.href = '../../assets/css/reviews.css?v=20261105-1';
     document.head.appendChild(stylesheet);
 
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -105,13 +105,52 @@
             list.innerHTML = '<p class="kt-review-empty">No reviews for this rating yet. Be the first to share your experience.</p>';
             return;
         }
+        const canReport = document.body.dataset.loggedIn === '1';
         list.innerHTML = data.reviews.map((review) => `
             <article class="kt-review-entry">
                 <div class="kt-review-entry-head"><strong>${esc(review.display_name)}</strong><time>${esc(new Date(review.created_at.replace(' ', 'T')).toLocaleDateString())}</time></div>
                 <div class="kt-review-stars" aria-label="${Number(review.rating)} out of 5 stars">${stars(review.rating)}</div>
                 <p>${esc(review.comment)}</p>
+                ${canReport ? `<button type="button" class="kt-review-report-toggle" data-review-id="${Number(review.review_id)}">Report</button>
+                <form class="kt-review-report-form" hidden data-review-id="${Number(review.review_id)}">
+                    <label>Reason <select name="reason" required><option value="">Choose a reason</option><option value="spam">Spam</option><option value="harassment">Harassment or bullying</option><option value="hate">Hateful content</option><option value="sexual">Sexual content</option><option value="personal_info">Personal information</option><option value="misinformation">Misleading information</option><option value="other">Other</option></select></label>
+                    <textarea name="details" maxlength="1000" rows="2" placeholder="Additional details (optional)"></textarea>
+                    <div><button type="submit" class="kt-review-submit">Send report</button> <button type="button" class="kt-review-report-cancel">Cancel</button></div>
+                    <p class="kt-review-report-status" aria-live="polite"></p>
+                </form>` : ''}
             </article>
         `).join('');
+        list.querySelectorAll('.kt-review-report-toggle').forEach((button) => {
+            button.onclick = () => {
+                const form = button.nextElementSibling;
+                form.hidden = !form.hidden;
+            };
+        });
+        list.querySelectorAll('.kt-review-report-cancel').forEach((button) => {
+            button.onclick = () => { button.closest('form').hidden = true; };
+        });
+        list.querySelectorAll('.kt-review-report-form').forEach((form) => {
+            form.onsubmit = async (event) => {
+                event.preventDefault();
+                const submit = form.querySelector('[type="submit"]');
+                const status = form.querySelector('.kt-review-report-status');
+                const body = new URLSearchParams(new FormData(form));
+                body.set('action', 'report');
+                const modal = modalForReviews();
+                body.set('item_type', modal?.dataset.reviewType || '');
+                body.set('item_id', modal?.dataset.reviewItemId || '');
+                body.set('review_id', form.dataset.reviewId);
+                submit.disabled = true;
+                status.textContent = 'Sending report…';
+                try {
+                    const response = await fetch('../reviews_api.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body });
+                    const result = await response.json();
+                    status.textContent = result.message || 'Could not send report.';
+                    if (result.success) { form.reset(); form.hidden = true; }
+                } catch (_) { status.textContent = 'Could not send report. Please try again.'; }
+                finally { submit.disabled = false; }
+            };
+        });
     }
 
     window.ktReviewsOpen = async function (type, itemId) {

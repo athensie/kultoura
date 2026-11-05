@@ -35,6 +35,13 @@
 .kt-review-submit:disabled { cursor: wait; opacity: .6; }
 .kt-review-login { justify-self: start; }
 .kt-review-form-status { color: #6f6258; font-size: .78rem; margin: 0; min-height: 1em; }
+.kt-review-report-toggle,.kt-review-report-cancel { background: transparent; border: 0; color: #8a7768; cursor: pointer; font: inherit; font-size: .76rem; margin-top: 7px; padding: 4px 0; text-decoration: underline; }
+.kt-review-report-form { background: #f8f4ee; border: 1px solid #ebe1d5; border-radius: 9px; display: grid; gap: 8px; margin: 8px 0 12px; padding: 10px; }
+.kt-review-report-form[hidden] { display: none; }
+.kt-review-report-form label { color: #82766b; display: grid; font-size: .72rem; font-weight: 700; gap: 5px; }
+.kt-review-report-form select,.kt-review-report-form textarea { background: #fff; border: 1px solid #e2d8cb; border-radius: 7px; color: #382417; font: inherit; padding: 8px; width: 100%; }
+.kt-review-report-form textarea { resize: vertical; }
+.kt-review-report-status { color: #6f6258; font-size: .75rem; margin: 0; }
 @media (max-width: 760px) {
     .p-modal-card.kt-has-reviews { max-height: 92vh; overflow-y: auto; padding: 16px; }
     .kt-reviews-layout { display: block; height: auto; min-height: 0; }

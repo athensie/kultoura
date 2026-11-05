@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['summary_ids'])) {
     $ids = array_slice($ids, 0, 100);
     if (!$ids) kt_review_response(200, ['success' => true, 'summaries' => []]);
     $idList = implode(',', $ids);
-    $summaryStmt = $conn->prepare("SELECT item_id, COUNT(*) review_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE item_type = ? AND item_id IN ($idList) GROUP BY item_id");
+    $summaryStmt = $conn->prepare("SELECT item_id, COUNT(*) review_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id IN ($idList) GROUP BY item_id");
     if (!$summaryStmt) kt_review_response(500, ['success' => false, 'message' => 'Ratings are temporarily unavailable.']);
     $summaryStmt->bind_param('s', $type);
     $summaryStmt->execute();
@@ -52,22 +52,22 @@ if (!$itemExists) kt_review_response(404, ['success' => false, 'message' => 'Thi
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $starFilter = (int) ($_GET['stars'] ?? 0);
     if ($starFilter < 0 || $starFilter > 5) $starFilter = 0;
-    $summaryStmt = $conn->prepare('SELECT COUNT(*) review_count, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE item_type = ? AND item_id = ?');
+    $summaryStmt = $conn->prepare("SELECT COUNT(*) review_count, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ?");
     $summaryStmt->bind_param('si', $type, $itemId);
     $summaryStmt->execute();
     $summary = $summaryStmt->get_result()->fetch_assoc();
     $summaryStmt->close();
     $counts = array_fill(1, 5, 0);
-    $countStmt = $conn->prepare('SELECT rating, COUNT(*) total FROM item_reviews WHERE item_type = ? AND item_id = ? GROUP BY rating');
+    $countStmt = $conn->prepare("SELECT rating, COUNT(*) total FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ? GROUP BY rating");
     $countStmt->bind_param('si', $type, $itemId);
     $countStmt->execute();
     foreach ($countStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $counts[(int) $row['rating']] = (int) $row['total'];
     $countStmt->close();
     if ($starFilter) {
-        $reviewStmt = $conn->prepare('SELECT display_name, rating, review_text AS comment, created_at FROM item_reviews WHERE item_type = ? AND item_id = ? AND rating = ? ORDER BY created_at DESC LIMIT 100');
+        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, created_at FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ? AND rating = ? ORDER BY created_at DESC LIMIT 100");
         $reviewStmt->bind_param('sii', $type, $itemId, $starFilter);
     } else {
-        $reviewStmt = $conn->prepare('SELECT display_name, rating, review_text AS comment, created_at FROM item_reviews WHERE item_type = ? AND item_id = ? ORDER BY created_at DESC LIMIT 100');
+        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, created_at FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ? ORDER BY created_at DESC LIMIT 100");
         $reviewStmt->bind_param('si', $type, $itemId);
     }
     $reviewStmt->execute();
@@ -81,6 +81,35 @@ $userId = (int) ($_SESSION['user_id'] ?? 0);
 if ($userId < 1 || in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true)) {
     kt_review_response(401, ['success' => false, 'needsLogin' => true, 'message' => 'Sign in with a visitor account to leave a review.']);
 }
+$action = strtolower(trim((string) ($_POST['action'] ?? 'review')));
+if ($action === 'report') {
+    $reviewId = (int) ($_POST['review_id'] ?? 0);
+    $reasonCode = strtolower(trim((string) ($_POST['reason'] ?? '')));
+    $details = trim((string) ($_POST['details'] ?? ''));
+    $allowedReasons = ['spam', 'harassment', 'hate', 'sexual', 'personal_info', 'misinformation', 'other'];
+    if ($reviewId < 1 || !in_array($reasonCode, $allowedReasons, true) || mb_strlen($details) > 1000) {
+        kt_review_response(422, ['success' => false, 'message' => 'Choose a report reason and keep additional details under 1,000 characters.']);
+    }
+    $reviewStmt = $conn->prepare("SELECT review_id, user_id FROM item_reviews WHERE review_id = ? AND item_type = ? AND item_id = ? AND status = 'visible' LIMIT 1");
+    $reviewStmt->bind_param('isi', $reviewId, $type, $itemId);
+    $reviewStmt->execute();
+    $reviewRow = $reviewStmt->get_result()->fetch_assoc();
+    $reportable = (bool) $reviewRow;
+    $reviewStmt->close();
+    if (!$reportable) kt_review_response(404, ['success' => false, 'message' => 'This review is no longer available to report.']);
+    if ((int) $reviewRow['user_id'] === $userId) kt_review_response(400, ['success' => false, 'message' => 'You cannot report your own review.']);
+    $reportStmt = $conn->prepare('INSERT INTO item_review_reports (review_id, reporter_id, reason_code, details) VALUES (?, ?, ?, ?)');
+    $reportStmt->bind_param('iiss', $reviewId, $userId, $reasonCode, $details);
+    if (!$reportStmt->execute()) {
+        $duplicate = $reportStmt->errno === 1062;
+        $reportStmt->close();
+        if ($duplicate) kt_review_response(409, ['success' => false, 'message' => 'You have already reported this review.']);
+        kt_review_response(500, ['success' => false, 'message' => 'Could not send your report. Please try again.']);
+    }
+    $reportStmt->close();
+    kt_review_response(200, ['success' => true, 'message' => 'Thank you. Your report was sent to the moderation team.']);
+}
+if ($action !== 'review') kt_review_response(400, ['success' => false, 'message' => 'Choose a valid action.']);
 $rating = (int) ($_POST['rating'] ?? 0);
 $comment = trim((string) ($_POST['comment'] ?? ''));
 if ($rating < 1 || $rating > 5 || mb_strlen($comment) < 3 || mb_strlen($comment) > 1500) {
