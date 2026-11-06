@@ -211,6 +211,14 @@
     font-weight: 600;
     white-space: nowrap;
 }
+.m-popular-metrics { align-items: flex-end; display: flex; flex-direction: column; gap: 3px; min-width: 0; text-align: right; }
+.m-review-rating { color: #382417; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+.m-review-stars { color: #c48a22; letter-spacing: .02em; }
+.m-review-count { color: #82766b; font-weight: 500; }
+.m-sentiment-label { border-radius: 999px; display: inline-flex; font-size: .7rem; font-weight: 700; margin-top: 2px; padding: 5px 9px; width: fit-content; }
+.m-sentiment-label.is-positive { background: #e6efdf; color: #38582d; }
+.m-sentiment-label.is-mixed { background: #f3eddf; color: #775b24; }
+.m-sentiment-label.is-critical { background: #f4e4df; color: #963b2a; }
 .m-card-title {
     font-size: 1.05rem;
     color: #221a10;

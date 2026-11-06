@@ -5,11 +5,13 @@ require_once __DIR__ . '/../config/maintenance.php';
 kt_maintenance_gate($conn);
 include '../config/analytics.php';
 include '../config/sitecontent.php';
+require_once '../config/reviews.php';
+kt_reviews_ensure_schema($conn);
 analytics_track($conn, 'mostpopular');
 $mostpopularHeroPhoto = sitecontent_get_photo($conn, 'mostpopular_hero');
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? '');
-$popularRows = analytics_top_items($conn, 24);
+$popularRows = analytics_most_popular_items($conn, 24);
 $idsByType = [];
 foreach ($popularRows as $r) {
     $idsByType[$r['type']][] = (int) $r['id'];
@@ -117,6 +119,12 @@ foreach ($popularRows as $r) {
         'summary'   => $item['summary'] ?: mb_strimwidth((string) ($item['description'] ?? ''), 0, 160, '…'),
         'image'     => $imageSrc,
         'views'     => (int) $r['views'],
+        'views_30d' => (int) ($r['views_30d'] ?? 0),
+        'review_count' => (int) ($r['review_count'] ?? 0),
+        'average_rating' => (float) ($r['average_rating'] ?? 0),
+        'sentiment' => (float) ($r['sentiment'] ?? 0),
+        'trending' => !empty($r['trending']),
+        'popularity_score' => (float) ($r['popularity_score'] ?? 0),
         'viewPage'  => 'tourism/' . $viewPage,
         'viewUrl'   => $viewUrl,
     ];
@@ -136,7 +144,7 @@ foreach ($popularItems as $p) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
-    <link rel="stylesheet" href="../assets/css/mostpopular.css?v=20261103-3">
+    <link rel="stylesheet" href="../assets/css/mostpopular.css?v=20261106-1">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -211,7 +219,7 @@ foreach ($popularItems as $p) {
         <p class="t-eyebrow">MALVAR, BATANGAS</p>
         <h1 class="t-page-title">Most Popular</h1>
         <p class="t-page-sub">
-            Explore the destinations, products, restaurants, fiestas, and people visitors view most around Malvar.
+            Ranked using visitor views, recent activity, star ratings, and natural-language sentiment from visitor reviews.
         </p>
     </div>
     <?php if (!empty($popularItems)):
@@ -280,11 +288,19 @@ foreach ($popularItems as $p) {
                             <div class="m-card-body">
                                 <div class="m-card-top">
                                     <span class="m-badge"><?php echo htmlspecialchars($p['typeLabel']); ?></span>
-                                    <span class="m-fav-count"><?php echo (int) $p['views']; ?> views</span>
+                                    <span class="m-popular-metrics">
+                                        <?php if ($p['review_count'] > 0): ?>
+                                            <span class="m-review-rating" aria-label="<?php echo number_format($p['average_rating'], 1); ?> out of 5 from <?php echo $p['review_count']; ?> reviews"><span class="m-review-stars" aria-hidden="true"><?php echo str_repeat('★', (int) round($p['average_rating'])); ?></span> <?php echo number_format($p['average_rating'], 1); ?> <span class="m-review-count">(<?php echo $p['review_count']; ?>)</span></span>
+                                        <?php endif; ?>
+                                        <span class="m-fav-count"><?php echo (int) $p['views']; ?> views</span>
+                                    </span>
                                 </div>
                                 <h3 class="m-card-title"><?php echo htmlspecialchars($p['name']); ?></h3>
                                 <?php if (!empty($p['summary'])): ?>
                                     <p class="m-card-desc"><?php echo htmlspecialchars($p['summary']); ?></p>
+                                <?php endif; ?>
+                                <?php if ($p['review_count'] > 0): ?>
+                                    <span class="m-sentiment-label <?php echo $p['sentiment'] > 0.15 ? 'is-positive' : ($p['sentiment'] < -0.15 ? 'is-critical' : 'is-mixed'); ?>"><?php echo $p['sentiment'] > 0.15 ? 'Positive visitor feedback' : ($p['sentiment'] < -0.15 ? 'Critical visitor feedback' : 'Mixed visitor feedback'); ?></span>
                                 <?php endif; ?>
                                 <a href="<?php echo htmlspecialchars($p['viewUrl']); ?>" class="m-card-link">View →</a>
                             </div>

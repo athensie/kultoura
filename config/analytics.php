@@ -257,6 +257,91 @@ function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = n
     usort($results, fn($a, $b) => $b['views'] <=> $a['views']);
     return array_slice($results, 0, $limit);
 }
+function analytics_review_sentiment(string $text): float
+{
+    $positive = ['amazing','awesome','beautiful','best','clean','delicious','enjoy','excellent','friendly','good','great','helpful','love','nice','peaceful','recommend','relaxing','safe','sulit','masarap','maganda','malinis','mabait','masaya'];
+    $negative = ['awful','bad','boring','dirty','expensive','hate','noisy','overpriced','poor','rude','slow','unsafe','waste','worst','pangit','marumi','mahal','malungkot','nakakadismaya','madumi'];
+    $negators = ['not','never','no','hardly','isnt','wasnt','dont','didnt','cannot','hindi','di','walang','wala'];
+    $tokens = preg_split('/[^\\p{L}\\p{N}\']+/u', mb_strtolower($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $polarity = 0;
+    $matched = 0;
+    $negationWindow = 0;
+    foreach ($tokens as $token) {
+        if (in_array($token, $negators, true)) { $negationWindow = 3; continue; }
+        $value = in_array($token, $positive, true) ? 1 : (in_array($token, $negative, true) ? -1 : 0);
+        if ($value !== 0) {
+            $polarity += $negationWindow > 0 ? -$value : $value;
+            $matched++;
+        }
+        if ($negationWindow > 0) $negationWindow--;
+    }
+    return $matched ? max(-1, min(1, $polarity / $matched)) : 0.0;
+}
+function analytics_most_popular_items(mysqli $conn, int $limit = 24): array
+{
+    $items = analytics_top_items($conn, 5000);
+    if (!$items) return [];
+    $viewCounts = [];
+    if ($res = $conn->query('SELECT item_type,item_id,COUNT(*) c FROM item_views WHERE viewed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY item_type,item_id')) {
+        foreach ($res->fetch_all(MYSQLI_ASSOC) as $row) $viewCounts[$row['item_type'].'-'.$row['item_id']] = (int)$row['c'];
+    }
+    $feedback = [];
+    $maxRecentReviews = 0;
+    $maxReviewCount = 0;
+    $reviewTable = $conn->query("SHOW TABLES LIKE 'item_reviews'");
+    if ($reviewTable && $reviewTable->num_rows > 0) {
+        $candidateIds = [];
+        foreach ($items as $item) $candidateIds[$item['type']][] = (int)$item['id'];
+        $conditions = [];
+        foreach ($candidateIds as $itemType => $ids) {
+            $safeType = $conn->real_escape_string($itemType);
+            $conditions[] = "(item_type='$safeType' AND item_id IN (".implode(',', $ids).'))';
+        }
+        $reviewSql = "SELECT item_type,item_id,rating,review_text,created_at FROM item_reviews WHERE status='visible' AND (".implode(' OR ', $conditions).") ORDER BY created_at DESC";
+        if ($res = $conn->query($reviewSql)) {
+            foreach ($res->fetch_all(MYSQLI_ASSOC) as $review) {
+                $key = $review['item_type'].'-'.$review['item_id'];
+                if (!isset($feedback[$key])) $feedback[$key] = ['count'=>0,'rating_total'=>0,'sentiment_total'=>0,'recent'=>0];
+                $feedback[$key]['count']++;
+                $feedback[$key]['rating_total'] += (int)$review['rating'];
+                $feedback[$key]['sentiment_total'] += analytics_review_sentiment((string)$review['review_text']);
+                if (strtotime((string)$review['created_at']) >= time() - 30 * 86400) $feedback[$key]['recent']++;
+            }
+            $res->free();
+        }
+    }
+    foreach ($feedback as $stats) {
+        $maxRecentReviews = max($maxRecentReviews, $stats['recent']);
+        $maxReviewCount = max($maxReviewCount, $stats['count']);
+    }
+    $maxViews = max(1, max(array_column($items, 'views')));
+    $maxRecentViews = max(1, max($viewCounts ?: [0]));
+    foreach ($items as &$item) {
+        $key = $item['type'].'-'.$item['id'];
+        $stats = $feedback[$key] ?? null;
+        $recentViews = $viewCounts[$key] ?? 0;
+        $viewScore = log(1 + $item['views']) / log(1 + $maxViews);
+        $recentViewScore = log(1 + $recentViews) / log(1 + $maxRecentViews);
+        $item['views_30d'] = $recentViews;
+        $item['review_count'] = $stats['count'] ?? 0;
+        $item['average_rating'] = $stats ? $stats['rating_total'] / $stats['count'] : 0.0;
+        $item['sentiment'] = $stats ? $stats['sentiment_total'] / $stats['count'] : 0.0;
+        $item['reviews_30d'] = $stats['recent'] ?? 0;
+        if ($stats) {
+            $ratingScore = $item['average_rating'] / 5;
+            $sentimentScore = ($item['sentiment'] + 1) / 2;
+            $reviewVolumeScore = log(1 + $stats['count']) / log(1 + max(1, $maxReviewCount));
+            $reviewTrendScore = log(1 + $stats['recent']) / log(1 + max(1, $maxRecentReviews));
+            $item['popularity_score'] = 100 * (.35*$viewScore + .15*$recentViewScore + .20*$ratingScore + .15*$sentimentScore + .075*$reviewVolumeScore + .075*$reviewTrendScore);
+        } else {
+            $item['popularity_score'] = 100 * (.65*$viewScore + .35*$recentViewScore);
+        }
+        $item['trending'] = $recentViews > 0 || ($stats['recent'] ?? 0) > 0;
+    }
+    unset($item);
+    usort($items, static fn($a,$b) => ($b['popularity_score'] <=> $a['popularity_score']) ?: ($b['views'] <=> $a['views']));
+    return array_slice($items, 0, max(1, $limit));
+}
 function analytics_type_group_map(): array
 {
     return [
