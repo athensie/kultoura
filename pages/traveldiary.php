@@ -491,7 +491,7 @@ if ($twFavStmt = $conn->prepare("SELECT item_type, item_id FROM favorites WHERE 
     $twFavoritesCount = count($twFavRows);
     foreach ($twFavRows as $row) {
         $item = $catalog[$row['item_type'] . '-' . $row['item_id']] ?? null;
-        if ($item && !empty($item['image'])) $twFavoriteItems[] = $item;
+        if ($item) $twFavoriteItems[] = $item;
         if (count($twFavoriteItems) >= 3) break;
     }
 }
@@ -650,6 +650,123 @@ usort($checklist, function ($a, $b) {
     if ($a['visited']) return strcmp($b['lastVisitedDate'], $a['lastVisitedDate']);
     return strcasecmp($a['name'], $b['name']);
 });
+if ($wrappedRequested && $canGenerateWrapped) {
+    $storyVisits = [];
+    $storyPlaces = [];
+    $storyPhotos = [];
+    $storyCategoryMeta = [
+        'service' => ['label' => 'Local Services', 'color' => '#8a6a2b', 'art' => 'hall', 'tones' => ['#cfdcc4', '#4c6c43']],
+        'coffee' => ['label' => 'Coffee & Cafes', 'color' => '#8f2f1c', 'art' => 'coffee', 'tones' => ['#d9b48a', '#6e4222']],
+        'food' => ['label' => 'Food & Dining', 'color' => '#a8541f', 'art' => 'fiesta', 'tones' => ['#f0b98a', '#a8541f']],
+        'event' => ['label' => 'Fiestas & Events', 'color' => '#7a5aa6', 'art' => 'fiesta', 'tones' => ['#e6a77a', '#8c3b4a']],
+        'culture' => ['label' => 'People & Heritage', 'color' => '#5f7a8c', 'art' => 'hall', 'tones' => ['#d9dde0', '#5f7a8c']],
+        'leisure' => ['label' => 'Nature & Leisure', 'color' => '#2d8b9a', 'art' => 'pool', 'tones' => ['#9fd8d2', '#2d8b9a']],
+    ];
+    $storyCategoryFor = static function (array $item): string {
+        $type = (string) ($item['itemType'] ?? '');
+        $category = (string) ($item['category'] ?? '');
+        if ($type === 'fiesta') return 'event';
+        if ($type === 'person') return 'culture';
+        if ($type === 'product' || $type === 'restaurant') {
+            return preg_match('/coffee|cafe|caf[eé]|espresso/i', (string) ($item['name'] ?? '')) ? 'coffee' : 'food';
+        }
+        if (in_array($category, ['nature', 'resort'], true)) return 'leisure';
+        if (in_array($category, ['industry', 'service', 'bank', 'accommodation'], true)) return 'service';
+        return 'leisure';
+    };
+    foreach (array_reverse($wrappedEntries) as $entry) {
+        $key = $entry['item_type'] . '-' . (int) $entry['item_id'];
+        $item = $catalog[$key] ?? null;
+        if (!$item) continue;
+        $placeId = $key;
+        $storyCategory = $storyCategoryFor($item);
+        if (!isset($storyPlaces[$placeId])) {
+            $meta = $storyCategoryMeta[$storyCategory];
+            $storyPlaces[$placeId] = [
+                'id' => $placeId,
+                'name' => (string) $item['name'],
+                'short' => mb_strimwidth((string) $item['name'], 0, 22, '…', 'UTF-8'),
+                'category' => $storyCategory,
+                'lat' => $item['lat'] !== null ? (float) $item['lat'] : 14.0446,
+                'lng' => $item['lng'] !== null ? (float) $item['lng'] : 121.1560,
+                'art' => $meta['art'],
+                'tones' => $meta['tones'],
+                'img' => (string) ($item['image'] ?? ''),
+                'visitedDate' => date('Y-m-d', strtotime((string) $entry['visited_date'])),
+            ];
+        }
+        $storyVisits[] = [
+            'date' => date('Y-m-d', strtotime((string) $entry['visited_date'])),
+            'placeId' => $placeId,
+            'type' => $itemTypeVerbs[$item['itemType']] ?? 'Visited',
+        ];
+        foreach ($photosByEntry[(int) $entry['entry_id']] ?? [] as $photo) {
+            $storyPhotos[] = [
+                'id' => 'diary-photo-' . (int) $photo['photo_id'],
+                'type' => 'image',
+                'placeId' => $placeId,
+                'date' => date('Y-m-d', strtotime((string) $entry['visited_date'])),
+                'src' => '../assets/uploads/diary/' . basename((string) $photo['image']),
+            ];
+        }
+    }
+    if (!empty($storyVisits)) {
+        $storyLiked = [];
+        foreach ($twFavoriteItems as $favorite) {
+            $favoriteCategory = $storyCategoryFor($favorite);
+            $meta = $storyCategoryMeta[$favoriteCategory];
+            $storyLiked[] = [
+                'name' => (string) $favorite['name'],
+                'art' => $meta['art'],
+                'tones' => $meta['tones'],
+                'img' => (string) ($favorite['image'] ?? ''),
+            ];
+        }
+        $storyPhotosByPlace = [];
+        foreach ($storyPhotos as $photo) {
+            $storyPhotosByPlace[$photo['placeId']][] = $photo;
+        }
+        $storyChapters = [];
+        foreach ($storyPlaces as $placeId => $place) {
+            $chapterMedia = $storyPhotosByPlace[$placeId][0] ?? [
+                'id' => 'scene-' . $placeId,
+                'type' => 'video',
+                'placeId' => $placeId,
+                'date' => $place['visitedDate'],
+                'src' => null,
+                'poster' => $place['img'],
+                'duration' => 5,
+            ];
+            $storyChapters[] = [
+                'placeId' => $placeId,
+                'clipId' => $chapterMedia['id'],
+                'label' => 'A moment from your diary',
+                'media' => $chapterMedia,
+            ];
+            if (count($storyChapters) >= 9) break;
+        }
+        $wrappedStoryData = [
+            'config' => ['brand' => 'KULTOURA', 'region' => 'Malvar, Batangas', 'year' => (int) $wrappedRangeStart->format('Y'), 'slideMs' => 6500, 'maxClipSeconds' => 5],
+            'categories' => $storyCategoryMeta,
+            'places' => array_values($storyPlaces),
+            'visits' => $storyVisits,
+            'liked' => $storyLiked,
+            'stats' => ['favoritesMarked' => $twFavoritesCount],
+            'media' => $storyPhotos,
+            'edit' => ['title' => 'Malvar in Moments', 'titleMs' => 2200, 'endMs' => 2600, 'maxSeconds' => 30, 'minClipMs' => 900, 'chapters' => $storyChapters],
+            'copy' => [
+                'coverTag' => ['Your ' . $wrappedLabel . ' journey,', 'Malvar in moments.'],
+                'startHint' => 'Tap to begin',
+                'quote' => ['Travel is memory.', 'Local places make the journey.', 'See you around Malvar.'],
+                'outroTitle' => ['Here’s to more', 'adventures!'],
+                'outroSub' => ['Thanks for sharing your journey.', 'See you again in Malvar.'],
+                'shareText' => 'My KULTOURA Wrapped ' . $wrappedLabel . ' — Malvar in Moments',
+            ],
+        ];
+        include __DIR__ . '/travelwrapped.php';
+        exit;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
