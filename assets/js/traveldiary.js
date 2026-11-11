@@ -884,6 +884,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     const overlay = document.getElementById('twOverlay');
     const slidesEl = document.getElementById('twSlides');
     const badge = document.getElementById('twBadge');
+    const storyBars = document.getElementById('twStoryBars');
     const prevBtn = document.getElementById('twPrev');
     const nextBtn = document.getElementById('twNext');
     const closeBtn = document.getElementById('twClose');
@@ -909,6 +910,10 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     if (!overlay) return;
     const slideCount = slidesEl ? slidesEl.children.length : 0;
     let current = 0;
+    let storyElapsed = 0;
+    let storyPaused = false;
+    let storyTimer = null;
+    let storyTickAt = 0;
     function playCountUp(slideEl) {
         slideEl.querySelectorAll('.tw-stat-num').forEach((el) => {
             const target = parseInt(el.dataset.twTarget || el.textContent, 10);
@@ -936,6 +941,12 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         if (!slidesEl) return;
         slidesEl.style.transform = `translateX(-${current * 100}%)`;
         if (badge) badge.textContent = `${current + 1}/${slideCount}`;
+        if (storyBars) {
+            [...storyBars.children].forEach((bar, index) => {
+                const fill = bar.firstElementChild;
+                if (fill) fill.style.width = index < current ? '100%' : index === current ? `${Math.min(100, storyElapsed / 6500 * 100)}%` : '0%';
+            });
+        }
         const activeSlide = slidesEl.children[current];
         playSlideAnimation(activeSlide);
         if (activeSlide && activeSlide.classList.contains('tw-slide-7') && typeof tdWrappedMap !== 'undefined' && tdWrappedMap) {
@@ -945,6 +956,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     function goTo(index) {
         if (!slideCount) return;
         current = Math.max(0, Math.min(slideCount - 1, index));
+        storyElapsed = 0;
         render();
     }
     function open() {
@@ -953,13 +965,29 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
             return;
         }
         current = 0;
+        storyElapsed = 0;
+        storyPaused = false;
         render();
         overlay.classList.add('open');
         document.body.style.overflow = 'hidden';
+        storyTickAt = performance.now();
+        if (storyTimer) clearInterval(storyTimer);
+        storyTimer = setInterval(() => {
+            const now = performance.now();
+            const delta = Math.min(now - storyTickAt, 150);
+            storyTickAt = now;
+            if (!overlay.classList.contains('open') || storyPaused) return;
+            storyElapsed += delta;
+            const fill = storyBars?.children[current]?.firstElementChild;
+            if (fill) fill.style.width = `${Math.min(100, storyElapsed / 6500 * 100)}%`;
+            if (storyElapsed >= 6500 && current < slideCount - 1) goTo(current + 1);
+        }, 50);
     }
     function close() {
         overlay.classList.remove('open');
         document.body.style.overflow = '';
+        if (storyTimer) clearInterval(storyTimer);
+        storyTimer = null;
     }
     if (closeBtn) closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', (e) => {
@@ -967,6 +995,18 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     });
     if (prevBtn) prevBtn.addEventListener('click', () => goTo(current - 1));
     if (nextBtn) nextBtn.addEventListener('click', () => goTo(current + 1));
+    overlay.addEventListener('pointerdown', (e) => {
+        if (!overlay.classList.contains('open') || e.target.closest('button, a')) return;
+        storyPaused = true;
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((eventName) => {
+        overlay.addEventListener(eventName, () => { storyPaused = false; storyTickAt = performance.now(); });
+    });
+    if (slidesEl) slidesEl.addEventListener('click', (e) => {
+        if (e.target.closest('button, a')) return;
+        const bounds = slidesEl.getBoundingClientRect();
+        goTo(e.clientX - bounds.left < bounds.width * 0.3 ? current - 1 : current + 1);
+    });
     document.addEventListener('keydown', (e) => {
         if (!overlay.classList.contains('open')) return;
         if (e.key === 'Escape') close();

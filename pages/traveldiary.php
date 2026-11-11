@@ -535,11 +535,24 @@ $twSlideLayoutDefaults = [
 ];
 $twSlideLayouts = array_replace($twSlideLayoutDefaults, $twCaptions['slide_layouts'] ?? []);
 $twMapPoints = td_wrapped_map_points($tw['distinctPlaces']);
+$twFoodVisits = (int) ($tw['categoryVisitCounts']['restaurant'] ?? 0);
+$twCultureVisits = (int) ($tw['categoryVisitCounts']['fiesta'] ?? 0)
+    + (int) ($tw['categoryVisitCounts']['person'] ?? 0);
+$twBadgeDefs = [
+    ['file' => 'first_destination.svg', 'title' => 'First Destination', 'description' => 'You logged your first place in Malvar.', 'unlocked' => $tw['totalPlaces'] >= 1],
+    ['file' => 'food_explorer.svg', 'title' => 'Food Explorer', 'description' => $twFoodVisits . ' restaurant visits logged.', 'unlocked' => $twFoodVisits >= 2],
+    ['file' => 'culture_enthusiast.svg', 'title' => 'Culture Enthusiast', 'description' => $twCultureVisits . ' fiesta and community visits logged.', 'unlocked' => $twCultureVisits >= 2],
+    ['file' => 'memory_keeper.svg', 'title' => 'Memory Keeper', 'description' => $tw['totalPhotos'] . ' photos added to your diary.', 'unlocked' => $tw['totalPhotos'] >= 10],
+    ['file' => 'malvar_explorer.svg', 'title' => 'Malvar Explorer', 'description' => $tw['totalPlaces'] . ' different places explored.', 'unlocked' => $tw['totalPlaces'] >= 5],
+    ['file' => 'on_a_roll.svg', 'title' => 'On a Roll', 'description' => $tw['longestStreak'] . '-day visit streak.', 'unlocked' => $tw['longestStreak'] >= 7],
+];
+$twUnlockedBadges = array_values(array_filter($twBadgeDefs, static fn($badge) => $badge['unlocked']));
 $twSlideTotal = 5
     + (!empty($tw['distinctPlaces']) ? 1 : 0)
     + (!empty($twFavoriteItems) ? 1 : 0)
     + (!empty($twMapPoints) ? 1 : 0)
-    + (!empty($tw['photoMemories']) ? 2 : 0);
+    + (!empty($tw['photoMemories']) ? 2 : 0)
+    + 1;
 $timeline = [];
 foreach ($entries as $e) {
     $key  = $e['item_type'] . '-' . $e['item_id'];
@@ -649,6 +662,9 @@ usort($checklist, function ($a, $b) {
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
     <link rel="stylesheet" href="../assets/css/traveldiary.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/traveldiary.css') ?: time(); ?>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
@@ -1148,7 +1164,12 @@ usort($checklist, function ($a, $b) {
     <button type="button" class="tw-close" id="twClose" aria-label="Close">&times;</button>
     <?php if ($canGenerateWrapped): ?>
     <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?> tw-vibe-<?php echo htmlspecialchars($twTemplate); ?>">
-    <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
+    <div class="tw-story-top" aria-hidden="true">
+        <div class="tw-story-bars" id="twStoryBars">
+            <?php for ($storyIndex = 0; $storyIndex < $twSlideTotal; $storyIndex++): ?><span class="tw-story-bar"><i></i></span><?php endfor; ?>
+        </div>
+        <span class="tw-badge" id="twBadge">1/<?php echo $twSlideTotal; ?></span>
+    </div>
     <button type="button" class="tw-nav tw-nav-prev" id="twPrev" aria-label="Previous slide">&#8249;</button>
     <button type="button" class="tw-nav tw-nav-next" id="twNext" aria-label="Next slide">&#8250;</button>
     <div class="tw-share-bar">
@@ -1318,6 +1339,29 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
         <?php endif; ?>
+        <div class="tw-slide tw-slide-badges">
+            <div class="tw-slide-inner">
+                <p class="tw-badges-eyebrow">Your achievements</p>
+                <h2 class="tw-title-2">Badges<br>you earned</h2>
+                <p class="tw-sub-2"><?php echo count($twUnlockedBadges); ?> of <?php echo count($twBadgeDefs); ?> unlocked from your <?php echo htmlspecialchars($wrappedLabel); ?> activity.</p>
+                <?php if (!empty($twUnlockedBadges)): ?>
+                <div class="tw-earned-badges">
+                    <?php foreach ($twUnlockedBadges as $badge): ?>
+                        <article class="tw-earned-badge">
+                            <img src="../assets/images/wrapped-badges/<?php echo htmlspecialchars($badge['file']); ?>" alt="" loading="lazy">
+                            <h3><?php echo htmlspecialchars($badge['title']); ?></h3>
+                            <p><?php echo htmlspecialchars($badge['description']); ?></p>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+                <?php else: ?>
+                <p class="tw-badges-empty">Keep exploring Malvar to unlock your first badge.</p>
+                <?php endif; ?>
+                <?php if (count($twUnlockedBadges) < count($twBadgeDefs)): ?>
+                    <p class="tw-badges-more">+ <?php echo count($twBadgeDefs) - count($twUnlockedBadges); ?> more to unlock</p>
+                <?php endif; ?>
+            </div>
+        </div>
         <?php if (!empty($tw['photoMemories'])): $twPhotosSlide = td_wrapped_cycle($tw['photoMemories'], 4, 4); ?>
         <div class="tw-slide tw-slide-8 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['8']); ?>">
             <div class="tw-slide-inner">
@@ -1345,7 +1389,7 @@ usort($checklist, function ($a, $b) {
             </div>
         </div>
         <?php endif; ?>
-        <div class="tw-slide tw-slide-10 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['10']); ?>">
+        <div class="tw-slide tw-slide-11 tw-layout-<?php echo htmlspecialchars($twSlideLayouts['10']); ?>">
             <div class="tw-slide-inner">
                 <h2 class="tw-title-2">Here's to more <span class="tw-accent-green">adventures!</span></h2>
                 <p class="tw-thanks"><?php echo !empty($twCaptions['thanks_sub']) ? ai_wrapped_caption_html($twCaptions['thanks_sub']) : "Thank you for exploring Malvar with KULTOURA.<br>Let's make more memories together!"; ?></p>
