@@ -19,7 +19,7 @@ require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
-$validPeriods = ['today', 'week', 'month', 'year'];
+$validPeriods = ['all', 'today', 'week', 'month', 'year'];
 $period = $_GET['period'] ?? 'month';
 $dateFromInput = trim((string) ($_GET['date_from'] ?? ''));
 $dateToInput = trim((string) ($_GET['date_to'] ?? ''));
@@ -41,13 +41,14 @@ if ($dateFromInput !== '' || $dateToInput !== '') {
 if (!$customRange && !in_array($period, $validPeriods, true)) {
     $period = 'month';
 }
-$periodLabels = ['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
+$periodLabels = ['all' => 'All Time', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
 $periodStart = new DateTime('today');
 if ($customRange) {
     $periodStart = DateTime::createFromImmutable($dateFrom);
     $periodLabels['custom'] = $dateFrom->format('M j, Y') . ' – ' . $dateTo->format('M j, Y');
 } else {
     switch ($period) {
+        case 'all':   $periodStart = new DateTime('1000-01-01'); break;
         case 'week':  $periodStart = new DateTime('monday this week'); break;
         case 'month': $periodStart = new DateTime('first day of this month'); break;
         case 'year':  $periodStart = new DateTime('first day of january this year'); break;
@@ -204,7 +205,10 @@ $trafficLabel = $periodLabels[$period];
 $trafficSubtitle = 'Daily page views for ' . strtolower($periodLabels[$period]);
 $customMonthly = $customRange && $dateFrom->diff($dateTo)->days > 62;
 $customYearly = $customRange && $dateFrom->diff($dateTo)->days > 730;
-if ($period === 'today') {
+if ($period === 'all') {
+    $trafficQuery = $conn->prepare("SELECT YEAR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY YEAR(viewed_at)");
+    $trafficSubtitle = 'Yearly page views across all available history';
+} elseif ($period === 'today') {
     $trafficQuery = $conn->prepare("SELECT HOUR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY HOUR(viewed_at)");
     $trafficSubtitle = 'Hourly page views for today';
 } elseif ($customYearly) {
@@ -224,7 +228,14 @@ if ($trafficQuery) {
     }
     $trafficQuery->close();
 }
-if ($period === 'today') {
+if ($period === 'all') {
+    $firstYear = !empty($trafficBucketCounts) ? (int) min(array_keys($trafficBucketCounts)) : (int) $today->format('Y');
+    for ($year = $firstYear; $year <= (int) $today->format('Y'); $year++) {
+        $point = ['label' => (string) $year, 'value' => $trafficBucketCounts[(string) $year] ?? 0];
+        $trafficTrend[] = $point;
+        $dailyVisitors[] = $point;
+    }
+} elseif ($period === 'today') {
     for ($hour = 0; $hour < 24; $hour++) {
         $point = ['label' => date('g A', strtotime(sprintf('%02d:00', $hour))), 'value' => $trafficBucketCounts[(string) $hour] ?? 0];
         $trafficTrend[] = $point;
@@ -555,6 +566,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             </div>
             <div class="analytics-controls">
             <div class="period-selector">
+                <a href="?period=all" class="period-btn<?php echo $period === 'all' ? ' active' : ''; ?>">All</a>
                 <a href="?period=today" class="period-btn<?php echo $period === 'today' ? ' active' : ''; ?>">Today</a>
                 <a href="?period=week" class="period-btn<?php echo $period === 'week' ? ' active' : ''; ?>">This Week</a>
                 <a href="?period=month" class="period-btn<?php echo $period === 'month' ? ' active' : ''; ?>">This Month</a>
