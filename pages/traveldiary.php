@@ -1277,7 +1277,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
         </div>
     </div>
 </div>
-<div class="tw-overlay" id="twOverlay">
+<div class="tw-overlay" id="twOverlay" role="dialog" aria-modal="true" aria-label="Your Travel Wrapped" aria-hidden="true">
     <button type="button" class="tw-close" id="twClose" aria-label="Close">&times;</button>
     <?php if ($canGenerateWrapped): ?>
     <div class="tw-panel tw-theme-<?php echo $wrappedPeriod; ?> tw-vibe-<?php echo htmlspecialchars($twTemplate); ?>">

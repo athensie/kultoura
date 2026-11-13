@@ -969,6 +969,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         storyPaused = false;
         render();
         overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
         storyTickAt = performance.now();
         if (storyTimer) clearInterval(storyTimer);
@@ -985,6 +986,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
     }
     function close() {
         overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
         if (storyTimer) clearInterval(storyTimer);
         storyTimer = null;
