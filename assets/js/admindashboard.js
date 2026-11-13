@@ -107,4 +107,47 @@ function toggleSidebar() {
     }
   });
 
+  const chartSection = canvas.closest('.traffic-overview');
+  const zoomIn = chartSection?.querySelector('[data-chart-zoom-in]');
+  const zoomOut = chartSection?.querySelector('[data-chart-zoom-out]');
+  const zoomReset = chartSection?.querySelector('[data-chart-zoom-reset]');
+  let visibleCount = series.length;
+  let firstVisible = 0;
+  const minVisible = Math.min(3, series.length);
+
+  const renderVisibleRange = () => {
+    const visibleSeries = series.slice(firstVisible, firstVisible + visibleCount);
+    chart.data.labels = visibleSeries.map(point => point.label);
+    chart.data.datasets[0].data = visibleSeries.map(point => point.value);
+    chart.update('none');
+    if (zoomIn) zoomIn.disabled = visibleCount <= minVisible;
+    if (zoomOut) zoomOut.disabled = visibleCount >= series.length;
+    if (zoomReset) zoomReset.disabled = visibleCount >= series.length;
+  };
+
+  zoomIn?.addEventListener('click', () => {
+    if (visibleCount <= minVisible) return;
+    const nextCount = Math.max(minVisible, Math.floor(visibleCount * .7));
+    const center = firstVisible + visibleCount / 2;
+    visibleCount = nextCount;
+    firstVisible = Math.max(0, Math.min(series.length - visibleCount, Math.round(center - visibleCount / 2)));
+    renderVisibleRange();
+  });
+
+  zoomOut?.addEventListener('click', () => {
+    if (visibleCount >= series.length) return;
+    const nextCount = Math.min(series.length, Math.ceil(visibleCount / .7));
+    const center = firstVisible + visibleCount / 2;
+    visibleCount = nextCount;
+    firstVisible = Math.max(0, Math.min(series.length - visibleCount, Math.round(center - visibleCount / 2)));
+    renderVisibleRange();
+  });
+
+  zoomReset?.addEventListener('click', () => {
+    visibleCount = series.length;
+    firstVisible = 0;
+    renderVisibleRange();
+  });
+  renderVisibleRange();
+
 })();

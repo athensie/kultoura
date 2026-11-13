@@ -171,6 +171,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .traffic-overview-header .section-label { margin-bottom: 6px; }
 .traffic-overview-header h2 { color: var(--cream); font: 700 1.35rem 'Playfair Display', serif; }
 .traffic-overview-header p { color: rgba(var(--cream-rgb),.42); font-size: .78rem; margin-top: 5px; }
+.traffic-chart-controls { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.traffic-chart-control { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 34px; height: 34px; padding: 0 9px; border: 1px solid rgba(var(--overlay-rgb),.14); border-radius: 9px; background: rgba(var(--overlay-rgb),.04); color: rgba(var(--cream-rgb),.78); cursor: pointer; font: 500 .72rem 'DM Sans', sans-serif; transition: background .2s, border-color .2s, color .2s; }
+.traffic-chart-control:hover:not(:disabled) { background: rgba(var(--overlay-rgb),.1); border-color: var(--clay); color: var(--cream); }
+.traffic-chart-control:disabled { cursor: default; opacity: .4; }
+.traffic-chart-control .lucide { width: 15px; height: 15px; }
 .traffic-chart-summary { display: flex; align-items: baseline; gap: 9px; margin: 20px 0 6px; }
 .traffic-chart-summary strong { color: var(--cream); font: 700 1.55rem 'DM Sans', sans-serif; }
 .traffic-chart-summary span { color: rgba(var(--cream-rgb),.4); font-size: .72rem; }
