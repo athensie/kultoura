@@ -21,17 +21,41 @@ $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
 $validPeriods = ['today', 'week', 'month', 'year'];
 $period = $_GET['period'] ?? 'month';
-if (!in_array($period, $validPeriods, true)) {
+$dateFromInput = trim((string) ($_GET['date_from'] ?? ''));
+$dateToInput = trim((string) ($_GET['date_to'] ?? ''));
+$customRange = false;
+$dateRangeError = '';
+$dateFrom = DateTimeImmutable::createFromFormat('!Y-m-d', $dateFromInput);
+$dateTo = DateTimeImmutable::createFromFormat('!Y-m-d', $dateToInput);
+$today = new DateTimeImmutable('today');
+if ($dateFromInput !== '' || $dateToInput !== '') {
+    $validFrom = $dateFrom && $dateFrom->format('Y-m-d') === $dateFromInput;
+    $validTo = $dateTo && $dateTo->format('Y-m-d') === $dateToInput;
+    if ($validFrom && $validTo && $dateFrom <= $dateTo && $dateTo <= $today) {
+        $customRange = true;
+        $period = 'custom';
+    } else {
+        $dateRangeError = 'Choose a valid date range ending today or earlier.';
+    }
+}
+if (!$customRange && !in_array($period, $validPeriods, true)) {
     $period = 'month';
 }
 $periodLabels = ['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
 $periodStart = new DateTime('today');
-switch ($period) {
-    case 'week':  $periodStart = new DateTime('monday this week'); break;
-    case 'month': $periodStart = new DateTime('first day of this month'); break;
-    case 'year':  $periodStart = new DateTime('first day of january this year'); break;
+if ($customRange) {
+    $periodStart = DateTime::createFromImmutable($dateFrom);
+    $periodLabels['custom'] = $dateFrom->format('M j, Y') . ' – ' . $dateTo->format('M j, Y');
+} else {
+    switch ($period) {
+        case 'week':  $periodStart = new DateTime('monday this week'); break;
+        case 'month': $periodStart = new DateTime('first day of this month'); break;
+        case 'year':  $periodStart = new DateTime('first day of january this year'); break;
+    }
 }
 $periodStartSql = $periodStart->format('Y-m-d 00:00:00');
+$periodEndExclusive = $customRange ? $dateTo->modify('+1 day') : $today->modify('+1 day');
+$periodEndExclusiveSql = $periodEndExclusive->format('Y-m-d 00:00:00');
 $activeUsers = analytics_active_users($conn, 5);
 $listedDestinations = 0;
 if ($res = $conn->query("SELECT COUNT(*) c FROM destination WHERE status = 'active'")) {
@@ -54,8 +78,8 @@ if (!empty($categoryCounts)) {
     $topCategory = array_key_first($categoryCounts);
 }
 $topCategoryCount = $categoryCounts[$topCategory] ?? 0;
-$totalPageViews = analytics_total_views($conn, $periodStartSql);
-$topPages = analytics_page_breakdown($conn, $periodStartSql, 5);
+$totalPageViews = analytics_total_views($conn, $periodStartSql, $periodEndExclusiveSql);
+$topPages = analytics_page_breakdown($conn, $periodStartSql, 5, $periodEndExclusiveSql);
 $topPagesMax = !empty($topPages) ? max(array_column($topPages, 'views')) : 0;
 foreach ($topPages as &$tp) {
     $tp['pct'] = $topPagesMax > 0 ? (int) round($tp['views'] / $topPagesMax * 100) : 0;
@@ -66,8 +90,8 @@ $itemTypeLabels = [
     'accommodation' => 'Accommodation', 'bank' => 'Bank', 'service' => 'Service', 'church' => 'Church',
     'product' => 'Product', 'restaurant' => 'Restaurant', 'fiesta' => 'Fiesta', 'person' => 'People of Malvar',
 ];
-$topItems = analytics_top_items($conn, 6, $periodStartSql);
-$topPeople = analytics_top_items($conn, 6, $periodStartSql, [], ['person']);
+$topItems = analytics_top_items($conn, 6, $periodStartSql, [], [], $periodEndExclusiveSql);
+$topPeople = analytics_top_items($conn, 6, $periodStartSql, [], ['person'], $periodEndExclusiveSql);
 $conversionItems = analytics_conversion_top_items($conn, 8, 3);
 $promotedEffectiveness = kt_promotion_effectiveness($conn);
 $promotedImpressions = array_sum(array_column($promotedEffectiveness, 'impressions'));
@@ -78,22 +102,22 @@ $topSearches = analytics_top_searches($conn, 6);
 $zeroResultSearches = analytics_zero_result_searches($conn, 6);
 $trending = [];
 $recentUnion = [];
-if ($res = $conn->query("SELECT destination_name AS name, category AS sub, created_at FROM destination WHERE created_at >= '$periodStartSql' ORDER BY created_at DESC")) {
+if ($res = $conn->query("SELECT destination_name AS name, category AS sub, created_at FROM destination WHERE created_at >= '$periodStartSql' AND created_at < '$periodEndExclusiveSql' ORDER BY created_at DESC")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
         $recentUnion[] = ['name' => $r['name'], 'sub' => 'Destination · ' . ucfirst($r['sub']), 'created_at' => $r['created_at']];
     }
 }
-if ($res = $conn->query("SELECT product_name AS name, category AS sub, created_at FROM products WHERE created_at >= '$periodStartSql' ORDER BY created_at DESC")) {
+if ($res = $conn->query("SELECT product_name AS name, category AS sub, created_at FROM products WHERE created_at >= '$periodStartSql' AND created_at < '$periodEndExclusiveSql' ORDER BY created_at DESC")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
         $recentUnion[] = ['name' => $r['name'], 'sub' => 'Product' . (!empty($r['sub']) ? ' · ' . $r['sub'] : ''), 'created_at' => $r['created_at']];
     }
 }
-if ($res = $conn->query("SELECT restaurant_name AS name, category AS sub, created_at FROM restaurants WHERE created_at >= '$periodStartSql' ORDER BY created_at DESC")) {
+if ($res = $conn->query("SELECT restaurant_name AS name, category AS sub, created_at FROM restaurants WHERE created_at >= '$periodStartSql' AND created_at < '$periodEndExclusiveSql' ORDER BY created_at DESC")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
         $recentUnion[] = ['name' => $r['name'], 'sub' => 'Restaurant' . (!empty($r['sub']) ? ' · ' . $r['sub'] : ''), 'created_at' => $r['created_at']];
     }
 }
-if ($res = $conn->query("SELECT fiesta_name AS name, location AS sub, created_at FROM fiestas WHERE created_at >= '$periodStartSql' ORDER BY created_at DESC")) {
+if ($res = $conn->query("SELECT fiesta_name AS name, location AS sub, created_at FROM fiestas WHERE created_at >= '$periodStartSql' AND created_at < '$periodEndExclusiveSql' ORDER BY created_at DESC")) {
     foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
         $recentUnion[] = ['name' => $r['name'], 'sub' => 'Fiesta' . (!empty($r['sub']) ? ' · ' . $r['sub'] : ''), 'created_at' => $r['created_at']];
     }
@@ -133,9 +157,9 @@ $monthlyVisitors = analytics_monthly_trend($conn, 6);
 $hasMonthlyData = array_sum(array_column($monthlyVisitors, 'value')) > 0;
 $weekdayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 $weekdayCounts = array_fill(1, 7, 0);
-$weekdayStmt = $conn->prepare("SELECT DAYOFWEEK(viewed_at) weekday, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DAYOFWEEK(viewed_at)");
+$weekdayStmt = $conn->prepare("SELECT DAYOFWEEK(viewed_at) weekday, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY DAYOFWEEK(viewed_at)");
 if ($weekdayStmt) {
-    $weekdayStmt->bind_param('s', $periodStartSql);
+    $weekdayStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
     $weekdayStmt->execute();
     foreach ($weekdayStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $weekdayRow) {
         $weekdayCounts[(int) $weekdayRow['weekday']] = (int) $weekdayRow['views'];
@@ -144,9 +168,9 @@ if ($weekdayStmt) {
 }
 $weekdayMax = max(1, max($weekdayCounts));
 $hourlyCounts = array_fill(0, 24, 0);
-$hourlyStmt = $conn->prepare("SELECT HOUR(viewed_at) visit_hour, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY HOUR(viewed_at)");
+$hourlyStmt = $conn->prepare("SELECT HOUR(viewed_at) visit_hour, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY HOUR(viewed_at)");
 if ($hourlyStmt) {
-    $hourlyStmt->bind_param('s', $periodStartSql);
+    $hourlyStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
     $hourlyStmt->execute();
     foreach ($hourlyStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $hourlyRow) {
         $hourlyCounts[(int) $hourlyRow['visit_hour']] = (int) $hourlyRow['views'];
@@ -178,17 +202,18 @@ $dailyVisitors = [];
 $trafficBucketCounts = [];
 $trafficLabel = $periodLabels[$period];
 $trafficSubtitle = 'Daily page views for ' . strtolower($periodLabels[$period]);
+$customMonthly = $customRange && $dateFrom->diff($dateTo)->days > 62;
 if ($period === 'today') {
-    $trafficQuery = $conn->prepare("SELECT HOUR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY) GROUP BY HOUR(viewed_at)");
+    $trafficQuery = $conn->prepare("SELECT HOUR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY HOUR(viewed_at)");
     $trafficSubtitle = 'Hourly page views for today';
-} elseif ($period === 'year') {
-    $trafficQuery = $conn->prepare("SELECT DATE_FORMAT(viewed_at, '%Y-%m') bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DATE_FORMAT(viewed_at, '%Y-%m')");
-    $trafficSubtitle = 'Monthly page views for ' . date('Y');
+} elseif ($period === 'year' || $customMonthly) {
+    $trafficQuery = $conn->prepare("SELECT DATE_FORMAT(viewed_at, '%Y-%m') bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY DATE_FORMAT(viewed_at, '%Y-%m')");
+    $trafficSubtitle = $customMonthly ? 'Monthly page views for the selected date range' : 'Monthly page views for ' . date('Y');
 } else {
-    $trafficQuery = $conn->prepare("SELECT DATE(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DATE(viewed_at)");
+    $trafficQuery = $conn->prepare("SELECT DATE(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY DATE(viewed_at)");
 }
 if ($trafficQuery) {
-    $trafficQuery->bind_param('s', $periodStartSql);
+    $trafficQuery->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
     $trafficQuery->execute();
     foreach ($trafficQuery->get_result()->fetch_all(MYSQLI_ASSOC) as $trafficRow) {
         $trafficBucketCounts[$trafficRow['bucket']] = (int) $trafficRow['views'];
@@ -209,8 +234,17 @@ if ($period === 'today') {
         $trafficTrend[] = $point;
         $dailyVisitors[] = $point;
     }
+} elseif ($customMonthly) {
+    $month = $dateFrom->modify('first day of this month');
+    $lastMonth = $dateTo->modify('first day of this month');
+    for (; $month <= $lastMonth; $month = $month->modify('+1 month')) {
+        $monthKey = $month->format('Y-m');
+        $point = ['label' => $month->format('M Y'), 'value' => $trafficBucketCounts[$monthKey] ?? 0];
+        $trafficTrend[] = $point;
+        $dailyVisitors[] = $point;
+    }
 } else {
-    $rangeEnd = new DateTimeImmutable('today');
+    $rangeEnd = $customRange ? $dateTo : new DateTimeImmutable('today');
     for ($date = clone $periodStart; $date <= $rangeEnd; $date->modify('+1 day')) {
         $dateKey = $date->format('Y-m-d');
         $point = ['label' => $date->format('M j'), 'value' => $trafficBucketCounts[$dateKey] ?? 0];
@@ -220,16 +254,16 @@ if ($period === 'today') {
 }
 $dailyVisitorsMax = max(1, max(array_column($dailyVisitors, 'value')));
 $hasDailyData = array_sum(array_column($dailyVisitors, 'value')) > 0;
-$trafficSources = analytics_traffic_sources($conn, $periodStartSql);
+$trafficSources = analytics_traffic_sources($conn, $periodStartSql, 5, $periodEndExclusiveSql);
 $newSignups = 0;
-$stmt = $conn->prepare("SELECT COUNT(*) c FROM users WHERE created_at >= ?");
-$stmt->bind_param('s', $periodStartSql);
+$stmt = $conn->prepare("SELECT COUNT(*) c FROM users WHERE created_at >= ? AND created_at < ?");
+$stmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
 $stmt->execute();
 $newSignups = (int) ($stmt->get_result()->fetch_assoc()['c'] ?? 0);
 $stmt->close();
 $adminLogins = 0;
-$stmt = $conn->prepare("SELECT COUNT(*) c FROM admins WHERE last_login >= ?");
-$stmt->bind_param('s', $periodStartSql);
+$stmt = $conn->prepare("SELECT COUNT(*) c FROM admins WHERE last_login >= ? AND last_login < ?");
+$stmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
 $stmt->execute();
 $adminLogins = (int) ($stmt->get_result()->fetch_assoc()['c'] ?? 0);
 $stmt->close();
@@ -413,6 +447,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             padding: 0 15px; border: 1px solid rgba(var(--overlay-rgb), .12); border-radius: 999px;
             font: 500 .84rem 'DM Sans', sans-serif; white-space: nowrap;
         }
+        .analytics-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
         .period-selector { justify-content: flex-end; flex-wrap: nowrap; align-self: flex-start; gap: 7px; }
         .page-header { align-items: flex-start; }
         .period-selector .period-btn { background: transparent; color: rgba(var(--cream-rgb), .72); }
@@ -425,12 +460,24 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .period-selector .print-analytics-btn { gap: 7px; cursor: pointer; font-weight: 700; }
         .period-selector .print-analytics-btn:hover { filter: brightness(1.06); }
         .period-selector .print-analytics-btn i { width: 18px; height: 18px; }
+        .date-range-form { display: flex; align-items: flex-end; justify-content: flex-end; gap: 7px; margin: 0; }
+        .date-range-field { display: grid; gap: 3px; color: rgba(var(--cream-rgb), .62); font: 500 .68rem 'DM Sans', sans-serif; }
+        .date-range-field input { width: 138px; height: 34px; padding: 0 8px; border: 1px solid rgba(var(--overlay-rgb), .14); border-radius: 8px; background: rgba(var(--overlay-rgb), .04); color: var(--cream); font: 500 .75rem 'DM Sans', sans-serif; color-scheme: dark; }
+        :root[data-theme="light"] .date-range-field input { color-scheme: light; }
+        .date-range-submit { height: 34px; padding: 0 12px; border: 1px solid var(--clay); border-radius: 999px; background: var(--clay); color: #152318; cursor: pointer; font: 700 .75rem 'DM Sans', sans-serif; }
+        .date-range-error { color: #e88b76; font: 500 .75rem 'DM Sans', sans-serif; text-align: right; }
         @media (max-width: 1100px) {
+            .analytics-controls { align-items: flex-end; }
             .period-selector { flex-wrap: wrap; }
+        }
+        @media (max-width: 720px) {
+            .analytics-controls { align-items: flex-start; width: 100%; }
+            .period-selector { justify-content: flex-start; }
+            .date-range-form { justify-content: flex-start; flex-wrap: wrap; }
         }
         @media print {
             body, .main-content, .dash-wrapper { background: #fff !important; color: #111 !important; }
-            .sidebar, .hamburger-btn, .admin-site-switch-row, .period-selector, .analytics-filter-bar { display: none !important; }
+            .sidebar, .hamburger-btn, .admin-site-switch-row, .analytics-controls, .analytics-filter-bar { display: none !important; }
             .main-content { margin: 0 !important; padding: 0 !important; }
             .dash-wrapper { max-width: none !important; padding: 0 !important; }
             .page-header, .chart-box, .kpi-card, .analytics-section { background: #fff !important; color: #111 !important; box-shadow: none !important; break-inside: avoid; }
@@ -494,12 +541,25 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <h1>Analytics <em>Dashboard</em></h1>
                 <p>Overview of tourism activity, engagement, and content performance for Malvar, Batangas. Figures update automatically as visitors use the site.</p>
             </div>
+            <div class="analytics-controls">
             <div class="period-selector">
                 <a href="?period=today" class="period-btn<?php echo $period === 'today' ? ' active' : ''; ?>">Today</a>
                 <a href="?period=week" class="period-btn<?php echo $period === 'week' ? ' active' : ''; ?>">This Week</a>
                 <a href="?period=month" class="period-btn<?php echo $period === 'month' ? ' active' : ''; ?>">This Month</a>
                 <a href="?period=year" class="period-btn<?php echo $period === 'year' ? ' active' : ''; ?>">This Year</a>
                 <button type="button" class="print-analytics-btn" onclick="window.print()"><i data-lucide="printer" aria-hidden="true"></i>Print Analytics</button>
+            </div>
+            <form class="date-range-form" method="get" action="admindashboard.php" aria-label="Filter analytics by date range">
+                <input type="hidden" name="period" value="custom">
+                <label class="date-range-field">From
+                    <input type="date" name="date_from" value="<?php echo htmlspecialchars($dateFromInput); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required>
+                </label>
+                <label class="date-range-field">To
+                    <input type="date" name="date_to" value="<?php echo htmlspecialchars($dateToInput); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required>
+                </label>
+                <button type="submit" class="date-range-submit">Apply</button>
+            </form>
+            <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
             </div>
         </div>
         <section class="traffic-overview chart-box animate" aria-labelledby="trafficOverviewTitle">

@@ -87,12 +87,15 @@ function analytics_active_users(mysqli $conn, int $minutes = 5): int
     }
     return $count;
 }
-function analytics_total_views(mysqli $conn, ?string $sinceSql = null): int
+function analytics_total_views(mysqli $conn, ?string $sinceSql = null, ?string $untilSql = null): int
 {
     $sql = "SELECT COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')";
     if ($sinceSql) {
-        $stmt = $conn->prepare($sql . " AND viewed_at >= ?");
-        $stmt->bind_param('s', $sinceSql);
+        $sql .= " AND viewed_at >= ?";
+        if ($untilSql) $sql .= " AND viewed_at < ?";
+        $stmt = $conn->prepare($sql);
+        if ($untilSql) $stmt->bind_param('ss', $sinceSql, $untilSql);
+        else $stmt->bind_param('s', $sinceSql);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
@@ -101,13 +104,16 @@ function analytics_total_views(mysqli $conn, ?string $sinceSql = null): int
     $res = $conn->query($sql);
     return (int) ($res ? ($res->fetch_assoc()['c'] ?? 0) : 0);
 }
-function analytics_page_breakdown(mysqli $conn, ?string $sinceSql = null, int $limit = 6): array
+function analytics_page_breakdown(mysqli $conn, ?string $sinceSql = null, int $limit = 6, ?string $untilSql = null): array
 {
     $labels = analytics_page_labels();
     $sql = "SELECT page, COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')";
     if ($sinceSql) {
-        $stmt = $conn->prepare($sql . " AND viewed_at >= ? GROUP BY page ORDER BY c DESC LIMIT ?");
-        $stmt->bind_param('si', $sinceSql, $limit);
+        $sql .= " AND viewed_at >= ?";
+        if ($untilSql) $sql .= " AND viewed_at < ?";
+        $stmt = $conn->prepare($sql . " GROUP BY page ORDER BY c DESC LIMIT ?");
+        if ($untilSql) $stmt->bind_param('ssi', $sinceSql, $untilSql, $limit);
+        else $stmt->bind_param('si', $sinceSql, $limit);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
@@ -154,12 +160,15 @@ function analytics_monthly_trend(mysqli $conn, int $months = 6): array
     unset($row);
     return $result;
 }
-function analytics_traffic_sources(mysqli $conn, ?string $sinceSql = null, int $limit = 5): array
+function analytics_traffic_sources(mysqli $conn, ?string $sinceSql = null, int $limit = 5, ?string $untilSql = null): array
 {
     $sql = "SELECT referrer_host, COUNT(*) c FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')";
     if ($sinceSql) {
-        $stmt = $conn->prepare($sql . " AND viewed_at >= ? GROUP BY referrer_host ORDER BY c DESC LIMIT ?");
-        $stmt->bind_param('si', $sinceSql, $limit);
+        $sql .= " AND viewed_at >= ?";
+        if ($untilSql) $sql .= " AND viewed_at < ?";
+        $stmt = $conn->prepare($sql . " GROUP BY referrer_host ORDER BY c DESC LIMIT ?");
+        if ($untilSql) $stmt->bind_param('ssi', $sinceSql, $untilSql, $limit);
+        else $stmt->bind_param('si', $sinceSql, $limit);
     } else {
         $stmt = $conn->prepare($sql . " GROUP BY referrer_host ORDER BY c DESC LIMIT ?");
         $stmt->bind_param('i', $limit);
@@ -236,7 +245,7 @@ function analytics_item_views_bulk(mysqli $conn, string $itemType): array
     $stmt->close();
     return $counts;
 }
-function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = null, array $excludeTypes = [], array $includeTypes = []): array
+function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = null, array $excludeTypes = [], array $includeTypes = [], ?string $untilSql = null): array
 {
     $results = [];
     foreach (analytics_item_types() as $slug => $meta) {
@@ -246,7 +255,7 @@ function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = n
         $sql = "SELECT t.{$meta['id_col']} AS id, t.{$meta['name_col']} AS name, COUNT(v.view_id) AS views
                 FROM {$meta['table']} t
                 INNER JOIN item_views v ON v.item_type = '$slug' AND v.item_id = t.{$meta['id_col']}
-                WHERE {$meta['where']} AND t.status = 'active'" . ($sinceSql ? " AND v.viewed_at >= '$sinceSql'" : '') . "
+                WHERE {$meta['where']} AND t.status = 'active'" . ($sinceSql ? " AND v.viewed_at >= '$sinceSql'" : '') . ($untilSql ? " AND v.viewed_at < '$untilSql'" : '') . "
                 GROUP BY t.{$meta['id_col']}, t.{$meta['name_col']}";
         if ($res = $conn->query($sql)) {
             foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
