@@ -175,38 +175,76 @@ document.querySelectorAll('.td-log-again-btn, .td-timeline-log-again').forEach((
         tdVisitModal.open({ itemType: this.dataset.itemType, itemId: this.dataset.itemId, ...place });
     });
 });
-async function tdUploadFiles(files, itemType, itemId, btn) {
+async function tdUploadFiles(files, itemType, itemId, btn, knownVideoDuration = null) {
     if (!files.length) return;
     btn.disabled = true;
     const originalLabel = btn.innerHTML;
     let uploaded = 0;
     let failed = 0;
+    let lastError = '';
     for (const file of files) {
         btn.textContent = files.length > 1 ? `Uploading ${uploaded + failed + 1}/${files.length}…` : 'Uploading…';
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name);
+        if (file.size > 18 * 1024 * 1024) {
+            failed++;
+            lastError = 'Each photo or video must be 18MB or smaller.';
+            continue;
+        }
+        if (!isVideo && !file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif)$/i.test(file.name)) {
+            failed++;
+            lastError = 'Choose an image or a video file.';
+            continue;
+        }
+        if (isVideo) {
+            const duration = knownVideoDuration !== null && files.length === 1
+                ? knownVideoDuration
+                : await tdGetVideoDuration(file);
+            if (!Number.isFinite(duration) || duration >= 10) {
+                failed++;
+                lastError = 'Videos must be shorter than 10 seconds.';
+                continue;
+            }
+        }
         const formData = new FormData();
         formData.append('action', 'upload_photo');
         formData.append('item_type', itemType);
         formData.append('item_id', itemId);
-        formData.append('photo', file);
+        formData.append('media', file);
         try {
             const res = await fetch('traveldiary_actions.php', { method: 'POST', body: formData }).then((r) => r.json());
-            if (res.success) uploaded++; else failed++;
+            if (res.success) uploaded++; else { failed++; lastError = res.message || 'Upload failed.'; }
         } catch (err) {
             failed++;
+            lastError = 'Upload failed. Please try again.';
         }
     }
     if (uploaded > 0) {
         location.reload();
         return;
     }
-    tdToast(failed === 1 ? 'Upload failed.' : `All ${failed} uploads failed.`);
+    tdToast(lastError || (failed === 1 ? 'Upload failed.' : `All ${failed} uploads failed.`));
     btn.disabled = false;
     btn.innerHTML = originalLabel;
+}
+function tdGetVideoDuration(file) {
+    return new Promise((resolve) => {
+        const probe = document.createElement('video');
+        const url = URL.createObjectURL(file);
+        const cleanup = (duration) => {
+            URL.revokeObjectURL(url);
+            probe.removeAttribute('src');
+            resolve(duration);
+        };
+        probe.preload = 'metadata';
+        probe.onloadedmetadata = () => cleanup(probe.duration);
+        probe.onerror = () => cleanup(NaN);
+        probe.src = url;
+    });
 }
 function tdUploadPhotos(itemType, itemId, btn) {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/png, image/jpeg, image/webp, image/gif';
+    input.accept = 'image/png, image/jpeg, image/webp, image/gif, video/mp4, video/webm, video/quicktime';
     input.multiple = true;
     input.addEventListener('change', () => tdUploadFiles(Array.from(input.files), itemType, itemId, btn));
     input.click();
@@ -214,13 +252,17 @@ function tdUploadPhotos(itemType, itemId, btn) {
 const tdCamera = (function () {
     const overlay = document.getElementById('tdCameraOverlay');
     const video = document.getElementById('tdCameraVideo');
-    const preview = document.getElementById('tdCameraPreview');
+    const photoPreview = document.getElementById('tdCameraPhotoPreview');
+    const videoPreview = document.getElementById('tdCameraVideoPreview');
     const canvas = document.getElementById('tdCameraCanvas');
     const errorEl = document.getElementById('tdCameraError');
+    const cameraTitle = overlay && overlay.querySelector('.td-photo-choice-title');
     const shootBtn = document.getElementById('tdCameraShoot');
     const cancelBtn = document.getElementById('tdCameraCancel');
     const closeBtn = document.getElementById('tdCameraClose');
     const flipBtn = document.getElementById('tdCameraFlip');
+    const recordBtn = document.getElementById('tdCameraRecord');
+    const recordingStatus = document.getElementById('tdCameraRecordingStatus');
     const shootActions = document.getElementById('tdCameraShootActions');
     const previewActions = document.getElementById('tdCameraPreviewActions');
     const retakeBtn = document.getElementById('tdCameraRetake');
@@ -231,6 +273,11 @@ const tdCamera = (function () {
     let facingMode = 'environment';
     let capturedBlob = null;
     let capturedUrl = null;
+    let capturedDuration = null;
+    let recorder = null;
+    let recordedChunks = [];
+    let recordTimer = null;
+    let captureMode = 'photo';
     function stop() {
         if (stream) stream.getTracks().forEach((t) => t.stop());
         stream = null;
@@ -239,28 +286,53 @@ const tdCamera = (function () {
     function showLive() {
         if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
         capturedBlob = null;
-        preview.hidden = true;
-        preview.src = '';
+        capturedDuration = null;
+        photoPreview.hidden = true;
+        photoPreview.src = '';
+        videoPreview.hidden = true;
+        videoPreview.pause();
+        videoPreview.src = '';
         video.hidden = false;
         if (flipBtn) flipBtn.hidden = false;
+        if (recordBtn) recordBtn.hidden = captureMode !== 'video';
+        if (recordBtn) recordBtn.textContent = 'Record Video';
+        if (recordBtn) recordBtn.disabled = false;
+        shootBtn.disabled = false;
+        if (recordingStatus) recordingStatus.hidden = true;
         updateFlipAvailability();
         previewActions.hidden = true;
         shootActions.hidden = false;
     }
-    function showPreview(blob) {
+    function showPreview(blob, isVideo = false, durationSeconds = null) {
         capturedBlob = blob;
+        capturedDuration = durationSeconds;
         capturedUrl = URL.createObjectURL(blob);
-        preview.src = capturedUrl;
-        preview.hidden = false;
+        photoPreview.hidden = isVideo;
+        photoPreview.src = isVideo ? '' : capturedUrl;
+        videoPreview.hidden = !isVideo;
+        if (isVideo) {
+            videoPreview.src = capturedUrl;
+        } else {
+            videoPreview.pause();
+            videoPreview.src = '';
+        }
         video.hidden = true;
         if (flipBtn) flipBtn.hidden = true;
         shootActions.hidden = true;
         previewActions.hidden = false;
     }
     function close() {
+        if (recordTimer) clearTimeout(recordTimer);
+        recordTimer = null;
+        if (recorder && recorder.state !== 'inactive') recorder.stop();
+        recorder = null;
         stop();
         if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
         capturedBlob = null;
+        capturedDuration = null;
+        photoPreview.src = '';
+        videoPreview.pause();
+        videoPreview.src = '';
         overlay.classList.remove('open');
         document.body.style.overflow = '';
         pending = null;
@@ -270,6 +342,7 @@ const tdCamera = (function () {
         errorEl.textContent = message;
         errorEl.hidden = false;
         shootBtn.disabled = true;
+        if (recordBtn && captureMode === 'video') recordBtn.disabled = true;
     }
     function updateMirror(cameraCount) {
         const mirrored = facingMode === 'user' || cameraCount < 2;
@@ -296,7 +369,7 @@ const tdCamera = (function () {
         try {
             const newStream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: { ideal: facingMode } },
-                audio: false,
+                audio: captureMode === 'video',
             });
             stop();
             stream = newStream;
@@ -304,19 +377,27 @@ const tdCamera = (function () {
             updateFlipAvailability();
         } catch (err) {
             showError(err.name === 'NotAllowedError'
-                ? 'Camera access was blocked. Allow camera access in your browser settings to take a photo.'
-                : "Couldn't open the camera. Try choosing a photo from your library instead.");
+                ? `Camera access was blocked. Allow camera access in your browser settings to ${captureMode === 'video' ? 'record a video' : 'take a photo'}.`
+                : `Couldn't open the camera. Try choosing ${captureMode === 'video' ? 'a video' : 'a photo'} from your device instead.`);
         }
     }
-    async function open(itemType, itemId, btn) {
+    async function open(itemType, itemId, btn, mode = 'photo') {
         pending = { itemType, itemId, btn };
+        captureMode = mode;
+        if (cameraTitle) cameraTitle.textContent = mode === 'video' ? 'Record a Short Video' : 'Take a Photo';
         facingMode = 'environment';
         errorEl.hidden = true;
         shootBtn.disabled = false;
         if (capturedUrl) { URL.revokeObjectURL(capturedUrl); capturedUrl = null; }
         capturedBlob = null;
-        preview.hidden = true;
-        preview.src = '';
+        photoPreview.hidden = true;
+        videoPreview.hidden = true;
+        photoPreview.src = '';
+        videoPreview.src = '';
+        if (recordBtn) recordBtn.hidden = mode !== 'video';
+        if (recordBtn) { recordBtn.disabled = false; recordBtn.textContent = 'Record Video'; }
+        if (recordingStatus) recordingStatus.hidden = true;
+        shootBtn.hidden = mode === 'video';
         video.hidden = false;
         shootActions.hidden = false;
         previewActions.hidden = true;
@@ -324,7 +405,12 @@ const tdCamera = (function () {
         document.body.style.overflow = 'hidden';
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             close();
-            fallbackToFileInput(itemType, itemId, btn);
+            fallbackToFileInput(itemType, itemId, btn, mode);
+            return;
+        }
+        if (mode === 'video' && !window.MediaRecorder) {
+            close();
+            fallbackToFileInput(itemType, itemId, btn, mode);
             return;
         }
         await startStream();
@@ -335,11 +421,13 @@ const tdCamera = (function () {
             startStream();
         });
     }
-    function fallbackToFileInput(itemType, itemId, btn) {
+    function fallbackToFileInput(itemType, itemId, btn, mode = 'photo') {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'image/*';
-        input.capture = 'environment';
+        input.accept = mode === 'video'
+            ? 'video/mp4, video/webm, video/quicktime'
+            : 'image/*';
+        if (mode === 'photo') input.capture = 'environment';
         input.addEventListener('change', () => tdUploadFiles(Array.from(input.files), itemType, itemId, btn));
         input.click();
     }
@@ -356,13 +444,70 @@ const tdCamera = (function () {
             showPreview(blob);
         }, 'image/jpeg', 0.9);
     });
+    function stopRecording() {
+        if (recordTimer) clearTimeout(recordTimer);
+        recordTimer = null;
+        if (recorder && recorder.state === 'recording') recorder.stop();
+    }
+    function startRecording() {
+        if (!stream || !window.MediaRecorder) {
+            showError('Video recording is not supported in this browser. Choose a video from your device instead.');
+            return;
+        }
+        const mimeType = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp8', 'video/webm']
+            .find((type) => MediaRecorder.isTypeSupported(type));
+        try {
+            recordedChunks = [];
+            const activeRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+            recorder = activeRecorder;
+            const startedAt = performance.now();
+            activeRecorder.addEventListener('dataavailable', (e) => {
+                if (e.data && e.data.size) recordedChunks.push(e.data);
+            });
+            activeRecorder.addEventListener('stop', () => {
+                if (recordTimer) clearTimeout(recordTimer);
+                recordTimer = null;
+                if (recordingStatus) recordingStatus.hidden = true;
+                if (recordBtn) recordBtn.textContent = 'Record Video';
+                if (!pending) return;
+                const duration = (performance.now() - startedAt) / 1000;
+                if (duration >= 10) {
+                    tdToast('Videos must be shorter than 10 seconds.');
+                    showLive();
+                    return;
+                }
+                const blob = new Blob(recordedChunks, { type: activeRecorder.mimeType || 'video/webm' });
+                if (!blob.size) {
+                    tdToast("Couldn't record that video. Please try again.");
+                    showLive();
+                    return;
+                }
+                showPreview(blob, true, duration);
+            }, { once: true });
+            activeRecorder.start();
+            if (recordBtn) recordBtn.textContent = 'Stop Recording';
+            if (recordingStatus) recordingStatus.hidden = false;
+            recordTimer = setTimeout(stopRecording, 9000);
+        } catch (err) {
+            showError('Could not start video recording. Try choosing a video from your device.');
+        }
+    }
+    if (recordBtn) {
+        recordBtn.addEventListener('click', () => {
+            if (recorder && recorder.state === 'recording') stopRecording();
+            else startRecording();
+        });
+    }
     retakeBtn.addEventListener('click', showLive);
     useBtn.addEventListener('click', () => {
         if (!pending || !capturedBlob) return;
         const { itemType, itemId, btn } = pending;
-        const file = new File([capturedBlob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const duration = capturedDuration;
+        const mimeType = capturedBlob.type || 'image/jpeg';
+        const extension = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('webm') ? 'webm' : 'jpg';
+        const file = new File([capturedBlob], `camera-${Date.now()}.${extension}`, { type: mimeType });
         close();
-        tdUploadFiles([file], itemType, itemId, btn);
+        tdUploadFiles([file], itemType, itemId, btn, duration);
     });
     cancelBtn.addEventListener('click', close);
     closeBtn.addEventListener('click', close);
@@ -377,6 +522,7 @@ const tdPhotoChoice = (function () {
     if (!overlay) return null;
     const closeBtn = document.getElementById('tdPhotoChoiceClose');
     const cameraBtn = document.getElementById('tdPhotoChoiceCamera');
+    const videoBtn = document.getElementById('tdPhotoChoiceVideo');
     const libraryBtn = document.getElementById('tdPhotoChoiceLibrary');
     let pending = null;
     function open(itemType, itemId, btn) {
@@ -399,6 +545,12 @@ const tdPhotoChoice = (function () {
         const { itemType, itemId, btn } = pending;
         close();
         if (tdCamera) tdCamera.open(itemType, itemId, btn);
+    });
+    videoBtn.addEventListener('click', () => {
+        if (!pending) return;
+        const { itemType, itemId, btn } = pending;
+        close();
+        if (tdCamera) tdCamera.open(itemType, itemId, btn, 'video');
     });
     libraryBtn.addEventListener('click', () => {
         if (!pending) return;
@@ -1325,23 +1477,39 @@ document.querySelectorAll('.td-timeline-delete').forEach((btn) => {
 const tdLightbox = (function () {
     const lightbox = document.getElementById('tdLightbox');
     const lightboxImg = document.getElementById('tdLightboxImg');
+    const lightboxVideo = document.getElementById('tdLightboxVideo');
     const lightboxCaption = document.getElementById('tdLightboxCaption');
     const closeBtn = document.getElementById('tdLightboxClose');
     if (!lightbox) return null;
-    function openLightbox(src, caption) {
-        lightboxImg.src = src;
+    function openLightbox(src, caption, mediaType = 'image') {
+        const isVideo = mediaType === 'video';
+        lightboxImg.hidden = isVideo;
+        lightboxImg.src = isVideo ? '' : src;
+        lightboxVideo.hidden = !isVideo;
+        if (isVideo) {
+            lightboxVideo.src = src;
+            lightboxVideo.currentTime = 0;
+            lightboxVideo.play().catch(() => {});
+        } else {
+            lightboxVideo.pause();
+            lightboxVideo.src = '';
+        }
         lightboxCaption.textContent = caption || '';
         lightbox.classList.add('open');
     }
     function closeLightbox() {
         lightbox.classList.remove('open');
         lightboxImg.src = '';
+        lightboxVideo.pause();
+        lightboxVideo.src = '';
+        lightboxVideo.hidden = true;
+        lightboxImg.hidden = false;
     }
     document.addEventListener('click', (e) => {
         if (e.target.closest('.td-photo-delete-btn')) return;
         const trigger = e.target.closest('.td-lightbox-trigger');
         if (!trigger) return;
-        openLightbox(trigger.dataset.lightboxSrc, trigger.dataset.lightboxCaption);
+        openLightbox(trigger.dataset.lightboxSrc, trigger.dataset.lightboxCaption, trigger.dataset.lightboxType);
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { closeLightbox(); return; }
@@ -1349,7 +1517,7 @@ const tdLightbox = (function () {
         const trigger = document.activeElement && document.activeElement.closest && document.activeElement.closest('.td-lightbox-trigger');
         if (!trigger) return;
         e.preventDefault();
-        openLightbox(trigger.dataset.lightboxSrc, trigger.dataset.lightboxCaption);
+        openLightbox(trigger.dataset.lightboxSrc, trigger.dataset.lightboxCaption, trigger.dataset.lightboxType);
     });
     closeBtn.addEventListener('click', closeLightbox);
     lightbox.addEventListener('click', (e) => {
@@ -1369,7 +1537,7 @@ function tdRemovePhotoFromStaticSections(photoId) {
                 const remaining = Math.max(0, Number(countEl.dataset.count) - 1);
                 countEl.dataset.count = remaining;
                 countEl.textContent = countEl.dataset.format === 'suffix'
-                    ? `${remaining} photo${remaining === 1 ? '' : 's'}`
+                    ? `${remaining} media item${remaining === 1 ? '' : 's'}`
                     : String(remaining);
             });
         }
@@ -1378,7 +1546,7 @@ function tdRemovePhotoFromStaticSections(photoId) {
         if (visitCountEl) {
             const remaining = Math.max(0, Number(visitCountEl.dataset.count) - 1);
             visitCountEl.dataset.count = remaining;
-            visitCountEl.textContent = `${remaining} photo${remaining === 1 ? '' : 's'}`;
+            visitCountEl.textContent = `${remaining} media item${remaining === 1 ? '' : 's'}`;
         }
         const container = btn.closest('.td-timeline-photo, .td-gallery-tile');
         if (container) container.remove();
@@ -1392,7 +1560,7 @@ document.addEventListener('click', async (e) => {
     if (!delBtn) return;
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Delete this photo?')) return;
+    if (!window.confirm('Delete this photo or video?')) return;
     const photoId = delBtn.dataset.photoId;
     delBtn.disabled = true;
     const res = await tdPost('delete_photo', { photo_id: photoId });
@@ -1456,14 +1624,18 @@ document.addEventListener('click', async (e) => {
         gridEl.innerHTML = pageItems.map((m) => {
             const dateText = formatDate(m.visitedDate);
             const caption = m.caption ? `<p class="td-memory-caption">${escapeHtml(m.caption)}</p>` : '';
+            const mediaMarkup = m.isVideo
+                ? `<video src="${escapeHtml(m.image)}" muted playsinline preload="metadata"></video>`
+                : `<img src="${escapeHtml(m.image)}" alt="" loading="lazy">`;
             return `
                 <div class="td-memory-card">
                     <div class="td-memory-photo td-lightbox-trigger" tabindex="0" role="button"
                         data-lightbox-src="${escapeHtml(m.image)}"
+                        data-lightbox-type="${m.isVideo ? 'video' : 'image'}"
                         data-lightbox-caption="${escapeHtml(m.placeName)} · ${escapeHtml(dateText)}">
                         <span class="td-memory-icon">${categoryIcons[m.category] || ''}</span>
-                        <img src="${escapeHtml(m.image)}" alt="" loading="lazy">
-                        <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="${m.photoId}">${TRASH_ICON}</button>
+                        ${mediaMarkup}
+                        <button type="button" class="td-photo-delete-btn" aria-label="Delete media" title="Delete media" data-photo-id="${m.photoId}">${TRASH_ICON}</button>
                     </div>
                     <h3 class="td-memory-name">${escapeHtml(m.placeName)}</h3>
                     <p class="td-memory-date">${escapeHtml(dateText)}</p>

@@ -34,6 +34,10 @@ function td_is_placeholder_card_image(?string $path): bool
 {
     return $path !== null && str_ends_with(basename($path), '_card.svg');
 }
+function td_is_diary_video(?string $filename): bool
+{
+    return $filename !== null && in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), ['mp4', 'webm', 'mov'], true);
+}
 $categoryLabels = [
     'product'       => 'Product',
     'restaurant'    => 'Restaurant',
@@ -621,6 +625,7 @@ foreach ($entries as $e) {
         $photoMemories[] = [
             'photoId'     => (int) $p['photo_id'],
             'image'       => '../assets/uploads/diary/' . basename($p['image']),
+            'isVideo'     => td_is_diary_video($p['image']),
             'caption'     => $p['caption'] ?: $e['note'],
             'placeName'   => $item['name'],
             'category'    => $item['category'],
@@ -703,7 +708,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
         foreach ($photosByEntry[(int) $entry['entry_id']] ?? [] as $photo) {
             $storyPhotos[] = [
                 'id' => 'diary-photo-' . (int) $photo['photo_id'],
-                'type' => 'image',
+                'type' => td_is_diary_video((string) $photo['image']) ? 'video' : 'image',
                 'placeId' => $placeId,
                 'date' => date('Y-m-d', strtotime((string) $entry['visited_date'])),
                 'src' => '../assets/uploads/diary/' . basename((string) $photo['image']),
@@ -909,7 +914,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
         <?php if (!empty($photoMemories)): ?>
         <div class="td-hero-polaroid">
             <span class="td-hero-clip"><?php echo $statIcons['clip']; ?></span>
-            <img src="<?php echo htmlspecialchars($photoMemories[0]['image']); ?>" alt="">
+            <?php if (!empty($photoMemories[0]['isVideo'])): ?><video src="<?php echo htmlspecialchars($photoMemories[0]['image']); ?>" muted playsinline preload="metadata"></video><?php else: ?><img src="<?php echo htmlspecialchars($photoMemories[0]['image']); ?>" alt=""><?php endif; ?>
         </div>
         <?php endif; ?>
     </section>
@@ -923,7 +928,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
             <div class="td-stat-card">
                 <span class="td-stat-icon td-stat-icon-pink"><?php echo $statIcons['photos']; ?></span>
                 <span class="td-stat-num"><?php echo $totalPhotos; ?></span>
-                <span class="td-stat-label">Photos Uploaded</span>
+                <span class="td-stat-label">Photos &amp; Videos</span>
             </div>
             <div class="td-stat-card">
                 <span class="td-stat-icon td-stat-icon-orange"><?php echo $statIcons['days']; ?></span>
@@ -968,7 +973,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
                     <?php if (empty($photoMemories)): ?>
                         <div class="td-empty">
                             <h3>No memories yet</h3>
-                            <p>Upload a photo from the Explorer to start this feed.</p>
+                            <p>Add a photo or short video from the Explorer to start this feed.</p>
                         </div>
                     <?php else: ?>
                     <div class="td-memory-tabs" id="tdMemoryTabs">
@@ -977,7 +982,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
                         <button type="button" class="td-memory-tab" data-period="year">This Year</button>
                     </div>
                     <div class="td-memory-grid" id="tdMemoryGrid"></div>
-                    <p class="td-empty-inline" id="tdMemoryEmpty" hidden>No photos in this period yet.</p>
+                    <p class="td-empty-inline" id="tdMemoryEmpty" hidden>No media in this period yet.</p>
                     <div class="td-memory-pager" id="tdMemoryPager" hidden>
                         <button type="button" class="td-memory-page-btn" id="tdMemoryPrev" aria-label="Previous page">‹</button>
                         <span class="td-memory-page-status" id="tdMemoryPageStatus"></span>
@@ -1034,7 +1039,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
                                         <p class="td-group-stats">
                                             Latest visit: <?php echo htmlspecialchars(date('F j, Y', strtotime($g['latestVisitDate']))); ?>
                                             · <?php echo (int) $g['visitCount']; ?> visit<?php echo $g['visitCount'] === 1 ? '' : 's'; ?>
-                                            · <span class="td-group-photo-count" data-format="suffix" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?> photo<?php echo $g['photoCount'] === 1 ? '' : 's'; ?></span>
+                                            · <span class="td-group-photo-count" data-format="suffix" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?> media item<?php echo $g['photoCount'] === 1 ? '' : 's'; ?></span>
                                         </p>
                                     </div>
                                 </div>
@@ -1076,14 +1081,14 @@ if ($wrappedRequested && $canGenerateWrapped) {
                                                         </div>
                                                         <div class="td-visit-row-info">
                                                             <p class="td-visit-row-weekday"><?php echo htmlspecialchars(date('l', $vTs)); ?></p>
-                                                            <p class="td-visit-row-photocount td-visit-photo-count" data-count="<?php echo count($v['photos']); ?>"><?php echo count($v['photos']); ?> photo<?php echo count($v['photos']) === 1 ? '' : 's'; ?></p>
+                                                            <p class="td-visit-row-photocount td-visit-photo-count" data-count="<?php echo count($v['photos']); ?>"><?php echo count($v['photos']); ?> media item<?php echo count($v['photos']) === 1 ? '' : 's'; ?></p>
                                                         </div>
                                                         <?php if (!empty($v['photos'])): ?>
                                                             <div class="td-visit-row-thumbs">
                                                                 <?php foreach (array_slice($v['photos'], 0, 4) as $p):
                                                                     $pImg = htmlspecialchars('../assets/uploads/diary/' . basename($p['image']));
                                                                 ?>
-                                                                    <span class="td-visit-row-thumb" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><img src="<?php echo $pImg; ?>" alt=""></span>
+                                                                    <span class="td-visit-row-thumb" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php if (td_is_diary_video($p['image'])): ?><video src="<?php echo $pImg; ?>" muted playsinline preload="metadata"></video><?php else: ?><img src="<?php echo $pImg; ?>" alt=""><?php endif; ?></span>
                                                                 <?php endforeach; ?>
                                                             </div>
                                                         <?php endif; ?>
@@ -1100,7 +1105,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
                                         </div>
                                         <div class="td-visit-pagination" hidden></div>
                                         <div class="td-folder-section-head-row">
-                                            <h4 class="td-folder-section-head td-folder-photos-head">Photos (<span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>)</h4>
+                                            <h4 class="td-folder-section-head td-folder-photos-head">Photos &amp; Videos (<span class="td-group-photo-count" data-count="<?php echo (int) $g['photoCount']; ?>"><?php echo (int) $g['photoCount']; ?></span>)</h4>
                                             <?php if (count($g['allPhotos']) > 6): ?>
                                                 <button type="button" class="td-folder-pill td-photos-viewall">View All <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
                                             <?php endif; ?>
@@ -1112,13 +1117,13 @@ if ($wrappedRequested && $canGenerateWrapped) {
                                                     $pCaption = htmlspecialchars($g['name'] . ' · ' . date('F j, Y', strtotime($p['visitedDate'])));
                                                 ?>
                                                     <div class="td-timeline-photo<?php echo $pi >= 6 ? ' td-hidden-extra' : ''; ?>">
-                                                        <img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-caption="<?php echo $pCaption; ?>">
-                                                        <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
+                                                        <?php if (td_is_diary_video($p['image'])): ?><video src="<?php echo $pImg; ?>" muted playsinline preload="metadata" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-type="video" data-lightbox-caption="<?php echo $pCaption; ?>"></video><?php else: ?><img src="<?php echo $pImg; ?>" alt="" class="td-lightbox-trigger" data-lightbox-src="<?php echo $pImg; ?>" data-lightbox-type="image" data-lightbox-caption="<?php echo $pCaption; ?>"><?php endif; ?>
+                                                        <button type="button" class="td-photo-delete-btn" aria-label="Delete media" title="Delete media" data-photo-id="<?php echo (int) $p['photo_id']; ?>"><?php echo $uiIcons['trash']; ?></button>
                                                     </div>
                                                 <?php endforeach; ?>
                                             </div>
                                         <?php else: ?>
-                                            <p class="td-empty-inline">No photos yet.</p>
+                                            <p class="td-empty-inline">No media yet.</p>
                                         <?php endif; ?>
                                         <h4 class="td-folder-section-head">Notes</h4>
                                         <textarea
@@ -1136,7 +1141,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
                                                 data-lng="<?php echo $g['lng'] !== null ? $g['lng'] : ''; ?>"><span class="td-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>Log Another Visit</button>
                                             <button type="button" class="td-timeline-add-photo td-folder-btn-outline"
                                                 data-item-type="<?php echo htmlspecialchars($g['itemType']); ?>"
-                                                data-item-id="<?php echo (int) $g['itemId']; ?>"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Add Photo</button>
+                                                data-item-id="<?php echo (int) $g['itemId']; ?>"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Add Media</button>
                                         </div>
                                 </div>
                                 </div>
@@ -1219,18 +1224,18 @@ if ($wrappedRequested && $canGenerateWrapped) {
                     <div class="td-section-head-row">
                         <h2>Photo Memories</h2>
                     </div>
-                    <p class="td-col-sub">Every photo you've uploaded, in one gallery.</p>
+                    <p class="td-col-sub">Every photo and video you've added, in one gallery.</p>
                     <?php if (empty($photoMemories)): ?>
                         <div class="td-empty">
-                            <h3>No photos yet</h3>
-                            <p>Upload a photo from the Explorer to start your gallery.</p>
+                            <h3>No media yet</h3>
+                            <p>Add a photo or short video from the Explorer to start your gallery.</p>
                         </div>
                     <?php else: ?>
                     <div class="td-gallery">
                         <?php foreach ($photoMemories as $i => $m): ?>
-                            <div class="td-gallery-tile td-lightbox-trigger<?php echo $i >= 6 ? ' td-hidden-extra' : ''; ?>" tabindex="0" role="button" data-lightbox-src="<?php echo htmlspecialchars($m['image']); ?>" data-lightbox-caption="<?php echo htmlspecialchars($m['placeName'] . ' · ' . date('F j, Y', strtotime($m['visitedDate']))); ?>">
-                                <img src="<?php echo htmlspecialchars($m['image']); ?>" alt="" loading="lazy">
-                                <button type="button" class="td-photo-delete-btn" aria-label="Delete photo" title="Delete photo" data-photo-id="<?php echo (int) $m['photoId']; ?>"><?php echo $uiIcons['trash']; ?></button>
+                            <div class="td-gallery-tile td-lightbox-trigger<?php echo $i >= 6 ? ' td-hidden-extra' : ''; ?>" tabindex="0" role="button" data-lightbox-src="<?php echo htmlspecialchars($m['image']); ?>" data-lightbox-type="<?php echo !empty($m['isVideo']) ? 'video' : 'image'; ?>" data-lightbox-caption="<?php echo htmlspecialchars($m['placeName'] . ' · ' . date('F j, Y', strtotime($m['visitedDate']))); ?>">
+                                <?php if (!empty($m['isVideo'])): ?><video src="<?php echo htmlspecialchars($m['image']); ?>" muted playsinline preload="metadata"></video><?php else: ?><img src="<?php echo htmlspecialchars($m['image']); ?>" alt="" loading="lazy"><?php endif; ?>
+                                <button type="button" class="td-photo-delete-btn" aria-label="Delete media" title="Delete media" data-photo-id="<?php echo (int) $m['photoId']; ?>"><?php echo $uiIcons['trash']; ?></button>
                                 <span class="td-gallery-info">
                                     <span class="td-gallery-name"><?php echo htmlspecialchars($m['placeName']); ?></span>
                                     <span class="td-gallery-date"><?php echo htmlspecialchars(date('M j, Y', strtotime($m['visitedDate']))); ?></span>
@@ -1326,7 +1331,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
                 <div class="tw-stat-list">
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-green"><?php echo $statIcons['places']; ?></span><div><span class="tw-stat-num"><?php echo $tw['totalPlaces']; ?></span><span class="tw-stat-label">Places Visited</span></div></div>
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-orange"><?php echo $statIcons['days']; ?></span><div><span class="tw-stat-num"><?php echo $tw['daysTraveled']; ?></span><span class="tw-stat-label">Days Traveled</span></div></div>
-                    <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-pink"><?php echo $statIcons['photos']; ?></span><div><span class="tw-stat-num"><?php echo $tw['totalPhotos']; ?></span><span class="tw-stat-label">Photos Uploaded</span></div></div>
+                    <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-pink"><?php echo $statIcons['photos']; ?></span><div><span class="tw-stat-num"><?php echo $tw['totalPhotos']; ?></span><span class="tw-stat-label">Media Added</span></div></div>
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-purple"><?php echo $statIcons['favorites']; ?></span><div><span class="tw-stat-num"><?php echo $twFavoritesCount; ?></span><span class="tw-stat-label">Favorites Marked</span></div></div>
                     <div class="tw-stat-row"><span class="tw-stat-icon tw-icon-blue"><?php echo $statIcons['categories']; ?></span><div><span class="tw-stat-num"><?php echo $tw['categoriesCompleted']; ?></span><span class="tw-stat-label">Categories Explored</span></div></div>
                 </div>
@@ -1542,20 +1547,27 @@ if ($wrappedRequested && $canGenerateWrapped) {
 <div class="td-photo-choice-overlay" id="tdPhotoChoiceOverlay">
     <div class="td-photo-choice-card">
         <button type="button" class="td-photo-choice-close" id="tdPhotoChoiceClose" aria-label="Close">&times;</button>
-        <h3 class="td-photo-choice-title">Add a Photo</h3>
+        <h3 class="td-photo-choice-title">Add Media</h3>
         <div class="td-photo-choice-options">
             <button type="button" class="td-photo-choice-btn" id="tdPhotoChoiceCamera">
                 <span class="td-photo-choice-dot"><?php echo $uiIcons['camera']; ?></span>
                 <span class="td-photo-choice-copy">
-                    <span class="td-photo-choice-btn-title">Take Photo</span>
+                    <span class="td-photo-choice-btn-title">Take a Photo</span>
                     <span class="td-photo-choice-btn-sub">Use your camera</span>
+                </span>
+            </button>
+            <button type="button" class="td-photo-choice-btn" id="tdPhotoChoiceVideo">
+                <span class="td-photo-choice-dot"><?php echo $statIcons['clip']; ?></span>
+                <span class="td-photo-choice-copy">
+                    <span class="td-photo-choice-btn-title">Record a Video</span>
+                    <span class="td-photo-choice-btn-sub">Capture a clip under 10 seconds</span>
                 </span>
             </button>
             <button type="button" class="td-photo-choice-btn" id="tdPhotoChoiceLibrary">
                 <span class="td-photo-choice-dot"><?php echo $uiIcons['library']; ?></span>
                 <span class="td-photo-choice-copy">
-                    <span class="td-photo-choice-btn-title">Choose from Library</span>
-                    <span class="td-photo-choice-btn-sub">Pick one or more existing photos</span>
+                    <span class="td-photo-choice-btn-title">Choose Media</span>
+                    <span class="td-photo-choice-btn-sub">Pick photos or videos under 10 seconds</span>
                 </span>
             </button>
         </div>
@@ -1567,17 +1579,20 @@ if ($wrappedRequested && $canGenerateWrapped) {
         <h3 class="td-photo-choice-title">Take a Photo</h3>
         <div class="td-camera-video-wrap">
             <video id="tdCameraVideo" class="td-camera-video" autoplay playsinline muted></video>
-            <img id="tdCameraPreview" class="td-camera-video" alt="Captured photo" hidden>
+            <img id="tdCameraPhotoPreview" class="td-camera-video" alt="Captured photo" hidden>
+            <video id="tdCameraVideoPreview" class="td-camera-video" controls playsinline hidden></video>
             <button type="button" class="td-camera-flip" id="tdCameraFlip" aria-label="Switch camera" title="Switch camera" hidden><?php echo $uiIcons['flip']; ?></button>
         </div>
         <p class="td-camera-error" id="tdCameraError" hidden></p>
         <div class="td-camera-actions" id="tdCameraShootActions">
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraCancel">Cancel</button>
-            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraShoot"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Capture</button>
+            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraShoot"><span class="td-btn-icon"><?php echo $uiIcons['camera']; ?></span>Capture Photo</button>
+            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraRecord" hidden><span class="td-btn-icon"><?php echo $statIcons['clip']; ?></span>Record Video</button>
         </div>
+        <p class="td-camera-recording-status" id="tdCameraRecordingStatus" hidden>Recording video… it will stop before 10 seconds.</p>
         <div class="td-camera-actions" id="tdCameraPreviewActions" hidden>
             <button type="button" class="td-visit-btn td-visit-btn-ghost" id="tdCameraRetake"><span class="td-btn-icon"><?php echo $uiIcons['undo']; ?></span>Retake</button>
-            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraUse"><span class="td-btn-icon"><?php echo $uiIcons['check']; ?></span>Use Photo</button>
+            <button type="button" class="td-visit-btn td-visit-btn-primary" id="tdCameraUse"><span class="td-btn-icon"><?php echo $uiIcons['check']; ?></span>Use Media</button>
         </div>
     </div>
 </div>
@@ -1585,6 +1600,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
 <div class="td-lightbox" id="tdLightbox">
     <button type="button" class="td-lightbox-close" id="tdLightboxClose" aria-label="Close">&times;</button>
     <img src="" alt="" id="tdLightboxImg">
+    <video src="" id="tdLightboxVideo" controls playsinline hidden></video>
     <p id="tdLightboxCaption"></p>
 </div>
 <div class="td-toast" id="tdToast"></div>

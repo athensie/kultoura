@@ -216,6 +216,13 @@
     border-radius: 2px;
     display: block;
 }
+.td-hero-polaroid video {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    border-radius: 2px;
+    display: block;
+}
 .td-hero-clip {
     position: absolute;
     top: -18px;
@@ -663,7 +670,7 @@
 }
 .td-memory-grid.is-month .td-memory-photo { height: 105px; }
 .td-memory-grid.is-year .td-memory-photo { height: 85px; }
-.td-memory-photo img {
+.td-memory-photo :is(img, video) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1406,7 +1413,7 @@ button.td-folder-pill:hover {
     overflow: hidden;
     flex-shrink: 0;
 }
-.td-visit-row-thumb img {
+.td-visit-row-thumb :is(img, video) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1537,7 +1544,7 @@ button.td-folder-pill:hover {
     width: 72px;
     height: 72px;
 }
-.td-timeline-photo img {
+.td-timeline-photo :is(img, video) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1639,7 +1646,7 @@ button.td-folder-pill:hover {
     outline: 2px solid #8a6a2f;
     outline-offset: 2px;
 }
-.td-gallery-tile img {
+.td-gallery-tile :is(img, video) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1895,7 +1902,7 @@ button.td-folder-pill:hover {
 .td-lightbox.open {
     display: flex;
 }
-.td-lightbox img {
+.td-lightbox :is(img, video) {
     max-width: 90vw;
     max-height: 80vh;
     border-radius: 8px;
@@ -3146,6 +3153,12 @@ button.td-folder-pill:hover {
     font-size: 13px;
     color: #8b2e1a;
     margin: 12px 0 0;
+}
+.td-camera-recording-status {
+    margin: 10px 0 0;
+    color: #8b2e1a;
+    font-size: 12px;
+    font-weight: 700;
 }
 .td-camera-actions {
     display: flex;

@@ -9,21 +9,33 @@ if (!isset($_SESSION['user_id'])) {
 $userId = (int) $_SESSION['user_id'];
 $action = $_POST['action'] ?? '';
 $validTypes = ['product', 'restaurant', 'destination', 'fiesta', 'person'];
-function td_save_uploaded_photo(array $file): array
+function td_save_uploaded_media(array $file): array
 {
-    $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-    $maxBytes   = 5 * 1024 * 1024;
+    $allowed = [
+        'jpg' => ['image/jpeg', 'image'], 'jpeg' => ['image/jpeg', 'image'],
+        'png' => ['image/png', 'image'], 'webp' => ['image/webp', 'image'],
+        'gif' => ['image/gif', 'image'],
+        'mp4' => ['video/mp4', 'video'], 'webm' => ['video/webm', 'video'],
+        'mov' => ['video/quicktime', 'video'],
+    ];
+    $maxBytes = 18 * 1024 * 1024;
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         return ['ok' => false, 'message' => 'Upload failed. Please try again.'];
     }
-    if ($file['size'] > $maxBytes) {
-        return ['ok' => false, 'message' => 'That photo is too large (max 5MB).'];
+    if (($file['size'] ?? 0) > $maxBytes) {
+        return ['ok' => false, 'message' => 'That file is too large (max 18MB).'];
     }
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowedExt, true)) {
-        return ['ok' => false, 'message' => 'Please upload a JPG, PNG, WEBP, or GIF image.'];
+    if (!isset($allowed[$ext]) || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        return ['ok' => false, 'message' => 'Choose a JPG, PNG, WEBP, GIF, MP4, WEBM, or MOV file.'];
     }
-    if (@getimagesize($file['tmp_name']) === false) {
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($file['tmp_name']);
+    [$expectedMime, $mediaType] = $allowed[$ext];
+    if ($mime !== $expectedMime) {
+        return ['ok' => false, 'message' => 'The file content does not match its file type.'];
+    }
+    if ($mediaType === 'image' && @getimagesize($file['tmp_name']) === false) {
         return ['ok' => false, 'message' => 'That file doesn\'t look like a valid image.'];
     }
     $uploadDir = __DIR__ . '/../assets/uploads/diary/';
@@ -33,9 +45,9 @@ function td_save_uploaded_photo(array $file): array
     $safeName = preg_replace('/[^a-z0-9_-]/i', '-', pathinfo($file['name'], PATHINFO_FILENAME));
     $filename = uniqid('diary_', true) . '_' . $safeName . '.' . $ext;
     if (!move_uploaded_file($file['tmp_name'], $uploadDir . $filename)) {
-        return ['ok' => false, 'message' => 'Could not save the uploaded photo.'];
+        return ['ok' => false, 'message' => 'Could not save the uploaded file.'];
     }
-    return ['ok' => true, 'filename' => $filename];
+    return ['ok' => true, 'filename' => $filename, 'mediaType' => $mediaType];
 }
 if ($action === 'mark_visited') {
     $itemType         = $_POST['item_type'] ?? '';
@@ -119,11 +131,12 @@ if ($action === 'upload_photo') {
         echo json_encode(['success' => false, 'message' => 'Invalid item.']);
         exit;
     }
-    if (empty($_FILES['photo'])) {
-        echo json_encode(['success' => false, 'message' => 'No photo was sent.']);
+    $upload = $_FILES['media'] ?? $_FILES['photo'] ?? null;
+    if (!$upload) {
+        echo json_encode(['success' => false, 'message' => 'No photo or video was sent.']);
         exit;
     }
-    $saved = td_save_uploaded_photo($_FILES['photo']);
+    $saved = td_save_uploaded_media($upload);
     if (!$saved['ok']) {
         echo json_encode(['success' => false, 'message' => $saved['message']]);
         exit;
@@ -157,6 +170,7 @@ if ($action === 'upload_photo') {
         'entryId' => $entryId,
         'photoId' => $photoId,
         'image'   => '../assets/uploads/diary/' . $saved['filename'],
+        'mediaType' => $saved['mediaType'],
     ]);
     exit;
 }
