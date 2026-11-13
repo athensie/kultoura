@@ -203,9 +203,13 @@ $trafficBucketCounts = [];
 $trafficLabel = $periodLabels[$period];
 $trafficSubtitle = 'Daily page views for ' . strtolower($periodLabels[$period]);
 $customMonthly = $customRange && $dateFrom->diff($dateTo)->days > 62;
+$customYearly = $customRange && $dateFrom->diff($dateTo)->days > 730;
 if ($period === 'today') {
     $trafficQuery = $conn->prepare("SELECT HOUR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY HOUR(viewed_at)");
     $trafficSubtitle = 'Hourly page views for today';
+} elseif ($customYearly) {
+    $trafficQuery = $conn->prepare("SELECT YEAR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY YEAR(viewed_at)");
+    $trafficSubtitle = 'Yearly page views for the selected date range';
 } elseif ($period === 'year' || $customMonthly) {
     $trafficQuery = $conn->prepare("SELECT DATE_FORMAT(viewed_at, '%Y-%m') bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY DATE_FORMAT(viewed_at, '%Y-%m')");
     $trafficSubtitle = $customMonthly ? 'Monthly page views for the selected date range' : 'Monthly page views for ' . date('Y');
@@ -234,12 +238,18 @@ if ($period === 'today') {
         $trafficTrend[] = $point;
         $dailyVisitors[] = $point;
     }
-} elseif ($customMonthly) {
+} elseif ($customMonthly && !$customYearly) {
     $month = $dateFrom->modify('first day of this month');
     $lastMonth = $dateTo->modify('first day of this month');
     for (; $month <= $lastMonth; $month = $month->modify('+1 month')) {
         $monthKey = $month->format('Y-m');
         $point = ['label' => $month->format('M Y'), 'value' => $trafficBucketCounts[$monthKey] ?? 0];
+        $trafficTrend[] = $point;
+        $dailyVisitors[] = $point;
+    }
+} elseif ($customYearly) {
+    for ($year = (int) $dateFrom->format('Y'); $year <= (int) $dateTo->format('Y'); $year++) {
+        $point = ['label' => (string) $year, 'value' => $trafficBucketCounts[(string) $year] ?? 0];
         $trafficTrend[] = $point;
         $dailyVisitors[] = $point;
     }
@@ -951,12 +961,13 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                         <div class="chart-empty-sub">This graph will fill as visitors browse the public pages.</div>
                     </div>
                 <?php else: ?>
+                    <?php $dailyLabelStride = max(1, (int) ceil(count($dailyVisitors) / 10)); ?>
                     <div class="daily-views-chart">
-                        <?php foreach ($dailyVisitors as $day): $height = $day['value'] > 0 ? max(5, (int) round($day['value'] / $dailyVisitorsMax * 100)) : 0; ?>
+                        <?php foreach ($dailyVisitors as $dayIndex => $day): $height = $day['value'] > 0 ? max(5, (int) round($day['value'] / $dailyVisitorsMax * 100)) : 0; ?>
                             <div class="daily-views-column" title="<?php echo htmlspecialchars($day['label'] . ': ' . $day['value'] . ' views'); ?>">
                                 <span class="daily-views-value"><?php echo $day['value'] ?: ''; ?></span>
                                 <div class="daily-views-track"><div class="daily-views-bar" style="height:<?php echo $height; ?>%"></div></div>
-                                <span class="daily-views-label"><?php echo htmlspecialchars($day['label']); ?></span>
+                                <span class="daily-views-label"><?php echo ($dayIndex % $dailyLabelStride === 0 || $dayIndex === count($dailyVisitors) - 1) ? htmlspecialchars($day['label']) : ''; ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
