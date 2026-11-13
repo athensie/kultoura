@@ -169,6 +169,28 @@ function toggleSidebar() {
     renderVisibleRange();
   });
 
+  canvas.addEventListener('wheel', event => {
+    // Browsers report touchpad pinch gestures as Ctrl/Cmd + wheel events.
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left;
+    const { left, right } = chart.chartArea;
+    if (pointerX < left || pointerX > right || visibleCount <= 0) return;
+
+    const deltaScale = event.deltaMode === 1 ? 16 : (event.deltaMode === 2 ? rect.height : 1);
+    const delta = event.deltaY * deltaScale;
+    const nextCount = Math.max(minVisible, Math.min(series.length, Math.round(visibleCount * Math.exp(delta * .002))));
+    if (nextCount === visibleCount) return;
+
+    const pointerIndex = chart.scales.x.getValueForPixel(pointerX);
+    const anchorFraction = visibleCount > 1 ? Math.max(0, Math.min(1, pointerIndex / (visibleCount - 1))) : .5;
+    const anchorIndex = firstVisible + pointerIndex;
+    visibleCount = nextCount;
+    firstVisible = Math.max(0, Math.min(series.length - visibleCount, Math.round(anchorIndex - anchorFraction * (visibleCount - 1))));
+    renderVisibleRange();
+  }, { passive: false });
+
   canvas.style.touchAction = 'pan-y';
   canvas.addEventListener('pointerdown', event => {
     if ((event.button !== undefined && event.button !== 0)) return;
