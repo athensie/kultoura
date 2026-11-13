@@ -198,24 +198,6 @@
 .td-wrapped-btn:hover {
     background: #4c6a3d;
 }
-.td-wrapped-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 14px;
-}
-.td-wrapped-period-trigger {
-    border: 0;
-    padding: 8px 0;
-    background: transparent;
-    color: #5f7d4c;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
 .td-hero-polaroid {
     position: relative;
     z-index: 1;
@@ -2065,7 +2047,7 @@ button.td-folder-pill:hover {
     inset: 0;
     padding: 24px;
     box-sizing: border-box;
-    background: rgba(20, 24, 18, 0.38);
+    background: rgba(20, 24, 18, 0.28);
     backdrop-filter: blur(3px);
     z-index: 3000;
     align-items: center;
