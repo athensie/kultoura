@@ -393,11 +393,26 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
     <link rel="stylesheet" href="../assets/css/admin-theme.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <style>
-        .period-selector .period-btn { text-decoration: none; display: inline-block; }
-        .print-analytics-btn { background: #a5be91; border: 0; border-radius: 999px; color: #152318; cursor: pointer; font: inherit; font-weight: 700; padding: 11px 17px; }
+        .period-selector .period-btn { text-decoration: none; }
+        .period-selector .period-btn,
+        .period-selector .print-analytics-btn {
+            align-items: center; display: inline-flex; justify-content: center; min-height: 54px;
+            padding: 0 22px; border: 1px solid rgba(var(--overlay-rgb), .12); border-radius: 999px;
+            font: 500 1rem 'DM Sans', sans-serif; white-space: nowrap;
+        }
+        .period-selector .period-btn { background: transparent; color: rgba(var(--cream-rgb), .72); }
+        .period-selector .period-btn.active,
+        .period-selector .period-btn:hover,
+        .period-selector .print-analytics-btn {
+            background: var(--clay); border-color: var(--clay); color: #152318;
+        }
+        .period-selector .period-btn.active { font-weight: 600; }
+        .period-selector .print-analytics-btn { gap: 9px; cursor: pointer; font-weight: 700; }
+        .period-selector .print-analytics-btn:hover { filter: brightness(1.06); }
+        .period-selector .print-analytics-btn i { width: 18px; height: 18px; }
         @media print {
             body, .main-content, .dash-wrapper { background: #fff !important; color: #111 !important; }
-            .sidebar, .hamburger-btn, .admin-site-switch-row, .period-selector, .analytics-filter-bar, .traffic-range-switch, .print-analytics-btn { display: none !important; }
+            .sidebar, .hamburger-btn, .admin-site-switch-row, .period-selector, .analytics-filter-bar { display: none !important; }
             .main-content { margin: 0 !important; padding: 0 !important; }
             .dash-wrapper { max-width: none !important; padding: 0 !important; }
             .page-header, .chart-box, .kpi-card, .analytics-section { background: #fff !important; color: #111 !important; box-shadow: none !important; break-inside: avoid; }
@@ -466,17 +481,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <a href="?period=week" class="period-btn<?php echo $period === 'week' ? ' active' : ''; ?>">This Week</a>
                 <a href="?period=month" class="period-btn<?php echo $period === 'month' ? ' active' : ''; ?>">This Month</a>
                 <a href="?period=year" class="period-btn<?php echo $period === 'year' ? ' active' : ''; ?>">This Year</a>
-                <button type="button" class="print-analytics-btn" onclick="window.print()">Print Analytics</button>
+                <button type="button" class="print-analytics-btn" onclick="window.print()"><i data-lucide="printer" aria-hidden="true"></i>Print Analytics</button>
             </div>
         </div>
         <section class="traffic-overview chart-box animate" aria-labelledby="trafficOverviewTitle">
             <div class="traffic-overview-header">
                 <div><span class="section-label">Audience activity</span><h2 id="trafficOverviewTitle">Traffic overview</h2><p>Daily page views across the last 90 days</p></div>
-                <div class="traffic-range-switch" role="group" aria-label="Chart date range">
-                    <button type="button" class="traffic-range-button" data-days="7">7D</button>
-                    <button type="button" class="traffic-range-button" data-days="30">30D</button>
-                    <button type="button" class="traffic-range-button is-active" data-days="90">90D</button>
-                </div>
             </div>
             <div class="traffic-chart-summary"><strong><?php echo number_format(array_sum(array_column($trafficTrend, 'value'))); ?></strong><span>page views in the last 90 days</span></div>
             <div class="traffic-chart-wrap"><canvas id="trafficOverviewChart" aria-label="Daily page views trend chart" role="img"></canvas></div>

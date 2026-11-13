@@ -171,10 +171,6 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .traffic-overview-header .section-label { margin-bottom: 6px; }
 .traffic-overview-header h2 { color: var(--cream); font: 700 1.35rem 'Playfair Display', serif; }
 .traffic-overview-header p { color: rgba(var(--cream-rgb),.42); font-size: .78rem; margin-top: 5px; }
-.traffic-range-switch { display: inline-flex; padding: 4px; border: 1px solid rgba(var(--overlay-rgb),.1); border-radius: 10px; background: rgba(var(--overlay-rgb),.035); }
-.traffic-range-button { min-width: 46px; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: rgba(var(--cream-rgb),.5); font: 600 .7rem 'DM Sans', sans-serif; cursor: pointer; transition: background .2s, color .2s; }
-.traffic-range-button:hover { color: var(--cream); }
-.traffic-range-button.is-active { background: var(--clay); color: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
 .traffic-chart-summary { display: flex; align-items: baseline; gap: 9px; margin: 20px 0 6px; }
 .traffic-chart-summary strong { color: var(--cream); font: 700 1.55rem 'DM Sans', sans-serif; }
 .traffic-chart-summary span { color: rgba(var(--cream-rgb),.4); font-size: .72rem; }

@@ -29,7 +29,6 @@ function toggleSidebar() {
 (function initTrafficOverview() {
   const canvas = document.getElementById('trafficOverviewChart');
   const dataNode = document.getElementById('trafficOverviewData');
-  const range = document.querySelector('.traffic-range-switch');
   if (!canvas || !dataNode || typeof Chart === 'undefined') return;
 
   let series;
@@ -108,16 +107,4 @@ function toggleSidebar() {
     }
   });
 
-  if (!range) return;
-  range.addEventListener('click', event => {
-    const button = event.target.closest('[data-days]');
-    if (!button) return;
-    const days = Number(button.dataset.days);
-    if (![7, 30, 90].includes(days)) return;
-    range.querySelectorAll('[data-days]').forEach(option => option.classList.toggle('is-active', option === button));
-    const visible = series.slice(-days);
-    chart.data.labels = visible.map(point => point.label);
-    chart.data.datasets[0].data = visible.map(point => point.value);
-    chart.update('active');
-  });
 })();
