@@ -396,10 +396,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .period-selector .period-btn { text-decoration: none; }
         .period-selector .period-btn,
         .period-selector .print-analytics-btn {
-            align-items: center; display: inline-flex; justify-content: center; min-height: 54px;
-            padding: 0 22px; border: 1px solid rgba(var(--overlay-rgb), .12); border-radius: 999px;
-            font: 500 1rem 'DM Sans', sans-serif; white-space: nowrap;
+            align-items: center; display: inline-flex; justify-content: center; min-height: 40px;
+            padding: 0 15px; border: 1px solid rgba(var(--overlay-rgb), .12); border-radius: 999px;
+            font: 500 .84rem 'DM Sans', sans-serif; white-space: nowrap;
         }
+        .period-selector { justify-content: flex-end; flex-wrap: nowrap; align-self: flex-start; gap: 7px; }
+        .page-header { align-items: flex-start; }
         .period-selector .period-btn { background: transparent; color: rgba(var(--cream-rgb), .72); }
         .period-selector .period-btn.active,
         .period-selector .period-btn:hover,
@@ -407,9 +409,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             background: var(--clay); border-color: var(--clay); color: #152318;
         }
         .period-selector .period-btn.active { font-weight: 600; }
-        .period-selector .print-analytics-btn { gap: 9px; cursor: pointer; font-weight: 700; }
+        .period-selector .print-analytics-btn { gap: 7px; cursor: pointer; font-weight: 700; }
         .period-selector .print-analytics-btn:hover { filter: brightness(1.06); }
         .period-selector .print-analytics-btn i { width: 18px; height: 18px; }
+        @media (max-width: 1100px) {
+            .period-selector { flex-wrap: wrap; }
+        }
         @media print {
             body, .main-content, .dash-wrapper { background: #fff !important; color: #111 !important; }
             .sidebar, .hamburger-btn, .admin-site-switch-row, .period-selector, .analytics-filter-bar { display: none !important; }
