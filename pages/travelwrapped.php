@@ -16,9 +16,11 @@ if (!isset($wrappedStoryData) || empty($wrappedStoryData['visits'])) {
 html,body{height:100%}
 body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;overflow:hidden;background:transparent;position:relative;isolation:isolate}
 .diary-backdrop{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:-2;pointer-events:none;background:#f4efe5}
-body:before{content:"";position:fixed;inset:0;z-index:-1;background:rgba(20,24,18,.28);backdrop-filter:blur(2px);pointer-events:none}
+body:before{content:"";position:fixed;inset:0;z-index:-1;background:rgba(20,12,6,.72);pointer-events:none}
 .stage{position:relative;z-index:1;width:min(420px,46vh,calc(100vw - 48px));height:min(760px,88vh,88dvh);border-radius:26px;overflow:hidden;background:var(--paper);user-select:none;transition:background .6s;--bt:rgba(42,26,16,.15);--bf:var(--ink)}
 @media(max-width:480px){.stage{width:min(420px,calc(100vw - 32px));height:min(760px,88vh,88dvh);border-radius:24px}}
+.popup-close{position:absolute;z-index:30;top:52px;right:max(18px,calc((100vw - 420px)/2 + 18px));width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(44,26,14,.1);color:var(--ink);text-decoration:none;font:600 20px/1 var(--sans)}
+.popup-close:hover{background:rgba(44,26,14,.18)}
 .stage.dark{background:#130b06;--bt:#ffffff30;--bf:#fff}
 .top{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 0}
 .bars{display:flex;gap:4px}.bar{flex:1;height:3px;border-radius:9px;background:var(--bt);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--bf)}
@@ -94,6 +96,7 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 <style>.bg .bi{overflow:hidden}.bg .bi img{display:block;width:100%;height:100%;object-fit:contain}</style></head>
 <body>
 <iframe class="diary-backdrop" src="traveldiary.php" title="Travel Diary" aria-hidden="true" tabindex="-1"></iframe>
+<a class="popup-close" href="traveldiary.php" aria-label="Close Travel Wrapped">&times;</a>
 <main class="stage" id="stage">
 <header class="top"><div class="bars" id="bars"></div><div class="meta"><div class="brand" id="brand"></div><div class="count" id="count"></div></div></header>
 <div class="slides" id="slides"></div>
