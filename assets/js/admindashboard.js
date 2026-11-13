@@ -142,8 +142,10 @@ function toggleSidebar() {
   canvas.addEventListener('wheel', event => {
     const rect = canvas.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
-    const { left, right } = chart.chartArea;
-    if (pointerX < left || pointerX > right || visibleCount <= 0) return;
+    const pointerY = event.clientY - rect.top;
+    const { left, right, top, bottom } = chart.chartArea;
+    if (pointerX < left || pointerX > right || pointerY < top || pointerY > bottom || visibleCount <= 0) return;
+    event.preventDefault();
 
     const deltaScale = event.deltaMode === 1 ? 16 : (event.deltaMode === 2 ? rect.height : 1);
     const wheelDelta = event.deltaY * deltaScale;
@@ -151,7 +153,6 @@ function toggleSidebar() {
     const zoomDelta = (event.ctrlKey || event.metaKey) ? -wheelDelta : wheelDelta;
     const nextCount = Math.max(minVisible, Math.min(series.length, Math.round(visibleCount * Math.exp(-zoomDelta * .002))));
     if (nextCount === visibleCount) return;
-    event.preventDefault();
 
     const pointerIndex = chart.scales.x.getValueForPixel(pointerX);
     const anchorFraction = visibleCount > 1 ? Math.max(0, Math.min(1, pointerIndex / (visibleCount - 1))) : .5;
