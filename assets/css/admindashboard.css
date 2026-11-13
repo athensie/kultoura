@@ -181,6 +181,8 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 .traffic-chart-summary span { color: rgba(var(--cream-rgb),.4); font-size: .72rem; }
 .traffic-chart-wrap { height: 280px; position: relative; }
 .traffic-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+.traffic-chart-wrap.is-zoomed canvas { cursor: grab; }
+.traffic-chart-wrap.is-zoomed canvas.is-dragging { cursor: grabbing; }
 .admin-site-switch-row { display: flex; justify-content: flex-end; margin: -8px 0 18px; }
 .admin-site-switch { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid rgba(var(--overlay-rgb),.14); border-radius: 999px; color: var(--cream); text-decoration: none; font-size: .76rem; background: rgba(var(--overlay-rgb),.05); transition: background .2s, border-color .2s; }
 .admin-site-switch:hover { background: rgba(var(--overlay-rgb),.1); border-color: rgba(var(--overlay-rgb),.3); }

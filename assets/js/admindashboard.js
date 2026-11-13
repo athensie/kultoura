@@ -108,11 +108,13 @@ function toggleSidebar() {
   });
 
   const chartSection = canvas.closest('.traffic-overview');
+  const chartWrap = chartSection?.querySelector('.traffic-chart-wrap');
   const zoomIn = chartSection?.querySelector('[data-chart-zoom-in]');
   const zoomOut = chartSection?.querySelector('[data-chart-zoom-out]');
   const zoomReset = chartSection?.querySelector('[data-chart-zoom-reset]');
   let visibleCount = series.length;
   let firstVisible = 0;
+  let dragState = null;
   const minVisible = Math.min(3, series.length);
 
   const renderVisibleRange = () => {
@@ -120,6 +122,7 @@ function toggleSidebar() {
     chart.data.labels = visibleSeries.map(point => point.label);
     chart.data.datasets[0].data = visibleSeries.map(point => point.value);
     chart.update('none');
+    chartWrap?.classList.toggle('is-zoomed', visibleCount < series.length);
     if (zoomIn) zoomIn.disabled = visibleCount <= minVisible;
     if (zoomOut) zoomOut.disabled = visibleCount >= series.length;
     if (zoomReset) zoomReset.disabled = visibleCount >= series.length;
@@ -148,6 +151,30 @@ function toggleSidebar() {
     firstVisible = 0;
     renderVisibleRange();
   });
+
+  canvas.style.touchAction = 'pan-y';
+  canvas.addEventListener('pointerdown', event => {
+    if (visibleCount >= series.length || (event.button !== undefined && event.button !== 0)) return;
+    dragState = { pointerId: event.pointerId, startX: event.clientX, startIndex: firstVisible };
+    canvas.classList.add('is-dragging');
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    const plotWidth = chart.chartArea.right - chart.chartArea.left;
+    if (plotWidth <= 0) return;
+    const shift = Math.round((event.clientX - dragState.startX) / plotWidth * visibleCount);
+    firstVisible = Math.max(0, Math.min(series.length - visibleCount, dragState.startIndex - shift));
+    renderVisibleRange();
+  });
+  const stopDragging = event => {
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    dragState = null;
+    canvas.classList.remove('is-dragging');
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  };
+  canvas.addEventListener('pointerup', stopDragging);
+  canvas.addEventListener('pointercancel', stopDragging);
   renderVisibleRange();
 
 })();

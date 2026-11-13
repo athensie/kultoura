@@ -475,6 +475,8 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .date-range-field input { width: 138px; height: 34px; padding: 0 8px; border: 1px solid rgba(var(--overlay-rgb), .14); border-radius: 8px; background: rgba(var(--overlay-rgb), .04); color: var(--cream); font: 500 .75rem 'DM Sans', sans-serif; color-scheme: dark; }
         :root[data-theme="light"] .date-range-field input { color-scheme: light; }
         .date-range-submit { height: 34px; padding: 0 12px; border: 1px solid var(--clay); border-radius: 999px; background: var(--clay); color: #152318; cursor: pointer; font: 700 .75rem 'DM Sans', sans-serif; }
+        .date-range-clear { padding: 0 5px 8px; color: rgba(var(--cream-rgb), .58); font: 500 .7rem 'DM Sans', sans-serif; text-decoration: none; white-space: nowrap; }
+        .date-range-clear:hover { color: var(--cream); text-decoration: underline; }
         .date-range-error { color: #e88b76; font: 500 .75rem 'DM Sans', sans-serif; text-align: right; }
         @media (max-width: 1100px) {
             .analytics-controls { align-items: flex-end; }
@@ -568,6 +570,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                     <input type="date" name="date_to" value="<?php echo htmlspecialchars($dateToInput); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required>
                 </label>
                 <button type="submit" class="date-range-submit">Apply</button>
+                <a class="date-range-clear" href="?period=month">Clear range</a>
             </form>
             <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
             </div>
