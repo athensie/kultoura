@@ -131,27 +131,11 @@ foreach ($categoryShare as $c) {
 $donutGradient = !empty($donutStops) ? implode(', ', $donutStops) : '#333 0% 100%';
 $monthlyVisitors = analytics_monthly_trend($conn, 6);
 $hasMonthlyData = array_sum(array_column($monthlyVisitors, 'value')) > 0;
-$dailyVisitorCounts = [];
-$dailyStmt = $conn->prepare("SELECT DATE(viewed_at) visit_date, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) GROUP BY DATE(viewed_at)");
-if ($dailyStmt) {
-    $dailyStmt->execute();
-    foreach ($dailyStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $dailyRow) {
-        $dailyVisitorCounts[$dailyRow['visit_date']] = (int) $dailyRow['views'];
-    }
-    $dailyStmt->close();
-}
-$dailyVisitors = [];
-for ($dayOffset = 13; $dayOffset >= 0; $dayOffset--) {
-    $date = new DateTimeImmutable('-' . $dayOffset . ' days');
-    $dateKey = $date->format('Y-m-d');
-    $dailyVisitors[] = ['label' => $date->format('M j'), 'value' => $dailyVisitorCounts[$dateKey] ?? 0];
-}
-$dailyVisitorsMax = max(1, max(array_column($dailyVisitors, 'value')));
-$hasDailyData = array_sum(array_column($dailyVisitors, 'value')) > 0;
 $weekdayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 $weekdayCounts = array_fill(1, 7, 0);
-$weekdayStmt = $conn->prepare("SELECT DAYOFWEEK(viewed_at) weekday, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= DATE_SUB(CURDATE(), INTERVAL 89 DAY) GROUP BY DAYOFWEEK(viewed_at)");
+$weekdayStmt = $conn->prepare("SELECT DAYOFWEEK(viewed_at) weekday, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DAYOFWEEK(viewed_at)");
 if ($weekdayStmt) {
+    $weekdayStmt->bind_param('s', $periodStartSql);
     $weekdayStmt->execute();
     foreach ($weekdayStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $weekdayRow) {
         $weekdayCounts[(int) $weekdayRow['weekday']] = (int) $weekdayRow['views'];
@@ -189,24 +173,53 @@ for ($monthOffset = 5; $monthOffset >= 0; $monthOffset--) {
     $signupMax = max($signupMax, $signupCounts[$monthKey] ?? 0);
 }
 $hasSignupData = array_sum(array_column($signupTrend, 'value')) > 0;
-$trendCounts = [];
-$trendStart = (new DateTimeImmutable('today'))->modify('-89 days');
-$trendStmt = $conn->prepare("SELECT DATE(viewed_at) visit_date, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DATE(viewed_at)");
-if ($trendStmt) {
-    $trendStartSql = $trendStart->format('Y-m-d 00:00:00');
-    $trendStmt->bind_param('s', $trendStartSql);
-    $trendStmt->execute();
-    foreach ($trendStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $trendRow) {
-        $trendCounts[$trendRow['visit_date']] = (int) $trendRow['views'];
-    }
-    $trendStmt->close();
-}
 $trafficTrend = [];
-for ($dayOffset = 89; $dayOffset >= 0; $dayOffset--) {
-    $trendDate = (new DateTimeImmutable('today'))->modify('-' . $dayOffset . ' days');
-    $trendKey = $trendDate->format('Y-m-d');
-    $trafficTrend[] = ['label' => $trendDate->format('M j'), 'value' => $trendCounts[$trendKey] ?? 0];
+$dailyVisitors = [];
+$trafficBucketCounts = [];
+$trafficLabel = $periodLabels[$period];
+$trafficSubtitle = 'Daily page views for ' . strtolower($periodLabels[$period]);
+if ($period === 'today') {
+    $trafficQuery = $conn->prepare("SELECT HOUR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY) GROUP BY HOUR(viewed_at)");
+    $trafficSubtitle = 'Hourly page views for today';
+} elseif ($period === 'year') {
+    $trafficQuery = $conn->prepare("SELECT DATE_FORMAT(viewed_at, '%Y-%m') bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DATE_FORMAT(viewed_at, '%Y-%m')");
+    $trafficSubtitle = 'Monthly page views for ' . date('Y');
+} else {
+    $trafficQuery = $conn->prepare("SELECT DATE(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? GROUP BY DATE(viewed_at)");
 }
+if ($trafficQuery) {
+    $trafficQuery->bind_param('s', $periodStartSql);
+    $trafficQuery->execute();
+    foreach ($trafficQuery->get_result()->fetch_all(MYSQLI_ASSOC) as $trafficRow) {
+        $trafficBucketCounts[$trafficRow['bucket']] = (int) $trafficRow['views'];
+    }
+    $trafficQuery->close();
+}
+if ($period === 'today') {
+    for ($hour = 0; $hour < 24; $hour++) {
+        $point = ['label' => date('g A', strtotime(sprintf('%02d:00', $hour))), 'value' => $trafficBucketCounts[(string) $hour] ?? 0];
+        $trafficTrend[] = $point;
+        $dailyVisitors[] = $point;
+    }
+} elseif ($period === 'year') {
+    for ($monthOffset = 11; $monthOffset >= 0; $monthOffset--) {
+        $monthDate = (new DateTimeImmutable('first day of this month'))->modify('-' . $monthOffset . ' months');
+        $monthKey = $monthDate->format('Y-m');
+        $point = ['label' => $monthDate->format('M'), 'value' => $trafficBucketCounts[$monthKey] ?? 0];
+        $trafficTrend[] = $point;
+        $dailyVisitors[] = $point;
+    }
+} else {
+    $rangeEnd = new DateTimeImmutable('today');
+    for ($date = clone $periodStart; $date <= $rangeEnd; $date->modify('+1 day')) {
+        $dateKey = $date->format('Y-m-d');
+        $point = ['label' => $date->format('M j'), 'value' => $trafficBucketCounts[$dateKey] ?? 0];
+        $trafficTrend[] = $point;
+        $dailyVisitors[] = $point;
+    }
+}
+$dailyVisitorsMax = max(1, max(array_column($dailyVisitors, 'value')));
+$hasDailyData = array_sum(array_column($dailyVisitors, 'value')) > 0;
 $trafficSources = analytics_traffic_sources($conn, $periodStartSql);
 $newSignups = 0;
 $stmt = $conn->prepare("SELECT COUNT(*) c FROM users WHERE created_at >= ?");
@@ -491,9 +504,9 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         </div>
         <section class="traffic-overview chart-box animate" aria-labelledby="trafficOverviewTitle">
             <div class="traffic-overview-header">
-                <div><span class="section-label">Audience activity</span><h2 id="trafficOverviewTitle">Traffic overview</h2><p>Daily page views across the last 90 days</p></div>
+                <div><span class="section-label">Audience activity</span><h2 id="trafficOverviewTitle">Traffic overview</h2><p><?php echo htmlspecialchars($trafficSubtitle); ?></p></div>
             </div>
-            <div class="traffic-chart-summary"><strong><?php echo number_format(array_sum(array_column($trafficTrend, 'value'))); ?></strong><span>page views in the last 90 days</span></div>
+            <div class="traffic-chart-summary"><strong><?php echo number_format($totalPageViews); ?></strong><span>page views &mdash; <?php echo htmlspecialchars(strtolower($trafficLabel)); ?></span></div>
             <div class="traffic-chart-wrap"><canvas id="trafficOverviewChart" aria-label="Daily page views trend chart" role="img"></canvas></div>
             <script type="application/json" id="trafficOverviewData"><?php echo json_encode($trafficTrend, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
         </section>
@@ -870,7 +883,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         </div>
         <div class="charts-2col animate">
             <div class="chart-box">
-                <h4>Daily Page Views <span class="chart-sub">&mdash; last 14 days</span></h4>
+                <h4>Page Views by Time <span class="chart-sub">&mdash; <?php echo htmlspecialchars($trafficLabel); ?></span></h4>
                 <?php if (!$hasDailyData): ?>
                     <div class="chart-empty">
                         <i data-lucide="activity" class="lucide"></i>
@@ -890,7 +903,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <?php endif; ?>
             </div>
             <div class="chart-box">
-                <h4>Visits by Day of Week <span class="chart-sub">&mdash; last 90 days</span></h4>
+                <h4>Visits by Day of Week <span class="chart-sub">&mdash; <?php echo htmlspecialchars($trafficLabel); ?></span></h4>
                 <?php if (array_sum($weekdayCounts) === 0): ?>
                     <div class="chart-empty">
                         <i data-lucide="calendar-days" class="lucide"></i>
