@@ -129,8 +129,9 @@ function toggleSidebar() {
   const zoomIn = chartSection?.querySelector('[data-chart-zoom-in]');
   const zoomOut = chartSection?.querySelector('[data-chart-zoom-out]');
   const zoomReset = chartSection?.querySelector('[data-chart-zoom-reset]');
-  let visibleCount = series.length;
-  let firstVisible = 0;
+  const initialWindow = Number(dataNode.dataset.initialWindow || 0);
+  let visibleCount = initialWindow > 0 ? Math.min(initialWindow, series.length) : series.length;
+  let firstVisible = series.length - visibleCount;
   const minVisible = Math.min(3, series.length);
 
   const renderVisibleRange = () => {

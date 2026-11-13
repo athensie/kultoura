@@ -230,11 +230,11 @@ if ($trafficQuery) {
 }
 if ($period === 'all') {
     $lastMonth = new DateTimeImmutable('first day of this month');
-    $minimumStartMonth = $lastMonth->modify('-11 months');
+    $minimumStartMonth = $lastMonth->modify('-59 months');
     $firstDataMonth = !empty($trafficBucketCounts)
         ? new DateTimeImmutable(min(array_keys($trafficBucketCounts)) . '-01')
         : $minimumStartMonth;
-    $firstMonth = $firstDataMonth > $minimumStartMonth ? $minimumStartMonth : $firstDataMonth;
+    $firstMonth = $firstDataMonth < $minimumStartMonth ? $firstDataMonth : $minimumStartMonth;
     for ($month = $firstMonth; $month <= $lastMonth; $month = $month->modify('+1 month')) {
         $monthKey = $month->format('Y-m');
         $point = ['label' => $month->format('M Y'), 'value' => $trafficBucketCounts[$monthKey] ?? 0];
@@ -605,7 +605,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             <div class="traffic-chart-summary"><strong><?php echo number_format($totalPageViews); ?></strong><span>page views &mdash; <?php echo htmlspecialchars(strtolower($trafficLabel)); ?></span></div>
             <p class="traffic-chart-hint">Drag across the chart to zoom into a time range. Drag again to pan.</p>
             <div class="traffic-chart-wrap"><canvas id="trafficOverviewChart" aria-label="Daily page views trend chart" role="img"></canvas></div>
-            <script type="application/json" id="trafficOverviewData"><?php echo json_encode($trafficTrend, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+            <script type="application/json" id="trafficOverviewData" data-initial-window="<?php echo $period === 'all' ? '12' : '0'; ?>"><?php echo json_encode($trafficTrend, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
         </section>
         <div class="analytics-filter-bar" id="analyticsFilterBar">
             <button type="button" class="analytics-filter-pill is-active" data-filter="all">All</button>
