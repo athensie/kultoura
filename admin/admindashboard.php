@@ -206,8 +206,8 @@ $trafficSubtitle = 'Daily page views for ' . strtolower($periodLabels[$period]);
 $customMonthly = $customRange && $dateFrom->diff($dateTo)->days > 62;
 $customYearly = $customRange && $dateFrom->diff($dateTo)->days > 730;
 if ($period === 'all') {
-    $trafficQuery = $conn->prepare("SELECT YEAR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY YEAR(viewed_at)");
-    $trafficSubtitle = 'Yearly page views across all available history';
+    $trafficQuery = $conn->prepare("SELECT DATE_FORMAT(viewed_at, '%Y-%m') bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY DATE_FORMAT(viewed_at, '%Y-%m')");
+    $trafficSubtitle = 'Monthly page views across all available history';
 } elseif ($period === 'today') {
     $trafficQuery = $conn->prepare("SELECT HOUR(viewed_at) bucket, COUNT(*) views FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at >= ? AND viewed_at < ? GROUP BY HOUR(viewed_at)");
     $trafficSubtitle = 'Hourly page views for today';
@@ -229,9 +229,15 @@ if ($trafficQuery) {
     $trafficQuery->close();
 }
 if ($period === 'all') {
-    $firstYear = !empty($trafficBucketCounts) ? (int) min(array_keys($trafficBucketCounts)) : (int) $today->format('Y');
-    for ($year = $firstYear; $year <= (int) $today->format('Y'); $year++) {
-        $point = ['label' => (string) $year, 'value' => $trafficBucketCounts[(string) $year] ?? 0];
+    $lastMonth = new DateTimeImmutable('first day of this month');
+    $minimumStartMonth = $lastMonth->modify('-11 months');
+    $firstDataMonth = !empty($trafficBucketCounts)
+        ? new DateTimeImmutable(min(array_keys($trafficBucketCounts)) . '-01')
+        : $minimumStartMonth;
+    $firstMonth = $firstDataMonth > $minimumStartMonth ? $minimumStartMonth : $firstDataMonth;
+    for ($month = $firstMonth; $month <= $lastMonth; $month = $month->modify('+1 month')) {
+        $monthKey = $month->format('Y-m');
+        $point = ['label' => $month->format('M Y'), 'value' => $trafficBucketCounts[$monthKey] ?? 0];
         $trafficTrend[] = $point;
         $dailyVisitors[] = $point;
     }
