@@ -731,6 +731,13 @@ if ($wrappedRequested && $canGenerateWrapped) {
         foreach ($storyPhotos as $photo) {
             $storyPhotosByPlace[$photo['placeId']][] = $photo;
         }
+        foreach ($storyPhotosByPlace as &$placeMedia) {
+            usort($placeMedia, static function (array $a, array $b): int {
+                $videoFirst = ((int) ($b['type'] === 'video')) <=> ((int) ($a['type'] === 'video'));
+                return $videoFirst !== 0 ? $videoFirst : strnatcmp($b['id'], $a['id']);
+            });
+        }
+        unset($placeMedia);
         $storyChapters = [];
         foreach ($storyPlaces as $placeId => $place) {
             $chapterMedia = $storyPhotosByPlace[$placeId][0] ?? [
@@ -748,7 +755,6 @@ if ($wrappedRequested && $canGenerateWrapped) {
                 'label' => 'A moment from your diary',
                 'media' => $chapterMedia,
             ];
-            if (count($storyChapters) >= 9) break;
         }
         $wrappedStoryData = [
             'config' => ['brand' => 'KULTOURA', 'region' => 'Malvar, Batangas', 'year' => (int) $wrappedRangeStart->format('Y'), 'slideMs' => 6500, 'maxClipSeconds' => 5],
