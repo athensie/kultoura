@@ -14,9 +14,11 @@ if (!isset($wrappedStoryData) || empty($wrappedStoryData['visits'])) {
 :root{--ink:#2a1a10;--soft:#76624f;--paper:#f5ede1;--card:#fbf6ee;--line:rgba(42,26,16,.13);--sage:#587a4c;--sage-d:#3f5c36;--terra:#b5472a;--caramel:#c07a2c;--gold:#e8b86b;--serif:'Fraunces',Georgia,serif;--sans:'Inter',system-ui,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;overflow:hidden;background:#17100a}
-.stage{position:relative;width:min(420px,100vw);height:min(860px,100dvh);border-radius:32px;overflow:hidden;background:var(--paper);user-select:none;transition:background .6s;--bt:rgba(42,26,16,.15);--bf:var(--ink)}
-@media(max-width:480px){.stage{border-radius:0}}
+body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;overflow:hidden;background:transparent;position:relative;isolation:isolate}
+.diary-backdrop{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:-2;pointer-events:none;background:#f4efe5}
+body:before{content:"";position:fixed;inset:0;z-index:-1;background:rgba(20,24,18,.28);backdrop-filter:blur(2px);pointer-events:none}
+.stage{position:relative;z-index:1;width:min(420px,46vh,calc(100vw - 48px));height:min(760px,88vh,88dvh);border-radius:26px;overflow:hidden;background:var(--paper);user-select:none;transition:background .6s;--bt:rgba(42,26,16,.15);--bf:var(--ink)}
+@media(max-width:480px){.stage{width:min(420px,calc(100vw - 32px));height:min(760px,88vh,88dvh);border-radius:24px}}
 .stage.dark{background:#130b06;--bt:#ffffff30;--bf:#fff}
 .top{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 0}
 .bars{display:flex;gap:4px}.bar{flex:1;height:3px;border-radius:9px;background:var(--bt);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--bf)}
@@ -91,6 +93,7 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 </style>
 <style>.bg .bi{overflow:hidden}.bg .bi img{display:block;width:100%;height:100%;object-fit:contain}</style></head>
 <body>
+<iframe class="diary-backdrop" src="traveldiary.php" title="Travel Diary" aria-hidden="true" tabindex="-1"></iframe>
 <main class="stage" id="stage">
 <header class="top"><div class="bars" id="bars"></div><div class="meta"><div class="brand" id="brand"></div><div class="count" id="count"></div></div></header>
 <div class="slides" id="slides"></div>
