@@ -22,6 +22,7 @@ body:before{content:"";position:fixed;inset:0;z-index:-1;background:rgba(20,12,6
 .popup-close{position:absolute;z-index:30;top:52px;right:max(18px,calc((100vw - 420px)/2 + 18px));width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(44,26,14,.1);color:var(--ink);text-decoration:none;font:600 20px/1 var(--sans)}
 .popup-close:hover{background:rgba(44,26,14,.18)}
 .stage.dark{background:#130b06;--bt:#ffffff30;--bf:#fff}
+.stage.exporting .rise{opacity:1!important;transform:none!important;animation:none!important}
 .top{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 0}
 .bars{display:flex;gap:4px}.bar{flex:1;height:3px;border-radius:9px;background:var(--bt);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--bf)}
 .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
@@ -88,8 +89,8 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 .bgs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bg{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 14px;text-align:center}.bg .bi{width:52px;height:52px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,var(--gold),var(--caramel))}.bg b{display:block;font:700 15px/1.15 var(--serif)}.bg small{display:block;margin-top:5px;font-size:11.5px;color:var(--soft);line-height:1.35}
 .badge-download{position:relative;z-index:11;display:inline-block;margin-top:10px;color:var(--sage-d);font:700 10px var(--sans);letter-spacing:.08em;text-decoration:none;text-transform:uppercase}
 .zone{position:absolute;top:0;bottom:0;z-index:10;pointer-events:none}.zone.l{left:0;width:30%}.zone.r{right:0;width:70%}
-.actions{position:absolute;left:0;right:0;bottom:0;z-index:20;padding:28px 18px calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;gap:8px;justify-content:center;flex-wrap:wrap;background:linear-gradient(transparent,var(--paper) 62%)}.stage.dark .actions{background:linear-gradient(transparent,#130b06 62%)}
-.btn{border:1px solid var(--line);cursor:pointer;padding:11px 18px;border-radius:99px;font:600 13px var(--sans);background:var(--card);color:var(--ink)}.btn.fb{background:#1877f2;color:#fff;border-color:#1877f2}.btn{transition:transform .15s,background .3s}.btn:hover{transform:translateY(-2px)}.btn:active{transform:scale(.96)}.stage.dark .btn:not(.fb){background:#ffffff18;color:#fff;border-color:#ffffff2e}
+.actions{position:absolute;left:0;right:0;bottom:0;z-index:20;padding:28px 18px calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;gap:10px;justify-content:center;flex-wrap:wrap;background:linear-gradient(transparent,var(--paper) 62%)}.stage.dark .actions{background:linear-gradient(transparent,#130b06 62%)}
+.btn{width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);cursor:pointer;padding:0;border-radius:50%;font:600 13px var(--sans);background:var(--card);color:var(--ink)}.btn svg{width:20px;height:20px;display:block}.btn.fb{background:#1877f2;color:#fff;border-color:#1877f2}.btn{transition:transform .15s,background .3s}.btn:hover{transform:translateY(-2px)}.btn:active{transform:scale(.96)}.btn:disabled{opacity:.55;cursor:wait;transform:none}.stage.dark .btn:not(.fb){background:#ffffff18;color:#fff;border-color:#ffffff2e}
 .toast{position:absolute;left:50%;bottom:96px;z-index:40;transform:translateX(-50%);opacity:0;pointer-events:none;background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;transition:.3s}.toast.show{opacity:1}
 @media(prefers-reduced-motion:reduce){.clip-ph,.lt{animation:none!important}.lt{opacity:1}}
 </style>
@@ -101,9 +102,14 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 <header class="top"><div class="bars" id="bars"></div><div class="meta"><div class="brand" id="brand"></div><div class="count" id="count"></div></div></header>
 <div class="slides" id="slides"></div>
 <div class="zone l" id="zl"></div><div class="zone r" id="zr"></div>
-<footer class="actions"><button class="btn" id="share">Share</button><button class="btn" id="exportVideo">Export video</button><button class="btn fb" id="fb">Facebook</button></footer>
+<footer class="actions">
+<button class="btn" id="share" type="button" aria-label="Share Travel Wrapped" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6"/></svg></button>
+<button class="btn" id="exportVideo" type="button" aria-label="Export this slide as an image" title="Export as image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
+<button class="btn fb" id="fb" type="button" aria-label="Share to Facebook" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 22v-8.4h2.8l.4-3.3h-3.2V8.1c0-.9.3-1.6 1.7-1.6h1.7V3.5c-.9-.1-2-.2-3.2-.2-2.6 0-4.3 1.6-4.3 4.4v2.6H7.2v3.3h2.8V22h3.5z"/></svg></button>
+</footer>
 <div class="toast" id="toast"></div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 /* DATA — replace with JSON from your backend. media[].src / poster / places[].img / liked[].img = real uploads. */
 const DATA = <?php echo json_encode($wrappedStoryData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
@@ -225,17 +231,24 @@ function tickFilm(e){let acc=0,k=0;for(;k<FILM.length;k++){if(e<acc+FILM[k].ms)b
 function counters(el){el.querySelectorAll('[data-count]').forEach(n=>{const end=+n.dataset.count,t0=performance.now();(function t(now){const p=Math.min((now-t0)/900,1);n.textContent=Math.round(end*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(t)})(t0)})}
 function go(n){idx=Math.max(0,Math.min(total-1,n));elapsed=0;const s=SLIDES[idx];
  els.forEach((el,i)=>{el.classList.toggle('active',i===idx);el.classList.toggle('before',i<idx)});fills.forEach((b,i)=>b.style.width=i<idx?'100%':'0%');
- $('#count').textContent=(idx+1)+'/'+total;stage.classList.toggle('dark',!!s.dark);counters(els[idx]);if(s.onEnter)s.onEnter()}
+ $('#count').textContent=(idx+1)+'/'+total;stage.classList.toggle('dark',!!s.dark);updateExportButton();counters(els[idx]);if(s.onEnter)s.onEnter()}
 function loop(ts){const dt=Math.min(ts-(lastTs||ts),100);lastTs=ts;
  if(!hold&&!manual&&!document.hidden){elapsed+=dt;const d=durOf(idx);fills[idx].style.width=Math.min(elapsed/d,1)*100+'%';if(SLIDES[idx].onTick)SLIDES[idx].onTick(elapsed);if(elapsed>=d&&idx<total-1)go(idx+1)}
  requestAnimationFrame(loop)}
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)};
+async function exportImage(){
+ const button=$('#exportVideo'),slide=els[idx];if(typeof window.html2canvas!=='function'){toast('Image export could not load. Check your connection and try again.');return}
+ button.disabled=true;manual=true;stage.classList.add('exporting');
+ try{await document.fonts?.ready;const canvas=await html2canvas(slide,{scale:2,backgroundColor:getComputedStyle(stage).backgroundColor,useCORS:true,logging:false});const blob=await new Promise((resolve,reject)=>canvas.toBlob(file=>file?resolve(file):reject(new Error('Image export failed')),'image/png'));const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`kultoura-wrapped-${CFG.year}-${SLIDES[idx].id}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('Slide saved as an image')}
+ catch(err){toast('Could not export this slide as an image. Please try again.')}
+ finally{button.disabled=false;manual=false;stage.classList.remove('exporting')}
+}
 function exportFilm(){
  const button=$('#exportVideo');if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){toast('Video export is not supported in this browser');return}
- button.disabled=true;button.textContent='Preparing video…';manual=true;
+ button.disabled=true;manual=true;
  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1920;const ctx=canvas.getContext('2d');
  const assets=FILM.map(f=>{if(!f.m)return null;if(f.m.type==='video'){const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.crossOrigin='anonymous';v.src=f.m.src||'';return v}const im=new Image();im.crossOrigin='anonymous';im.src=f.m.src||f.m.poster||'';return im}),posters=FILM.map(f=>{if(!f.m||f.m.type!=='video'||!f.m.poster)return null;const im=new Image();im.crossOrigin='anonymous';im.src=f.m.poster;return im});
- const mime=['video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));if(!mime){button.disabled=false;button.textContent='Export video';manual=false;toast('This browser cannot create a downloadable video');return}
+ const mime=['video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));if(!mime){button.disabled=false;manual=false;toast('This browser cannot create a downloadable video');return}
  const fit=(source)=>{if(!source||!source.videoWidth&&!source.naturalWidth)return;const w=source.videoWidth||source.naturalWidth,h=source.videoHeight||source.naturalHeight,s=Math.min(canvas.width/w,canvas.height/h),dw=w*s,dh=h*s;ctx.drawImage(source,(canvas.width-dw)/2,(canvas.height-dh)/2,dw,dh)};
  const card=(title,sub)=>{const g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);g.addColorStop(0,'#3b2414');g.addColorStop(1,'#130b06');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#f6ebdd';const max=canvas.width-120;let size=150;ctx.font=size+'px Barabara';while(ctx.measureText(title.toUpperCase()).width>max&&size>32)ctx.font=(--size)+'px Barabara';ctx.fillText(title.toUpperCase(),canvas.width/2,canvas.height/2,max);ctx.fillStyle='#f6ebddb0';ctx.font='600 30px Inter';ctx.fillText(sub.toUpperCase(),canvas.width/2,canvas.height/2+120,max)};
  const draw=(k,offset)=>{const f=FILM[k],a=assets[k];ctx.fillStyle='#0f0a06';ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -246,11 +259,14 @@ function exportFilm(){
  };
  ctx.fillStyle='#130b06';ctx.fillRect(0,0,canvas.width,canvas.height);const waitAsset=a=>new Promise(resolve=>{if(!a||a instanceof HTMLImageElement&&a.complete||a instanceof HTMLVideoElement&&a.readyState>=2){resolve();return}const done=()=>resolve();a.addEventListener('load',done,{once:true});a.addEventListener('loadeddata',done,{once:true});a.addEventListener('error',done,{once:true});setTimeout(done,5000)});
  Promise.all([...assets,...posters].map(waitAsset)).then(()=>document.fonts?.ready).then(()=>{
-  const stream=canvas.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:5000000}),chunks=[];rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};rec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='kultoura-wrapped-'+CFG.year+(mime.includes('mp4')?'.mp4':'.webm');a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);button.disabled=false;button.textContent='Export video';manual=false;toast('Video downloaded')};
-  rec.start(250);const start=performance.now();let last=-1;function frame(now){const t=now-start;if(t>=FILM_MS){draw(FILM.length-1,FILM[FILM.length-1].ms);rec.stop();return}let acc=0,k=0;for(;k<FILM.length-1&&t>=acc+FILM[k].ms;k++)acc+=FILM[k].ms;draw(k,t-acc);if(k!==last){last=k;if(assets[k] instanceof HTMLVideoElement){assets[k].currentTime=0;assets[k].play().catch(()=>{})}}requestAnimationFrame(frame)}requestAnimationFrame(frame);button.textContent='Recording…';toast('Recording Wrapped video…');
- });
+  const stream=canvas.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:5000000}),chunks=[];rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};rec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='kultoura-wrapped-'+CFG.year+(mime.includes('mp4')?'.mp4':'.webm');a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);button.disabled=false;manual=false;toast('Video downloaded')};
+  rec.start(250);const start=performance.now();let last=-1;function frame(now){const t=now-start;if(t>=FILM_MS){draw(FILM.length-1,FILM[FILM.length-1].ms);rec.stop();return}let acc=0,k=0;for(;k<FILM.length-1&&t>=acc+FILM[k].ms;k++)acc+=FILM[k].ms;draw(k,t-acc);if(k!==last){last=k;if(assets[k] instanceof HTMLVideoElement){assets[k].currentTime=0;assets[k].play().catch(()=>{})}}requestAnimationFrame(frame)}requestAnimationFrame(frame);toast('Recording Wrapped video…');
+ }).catch(()=>{button.disabled=false;manual=false;toast('Could not export this video. Please try again.')});
 }
-$('#exportVideo').onclick=e=>{e.stopPropagation();exportFilm()};
+const IMAGE_EXPORT_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>';
+const VIDEO_EXPORT_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg>';
+function updateExportButton(){const isFilm=SLIDES[idx]?.id==='film',button=$('#exportVideo');button.innerHTML=isFilm?VIDEO_EXPORT_ICON:IMAGE_EXPORT_ICON;button.title=isFilm?'Export Malvar in Moments as video':'Export this slide as an image';button.setAttribute('aria-label',button.title)}
+$('#exportVideo').onclick=e=>{e.stopPropagation();if(SLIDES[idx]?.id==='film')exportFilm();else exportImage()};
 $('#share').onclick=async e=>{e.stopPropagation();const d={title:CFG.brand+' Wrapped '+CFG.year,text:C.shareText,url:location.href};try{if(navigator.share)await navigator.share(d);else{await navigator.clipboard.writeText(d.url);toast('Link copied to clipboard')}}catch(_){}};
 $('#fb').onclick=e=>{e.stopPropagation();window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(location.href),'_blank','noopener')};
 document.addEventListener('click',e=>{if(e.target.closest('#replay'))go(0)});
