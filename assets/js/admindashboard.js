@@ -126,9 +126,6 @@ function toggleSidebar() {
 
   const chartSection = canvas.closest('.traffic-overview');
   const chartWrap = chartSection?.querySelector('.traffic-chart-wrap');
-  const zoomIn = chartSection?.querySelector('[data-chart-zoom-in]');
-  const zoomOut = chartSection?.querySelector('[data-chart-zoom-out]');
-  const zoomReset = chartSection?.querySelector('[data-chart-zoom-reset]');
   const initialWindow = Number(dataNode.dataset.initialWindow || 0);
   let visibleCount = initialWindow > 0 ? Math.min(initialWindow, series.length) : series.length;
   let firstVisible = series.length - visibleCount;
@@ -140,48 +137,21 @@ function toggleSidebar() {
     chart.data.datasets[0].data = visibleSeries.map(point => point.value);
     chart.update('none');
     chartWrap?.classList.toggle('is-zoomed', visibleCount < series.length);
-    if (zoomIn) zoomIn.disabled = visibleCount <= minVisible;
-    if (zoomOut) zoomOut.disabled = visibleCount >= series.length;
-    if (zoomReset) zoomReset.disabled = visibleCount >= series.length;
   };
 
-  zoomIn?.addEventListener('click', () => {
-    if (visibleCount <= minVisible) return;
-    const nextCount = Math.max(minVisible, Math.floor(visibleCount * .7));
-    const center = firstVisible + visibleCount / 2;
-    visibleCount = nextCount;
-    firstVisible = Math.max(0, Math.min(series.length - visibleCount, Math.round(center - visibleCount / 2)));
-    renderVisibleRange();
-  });
-
-  zoomOut?.addEventListener('click', () => {
-    if (visibleCount >= series.length) return;
-    const nextCount = Math.min(series.length, Math.ceil(visibleCount / .7));
-    const center = firstVisible + visibleCount / 2;
-    visibleCount = nextCount;
-    firstVisible = Math.max(0, Math.min(series.length - visibleCount, Math.round(center - visibleCount / 2)));
-    renderVisibleRange();
-  });
-
-  zoomReset?.addEventListener('click', () => {
-    visibleCount = series.length;
-    firstVisible = 0;
-    renderVisibleRange();
-  });
-
   canvas.addEventListener('wheel', event => {
-    // Browsers report touchpad pinch gestures as Ctrl/Cmd + wheel events.
-    if (!event.ctrlKey && !event.metaKey) return;
-    event.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
     const { left, right } = chart.chartArea;
     if (pointerX < left || pointerX > right || visibleCount <= 0) return;
 
     const deltaScale = event.deltaMode === 1 ? 16 : (event.deltaMode === 2 ? rect.height : 1);
-    const delta = event.deltaY * deltaScale;
-    const nextCount = Math.max(minVisible, Math.min(series.length, Math.round(visibleCount * Math.exp(delta * .002))));
+    const wheelDelta = event.deltaY * deltaScale;
+    // Scrolling down zooms in. Ctrl/Cmd-wheel pinch directions are inverted by browsers.
+    const zoomDelta = (event.ctrlKey || event.metaKey) ? -wheelDelta : wheelDelta;
+    const nextCount = Math.max(minVisible, Math.min(series.length, Math.round(visibleCount * Math.exp(-zoomDelta * .002))));
     if (nextCount === visibleCount) return;
+    event.preventDefault();
 
     const pointerIndex = chart.scales.x.getValueForPixel(pointerX);
     const anchorFraction = visibleCount > 1 ? Math.max(0, Math.min(1, pointerIndex / (visibleCount - 1))) : .5;
@@ -190,6 +160,12 @@ function toggleSidebar() {
     firstVisible = Math.max(0, Math.min(series.length - visibleCount, Math.round(anchorIndex - anchorFraction * (visibleCount - 1))));
     renderVisibleRange();
   }, { passive: false });
+
+  canvas.addEventListener('dblclick', () => {
+    visibleCount = series.length;
+    firstVisible = 0;
+    renderVisibleRange();
+  });
 
   canvas.style.touchAction = 'pan-y';
   canvas.addEventListener('pointerdown', event => {

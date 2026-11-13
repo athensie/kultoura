@@ -596,14 +596,9 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <section class="traffic-overview chart-box animate" aria-labelledby="trafficOverviewTitle">
             <div class="traffic-overview-header">
                 <div><span class="section-label">Audience activity</span><h2 id="trafficOverviewTitle">Traffic overview</h2><p><?php echo htmlspecialchars($trafficSubtitle); ?></p></div>
-                <div class="traffic-chart-controls" role="group" aria-label="Traffic chart zoom controls">
-                    <button type="button" class="traffic-chart-control" data-chart-zoom-out aria-label="Zoom out" title="Zoom out"><i data-lucide="minus" aria-hidden="true"></i></button>
-                    <button type="button" class="traffic-chart-control" data-chart-zoom-in aria-label="Zoom in" title="Zoom in"><i data-lucide="plus" aria-hidden="true"></i></button>
-                    <button type="button" class="traffic-chart-control traffic-chart-reset" data-chart-zoom-reset aria-label="Reset zoom" title="Reset zoom"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>Reset</span></button>
-                </div>
             </div>
             <div class="traffic-chart-summary"><strong><?php echo number_format($totalPageViews); ?></strong><span>page views &mdash; <?php echo htmlspecialchars(strtolower($trafficLabel)); ?></span></div>
-            <p class="traffic-chart-hint">Pinch to zoom with your touchpad. Drag to select a range or pan while zoomed.</p>
+            <p class="traffic-chart-hint">Scroll down to zoom in and up to zoom out. Drag to pan; double-click to reset.</p>
             <div class="traffic-chart-wrap"><canvas id="trafficOverviewChart" aria-label="Daily page views trend chart" role="img"></canvas></div>
             <script type="application/json" id="trafficOverviewData" data-initial-window="<?php echo $period === 'all' ? '12' : '0'; ?>"><?php echo json_encode($trafficTrend, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
         </section>
