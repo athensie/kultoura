@@ -863,7 +863,10 @@ if ($wrappedRequested && $canGenerateWrapped) {
             <h1 class="td-hero-title">Travel <span class="td-hero-accent">Diary</span></h1>
             <p class="td-hero-tagline">Every journey you've etched tells a story.</p>
             <p class="td-hero-sub">Your personal log of everywhere you've explored in Malvar.</p>
-            <button type="button" class="td-wrapped-btn td-wrapped-trigger">+ Generate My Travel Wrapped</button>
+            <div class="td-wrapped-actions">
+                <button type="button" class="td-wrapped-btn td-wrapped-trigger">+ Generate My Travel Wrapped</button>
+                <button type="button" class="td-wrapped-period-trigger">Choose time range</button>
+            </div>
         </div>
         <div class="td-journey-card">
             <div class="td-journey-head">

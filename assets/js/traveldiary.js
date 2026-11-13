@@ -898,7 +898,7 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
         periodOverlay.classList.remove('open');
         document.body.style.overflow = '';
     }
-    document.querySelectorAll('.td-wrapped-trigger').forEach((btn) => {
+    document.querySelectorAll('.td-wrapped-period-trigger').forEach((btn) => {
         btn.addEventListener('click', openPicker);
     });
     if (periodCloseBtn) periodCloseBtn.addEventListener('click', closePicker);
@@ -984,6 +984,9 @@ tdWireExpandButton('tdExpandGallery', '.td-gallery .td-hidden-extra');
             if (storyElapsed >= 6500 && current < slideCount - 1) goTo(current + 1);
         }, 50);
     }
+    document.querySelectorAll('.td-wrapped-trigger').forEach((btn) => {
+        btn.addEventListener('click', open);
+    });
     function close() {
         overlay.classList.remove('open');
         overlay.setAttribute('aria-hidden', 'true');
