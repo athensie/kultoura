@@ -585,6 +585,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 </div>
             </div>
             <div class="traffic-chart-summary"><strong><?php echo number_format($totalPageViews); ?></strong><span>page views &mdash; <?php echo htmlspecialchars(strtolower($trafficLabel)); ?></span></div>
+            <p class="traffic-chart-hint">Drag across the chart to zoom into a time range. Drag again to pan.</p>
             <div class="traffic-chart-wrap"><canvas id="trafficOverviewChart" aria-label="Daily page views trend chart" role="img"></canvas></div>
             <script type="application/json" id="trafficOverviewData"><?php echo json_encode($trafficTrend, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
         </section>

@@ -42,8 +42,25 @@ function toggleSidebar() {
   const styles = getComputedStyle(document.documentElement);
   const textColor = styles.getPropertyValue('--cream').trim() || '#F5EDD8';
   const clay = styles.getPropertyValue('--clay').trim() || '#C9572A';
+  let dragState = null;
   const chart = new Chart(canvas, {
     type: 'line',
+    plugins: [{
+      id: 'trafficRangeSelection',
+      afterDraw(currentChart) {
+        if (dragState?.mode !== 'select' || dragState.currentX === undefined) return;
+        const { ctx, chartArea } = currentChart;
+        const left = Math.max(chartArea.left, Math.min(dragState.startX, dragState.currentX));
+        const right = Math.min(chartArea.right, Math.max(dragState.startX, dragState.currentX));
+        ctx.save();
+        ctx.fillStyle = 'rgba(159, 184, 138, .2)';
+        ctx.fillRect(left, chartArea.top, Math.max(0, right - left), chartArea.bottom - chartArea.top);
+        ctx.strokeStyle = clay;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(left, chartArea.top, Math.max(0, right - left), chartArea.bottom - chartArea.top);
+        ctx.restore();
+      }
+    }],
     data: {
       labels: series.map(point => point.label),
       datasets: [{
@@ -114,7 +131,6 @@ function toggleSidebar() {
   const zoomReset = chartSection?.querySelector('[data-chart-zoom-reset]');
   let visibleCount = series.length;
   let firstVisible = 0;
-  let dragState = null;
   const minVisible = Math.min(3, series.length);
 
   const renderVisibleRange = () => {
@@ -154,27 +170,58 @@ function toggleSidebar() {
 
   canvas.style.touchAction = 'pan-y';
   canvas.addEventListener('pointerdown', event => {
-    if (visibleCount >= series.length || (event.button !== undefined && event.button !== 0)) return;
-    dragState = { pointerId: event.pointerId, startX: event.clientX, startIndex: firstVisible };
-    canvas.classList.add('is-dragging');
+    if ((event.button !== undefined && event.button !== 0)) return;
+    const rect = canvas.getBoundingClientRect();
+    const localX = event.clientX - rect.left;
+    const { left, right } = chart.chartArea;
+    if (localX < left || localX > right) return;
+    const isZoomed = visibleCount < series.length;
+    dragState = {
+      mode: isZoomed ? 'pan' : 'select',
+      pointerId: event.pointerId,
+      startX: localX,
+      currentX: localX,
+      startIndex: firstVisible
+    };
+    canvas.classList.add(isZoomed ? 'is-dragging' : 'is-selecting');
     canvas.setPointerCapture(event.pointerId);
   });
   canvas.addEventListener('pointermove', event => {
     if (!dragState || dragState.pointerId !== event.pointerId) return;
-    const plotWidth = chart.chartArea.right - chart.chartArea.left;
-    if (plotWidth <= 0) return;
-    const shift = Math.round((event.clientX - dragState.startX) / plotWidth * visibleCount);
-    firstVisible = Math.max(0, Math.min(series.length - visibleCount, dragState.startIndex - shift));
-    renderVisibleRange();
+    const rect = canvas.getBoundingClientRect();
+    const localX = event.clientX - rect.left;
+    const { left, right } = chart.chartArea;
+    if (dragState.mode === 'select') {
+      dragState.currentX = Math.max(left, Math.min(right, localX));
+      chart.draw();
+    } else {
+      const plotWidth = right - left;
+      if (plotWidth <= 0) return;
+      const shift = Math.round((localX - dragState.startX) / plotWidth * visibleCount);
+      firstVisible = Math.max(0, Math.min(series.length - visibleCount, dragState.startIndex - shift));
+      renderVisibleRange();
+    }
   });
-  const stopDragging = event => {
+  const stopDragging = (event, applySelection = false) => {
     if (!dragState || dragState.pointerId !== event.pointerId) return;
+    const selection = dragState;
+    if (applySelection && selection.mode === 'select' && Math.abs(selection.currentX - selection.startX) > 8) {
+      const startIndex = chart.scales.x.getValueForPixel(Math.min(selection.startX, selection.currentX));
+      const endIndex = chart.scales.x.getValueForPixel(Math.max(selection.startX, selection.currentX));
+      const firstIndex = Math.max(0, Math.min(series.length - 1, Math.floor(startIndex)));
+      const lastIndex = Math.max(firstIndex, Math.min(series.length - 1, Math.ceil(endIndex)));
+      firstVisible = firstIndex;
+      visibleCount = Math.max(minVisible, lastIndex - firstIndex + 1);
+      if (firstVisible + visibleCount > series.length) firstVisible = series.length - visibleCount;
+    }
     dragState = null;
-    canvas.classList.remove('is-dragging');
+    canvas.classList.remove('is-dragging', 'is-selecting');
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    if (applySelection) renderVisibleRange();
+    else chart.draw();
   };
-  canvas.addEventListener('pointerup', stopDragging);
-  canvas.addEventListener('pointercancel', stopDragging);
+  canvas.addEventListener('pointerup', event => stopDragging(event, true));
+  canvas.addEventListener('pointercancel', event => stopDragging(event));
   renderVisibleRange();
 
 })();
