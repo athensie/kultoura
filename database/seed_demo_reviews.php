@@ -32,55 +32,59 @@ $catalogQueries = [
 
 $sampleReviews = [
     'nature' => [
-        'DEMO REVIEW: The nature listing was easy to understand and helped me plan a relaxing stop.',
-        'DEMO REVIEW: Clear details and a welcoming description made this nature spot stand out.',
-        'DEMO REVIEW: A useful listing for anyone looking to add an outdoor stop to their trip.',
+        'The nature listing was easy to understand and helped me plan a relaxing stop.',
+        'Clear details and a welcoming description made this nature spot stand out.',
+        'A useful listing for anyone looking to add an outdoor stop to their trip.',
     ],
     'resort' => [
-        'DEMO REVIEW: The resort details were clear and made comparing places to stay much easier.',
-        'DEMO REVIEW: A helpful listing with the kind of information I need when planning a break.',
-        'DEMO REVIEW: This resort page was easy to browse and worth keeping on my shortlist.',
+        'The resort details were clear and made comparing places to stay much easier.',
+        'A helpful listing with the kind of information I need when planning a break.',
+        'This resort page was easy to browse and worth keeping on my shortlist.',
     ],
     'industry' => [
-        'DEMO REVIEW: I liked learning about this local industry and its place in the community.',
-        'DEMO REVIEW: The information made this an interesting stop to consider on a local tour.',
-        'DEMO REVIEW: A clear and useful introduction to an important part of the area.',
+        'I liked learning about this local industry and its place in the community.',
+        'The information made this an interesting stop to consider on a local tour.',
+        'A clear and useful introduction to an important part of the area.',
     ],
     'accommodation' => [
-        'DEMO REVIEW: The accommodation information was clear and useful for planning a stay.',
-        'DEMO REVIEW: Helpful details made it easier to compare this place with other options.',
-        'DEMO REVIEW: A straightforward listing that made planning overnight travel simpler.',
+        'The accommodation information was clear and useful for planning a stay.',
+        'Helpful details made it easier to compare this place with other options.',
+        'A straightforward listing that made planning overnight travel simpler.',
     ],
     'church' => [
-        'DEMO REVIEW: The church listing gave a helpful introduction to a local cultural stop.',
-        'DEMO REVIEW: I appreciated having clear details about this place in one listing.',
-        'DEMO REVIEW: A meaningful stop to consider when exploring local history and culture.',
+        'The church listing gave a helpful introduction to a local cultural stop.',
+        'I appreciated having clear details about this place in one listing.',
+        'A meaningful stop to consider when exploring local history and culture.',
     ],
     'service' => [
-        'DEMO REVIEW: This visitor service listing was easy to find and useful for trip planning.',
-        'DEMO REVIEW: Clear information made this service feel approachable for visitors.',
-        'DEMO REVIEW: A helpful local resource to keep in mind while exploring the area.',
+        'This visitor service listing was easy to find and useful for trip planning.',
+        'Clear information made this service feel approachable for visitors.',
+        'A helpful local resource to keep in mind while exploring the area.',
     ],
     'restaurant' => [
-        'DEMO REVIEW: The restaurant listing was inviting and made it easy to decide where to eat.',
-        'DEMO REVIEW: I liked having the dining details together in one easy-to-read place.',
-        'DEMO REVIEW: A useful food stop to add to a local itinerary.',
+        'The restaurant listing was inviting and made it easy to decide where to eat.',
+        'I liked having the dining details together in one easy-to-read place.',
+        'A useful food stop to add to a local itinerary.',
     ],
     'product' => [
-        'DEMO REVIEW: The local product listing was interesting and easy to browse.',
-        'DEMO REVIEW: I enjoyed learning about this product and its connection to the community.',
-        'DEMO REVIEW: A nice local find to consider while exploring Malvar.',
+        'The local product listing was interesting and easy to browse.',
+        'I enjoyed learning about this product and its connection to the community.',
+        'A nice local find to consider while exploring Malvar.',
     ],
     'fiesta' => [
-        'DEMO REVIEW: The event listing made it easy to understand what the celebration is about.',
-        'DEMO REVIEW: A lively local event that would be fun to include in a visit.',
-        'DEMO REVIEW: Clear event information helped me plan around this community celebration.',
+        'The event listing made it easy to understand what the celebration is about.',
+        'A lively local event that would be fun to include in a visit.',
+        'Clear event information helped me plan around this community celebration.',
     ],
 ];
 $reviewDates = [-3, -12, -40];
 $ratings = [5, 4, 5];
 $reviewerIds = [2000000001, 2000000002, 2000000003];
-$reviewerNames = ['Demo Visitor A', 'Demo Visitor B', 'Demo Visitor C'];
+$reviewerNames = [
+    'Alex Reyes', 'Mika Santos', 'Jordan Cruz', 'Sam Rivera', 'Taylor Garcia', 'Jamie Flores',
+    'Riley Mendoza', 'Kai Navarro', 'Casey Ramos', 'Avery Dela Cruz', 'Noel Bautista', 'Cameron Lim',
+    'Dani Villanueva', 'Robin Castillo', 'Patricia Lopez', 'Gabriel Aquino', 'Morgan Torres', 'Jules Santiago',
+];
 $upsert = $conn->prepare(
     "INSERT INTO item_reviews (user_id,item_type,item_id,display_name,rating,review_text,status,created_at)
      VALUES (?,?,?,?,?,?,'visible',?)
@@ -106,10 +110,9 @@ try {
             $itemId = (int)$item['item_id'];
             foreach ($sampleReviews[$itemType] as $index => $reviewText) {
                 $userId = $reviewerIds[$index];
-                $displayName = $reviewerNames[$index];
+                $nameOffset = abs(crc32($itemType . ':' . $itemId)) % count($reviewerNames);
+                $displayName = 'Sample · ' . $reviewerNames[($nameOffset + $index) % count($reviewerNames)];
                 $rating = $ratings[$index];
-                $reviewBody = preg_replace('/^DEMO REVIEW:\\s*/', '', $reviewText);
-                $reviewText = 'DEMO REVIEW for ' . $item['item_name'] . ': ' . $reviewBody;
                 $createdAt = (new DateTimeImmutable())->modify($reviewDates[$index] . ' days')->format('Y-m-d H:i:s');
                 $upsert->bind_param('isisiss', $userId, $itemType, $itemId, $displayName, $rating, $reviewText, $createdAt);
                 if (!$upsert->execute()) {
