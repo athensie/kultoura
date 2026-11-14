@@ -19,119 +19,107 @@ if (!kt_reviews_ensure_schema($conn)) {
 }
 
 $catalogQueries = [
-    'nature' => "SELECT destination_id AS item_id,destination_name AS item_name FROM destination WHERE status='active' AND category='nature'",
-    'resort' => "SELECT destination_id AS item_id,destination_name AS item_name FROM destination WHERE status='active' AND category='resort'",
-    'industry' => "SELECT destination_id AS item_id,destination_name AS item_name FROM destination WHERE status='active' AND category='industry'",
-    'accommodation' => "SELECT destination_id AS item_id,destination_name AS item_name FROM destination WHERE status='active' AND category='accommodation'",
-    'church' => "SELECT destination_id AS item_id,destination_name AS item_name FROM destination WHERE status='active' AND category='church'",
-    'service' => "SELECT destination_id AS item_id,destination_name AS item_name FROM destination WHERE status='active' AND category='service'",
-    'restaurant' => "SELECT restaurant_id AS item_id,restaurant_name AS item_name FROM restaurants WHERE status='active'",
-    'product' => "SELECT product_id AS item_id,product_name AS item_name FROM products WHERE status='active'",
-    'fiesta' => "SELECT fiesta_id AS item_id,fiesta_name AS item_name FROM fiestas WHERE status='active'",
+    'nature' => "SELECT destination_id AS item_id FROM destination WHERE status='active' AND category='nature'",
+    'resort' => "SELECT destination_id AS item_id FROM destination WHERE status='active' AND category='resort'",
+    'industry' => "SELECT destination_id AS item_id FROM destination WHERE status='active' AND category='industry'",
+    'accommodation' => "SELECT destination_id AS item_id FROM destination WHERE status='active' AND category='accommodation'",
+    'church' => "SELECT destination_id AS item_id FROM destination WHERE status='active' AND category='church'",
+    'service' => "SELECT destination_id AS item_id FROM destination WHERE status='active' AND category='service'",
+    'restaurant' => "SELECT restaurant_id AS item_id FROM restaurants WHERE status='active'",
+    'product' => "SELECT product_id AS item_id FROM products WHERE status='active'",
+    'fiesta' => "SELECT fiesta_id AS item_id FROM fiestas WHERE status='active'",
 ];
-
-$sampleReviews = [
-    'nature' => [
-        'The nature listing was easy to understand and helped me plan a relaxing stop.',
-        'Clear details and a welcoming description made this nature spot stand out.',
-        'A useful listing for anyone looking to add an outdoor stop to their trip.',
-    ],
-    'resort' => [
-        'The resort details were clear and made comparing places to stay much easier.',
-        'A helpful listing with the kind of information I need when planning a break.',
-        'This resort page was easy to browse and worth keeping on my shortlist.',
-    ],
-    'industry' => [
-        'I liked learning about this local industry and its place in the community.',
-        'The information made this an interesting stop to consider on a local tour.',
-        'A clear and useful introduction to an important part of the area.',
-    ],
-    'accommodation' => [
-        'The accommodation information was clear and useful for planning a stay.',
-        'Helpful details made it easier to compare this place with other options.',
-        'A straightforward listing that made planning overnight travel simpler.',
-    ],
-    'church' => [
-        'The church listing gave a helpful introduction to a local cultural stop.',
-        'I appreciated having clear details about this place in one listing.',
-        'A meaningful stop to consider when exploring local history and culture.',
-    ],
-    'service' => [
-        'This visitor service listing was easy to find and useful for trip planning.',
-        'Clear information made this service feel approachable for visitors.',
-        'A helpful local resource to keep in mind while exploring the area.',
-    ],
-    'restaurant' => [
-        'The restaurant listing was inviting and made it easy to decide where to eat.',
-        'I liked having the dining details together in one easy-to-read place.',
-        'A useful food stop to add to a local itinerary.',
-    ],
-    'product' => [
-        'The local product listing was interesting and easy to browse.',
-        'I enjoyed learning about this product and its connection to the community.',
-        'A nice local find to consider while exploring Malvar.',
-    ],
-    'fiesta' => [
-        'The event listing made it easy to understand what the celebration is about.',
-        'A lively local event that would be fun to include in a visit.',
-        'Clear event information helped me plan around this community celebration.',
-    ],
+$firstNames = ['Alex', 'Mika', 'Jordan', 'Sam', 'Taylor', 'Jamie', 'Riley', 'Kai', 'Casey', 'Avery', 'Noel', 'Cameron', 'Dani', 'Robin', 'Patricia', 'Gabriel', 'Morgan', 'Jules', 'Elena', 'Marco'];
+$lastNames = ['Reyes', 'Santos', 'Cruz', 'Rivera', 'Garcia', 'Flores', 'Mendoza', 'Navarro', 'Ramos', 'Bautista', 'Lim', 'Villanueva', 'Castillo', 'Lopez', 'Aquino', 'Torres', 'Santiago', 'Dela Cruz'];
+$reviewsByRating = [
+    1 => ['The visit was disappointing and the information here did not match what I found on arrival.', 'This stop was not worth the time for me. Some important details were missing.', 'I had a frustrating experience and would not choose this again.'],
+    2 => ['There were a few good parts, but the visit did not meet my expectations.', 'The place has potential, though the facilities and details need improvement.', 'It was okay, but I ran into issues that made the trip less enjoyable.'],
+    3 => ['An average visit overall. There were things I liked and a few things to improve.', 'It was a pleasant enough stop, though it did not stand out from other options.', 'Some useful details, but I still had questions before visiting.'],
+    4 => ['A good experience overall. The details were helpful and I would consider coming back.', 'I enjoyed this stop. A couple of small improvements would make it even better.', 'A solid choice for the area, with a welcoming experience and useful information.'],
+    5 => ['A wonderful experience and an easy addition to my trip. I would happily recommend it.', 'Everything came together nicely for a memorable visit. I would return.', 'A great local find with a lovely experience from start to finish.'],
 ];
-$reviewDates = [-3, -12, -40];
-$ratings = [5, 4, 5];
-$reviewerIds = [2000000001, 2000000002, 2000000003];
-$reviewerNames = [
-    'Alex Reyes', 'Mika Santos', 'Jordan Cruz', 'Sam Rivera', 'Taylor Garcia', 'Jamie Flores',
-    'Riley Mendoza', 'Kai Navarro', 'Casey Ramos', 'Avery Dela Cruz', 'Noel Bautista', 'Cameron Lim',
-    'Dani Villanueva', 'Robin Castillo', 'Patricia Lopez', 'Gabriel Aquino', 'Morgan Torres', 'Jules Santiago',
-];
+// Balanced overall: varied criticism and praise, with an average just above four stars.
+$ratingPlan = array_merge(array_fill(0, 20, 5), array_fill(0, 17, 4), array_fill(0, 8, 3), array_fill(0, 4, 2), [1]);
+$firstReservedUserId = 2000000001;
+$reservedUserCount = 50;
 $upsert = $conn->prepare(
     "INSERT INTO item_reviews (user_id,item_type,item_id,display_name,rating,review_text,status,created_at)
-     VALUES (?,?,?,?,?,?,'visible',?)
-     ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),rating=VALUES(rating),review_text=VALUES(review_text),status='visible',created_at=VALUES(created_at)"
+     VALUES (?,?,?,?,?,?,'demo',?)
+     ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),rating=VALUES(rating),review_text=VALUES(review_text),status='demo',created_at=VALUES(created_at)"
 );
-if (!$upsert) {
-    fwrite(STDERR, "Could not prepare the demo review insert.\n");
+$countOtherReviews = $conn->prepare("SELECT COUNT(*) total FROM item_reviews WHERE item_type=? AND item_id=? AND user_id NOT BETWEEN ? AND ? AND status IN ('visible','demo')");
+$deleteStale = $conn->prepare("DELETE FROM item_reviews WHERE item_type=? AND item_id=? AND user_id BETWEEN ? AND ? AND status='demo' AND user_id>=?");
+if (!$upsert || !$countOtherReviews || !$deleteStale) {
+    fwrite(STDERR, "Could not prepare demo review statements.\n");
     exit(1);
 }
 
 $inserted = 0;
 $itemCounts = [];
+$limitedItems = 0;
 $conn->begin_transaction();
 try {
+    // Keep legacy seeded rows admin-only and remove their old name prefix.
+    $legacySamples = $conn->query("SELECT review_id,display_name FROM item_reviews WHERE user_id BETWEEN 2000000001 AND 2000000050 AND status IN ('visible','demo')");
+    $legacyUpdate = $conn->prepare("UPDATE item_reviews SET display_name=?,status='demo' WHERE review_id=?");
+    if (!$legacySamples || !$legacyUpdate) throw new RuntimeException('Could not normalize existing demo reviews.');
+    while ($legacy = $legacySamples->fetch_assoc()) {
+        $displayName = preg_replace('/^Sample\\s+.*?\\s+(?=[\\pL\\pN])/u', '', (string)$legacy['display_name']) ?? (string)$legacy['display_name'];
+        $reviewId = (int)$legacy['review_id'];
+        $legacyUpdate->bind_param('si', $displayName, $reviewId);
+        if (!$legacyUpdate->execute()) throw new RuntimeException('Could not normalize an existing demo review.');
+    }
+    $legacyUpdate->close();
     foreach ($catalogQueries as $itemType => $sql) {
         $result = $conn->query($sql);
-        if (!$result) {
-            throw new RuntimeException('Could not read active items for ' . $itemType . '.');
-        }
+        if (!$result) throw new RuntimeException('Could not read active items for ' . $itemType . '.');
         $items = $result->fetch_all(MYSQLI_ASSOC);
         $itemCounts[$itemType] = count($items);
         foreach ($items as $item) {
             $itemId = (int)$item['item_id'];
-            foreach ($sampleReviews[$itemType] as $index => $reviewText) {
-                $userId = $reviewerIds[$index];
-                $nameOffset = abs(crc32($itemType . ':' . $itemId)) % count($reviewerNames);
-                $displayName = 'Sample · ' . $reviewerNames[($nameOffset + $index) % count($reviewerNames)];
-                $rating = $ratings[$index];
-                $createdAt = (new DateTimeImmutable())->modify($reviewDates[$index] . ' days')->format('Y-m-d H:i:s');
-                $upsert->bind_param('isisiss', $userId, $itemType, $itemId, $displayName, $rating, $reviewText, $createdAt);
-                if (!$upsert->execute()) {
-                    throw new RuntimeException('Could not add demo review for ' . $itemType . ' #' . $itemId . '.');
-                }
+            $lastReservedUserId = $firstReservedUserId + $reservedUserCount - 1;
+            $countOtherReviews->bind_param('siii', $itemType, $itemId, $firstReservedUserId, $lastReservedUserId);
+            if (!$countOtherReviews->execute()) throw new RuntimeException('Could not count existing reviews.');
+            $otherCount = (int)$countOtherReviews->get_result()->fetch_assoc()['total'];
+            $sampleCount = max(0, 50 - $otherCount);
+            if ($otherCount >= 50) $limitedItems++;
+
+            $seed = crc32($itemType . ':' . $itemId);
+            $itemRatings = $ratingPlan;
+            mt_srand($seed);
+            shuffle($itemRatings);
+            $nameOffset = $seed % count($firstNames);
+            for ($index = 0; $index < $sampleCount; $index++) {
+                $userId = $firstReservedUserId + $index;
+                $rating = $itemRatings[$index];
+                $name = $firstNames[($nameOffset + $index) % count($firstNames)] . ' ' . $lastNames[($seed + $index * 7) % count($lastNames)];
+                $texts = $reviewsByRating[$rating];
+                $reviewText = $texts[($seed + $index) % count($texts)];
+                // Seed across two months so the admin trend view can compare periods.
+                $daysAgo = $index < (int)ceil($sampleCount / 2)
+                    ? 1 + (($seed + $index * 11) % 29)
+                    : 31 + (($seed + $index * 13) % 29);
+                $createdAt = (new DateTimeImmutable())->modify('-' . $daysAgo . ' days')->format('Y-m-d H:i:s');
+                $upsert->bind_param('isisiss', $userId, $itemType, $itemId, $name, $rating, $reviewText, $createdAt);
+                if (!$upsert->execute()) throw new RuntimeException('Could not add demo review for ' . $itemType . ' #' . $itemId . '.');
                 $inserted++;
             }
+            $firstStaleUserId = $firstReservedUserId + $sampleCount;
+            $deleteStale->bind_param('siiii', $itemType, $itemId, $firstReservedUserId, $lastReservedUserId, $firstStaleUserId);
+            if (!$deleteStale->execute()) throw new RuntimeException('Could not trim stale demo reviews.');
         }
     }
     $conn->commit();
 } catch (Throwable $error) {
     $conn->rollback();
-    fwrite(STDERR, $error->getMessage() . " All inserts were rolled back.\n");
+    fwrite(STDERR, $error->getMessage() . " All changes were rolled back.\n");
     exit(1);
 } finally {
     $upsert->close();
+    $countOtherReviews->close();
+    $deleteStale->close();
 }
 
-echo "Sample demo reviews inserted or refreshed: {$inserted}\n";
-foreach ($itemCounts as $type => $count) {
-    echo $type . ': ' . $count . " active items\n";
-}
+echo "Admin-only demo reviews inserted or refreshed: {$inserted}\n";
+echo "Items already at the 50-review cap: {$limitedItems}\n";
+foreach ($itemCounts as $type => $count) echo $type . ': ' . $count . " active items\n";
