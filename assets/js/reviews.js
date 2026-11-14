@@ -107,7 +107,7 @@
         }
         const canReport = document.body.dataset.loggedIn === '1';
         const hasSamples = data.reviews.some((review) => review.is_sample);
-        list.innerHTML = `${hasSamples ? '<p class="kt-review-sample-note">Some entries are illustrative examples, not visitor submissions.</p>' : ''}` + data.reviews.map((review) => `
+        list.innerHTML = `${hasSamples ? '<p class="kt-review-sample-note">Illustrative feedback is included for demonstration.</p>' : ''}` + data.reviews.map((review) => `
             <article class="kt-review-entry">
                 <div class="kt-review-entry-head"><strong>${esc(review.display_name)}</strong><time>${esc(new Date(review.created_at.replace(' ', 'T')).toLocaleDateString())}</time></div>
                 <div class="kt-review-stars" aria-label="${Number(review.rating)} out of 5 stars">${stars(review.rating)}</div>

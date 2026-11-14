@@ -31,12 +31,38 @@ $catalogQueries = [
 ];
 $firstNames = ['Alex', 'Mika', 'Jordan', 'Sam', 'Taylor', 'Jamie', 'Riley', 'Kai', 'Casey', 'Avery', 'Noel', 'Cameron', 'Dani', 'Robin', 'Patricia', 'Gabriel', 'Morgan', 'Jules', 'Elena', 'Marco'];
 $lastNames = ['Reyes', 'Santos', 'Cruz', 'Rivera', 'Garcia', 'Flores', 'Mendoza', 'Navarro', 'Ramos', 'Bautista', 'Lim', 'Villanueva', 'Castillo', 'Lopez', 'Aquino', 'Torres', 'Santiago', 'Dela Cruz'];
-$reviewsByRating = [
-    1 => ['The visit was disappointing and the information here did not match what I found on arrival.', 'This stop was not worth the time for me. Some important details were missing.', 'I had a frustrating experience and would not choose this again.'],
-    2 => ['There were a few good parts, but the visit did not meet my expectations.', 'The place has potential, though the facilities and details need improvement.', 'It was okay, but I ran into issues that made the trip less enjoyable.'],
-    3 => ['An average visit overall. There were things I liked and a few things to improve.', 'It was a pleasant enough stop, though it did not stand out from other options.', 'Some useful details, but I still had questions before visiting.'],
-    4 => ['A good experience overall. The details were helpful and I would consider coming back.', 'I enjoyed this stop. A couple of small improvements would make it even better.', 'A solid choice for the area, with a welcoming experience and useful information.'],
-    5 => ['A wonderful experience and an easy addition to my trip. I would happily recommend it.', 'Everything came together nicely for a memorable visit. I would return.', 'A great local find with a lovely experience from start to finish.'],
+$reviewContexts = [
+    'nature' => ['en' => 'the trail and outdoor facilities', 'tl' => 'trail at mga pasilidad sa paligid'],
+    'resort' => ['en' => 'the resort rooms, amenities, and service', 'tl' => 'mga kuwarto, pasilidad, at serbisyo ng resort'],
+    'industry' => ['en' => 'the local workshop and its visitor information', 'tl' => 'lokal na pagawaan at impormasyong pangbisita'],
+    'accommodation' => ['en' => 'the room, cleanliness, and check-in', 'tl' => 'kuwarto, kalinisan, at pag-check in'],
+    'church' => ['en' => 'the church grounds and visitor information', 'tl' => 'bakuran ng simbahan at impormasyong pangbisita'],
+    'service' => ['en' => 'the visitor service and staff guidance', 'tl' => 'serbisyo para sa bisita at gabay ng mga staff'],
+    'restaurant' => ['en' => 'the food, service, and dining area', 'tl' => 'pagkain, serbisyo, at kainan'],
+    'product' => ['en' => 'the local product, quality, and packaging', 'tl' => 'lokal na produkto, kalidad, at pagkakabalot'],
+    'fiesta' => ['en' => 'the event program, activities, and crowd arrangements', 'tl' => 'programa, mga aktibidad, at pagsasaayos ng mga tao sa event'],
+];
+$reviewTemplates = [
+    1 => [
+        'en' => 'I was disappointed with %s. Some important details or basic arrangements need attention.',
+        'tl' => 'Hindi ako nasiyahan sa %s. May mahahalagang detalye o pangunahing kaayusan pang kailangang ayusin.',
+    ],
+    2 => [
+        'en' => 'There were a few good points about %s, but the overall experience fell short of expectations.',
+        'tl' => 'May ilang magandang bahagi ang %s, pero hindi naabot ng kabuuang karanasan ang inaasahan ko.',
+    ],
+    3 => [
+        'en' => 'My experience with %s was average. I enjoyed some parts, though there is room to improve.',
+        'tl' => 'Katamtaman lang ang naging karanasan ko sa %s. May nagustuhan ako, pero may puwede pang pagbutihin.',
+    ],
+    4 => [
+        'en' => 'I had a good experience with %s. A few small improvements would make it even better.',
+        'tl' => 'Maganda ang naging karanasan ko sa %s. Mas gaganda pa ito kung maaayos ang ilang maliliit na bagay.',
+    ],
+    5 => [
+        'en' => 'I really enjoyed %s and would gladly recommend it to other visitors.',
+        'tl' => 'Nagustuhan ko talaga ang %s at mairerekomenda ko ito sa ibang mga bisita.',
+    ],
 ];
 // Balanced overall: varied criticism and praise, with an average just above four stars.
 $ratingPlan = array_merge(array_fill(0, 20, 5), array_fill(0, 17, 4), array_fill(0, 8, 3), array_fill(0, 4, 2), [1]);
@@ -110,8 +136,8 @@ try {
                 $userId = $firstReservedUserId + $index;
                 $rating = $itemRatings[$index];
                 $name = $firstNames[($nameOffset + $index) % count($firstNames)] . ' ' . $lastNames[($seed + $index * 7) % count($lastNames)];
-                $texts = $reviewsByRating[$rating];
-                $reviewText = $texts[($seed + $index) % count($texts)];
+                $language = (($seed + $index) % 2 === 0) ? 'tl' : 'en';
+                $reviewText = sprintf($reviewTemplates[$rating][$language], $reviewContexts[$itemType][$language]);
                 // Seed across two months so the admin trend view can compare periods.
                 $daysAgo = $index < (int)ceil($sampleCount / 2)
                     ? 1 + (($seed + $index * 11) % 29)
