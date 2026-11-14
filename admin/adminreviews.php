@@ -7,7 +7,10 @@ $adminRole = $_SESSION['role'] ?? 'Admin';
 include '../config/dbmain.php';
 require_once '../config/reviews.php';
 require_once '../config/csrf.php';
+require_once '../config/admin_requests.php';
 kt_reviews_ensure_schema($conn);
+$isSuperAdmin = kt_is_super_admin();
+$pendingRequestCount = kt_requests_pending_count($conn);
 $tab = ($_GET['tab'] ?? 'ratings') === 'reports' ? 'reports' : 'ratings';
 $adminId = (int) $_SESSION['user_id'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -59,7 +62,41 @@ $ratingMax = max(1,max($ratingCounts));
 @media(max-width:700px){.dash-wrapper{padding:76px 18px 50px}.kpi-grid,.charts-2col{grid-template-columns:1fr}}
 @media print{.review-actions{display:none!important}}
 </style></head><body>
-<aside class="sidebar" id="sidebar"><button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button><div class="sidebar-logo">KulToura</div><div class="sidebar-tagline">Malvar, Batangas</div><div class="sidebar-section">Overview</div><ul class="sidebar-nav"><li><a href="<?= BASE_URL ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li><li><a href="<?= BASE_URL ?>/admin/adminreviews.php" class="active"><span class="nav-icon"><i data-lucide="star" class="lucide"></i></span> Ratings &amp; Reviews</a></li></ul><div class="sidebar-section">Content</div><ul class="sidebar-nav"><li><a href="<?= BASE_URL ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li><li><a href="<?= BASE_URL ?>/admin/adminfoodanddining.php"><span class="nav-icon"><i data-lucide="utensils" class="lucide"></i></span> Food &amp; Dining</a></li><li><a href="<?= BASE_URL ?>/admin/admineventandfiesta.php"><span class="nav-icon"><i data-lucide="calendar-heart" class="lucide"></i></span> Events &amp; Fiesta</a></li><li><a href="<?= BASE_URL ?>/admin/adminsitecontent.php"><span class="nav-icon"><i data-lucide="image" class="lucide"></i></span> Site Content</a></li></ul><div class="sidebar-section">Management</div><ul class="sidebar-nav"><li><a href="<?= BASE_URL ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li><li><a href="<?= BASE_URL ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li></ul><div class="sidebar-footer"><div class="admin-avatar"><div class="avatar-circle"><i data-lucide="user" class="lucide"></i></div><div><div class="avatar-name"><?= htmlspecialchars($adminName) ?></div><div class="avatar-role"><?= htmlspecialchars($adminRole) ?></div></div></div><a href="<?= BASE_URL ?>/auth/auth.php?action=logout" class="logout-link"><i data-lucide="log-out" class="lucide"></i> Log Out</a></div></aside>
+<aside class="sidebar" id="sidebar">
+    <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar"><i data-lucide="chevrons-left" class="lucide"></i></button>
+    <div class="sidebar-logo">KulToura</div>
+    <div class="sidebar-tagline">Malvar, Batangas</div>
+    <div class="sidebar-section">Overview</div>
+    <ul class="sidebar-nav">
+        <li><a href="<?= BASE_URL ?>/admin/admindashboard.php"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminreviews.php" class="active"><span class="nav-icon"><i data-lucide="star" class="lucide"></i></span> Ratings &amp; Reviews</a></li>
+    </ul>
+    <div class="sidebar-section">Content</div>
+    <ul class="sidebar-nav">
+        <li><a href="<?= BASE_URL ?>/admin/admindestinations.php"><span class="nav-icon"><i data-lucide="map-pin" class="lucide"></i></span> Destinations</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminpromote.php"><span class="nav-icon"><i data-lucide="sparkles" class="lucide"></i></span> Promote Content</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminfoodanddining.php"><span class="nav-icon"><i data-lucide="utensils" class="lucide"></i></span> Food &amp; Dining</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/admineventandfiesta.php"><span class="nav-icon"><i data-lucide="calendar-heart" class="lucide"></i></span> Events &amp; Fiesta</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminpeople.php"><span class="nav-icon"><i data-lucide="users-round" class="lucide"></i></span> People of Malvar</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminsitecontent.php"><span class="nav-icon"><i data-lucide="image" class="lucide"></i></span> Site Content</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminhomepage.php"><span class="nav-icon"><i data-lucide="layout-grid" class="lucide"></i></span> Homepage Content</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminpagewidgets.php"><span class="nav-icon"><i data-lucide="layout-template" class="lucide"></i></span> Page Widgets</a></li>
+    </ul>
+    <div class="sidebar-section">Management</div>
+    <ul class="sidebar-nav">
+        <li><a href="<?= BASE_URL ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
+        <?php if ($isSuperAdmin): ?>
+        <li><a href="<?= BASE_URL ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?= $pendingRequestCount ?></span><?php endif; ?></a></li>
+        <li><a href="<?= BASE_URL ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
+        <?php endif; ?>
+        <li><a href="<?= BASE_URL ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        <div class="admin-avatar"><div class="avatar-circle"><i data-lucide="user" class="lucide"></i></div><div><div class="avatar-name"><?= htmlspecialchars($adminName) ?></div><div class="avatar-role"><?= htmlspecialchars($adminRole) ?></div></div></div>
+        <a href="<?= BASE_URL ?>/auth/auth.php?action=logout" class="logout-link"><i data-lucide="log-out" class="lucide"></i> Log Out</a>
+    </div>
+</aside>
 <button class="hamburger-btn" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')"><i data-lucide="menu" class="lucide"></i></button><div class="main-content"><div class="dash-wrapper"><div class="admin-site-switch-row"><a class="admin-site-switch" href="<?= BASE_URL ?>/index.php"><i data-lucide="external-link" class="lucide"></i> View user site</a></div>
 <header class="page-header"><div><div class="section-label">Tourism Insights</div><h1><?= $tab === 'reports' ? 'Review ' : 'Ratings <em>&amp; Reviews</em>' ?><?= $tab === 'reports' ? '<em>Reports</em>' : '' ?></h1><p><?= $tab === 'reports' ? 'Review visitor reports and decide whether the comment should stay visible.' : 'Visitor feedback, rating trends, and recent comments.' ?></p></div></header>
 <nav class="review-tabs" aria-label="Review administration"><a class="<?= $tab==='ratings'?'active':'' ?>" href="?tab=ratings">Ratings &amp; Reviews</a><a class="<?= $tab==='reports'?'active':'' ?>" href="?tab=reports">Reports<?= $pendingReports ? ' ('.$pendingReports.')' : '' ?></a></nav>
