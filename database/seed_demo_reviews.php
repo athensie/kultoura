@@ -40,6 +40,13 @@ $reviewsByRating = [
 ];
 // Balanced overall: varied criticism and praise, with an average just above four stars.
 $ratingPlan = array_merge(array_fill(0, 20, 5), array_fill(0, 17, 4), array_fill(0, 8, 3), array_fill(0, 4, 2), [1]);
+$ratingAdjustments = [
+    0 => [[5, 3, 10]],
+    1 => [[5, 4, 5], [4, 3, 5]],
+    2 => [],
+    3 => [[3, 4, 5], [4, 5, 4]],
+    4 => [[3, 4, 10], [4, 5, 5]],
+];
 $firstReservedUserId = 2000000001;
 $reservedUserCount = 50;
 $upsert = $conn->prepare(
@@ -86,6 +93,16 @@ try {
 
             $seed = crc32($itemType . ':' . $itemId);
             $itemRatings = $ratingPlan;
+            $originalRatings = $itemRatings;
+            foreach ($ratingAdjustments[$seed % count($ratingAdjustments)] as [$fromRating, $toRating, $limit]) {
+                $changed = 0;
+                foreach ($originalRatings as $ratingIndex => $originalRating) {
+                    if ($originalRating === $fromRating && $changed < $limit) {
+                        $itemRatings[$ratingIndex] = $toRating;
+                        $changed++;
+                    }
+                }
+            }
             mt_srand($seed);
             shuffle($itemRatings);
             $nameOffset = $seed % count($firstNames);

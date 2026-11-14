@@ -94,6 +94,7 @@ foreach ($reports as $report) {
 $pendingReports = (int)($conn->query("SELECT COUNT(*) total FROM item_review_reports WHERE status='pending'")->fetch_assoc()['total'] ?? 0);
 $ratingMax = max(1,max($ratingCounts));
 $reviewTrends = [];
+$lowestReviewTrends = [];
 $reviewTrendAiAvailable = false;
 if ($tab === 'ratings') {
     $trendSql = "SELECT r.item_type,r.item_id,
@@ -110,9 +111,26 @@ if ($tab === 'ratings') {
         WHERE r.status IN ('visible','demo')
         GROUP BY r.item_type,r.item_id,item_name
         HAVING recent_reviews > 0 AND total_reviews >= 2
-        ORDER BY recent_reviews DESC,average_rating DESC,total_reviews DESC LIMIT 10";
+        ORDER BY average_rating DESC,recent_reviews DESC,total_reviews DESC LIMIT 5";
     if ($trendResult = $conn->query($trendSql)) {
         $trendCandidates = $trendResult->fetch_all(MYSQLI_ASSOC);
+        foreach ($trendCandidates as &$candidate) $candidate['trend_group'] = 'highest';
+        unset($candidate);
+        $lowestSql = str_replace(
+            'ORDER BY average_rating DESC,recent_reviews DESC,total_reviews DESC LIMIT 5',
+            'ORDER BY average_rating ASC,recent_reviews DESC,total_reviews DESC LIMIT 5',
+            $trendSql
+        );
+        if ($lowestResult = $conn->query($lowestSql)) {
+            $candidateKeys = array_fill_keys(array_map(static fn($candidate) => $candidate['item_type'] . ':' . $candidate['item_id'], $trendCandidates), true);
+            foreach ($lowestResult->fetch_all(MYSQLI_ASSOC) as $candidate) {
+                $key = $candidate['item_type'] . ':' . $candidate['item_id'];
+                if (!isset($candidateKeys[$key])) {
+                    $candidate['trend_group'] = 'lowest';
+                    $trendCandidates[] = $candidate;
+                }
+            }
+        }
         $trendInput = [];
         foreach ($trendCandidates as &$candidate) {
             $candidate['total_reviews'] = (int)$candidate['total_reviews'];
@@ -155,8 +173,6 @@ if ($tab === 'ratings') {
             $insight = $aiByItem[$key] ?? null;
             $sentiment = isset($insight['sentiment_score']) ? max(0, min(100, (int)$insight['sentiment_score'])) : null;
             $positivePct = $candidate['total_reviews'] ? (int)round($candidate['positive_reviews'] / $candidate['total_reviews'] * 100) : 0;
-            $isGood = $candidate['average_rating'] >= 4.0 && ($sentiment !== null ? $sentiment >= 60 : $positivePct >= 70);
-            if (!$isGood) continue;
             $growth = $candidate['previous_reviews'] > 0
                 ? (int)round(($candidate['recent_reviews'] - $candidate['previous_reviews']) / $candidate['previous_reviews'] * 100)
                 : 100;
@@ -166,10 +182,13 @@ if ($tab === 'ratings') {
             $candidate['summary'] = trim((string)($insight['summary'] ?? ''));
             $candidate['themes'] = array_slice(array_filter(isset($insight['themes']) && is_array($insight['themes']) ? $insight['themes'] : [], 'is_string'), 0, 3);
             $candidate['trend_score'] = $candidate['recent_reviews'] * 2 + $candidate['average_rating'] * 4 + ($sentiment ?? $positivePct) * .25 + min(20, max(-20, $growth / 10));
-            $reviewTrends[] = $candidate;
+            if ($candidate['trend_group'] === 'lowest') $lowestReviewTrends[] = $candidate;
+            else $reviewTrends[] = $candidate;
         }
-        usort($reviewTrends, static fn($a, $b) => $b['trend_score'] <=> $a['trend_score']);
+        usort($reviewTrends, static fn($a, $b) => ($b['average_rating'] <=> $a['average_rating']) ?: ($b['recent_reviews'] <=> $a['recent_reviews']));
         $reviewTrends = array_slice($reviewTrends, 0, 5);
+        usort($lowestReviewTrends, static fn($a, $b) => ($a['average_rating'] <=> $b['average_rating']) ?: ($b['recent_reviews'] <=> $a['recent_reviews']));
+        $lowestReviewTrends = array_slice($lowestReviewTrends, 0, 5);
         $reviewTrendAiAvailable = $aiByItem !== [];
     }
 }
@@ -178,8 +197,9 @@ if ($tab === 'ratings') {
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script><link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261102-1"><link rel="stylesheet" href="../assets/css/admin-theme.css"><link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 <style>
 .review-tabs{align-items:center;border-bottom:1px solid rgba(var(--overlay-rgb),.14);display:flex;flex-wrap:wrap;gap:10px;margin:24px 0;padding-bottom:12px}.review-tabs a{align-items:center;background:#18271c;border:1px solid #3a4b3d;border-radius:999px;color:#f5efe4!important;display:inline-flex;font-weight:700;justify-content:center;line-height:1.2;min-height:44px;padding:11px 20px;text-decoration:none!important;transition:background .15s,border-color .15s,transform .15s}.review-tabs a:hover{background:#283c2c;border-color:#a5be91;transform:translateY(-1px)}.review-tabs a.active{background:#a5be91!important;border-color:#a5be91!important;color:#142317!important;box-shadow:0 4px 14px rgba(0,0,0,.18)}.review-table{display:grid;gap:12px}.review-row{padding:17px 18px;border:1px solid rgba(var(--overlay-rgb),.08);border-radius:14px;background:rgba(var(--overlay-rgb),.025)}.review-row-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--gold);font-size:.8rem}.review-row-stars{color:#e6b647;letter-spacing:.08em;margin-top:7px}.review-row p{color:rgba(var(--cream-rgb),.76);line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}.review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.review-actions button{border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font:inherit}.act-hide{background:#69521c;color:#fff}.act-remove{background:#612c24;color:#fff}.act-keep,.act-dismiss{background:#29432e;color:#fff}.report-reason{color:#efc16a;font-weight:700}.report-status{border-radius:999px;padding:3px 9px;background:#69521c;color:#fff;font-size:.75rem}.report-detail{color:rgba(var(--cream-rgb),.65)}
-.review-trend-intro{margin:-8px 0 18px;color:rgba(var(--cream-rgb),.65);font-size:.88rem;line-height:1.5}.trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.trend-card{min-width:0;padding:17px;border:1px solid rgba(var(--overlay-rgb),.1);border-radius:14px;background:rgba(var(--overlay-rgb),.025)}.trend-card h5{margin:0;color:var(--cream);font:700 1.08rem 'Playfair Display',serif}.trend-type{color:var(--gold);font-size:.73rem;text-transform:uppercase;letter-spacing:.08em}.trend-metrics{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.trend-metrics span,.trend-theme{padding:5px 9px;border:1px solid rgba(var(--overlay-rgb),.12);border-radius:999px;color:rgba(var(--cream-rgb),.78);font-size:.73rem}.trend-sentiment{color:#a5be91;font-size:.78rem;font-weight:700}.trend-card p{margin:10px 0 0;color:rgba(var(--cream-rgb),.78);font-size:.87rem;line-height:1.55}.trend-themes{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}.trend-theme{font-size:.68rem}.trend-empty{padding:20px;color:rgba(var(--cream-rgb),.68)}
+.review-trend-intro{margin:-8px 0 18px;color:rgba(var(--cream-rgb),.65);font-size:.88rem;line-height:1.5}.trend-section-title{margin:22px 0 12px;color:var(--cream);font:700 1.08rem 'Playfair Display',serif}.trend-section-title:first-of-type{margin-top:0}.trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.trend-card{min-width:0;padding:17px;border:1px solid rgba(var(--overlay-rgb),.1);border-radius:14px;background:rgba(var(--overlay-rgb),.025)}.trend-card-low{border-color:rgba(205,119,87,.38);background:rgba(122,54,39,.08)}.trend-card h5{margin:0;color:var(--cream);font:700 1.08rem 'Playfair Display',serif}.trend-type{color:var(--gold);font-size:.73rem;text-transform:uppercase;letter-spacing:.08em}.trend-metrics{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.trend-metrics span,.trend-theme{padding:5px 9px;border:1px solid rgba(var(--overlay-rgb),.12);border-radius:999px;color:rgba(var(--cream-rgb),.78);font-size:.73rem}.trend-sentiment{color:#a5be91;font-size:.78rem;font-weight:700}.trend-card p{margin:10px 0 0;color:rgba(var(--cream-rgb),.78);font-size:.87rem;line-height:1.55}.trend-themes{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}.trend-theme{font-size:.68rem}.trend-empty{padding:12px 0;color:rgba(var(--cream-rgb),.68)}
 .hierarchy-intro{margin:-8px 0 16px;color:rgba(var(--cream-rgb),.65);font-size:.86rem}.review-hierarchy details{min-width:0}.review-folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,245px),1fr));align-items:start;gap:16px}.hierarchy-category{position:relative;margin-top:13px;padding-top:7px;border:1px solid rgba(232,184,107,.3);border-radius:7px 14px 14px 14px;background:linear-gradient(145deg,rgba(232,184,107,.1),rgba(var(--overlay-rgb),.025) 58%);box-shadow:0 8px 20px rgba(0,0,0,.12)}.hierarchy-category:before{position:absolute;content:"";height:8px;width:42%;left:0;top:-8px;border:1px solid rgba(232,184,107,.3);border-bottom:0;border-radius:7px 7px 0 0;background:rgba(232,184,107,.13)}.hierarchy-category>summary,.hierarchy-item>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none}.hierarchy-category>summary::-webkit-details-marker,.hierarchy-item>summary::-webkit-details-marker{display:none}.hierarchy-category>summary{padding:13px 15px;color:var(--cream);font-weight:700}.folder-title{display:flex;align-items:center;gap:9px;min-width:0}.folder-title i{width:19px;height:19px;color:var(--gold);flex:none}.hierarchy-category[open]{grid-column:1/-1}.hierarchy-category[open] .hierarchy-item-list{grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));padding:0 14px 14px}.hierarchy-item-list{display:grid;gap:9px;padding:0 12px 12px}.hierarchy-item{border:1px solid rgba(var(--overlay-rgb),.1);border-radius:10px;background:rgba(var(--overlay-rgb),.035)}.hierarchy-item>summary{padding:12px 14px;color:var(--cream)}.hierarchy-summary-meta{flex:none;color:var(--gold);font-size:.78rem;font-weight:500;text-align:right}.hierarchy-review-list{padding:0 10px 10px}.hierarchy-review-list .review-row{padding:13px 14px}.sample-review-label{display:inline-block;margin-left:6px;padding:2px 7px;border:1px solid rgba(232,184,107,.35);border-radius:999px;color:var(--gold);font-size:.65rem;vertical-align:middle}.sample-data-note{margin:-5px 0 16px;padding:10px 13px;border-left:3px solid var(--gold);border-radius:5px;background:rgba(232,184,107,.08);color:rgba(var(--cream-rgb),.75);font-size:.8rem}
+.hierarchy-category>summary{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:7px}.folder-title{overflow-wrap:anywhere}.hierarchy-summary-meta{max-width:100%;white-space:normal;text-align:left;line-height:1.35}
 @media(max-width:700px){.dash-wrapper{padding:76px 18px 50px}.kpi-grid,.charts-2col{grid-template-columns:1fr}}
 @media(max-width:900px){.trend-grid{grid-template-columns:1fr}}
 @media print{.review-actions{display:none!important}}
@@ -225,10 +245,21 @@ if ($tab === 'ratings') {
 <?php if($tab==='ratings'): ?>
 <div class="kpi-grid"><div class="kpi-card accent-gold"><div class="kpi-icon"><i data-lucide="star" class="lucide"></i></div><div class="kpi-num"><?= number_format((int)$summary['total']) ?></div><div class="kpi-label">Reviews</div><div class="kpi-change"><?= htmlspecialchars($periodLabel) ?></div></div><div class="kpi-card accent-clay"><div class="kpi-icon"><i data-lucide="message-square-text" class="lucide"></i></div><div class="kpi-num"><?= (int)$summary['total'] ? number_format((float)$summary['average_rating'],1).' / 5' : '&mdash;' ?></div><div class="kpi-label">Average Rating</div><div class="kpi-change">Public and sample reviews</div></div><div class="kpi-card accent-green"><div class="kpi-icon"><i data-lucide="layers" class="lucide"></i></div><div class="kpi-num"><?= (int)$summary['categories'] ?></div><div class="kpi-label">Reviewed Categories</div><div class="kpi-change">Types with visitor feedback</div></div></div>
 <div class="charts-2col"><div class="chart-box"><h4>Star Rating Distribution</h4><?php foreach([5,4,3,2,1] as $star): ?><div class="bar-row"><span class="bar-name"><?= $star ?> stars</span><div class="bar-track"><div class="bar-fill" style="width:<?= (int)round($ratingCounts[$star]/$ratingMax*100) ?>%"></div></div><span class="bar-pct"><?= $ratingCounts[$star] ?></span></div><?php endforeach ?></div><div class="chart-box"><h4>Ratings by Category</h4><?php if(!$typeStats): ?><div class="chart-empty"><div class="chart-empty-title">No reviews yet</div></div><?php else: foreach($typeStats as $row): ?><div class="bar-row"><span class="bar-name"><?= htmlspecialchars($categoryLabels[$row['item_type']]??ucfirst($row['item_type'])) ?></span><div class="bar-track"><div class="bar-fill" style="width:<?= (int)round((float)$row['average_rating']/5*100) ?>%"></div></div><span class="bar-pct"><?= number_format((float)$row['average_rating'],1) ?> &middot; <?= (int)$row['review_count'] ?></span></div><?php endforeach; endif ?></div></div>
-<section class="chart-box review-trends"><h4>Trending content with good reviews <span class="review-count">Last 30 days &middot; <?= $reviewTrendAiAvailable ? 'AI sentiment &amp; summaries' : 'Rating and activity signals' ?></span></h4>
-<p class="review-trend-intro">Ranked by recent review activity, visitor ratings, and review-text sentiment when AI is available. AI summaries use up to six recent comments per item.</p>
-<?php if (!$reviewTrends): ?><div class="trend-empty">No content has enough recent positive reviews yet. Items need at least two visible reviews and recent activity.</div><?php else: ?><div class="trend-grid">
+<section class="chart-box review-trends"><h4>Content rating trends <span class="review-count">Last 30 days &middot; <?= $reviewTrendAiAvailable ? 'AI sentiment &amp; summaries' : 'Rating and activity signals' ?></span></h4>
+<p class="review-trend-intro">Compare the five highest-rated items with the five lowest-rated items that have recent reviews. Use the summaries and themes to promote strong content or decide what needs attention.</p>
+<h5 class="trend-section-title">Highest-rated content</h5>
+<?php if (!$reviewTrends): ?><div class="trend-empty">No items have enough recent reviews for a high-rating comparison yet.</div><?php else: ?><div class="trend-grid">
 <?php foreach ($reviewTrends as $trend): ?><article class="trend-card">
+    <div class="trend-type"><?= htmlspecialchars($categoryLabels[$trend['item_type']] ?? ucfirst($trend['item_type'])) ?> &middot; <?= $trend['previous_reviews'] === 0 ? 'New activity' : (($trend['growth_pct'] >= 0 ? '+' : '') . $trend['growth_pct'] . '% vs prior 30 days') ?></div>
+    <h5><?= htmlspecialchars($trend['item_name']) ?></h5>
+    <div class="trend-metrics"><span>&#9733; <?= number_format($trend['average_rating'], 1) ?> / 5</span><span><?= $trend['recent_reviews'] ?> reviews in 30 days</span><span><?= $trend['positive_pct'] ?>% rated 4&ndash;5&#9733;</span></div>
+    <div class="trend-sentiment"><?= $trend['sentiment_score'] !== null ? 'AI text sentiment: ' . $trend['sentiment_score'] . '/100' : 'Text sentiment analysis unavailable' ?></div>
+    <p><?= $trend['summary'] !== '' ? htmlspecialchars($trend['summary']) : 'AI summary unavailable. Configure Gemini or Groq to summarize visitor comments.' ?></p>
+    <?php if ($trend['themes']): ?><div class="trend-themes"><?php foreach ($trend['themes'] as $theme): ?><span class="trend-theme"><?= htmlspecialchars($theme) ?></span><?php endforeach; ?></div><?php endif; ?>
+</article><?php endforeach; ?></div><?php endif; ?>
+<h5 class="trend-section-title">Lowest-rated content · needs attention</h5>
+<?php if (!$lowestReviewTrends): ?><div class="trend-empty">No items have enough recent reviews for a low-rating comparison yet.</div><?php else: ?><div class="trend-grid">
+<?php foreach ($lowestReviewTrends as $trend): ?><article class="trend-card trend-card-low">
     <div class="trend-type"><?= htmlspecialchars($categoryLabels[$trend['item_type']] ?? ucfirst($trend['item_type'])) ?> &middot; <?= $trend['previous_reviews'] === 0 ? 'New activity' : (($trend['growth_pct'] >= 0 ? '+' : '') . $trend['growth_pct'] . '% vs prior 30 days') ?></div>
     <h5><?= htmlspecialchars($trend['item_name']) ?></h5>
     <div class="trend-metrics"><span>&#9733; <?= number_format($trend['average_rating'], 1) ?> / 5</span><span><?= $trend['recent_reviews'] ?> reviews in 30 days</span><span><?= $trend['positive_pct'] ?>% rated 4&ndash;5&#9733;</span></div>

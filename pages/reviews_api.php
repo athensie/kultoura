@@ -23,12 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['summary_ids'])) {
     $ids = array_slice($ids, 0, 100);
     if (!$ids) kt_review_response(200, ['success' => true, 'summaries' => []]);
     $idList = implode(',', $ids);
-    $summaryStmt = $conn->prepare("SELECT item_id, COUNT(*) review_count, SUM(status='demo') sample_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id IN ($idList) GROUP BY item_id");
+    $summaryStmt = $conn->prepare("SELECT item_id, COUNT(*) review_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id IN ($idList) GROUP BY item_id");
     if (!$summaryStmt) kt_review_response(500, ['success' => false, 'message' => 'Ratings are temporarily unavailable.']);
     $summaryStmt->bind_param('s', $type);
     $summaryStmt->execute();
     $summaries = [];
-    foreach ($summaryStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $summaries[(int) $row['item_id']] = ['count' => (int) $row['review_count'], 'sample_count' => (int) $row['sample_count'], 'average' => (float) $row['average_rating']];
+    foreach ($summaryStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $summaries[(int) $row['item_id']] = ['count' => (int) $row['review_count'], 'average' => (float) $row['average_rating']];
     $summaryStmt->close();
     kt_review_response(200, ['success' => true, 'summaries' => $summaries]);
 }
