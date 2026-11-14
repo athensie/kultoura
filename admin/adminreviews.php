@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../config/session_boot.php';
 define('BASE_URL', '/kultoura');
 if (!isset($_SESSION['user_id']) || !in_array(strtolower($_SESSION['role'] ?? ''), ['admin', 'super admin'], true)) { header('Location: ' . BASE_URL . '/index.php'); exit; }
