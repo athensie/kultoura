@@ -1,13 +1,13 @@
 (function () {
     const stylesheet = document.createElement('link');
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = '../../assets/css/reviews.css?v=20261105-1';
+    stylesheet.href = '../../assets/css/reviews.css?v=20261114-1';
     document.head.appendChild(stylesheet);
 
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[char]));
-    const stars = (count) => '★'.repeat(Number(count) || 0) + '☆'.repeat(5 - (Number(count) || 0));
+    const stars = (count) => '\u2605'.repeat(Number(count) || 0) + '\u2606'.repeat(5 - (Number(count) || 0));
 
     async function decorateListingRatings() {
         const page = location.pathname.split('/').pop().replace(/\.php$/i, '').toLowerCase();
@@ -29,8 +29,8 @@
                 if (!body || body.querySelector('.kt-card-rating')) return;
                 const badge = document.createElement('div');
                 badge.className = 'kt-card-rating';
-                badge.setAttribute('aria-label', `${Number(summary.average).toFixed(1)} out of 5 stars from ${summary.count} reviews`);
-                badge.innerHTML = `<span class="kt-card-rating-stars" aria-hidden="true">${'★'.repeat(Math.round(Number(summary.average)))}</span><span>${Number(summary.average).toFixed(1)}</span><span class="kt-card-rating-count">(${Number(summary.count)} ${Number(summary.count) === 1 ? 'review' : 'reviews'})</span>`;
+                badge.setAttribute('aria-label', `${Number(summary.average).toFixed(1)} out of 5 stars from ${summary.count} reviews${summary.sample_count ? `, including ${summary.sample_count} sample reviews` : ''}`);
+                badge.innerHTML = `<span class="kt-card-rating-stars" aria-hidden="true">${stars(Math.round(Number(summary.average)))}</span><span>${Number(summary.average).toFixed(1)}</span><span class="kt-card-rating-count">(${Number(summary.count)} ${Number(summary.count) === 1 ? 'review' : 'reviews'})</span>${Number(summary.sample_count) ? '<span class="kt-card-sample">includes sample reviews</span>' : ''}`;
                 const actions = body.querySelector('.p-card-actions');
                 if (actions) body.insertBefore(badge, actions);
                 else body.appendChild(badge);
@@ -38,7 +38,7 @@
         } catch (_) { /* The item detail panel can still load its ratings. */ }
     }
     const listingStyles = document.createElement('style');
-    listingStyles.textContent = '.kt-card-rating{display:flex;align-items:center;gap:6px;margin:9px 0 2px;color:#8f321b;font-size:.88rem;font-weight:700}.kt-card-rating-stars{color:#d49b31;letter-spacing:.05em}.kt-card-rating-count{color:#8d8176;font-size:.8rem;font-weight:500}';
+    listingStyles.textContent = '.kt-card-rating{display:flex;align-items:center;gap:6px;margin:9px 0 2px;color:#8f321b;font-size:.88rem;font-weight:700}.kt-card-rating-stars{color:#d49b31;letter-spacing:.05em}.kt-card-rating-count{color:#8d8176;font-size:.8rem;font-weight:500}.kt-card-sample{color:#71491f;font-size:.65rem;font-weight:700}';
     document.head.appendChild(listingStyles);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorateListingRatings);
     else decorateListingRatings();
@@ -93,8 +93,8 @@
     }
 
     function renderReviews(panel, data) {
-        panel.querySelector('[data-review-average]').textContent = data.count ? Number(data.average).toFixed(1) : '—';
-        panel.querySelector('[data-review-stars]').textContent = data.count ? stars(Math.round(Number(data.average))) : '☆☆☆☆☆';
+        panel.querySelector('[data-review-average]').textContent = data.count ? Number(data.average).toFixed(1) : '\u2014';
+        panel.querySelector('[data-review-stars]').textContent = data.count ? stars(Math.round(Number(data.average))) : '\u2606\u2606\u2606\u2606\u2606';
         panel.querySelector('[data-review-count]').textContent = `${data.count} ${data.count === 1 ? 'review' : 'reviews'}`;
         [1, 2, 3, 4, 5].forEach((rating) => {
             const node = panel.querySelector(`[data-filter-count="${rating}"]`);
@@ -106,12 +106,13 @@
             return;
         }
         const canReport = document.body.dataset.loggedIn === '1';
-        list.innerHTML = data.reviews.map((review) => `
+        const hasSamples = data.reviews.some((review) => review.is_sample);
+        list.innerHTML = `${hasSamples ? '<p class="kt-review-sample-note">Sample reviews are illustrative examples, not submitted by visitors.</p>' : ''}` + data.reviews.map((review) => `
             <article class="kt-review-entry">
-                <div class="kt-review-entry-head"><strong>${esc(review.display_name)}</strong><time>${esc(new Date(review.created_at.replace(' ', 'T')).toLocaleDateString())}</time></div>
+                <div class="kt-review-entry-head"><span><strong>${esc(review.display_name)}</strong>${review.is_sample ? '<span class="kt-review-sample-badge">Sample review</span>' : ''}</span><time>${esc(new Date(review.created_at.replace(' ', 'T')).toLocaleDateString())}</time></div>
                 <div class="kt-review-stars" aria-label="${Number(review.rating)} out of 5 stars">${stars(review.rating)}</div>
                 <p>${esc(review.comment)}</p>
-                ${canReport ? `<button type="button" class="kt-review-report-toggle" data-review-id="${Number(review.review_id)}">Report</button>
+                ${canReport && !review.is_sample ? `<button type="button" class="kt-review-report-toggle" data-review-id="${Number(review.review_id)}">Report</button>
                 <form class="kt-review-report-form" hidden data-review-id="${Number(review.review_id)}">
                     <label>Reason <select name="reason" required><option value="">Choose a reason</option><option value="spam">Spam</option><option value="harassment">Harassment or bullying</option><option value="hate">Hateful content</option><option value="sexual">Sexual content</option><option value="personal_info">Personal information</option><option value="misinformation">Misleading information</option><option value="other">Other</option></select></label>
                     <textarea name="details" maxlength="1000" rows="2" placeholder="Additional details (optional)"></textarea>

@@ -23,12 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['summary_ids'])) {
     $ids = array_slice($ids, 0, 100);
     if (!$ids) kt_review_response(200, ['success' => true, 'summaries' => []]);
     $idList = implode(',', $ids);
-    $summaryStmt = $conn->prepare("SELECT item_id, COUNT(*) review_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id IN ($idList) GROUP BY item_id");
+    $summaryStmt = $conn->prepare("SELECT item_id, COUNT(*) review_count, SUM(status='demo') sample_count, ROUND(AVG(rating), 1) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id IN ($idList) GROUP BY item_id");
     if (!$summaryStmt) kt_review_response(500, ['success' => false, 'message' => 'Ratings are temporarily unavailable.']);
     $summaryStmt->bind_param('s', $type);
     $summaryStmt->execute();
     $summaries = [];
-    foreach ($summaryStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $summaries[(int) $row['item_id']] = ['count' => (int) $row['review_count'], 'average' => (float) $row['average_rating']];
+    foreach ($summaryStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $summaries[(int) $row['item_id']] = ['count' => (int) $row['review_count'], 'sample_count' => (int) $row['sample_count'], 'average' => (float) $row['average_rating']];
     $summaryStmt->close();
     kt_review_response(200, ['success' => true, 'summaries' => $summaries]);
 }
@@ -52,26 +52,30 @@ if (!$itemExists) kt_review_response(404, ['success' => false, 'message' => 'Thi
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $starFilter = (int) ($_GET['stars'] ?? 0);
     if ($starFilter < 0 || $starFilter > 5) $starFilter = 0;
-    $summaryStmt = $conn->prepare("SELECT COUNT(*) review_count, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ?");
+    $summaryStmt = $conn->prepare("SELECT COUNT(*) review_count, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ?");
     $summaryStmt->bind_param('si', $type, $itemId);
     $summaryStmt->execute();
     $summary = $summaryStmt->get_result()->fetch_assoc();
     $summaryStmt->close();
     $counts = array_fill(1, 5, 0);
-    $countStmt = $conn->prepare("SELECT rating, COUNT(*) total FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ? GROUP BY rating");
+    $countStmt = $conn->prepare("SELECT rating, COUNT(*) total FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ? GROUP BY rating");
     $countStmt->bind_param('si', $type, $itemId);
     $countStmt->execute();
     foreach ($countStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $counts[(int) $row['rating']] = (int) $row['total'];
     $countStmt->close();
     if ($starFilter) {
-        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, created_at FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ? AND rating = ? ORDER BY created_at DESC LIMIT 100");
+        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, status, created_at FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ? AND rating = ? ORDER BY created_at DESC LIMIT 100");
         $reviewStmt->bind_param('sii', $type, $itemId, $starFilter);
     } else {
-        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, created_at FROM item_reviews WHERE status = 'visible' AND item_type = ? AND item_id = ? ORDER BY created_at DESC LIMIT 100");
+        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, status, created_at FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ? ORDER BY created_at DESC LIMIT 100");
         $reviewStmt->bind_param('si', $type, $itemId);
     }
     $reviewStmt->execute();
-    $reviews = $reviewStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $reviews = array_map(static function (array $review): array {
+        $review['is_sample'] = $review['status'] === 'demo';
+        unset($review['status']);
+        return $review;
+    }, $reviewStmt->get_result()->fetch_all(MYSQLI_ASSOC));
     $reviewStmt->close();
     kt_review_response(200, ['success' => true, 'count' => (int) ($summary['review_count'] ?? 0), 'average' => round((float) ($summary['average_rating'] ?? 0), 1), 'counts' => $counts, 'reviews' => $reviews]);
 }
