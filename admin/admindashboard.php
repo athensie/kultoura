@@ -709,12 +709,15 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         @media (max-width: 900px) { .tourism-category-groups { grid-template-columns: 1fr; } }
         @media (max-width: 600px) { .tourism-category-heading { align-items: flex-start; flex-direction: column; gap: 5px; } }
         .dash-wrapper { max-width: 1540px; padding: 28px clamp(18px, 3vw, 46px) 64px; }
+        .main-content { min-width: 0; width: calc(100% - 220px); }
+        .dash-wrapper { width: 100%; min-width: 0; box-sizing: border-box; }
+        .analytics-summary, .traffic-overview, .tourism-category-overview, .analytics-section { width: 100%; min-width: 0; }
         .page-header { margin-bottom: 18px; }
         .page-header h1 { font-size: clamp(1.8rem, 3vw, 2.65rem); }
         .page-header p { max-width: 680px; }
-        .analytics-primary-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 0 0 10px; }
+        .analytics-primary-kpis { grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 10px; }
         .analytics-primary-kpis .kpi-card { min-height: 104px; padding: 14px 16px; border-radius: 10px; background: rgba(157,187,134,.075); }
-        .analytics-primary-kpis .kpi-card:first-child { grid-column: span 2; }
+        .analytics-primary-kpis .kpi-card:first-child { grid-column: auto; }
         .analytics-primary-kpis .kpi-icon { display: none; }
         .analytics-primary-kpis .kpi-num { font: 700 1.65rem/1.05 'Playfair Display', serif; }
         .analytics-primary-kpis .kpi-card:first-child .kpi-num { font-size: 2.2rem; }
@@ -726,6 +729,9 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .analytics-secondary-kpis .kpi-num { font: 700 1.05rem/1.1 'DM Sans', sans-serif; color: var(--cream); }
         .analytics-secondary-kpis .kpi-label { margin-top: 4px; font-size: .57rem; letter-spacing: .07em; }
         .analytics-summary .kpi-card::before { display: none; }
+        .analytics-summary .kpi-card { min-width: 0; }
+        .charts-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .charts-2col > *, .category-chart-grid > * { min-width: 0; }
         .analytics-category-select-label { display: block; margin: 2px 0 5px; color: rgba(var(--cream-rgb),.58); font: 600 .65rem 'DM Sans',sans-serif; letter-spacing: .08em; text-transform: uppercase; }
         .analytics-category-select { min-width: 190px; height: 36px; padding: 0 12px; border: 1px solid rgba(var(--overlay-rgb),.16); border-radius: 8px; background: #17271c; color: var(--cream); font: 500 .75rem 'DM Sans',sans-serif; }
         :root[data-theme="light"] .analytics-category-select { background: #fff; color: #2c1a0e; }
@@ -754,8 +760,10 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .alabel-desc { margin: 20px 0 10px; padding: 0; background: none; color: var(--cream); font-size: .72rem; letter-spacing: .04em; }
         @media (max-width: 900px) {
             .analytics-primary-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
-            .analytics-primary-kpis .kpi-card:first-child { grid-column: span 2; }
+            .analytics-primary-kpis .kpi-card:first-child { grid-column: 1 / -1; }
             .analytics-secondary-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
+            .main-content { width: 100%; }
+            .charts-2col { grid-template-columns: minmax(0, 1fr); }
             .tourism-category-heading { align-items: flex-start; flex-direction: column; }
             .tourism-category-heading p { margin-left: 0; }
         }
