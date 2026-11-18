@@ -236,13 +236,16 @@ try {
                 $name = $firstNames[($nameOffset + $index) % count($firstNames)] . ' ' . $lastNames[($seed + $index * 7) % count($lastNames)];
                 $language = (($seed + $index) % 2 === 0) ? 'tl' : 'en';
                 $tone = $rating >= 4 ? 'positive' : ($rating === 3 ? 'mixed' : 'negative');
-                $choiceSeed = crc32($seed . ':' . $index . ':' . $rating);
+                $voiceIndex = intdiv($index, 2);
                 $openingPool = $reviewOpeners[$language];
                 $detailPool = $reviewDetails[$reviewType][$tone . ($language === 'tl' ? '_tl' : '')];
                 $closingPool = $reviewClosings[$rating][$language];
-                $opening = sprintf($openingPool[$choiceSeed % count($openingPool)], $itemName);
-                $detail = $detailPool[intdiv($choiceSeed, 7) % count($detailPool)];
-                $closing = $closingPool[intdiv($choiceSeed, 13) % count($closingPool)];
+                $openingIndex = ($voiceIndex + ($seed % count($openingPool))) % count($openingPool);
+                $detailIndex = (intdiv($voiceIndex, count($openingPool)) + intdiv($seed, count($openingPool))) % count($detailPool);
+                $closingIndex = (intdiv($voiceIndex, count($openingPool) * count($detailPool)) + intdiv($seed, count($openingPool) * count($detailPool))) % count($closingPool);
+                $opening = sprintf($openingPool[$openingIndex], $itemName);
+                $detail = $detailPool[$detailIndex];
+                $closing = $closingPool[$closingIndex];
                 $reviewText = $opening . ' ' . $detail . ' ' . $closing;
                 // Seed across two months so the admin trend view can compare periods.
                 $daysAgo = $index < (int)ceil($sampleCount / 2)
