@@ -81,6 +81,26 @@ foreach ($tourismCatalogQueries as $key => $sql) {
         $tourismCatalogCounts[$key] = (int) ($res->fetch_assoc()['c'] ?? 0);
     }
 }
+$tourismCategoryDefinitions = [
+    'products' => ['label' => 'Products', 'type' => 'product'],
+    'nature' => ['label' => 'Nature', 'type' => 'nature'],
+    'industry' => ['label' => 'Industry Zone', 'type' => 'industry'],
+    'resort' => ['label' => 'Resort', 'type' => 'resort'],
+    'churches' => ['label' => 'Churches', 'type' => 'church'],
+    'fiestas' => ['label' => 'Fiestas', 'type' => 'fiesta'],
+    'people' => ['label' => 'People of Malvar', 'type' => 'person'],
+    'services' => ['label' => 'Other Services', 'type' => 'service'],
+];
+$tourismCategoryAnalytics = [];
+foreach ($tourismCategoryDefinitions as $key => $definition) {
+    $categoryItems = analytics_top_items($conn, 10000, $periodStartSql, [], [$definition['type']], $periodEndExclusiveSql);
+    $tourismCategoryAnalytics[$key] = [
+        'label' => $definition['label'],
+        'listings' => $tourismCatalogCounts[$key],
+        'views' => array_sum(array_column($categoryItems, 'views')),
+        'top_items' => array_slice($categoryItems, 0, 5),
+    ];
+}
 $topCategory = '—';
 $categoryCounts = [];
 if ($res = $conn->query("SELECT category, COUNT(*) c FROM products WHERE category IS NOT NULL AND category <> '' GROUP BY category")) {
@@ -527,6 +547,8 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .tourism-category-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 0 0 12px; }
         .tourism-category-heading h2 { margin: 2px 0 0; color: var(--cream); font: 700 1.35rem 'Playfair Display', serif; }
         .tourism-category-heading p { margin: 0; color: rgba(var(--cream-rgb), .55); font: 400 .78rem 'DM Sans', sans-serif; }
+        .tourism-category-all { margin: 0 0 12px; padding: 8px 15px; border: 1px solid rgba(var(--overlay-rgb), .12); border-radius: 999px; background: transparent; color: rgba(var(--cream-rgb), .72); cursor: pointer; font: 600 .78rem 'DM Sans', sans-serif; }
+        .tourism-category-all:hover, .tourism-category-all.is-active { border-color: var(--clay); background: var(--clay); color: #fff; }
         .tourism-category-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
         .tourism-category-folder { overflow: hidden; border: 1px solid rgba(var(--overlay-rgb), .1); border-radius: 14px; background: rgba(var(--overlay-rgb), .025); }
         .tourism-category-folder summary { display: flex; align-items: center; gap: 9px; padding: 15px 16px; cursor: pointer; list-style: none; color: var(--cream); font: 600 .9rem 'DM Sans', sans-serif; }
@@ -534,13 +556,27 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .tourism-category-folder summary > .lucide { width: 17px; height: 17px; color: var(--sage); }
         .tourism-category-total { margin-left: auto; color: var(--gold); font-size: .75rem; }
         .tourism-category-items { padding: 0 16px 12px 42px; }
-        .tourism-category-items > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid rgba(var(--overlay-rgb), .07); color: rgba(var(--cream-rgb), .68); font: 400 .8rem 'DM Sans', sans-serif; }
+        .tourism-category-items > button { width: 100%; display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border: 0; border-top: 1px solid rgba(var(--overlay-rgb), .07); background: transparent; color: rgba(var(--cream-rgb), .68); cursor: pointer; text-align: left; font: 400 .8rem 'DM Sans', sans-serif; }
+        .tourism-category-items > button:hover, .tourism-category-items > button.is-active { color: var(--gold); }
         .tourism-category-items strong { color: var(--cream); font-weight: 600; }
+        .category-analytics-panel { margin: 4px 0 24px; padding: 20px; border: 1px solid rgba(var(--overlay-rgb), .1); border-radius: 14px; background: rgba(var(--overlay-rgb), .025); }
+        .category-analytics-panel.is-hidden { display: none; }
+        .traffic-overview.is-hidden { display: none; }
+        .category-analytics-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+        .category-analytics-header h3 { margin: 0; color: var(--cream); font: 700 1.15rem 'Playfair Display', serif; }
+        .category-analytics-header > span { color: rgba(var(--cream-rgb), .55); font: 500 .75rem 'DM Sans', sans-serif; }
+        .category-analytics-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 15px; }
+        .category-analytics-kpis > div { display: grid; gap: 4px; padding: 15px; border: 1px solid rgba(var(--overlay-rgb), .08); border-radius: 10px; }
+        .category-analytics-kpis strong { color: var(--gold); font: 700 1.4rem 'DM Sans', sans-serif; }
+        .category-analytics-kpis span, .category-analytics-top > p { color: rgba(var(--cream-rgb), .58); font: 400 .75rem 'DM Sans', sans-serif; }
+        .category-analytics-top h4 { margin: 0 0 8px; color: var(--cream); font: 600 .88rem 'DM Sans', sans-serif; }
+        .category-analytics-top > div { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid rgba(var(--overlay-rgb), .07); color: rgba(var(--cream-rgb), .72); font: 400 .78rem 'DM Sans', sans-serif; }
+        .category-analytics-top > div b, .category-analytics-top > div strong { color: var(--gold); }
         @media (max-width: 900px) { .tourism-category-groups { grid-template-columns: 1fr; } }
         @media (max-width: 600px) { .tourism-category-heading { align-items: flex-start; flex-direction: column; gap: 5px; } }
         @media print {
             body, .main-content, .dash-wrapper { background: #fff !important; color: #111 !important; }
-            .sidebar, .hamburger-btn, .admin-site-switch-row, .analytics-controls, .analytics-filter-bar { display: none !important; }
+            .sidebar, .hamburger-btn, .admin-site-switch-row, .analytics-controls, .analytics-filter-bar, .tourism-category-overview { display: none !important; }
             .main-content { margin: 0 !important; padding: 0 !important; }
             .dash-wrapper { max-width: none !important; padding: 0 !important; }
             .page-header, .chart-box, .kpi-card, .analytics-section { background: #fff !important; color: #111 !important; box-shadow: none !important; break-inside: avoid; }
@@ -638,33 +674,53 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <section class="tourism-category-overview" aria-labelledby="tourismCategoryTitle">
             <div class="tourism-category-heading">
                 <div><span class="section-label">Content catalog</span><h2 id="tourismCategoryTitle">Tourism Categories</h2></div>
-                <p>Active listings grouped like the Explore Malvar menu.</p>
+                <p>Choose a category to see its analytics for <?php echo htmlspecialchars($periodLabels[$period]); ?>.</p>
             </div>
+            <button type="button" class="tourism-category-all is-active" data-dashboard-category="all">All Analytics</button>
             <div class="tourism-category-groups">
                 <details class="tourism-category-folder" open>
                     <summary><i data-lucide="folder" class="lucide"></i><span>Local Products</span><span class="tourism-category-total"><?php echo number_format($tourismCatalogCounts['products']); ?></span></summary>
-                    <div class="tourism-category-items"><div><span>Products</span><strong><?php echo number_format($tourismCatalogCounts['products']); ?></strong></div></div>
+                    <div class="tourism-category-items"><button type="button" data-dashboard-category="products"><span>Products</span><strong><?php echo number_format($tourismCatalogCounts['products']); ?></strong></button></div>
                 </details>
                 <details class="tourism-category-folder" open>
                     <?php $destinationTotal = $tourismCatalogCounts['nature'] + $tourismCatalogCounts['industry'] + $tourismCatalogCounts['resort'] + $tourismCatalogCounts['churches']; ?>
                     <summary><i data-lucide="folder" class="lucide"></i><span>Local Destinations</span><span class="tourism-category-total"><?php echo number_format($destinationTotal); ?></span></summary>
                     <div class="tourism-category-items">
-                        <div><span>Nature</span><strong><?php echo number_format($tourismCatalogCounts['nature']); ?></strong></div>
-                        <div><span>Industry Zone</span><strong><?php echo number_format($tourismCatalogCounts['industry']); ?></strong></div>
-                        <div><span>Resort</span><strong><?php echo number_format($tourismCatalogCounts['resort']); ?></strong></div>
-                        <div><span>Churches</span><strong><?php echo number_format($tourismCatalogCounts['churches']); ?></strong></div>
+                        <button type="button" data-dashboard-category="nature"><span>Nature</span><strong><?php echo number_format($tourismCatalogCounts['nature']); ?></strong></button>
+                        <button type="button" data-dashboard-category="industry"><span>Industry Zone</span><strong><?php echo number_format($tourismCatalogCounts['industry']); ?></strong></button>
+                        <button type="button" data-dashboard-category="resort"><span>Resort</span><strong><?php echo number_format($tourismCatalogCounts['resort']); ?></strong></button>
+                        <button type="button" data-dashboard-category="churches"><span>Churches</span><strong><?php echo number_format($tourismCatalogCounts['churches']); ?></strong></button>
                     </div>
                 </details>
                 <details class="tourism-category-folder" open>
                     <?php $cultureServicesTotal = $tourismCatalogCounts['fiestas'] + $tourismCatalogCounts['people'] + $tourismCatalogCounts['services']; ?>
                     <summary><i data-lucide="folder" class="lucide"></i><span>Culture &amp; Services</span><span class="tourism-category-total"><?php echo number_format($cultureServicesTotal); ?></span></summary>
                     <div class="tourism-category-items">
-                        <div><span>Fiestas</span><strong><?php echo number_format($tourismCatalogCounts['fiestas']); ?></strong></div>
-                        <div><span>People of Malvar</span><strong><?php echo number_format($tourismCatalogCounts['people']); ?></strong></div>
-                        <div><span>Other Services</span><strong><?php echo number_format($tourismCatalogCounts['services']); ?></strong></div>
+                        <button type="button" data-dashboard-category="fiestas"><span>Fiestas</span><strong><?php echo number_format($tourismCatalogCounts['fiestas']); ?></strong></button>
+                        <button type="button" data-dashboard-category="people"><span>People of Malvar</span><strong><?php echo number_format($tourismCatalogCounts['people']); ?></strong></button>
+                        <button type="button" data-dashboard-category="services"><span>Other Services</span><strong><?php echo number_format($tourismCatalogCounts['services']); ?></strong></button>
                     </div>
                 </details>
             </div>
+            <?php foreach ($tourismCategoryAnalytics as $key => $categoryAnalytics): ?>
+            <div class="category-analytics-panel is-hidden" data-category-panel="<?php echo htmlspecialchars($key); ?>">
+                <div class="category-analytics-header"><h3><?php echo htmlspecialchars($categoryAnalytics['label']); ?> Analytics</h3><span><?php echo htmlspecialchars($periodLabels[$period]); ?></span></div>
+                <div class="category-analytics-kpis">
+                    <div><strong><?php echo number_format($categoryAnalytics['listings']); ?></strong><span>Active listings</span></div>
+                    <div><strong><?php echo number_format($categoryAnalytics['views']); ?></strong><span>Views in selected period</span></div>
+                </div>
+                <div class="category-analytics-top">
+                    <h4>Most viewed <?php echo htmlspecialchars($categoryAnalytics['label']); ?></h4>
+                    <?php if (empty($categoryAnalytics['top_items'])): ?>
+                        <p>No item views recorded for this category during this period.</p>
+                    <?php else: ?>
+                        <?php foreach ($categoryAnalytics['top_items'] as $rank => $item): ?>
+                        <div><span><b><?php echo $rank + 1; ?>.</b> <?php echo htmlspecialchars($item['name']); ?></span><strong><?php echo number_format($item['views']); ?> views</strong></div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
         </section>
         <div class="analytics-filter-bar" id="analyticsFilterBar">
             <button type="button" class="analytics-filter-pill is-active" data-filter="all">All</button>

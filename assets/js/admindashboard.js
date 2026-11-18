@@ -3,19 +3,44 @@ function toggleSidebar() {
 }
 (function initAnalyticsFilter() {
   const bar = document.getElementById('analyticsFilterBar');
-  if (!bar) return;
+  const categoryOverview = document.querySelector('.tourism-category-overview');
+  const trafficOverview = document.querySelector('.traffic-overview');
+  if (!bar || !categoryOverview) return;
   const sections = document.querySelectorAll('.analytics-section');
+  const categoryButtons = categoryOverview.querySelectorAll('[data-dashboard-category]');
+  const categoryPanels = categoryOverview.querySelectorAll('[data-category-panel]');
+  let selectedCategory = 'all';
+  function applyFilters() {
+    const analysisType = bar.querySelector('.analytics-filter-pill.is-active')?.dataset.filter || 'all';
+    bar.style.display = selectedCategory === 'all' ? '' : 'none';
+    trafficOverview?.classList.toggle('is-hidden', selectedCategory !== 'all');
+    sections.forEach(section => {
+      const show = selectedCategory === 'all' && (analysisType === 'all' || section.dataset.category === analysisType);
+      section.classList.toggle('is-hidden', !show);
+    });
+    categoryPanels.forEach(panel => {
+      panel.classList.toggle('is-hidden', panel.dataset.categoryPanel !== selectedCategory || selectedCategory === 'all');
+    });
+    categoryButtons.forEach(button => {
+      const active = button.dataset.dashboardCategory === selectedCategory;
+      button.classList.toggle('is-active', active);
+      if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
   bar.addEventListener('click', function (e) {
     const pill = e.target.closest('.analytics-filter-pill');
     if (!pill) return;
     bar.querySelectorAll('.analytics-filter-pill').forEach(p => p.classList.remove('is-active'));
     pill.classList.add('is-active');
-    const filter = pill.dataset.filter;
-    sections.forEach(section => {
-      const show = filter === 'all' || section.dataset.category === filter;
-      section.classList.toggle('is-hidden', !show);
-    });
+    applyFilters();
   });
+  categoryOverview.addEventListener('click', function (e) {
+    const button = e.target.closest('[data-dashboard-category]');
+    if (!button) return;
+    selectedCategory = button.dataset.dashboardCategory;
+    applyFilters();
+  });
+  applyFilters();
 })();
 (function initLucide() {
   if (typeof lucide !== 'undefined') {
