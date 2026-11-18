@@ -252,6 +252,16 @@
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 20px;
 }
+.p-fiesta-group-heading {
+    grid-column: 1 / -1;
+    margin: 12px 0 0;
+    padding: 16px 0 0;
+    border-top: 1px solid rgba(44, 26, 14, 0.14);
+    color: #8b2e1a;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+}
 @media (max-width: 640px) {
     .p-card-grid { grid-template-columns: 1fr; }
 }

@@ -111,7 +111,7 @@ if (isset($_GET['ajax_calendar'])) {
     <link rel="stylesheet" href="../../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../../assets/css/tourism.css">
     <link rel="stylesheet" href="../../assets/css/pagewidget.css">
-    <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261104-1">
+    <link rel="stylesheet" href="../../assets/css/fiestas.css?v=20261118-2">
     <style>
         /* ── Calendar: clickable month label ── */
         #pCalendarWrap { position: relative; }
@@ -513,32 +513,52 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
     if (!grid) return;
     const currentMonth = <?= json_encode((string) $currentMonth) ?>;
     const todayIso = <?= json_encode($today) ?>;
-    const activeMonths = new Set([currentMonth]);
-    let monthFilterActive = false;
+    const allCards = Array.from(grid.querySelectorAll('.p-card'));
+    let focusMonth = currentMonth;
+    let selectedMonth = currentMonth;
     function applyFilter() {
         const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const category = categorySelect ? categorySelect.value : '';
-        if (clearBtn) clearBtn.hidden = !monthFilterActive && !query && !category;
-        let visibleCount = 0;
-        const cards = Array.from(grid.querySelectorAll('.p-card')).sort((a, b) => {
-            const aCurrentUpcoming = a.dataset.month === currentMonth && a.dataset.date >= todayIso;
-            const bCurrentUpcoming = b.dataset.month === currentMonth && b.dataset.date >= todayIso;
-            if (aCurrentUpcoming !== bCurrentUpcoming) return aCurrentUpcoming ? -1 : 1;
-            const dateA = a.dataset.date || '9999-12-31';
-            const dateB = b.dataset.date || '9999-12-31';
-            return dateA.localeCompare(dateB);
-        });
-        cards.forEach((card) => {
-            const matchesMonth = !monthFilterActive || activeMonths.size === 0 || activeMonths.has(card.dataset.month);
+        if (clearBtn) clearBtn.hidden = selectedMonth === currentMonth && !query && !category;
+        const cards = allCards.map((card) => {
             const matchesCategory = !category || card.dataset.category === category;
             const matchesSearch = !query || (card.dataset.search || '').includes(query);
-            const show = matchesMonth && matchesCategory && matchesSearch;
-            card.style.display = show ? '' : 'none';
-            if (show) visibleCount++;
-            grid.appendChild(card);
+            return { card, show: matchesCategory && matchesSearch };
+        });
+        const isFocusCard = (card) => focusMonth !== null && card.dataset.month === focusMonth &&
+            (focusMonth !== currentMonth || !card.dataset.date || card.dataset.date >= todayIso);
+        cards.sort((a, b) => {
+            const focusDifference = Number(isFocusCard(b.card)) - Number(isFocusCard(a.card));
+            if (focusDifference) return focusDifference;
+            const dateA = a.card.dataset.date || '9999-12-31';
+            const dateB = b.card.dataset.date || '9999-12-31';
+            return dateA.localeCompare(dateB);
+        });
+        const focused = cards.filter(({ card, show }) => show && isFocusCard(card));
+        const remaining = cards.filter(({ card, show }) => show && !isFocusCard(card));
+        const visibleCount = focused.length + remaining.length;
+        const children = [];
+        const addHeading = (text) => {
+            const heading = document.createElement('h3');
+            heading.className = 'p-fiesta-group-heading';
+            heading.textContent = text;
+            children.push(heading);
+        };
+        if (focused.length && focusMonth !== null) {
+            const monthName = new Date(2000, Number(focusMonth) - 1, 1).toLocaleString(undefined, { month: 'long' });
+            addHeading('Upcoming in ' + monthName);
+        }
+        children.push(...focused.map(({ card }) => card));
+        if (focused.length && remaining.length && focusMonth !== null) {
+            addHeading('Other fiestas and events');
+        }
+        children.push(...remaining.map(({ card }) => card));
+        grid.replaceChildren(...children);
+        allCards.forEach((card) => {
+            card.style.display = '';
         });
         if (pillBar) pillBar.querySelectorAll('.p-month-pill').forEach((pill) => {
-            const selected = activeMonths.has(pill.dataset.month);
+            const selected = selectedMonth === pill.dataset.month;
             pill.classList.toggle('is-active', selected);
             pill.setAttribute('aria-pressed', selected ? 'true' : 'false');
         });
@@ -549,21 +569,20 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
             const pill = e.target.closest('.p-month-pill');
             if (!pill) return;
             const month = pill.dataset.month;
-            monthFilterActive = true;
-            if (activeMonths.has(month)) {
-                activeMonths.delete(month);
+            if (selectedMonth === month) {
+                selectedMonth = null;
+                focusMonth = currentMonth;
             } else {
-                activeMonths.add(month);
+                selectedMonth = month;
+                focusMonth = month;
             }
-            if (activeMonths.size === 0) monthFilterActive = false;
             applyFilter();
         });
     }
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
-            activeMonths.clear();
-            activeMonths.add(currentMonth);
-            monthFilterActive = false;
+            selectedMonth = currentMonth;
+            focusMonth = currentMonth;
             if (searchInput) searchInput.value = '';
             if (categorySelect) categorySelect.value = '';
             applyFilter();
