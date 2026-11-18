@@ -119,7 +119,7 @@ if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
 }
 $interactionTypes = ['click', 'search', 'generate', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
 foreach ($tourismCategoryDefinitions as $key => $definition) {
-    $categoryItems = analytics_top_items($conn, 10000, $periodStartSql, [], [$definition['type']], $periodEndExclusiveSql);
+    $categoryItems = analytics_category_item_performance($conn, $definition['type'], $periodStartSql, $periodEndExclusiveSql);
     $rating = $itemReviewRatings[$definition['type']] ?? ['count' => 0, 'average' => 0.0];
     $activityCounts = [];
     foreach ($interactionTypes as $activityType) $activityCounts[$activityType] = kt_activity_count($conn, $activityType, $key, null, $periodStartSql, $periodEndExclusiveSql);
@@ -132,7 +132,7 @@ foreach ($tourismCategoryDefinitions as $key => $definition) {
         'interactions' => array_sum($activityCounts),
         'ratings' => $rating['count'],
         'average_rating' => $rating['average'],
-        'top_items' => array_slice($categoryItems, 0, 5),
+        'top_items' => $categoryItems,
     ];
 }
 $tourismParentAnalytics = [];
@@ -670,6 +670,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .category-chart-canvas.donut { height:260px; }
         .category-chart-grid.is-hidden, .category-comparison.is-hidden { display:none; }
         .tourism-overview-kpis.is-hidden { display:none; }
+        .category-item-table-wrap { max-height:540px; overflow:auto; border:1px solid rgba(var(--overlay-rgb),.08); border-radius:10px; }
+        .category-item-table { width:100%; border-collapse:collapse; min-width:580px; }
+        .category-item-table th,.category-item-table td { padding:10px 12px; border-bottom:1px solid rgba(var(--overlay-rgb),.07); color:rgba(var(--cream-rgb),.72); font:400 .78rem 'DM Sans',sans-serif; text-align:right; }
+        .category-item-table th { position:sticky; top:0; z-index:1; background:#172319; color:var(--gold); font-weight:700; }
+        .category-item-table th:nth-child(2),.category-item-table td:nth-child(2) { text-align:left; }
+        .category-item-table tr:last-child td { border-bottom:0; }
         @media(max-width:850px) { .category-chart-grid { grid-template-columns:1fr; } }
         @media (max-width: 900px) { .tourism-category-groups { grid-template-columns: 1fr; } }
         @media (max-width: 600px) { .tourism-category-heading { align-items: flex-start; flex-direction: column; gap: 5px; } }
@@ -808,22 +814,25 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                     <div><strong><?php echo $categoryAnalytics['ratings'] > 0 ? number_format($categoryAnalytics['average_rating'], 1) . ' / 5' : '—'; ?></strong><span>Average rating</span></div>
                 </div>
                 <div class="category-analytics-top">
-                    <h4>Most viewed <?php echo htmlspecialchars($categoryAnalytics['label']); ?></h4>
+                    <h4>Listing Performance · highest views first</h4>
                     <?php if (empty($categoryAnalytics['top_items'])): ?>
-                        <p>No item views recorded for this category during this period.</p>
+                        <p>No active listings are available for this category.</p>
                     <?php else: ?>
+                        <div class="category-item-table-wrap"><table class="category-item-table"><thead><tr><th>Rank</th><th>Listing</th><th>Views</th><th>Clicks</th><th>Ratings</th><th>Average</th></tr></thead><tbody>
                         <?php foreach ($categoryAnalytics['top_items'] as $rank => $item): ?>
-                        <div><span><b><?php echo $rank + 1; ?>.</b> <?php echo htmlspecialchars($item['name']); ?></span><strong><?php echo number_format($item['views']); ?> views</strong></div>
+                        <tr><td><?php echo $rank + 1; ?></td><td><?php echo htmlspecialchars($item['name']); ?></td><td><?php echo number_format($item['views']); ?></td><td><?php echo number_format($item['clicks'] ?? 0); ?></td><td><?php echo number_format($item['ratings'] ?? 0); ?></td><td><?php echo !empty($item['ratings']) ? number_format($item['average_rating'], 1) . ' / 5' : '—'; ?></td></tr>
                         <?php endforeach; ?>
+                        </tbody></table></div>
                     <?php endif; ?>
                 </div>
             </div>
             <?php endforeach; ?>
             <div class="category-comparison">
                 <h3>Category Performance Comparison</h3>
-                <table><thead><tr><th>Category</th><th>Active Listings</th><th>Views</th><th>Clicks</th><th>Searches</th><th>Interactions</th><th>Avg. Rating</th></tr></thead><tbody>
+                <table><thead><tr><th>Category</th><th>Active Listings</th><th>Views</th><th>Clicks</th><th>Searches</th><th>Interactions</th><th>Avg. Rating</th><th>Top viewed listings</th></tr></thead><tbody>
                 <?php $comparisonRows = array_values($tourismCategoryAnalytics); usort($comparisonRows, static fn($a, $b) => $b['views'] <=> $a['views']); foreach ($comparisonRows as $stats): ?>
-                <tr><td><?= htmlspecialchars($stats['label']) ?></td><td><?= number_format($stats['listings']) ?></td><td><?= number_format($stats['views']) ?></td><td><?= number_format($stats['clicks']) ?></td><td><?= number_format($stats['searches']) ?></td><td><?= number_format($stats['interactions']) ?></td><td><?= $stats['ratings'] ? number_format($stats['average_rating'], 1) . ' / 5' : '—' ?></td></tr>
+                <?php $leaders = array_slice($stats['top_items'], 0, 3); $leaderText = implode(', ', array_map(static fn($item) => $item['name'] . ' (' . number_format($item['views']) . ')', $leaders)); ?>
+                <tr><td><?= htmlspecialchars($stats['label']) ?></td><td><?= number_format($stats['listings']) ?></td><td><?= number_format($stats['views']) ?></td><td><?= number_format($stats['clicks']) ?></td><td><?= number_format($stats['searches']) ?></td><td><?= number_format($stats['interactions']) ?></td><td><?= $stats['ratings'] ? number_format($stats['average_rating'], 1) . ' / 5' : '—' ?></td><td><?= htmlspecialchars($leaderText !== '' ? $leaderText : 'No active listings') ?></td></tr>
                 <?php endforeach; ?></tbody></table>
             </div>
             <div class="category-comparison">

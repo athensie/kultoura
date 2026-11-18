@@ -269,6 +269,32 @@ function analytics_top_items(mysqli $conn, int $limit = 8, ?string $sinceSql = n
     usort($results, fn($a, $b) => $b['views'] <=> $a['views']);
     return array_slice($results, 0, $limit);
 }
+function analytics_category_item_performance(mysqli $conn, string $itemType, string $sinceSql, string $untilSql): array
+{
+    $types = analytics_item_types();
+    if (!isset($types[$itemType]) || !kt_activity_ensure_schema($conn)) return [];
+    $meta = $types[$itemType];
+    $hasReviews = $conn->query("SHOW TABLES LIKE 'item_reviews'");
+    $reviewJoin = $hasReviews && $hasReviews->num_rows > 0
+        ? "LEFT JOIN (SELECT item_id,COUNT(*) ratings,AVG(rating) average_rating FROM item_reviews WHERE status='visible' AND created_at>=? AND created_at<? AND item_type=? GROUP BY item_id) r ON r.item_id=t.{$meta['id_col']}"
+        : '';
+    $sql = "SELECT t.{$meta['id_col']} id,t.{$meta['name_col']} name,COALESCE(v.views,0) views,COALESCE(c.clicks,0) clicks,"
+        . ($reviewJoin ? 'COALESCE(r.ratings,0) ratings,COALESCE(r.average_rating,0) average_rating' : '0 ratings,0 average_rating')
+        . " FROM {$meta['table']} t
+        LEFT JOIN (SELECT item_id,COUNT(*) views FROM item_views WHERE viewed_at>=? AND viewed_at<? AND item_type=? GROUP BY item_id) v ON v.item_id=t.{$meta['id_col']}
+        LEFT JOIN (SELECT item_id,COUNT(*) clicks FROM user_activity_log WHERE activity_type='click' AND activity_date>=? AND activity_date<? AND item_type=? GROUP BY item_id) c ON c.item_id=t.{$meta['id_col']}
+        {$reviewJoin}
+        WHERE {$meta['where']} AND t.status='active'
+        ORDER BY views DESC,clicks DESC,average_rating DESC,name ASC";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) return [];
+    if ($reviewJoin) $stmt->bind_param('sssssssss', $sinceSql, $untilSql, $itemType, $sinceSql, $untilSql, $itemType, $sinceSql, $untilSql, $itemType);
+    else $stmt->bind_param('ssssss', $sinceSql, $untilSql, $itemType, $sinceSql, $untilSql, $itemType);
+    $stmt->execute();
+    $rows = array_map(static fn($row) => ['type' => $itemType, 'id' => (int) $row['id'], 'name' => (string) $row['name'], 'views' => (int) $row['views'], 'clicks' => (int) $row['clicks'], 'ratings' => (int) $row['ratings'], 'average_rating' => (float) $row['average_rating']], $stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+    $stmt->close();
+    return $rows;
+}
 function analytics_review_sentiment(string $text): float
 {
     $positive = ['amazing','awesome','beautiful','best','clean','delicious','enjoy','excellent','friendly','good','great','helpful','love','nice','peaceful','recommend','relaxing','safe','sulit','masarap','maganda','malinis','mabait','masaya'];
