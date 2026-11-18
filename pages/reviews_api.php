@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/reviews.php';
+require_once __DIR__ . '/../config/demo_review_content.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -40,14 +41,20 @@ $table = in_array($type, $destinationCategories, true) ? 'destination' : match (
 $idColumn = match ($table) {
     'destination' => 'destination_id', 'restaurants' => 'restaurant_id', 'products' => 'product_id', 'fiestas' => 'fiesta_id', default => '',
 };
-$itemStmt = $conn->prepare("SELECT 1 FROM `$table` WHERE `$idColumn` = ? AND status = 'active'" . ($table === 'destination' ? ' AND category = ?' : '') . ' LIMIT 1');
+$nameColumn = match ($table) {
+    'destination' => 'destination_name', 'restaurants' => 'restaurant_name', 'products' => 'product_name', 'fiestas' => 'fiesta_name', default => '',
+};
+$categoryColumn = in_array($table, ['destination', 'restaurants', 'products'], true) ? '`category`' : "''";
+$itemStmt = $conn->prepare("SELECT `$nameColumn` item_name, $categoryColumn item_category FROM `$table` WHERE `$idColumn` = ? AND status = 'active'" . ($table === 'destination' ? ' AND category = ?' : '') . ' LIMIT 1');
 if (!$itemStmt) kt_review_response(500, ['success' => false, 'message' => 'Reviews are temporarily unavailable.']);
 if ($table === 'destination') $itemStmt->bind_param('is', $itemId, $type);
 else $itemStmt->bind_param('i', $itemId);
 $itemStmt->execute();
-$itemExists = (bool) $itemStmt->get_result()->fetch_row();
+$itemRow = $itemStmt->get_result()->fetch_assoc();
 $itemStmt->close();
-if (!$itemExists) kt_review_response(404, ['success' => false, 'message' => 'This item is no longer available.']);
+if (!$itemRow) kt_review_response(404, ['success' => false, 'message' => 'This item is no longer available.']);
+$itemName = (string) $itemRow['item_name'];
+$itemCategory = (string) ($itemRow['item_category'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $starFilter = (int) ($_GET['stars'] ?? 0);
@@ -64,16 +71,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     foreach ($countStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $counts[(int) $row['rating']] = (int) $row['total'];
     $countStmt->close();
     if ($starFilter) {
-        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, status, created_at FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ? AND rating = ? ORDER BY created_at DESC LIMIT 100");
+        $reviewStmt = $conn->prepare("SELECT review_id, user_id, display_name, rating, review_text AS comment, status, created_at FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ? AND rating = ? ORDER BY created_at DESC LIMIT 100");
         $reviewStmt->bind_param('sii', $type, $itemId, $starFilter);
     } else {
-        $reviewStmt = $conn->prepare("SELECT review_id, display_name, rating, review_text AS comment, status, created_at FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ? ORDER BY created_at DESC LIMIT 100");
+        $reviewStmt = $conn->prepare("SELECT review_id, user_id, display_name, rating, review_text AS comment, status, created_at FROM item_reviews WHERE status IN ('visible','demo') AND item_type = ? AND item_id = ? ORDER BY created_at DESC LIMIT 100");
         $reviewStmt->bind_param('si', $type, $itemId);
     }
     $reviewStmt->execute();
-    $reviews = array_map(static function (array $review): array {
-        $review['is_sample'] = $review['status'] === 'demo';
+    $reviews = array_map(static function (array $review) use ($type, $itemId, $itemName, $itemCategory): array {
+        $userId = (int) $review['user_id'];
+        $isReservedSample = $userId >= 2000000001 && $userId <= 2000000050;
+        $isSample = $review['status'] === 'demo' || $isReservedSample;
+        $review['is_sample'] = $isSample;
+        if ($isSample) {
+            $reviewIndex = $isReservedSample ? $userId - 2000000001 : ((int) $review['review_id'] % 50);
+            $review['comment'] = kt_demo_review_text($type, $itemId, $itemName, $itemCategory, (int) $review['rating'], $reviewIndex);
+        }
         unset($review['status']);
+        unset($review['user_id']);
         return $review;
     }, $reviewStmt->get_result()->fetch_all(MYSQLI_ASSOC));
     $reviewStmt->close();

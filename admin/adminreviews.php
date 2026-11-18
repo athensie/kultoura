@@ -6,6 +6,7 @@ $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 include '../config/dbmain.php';
 require_once '../config/reviews.php';
+require_once '../config/demo_review_content.php';
 require_once '../config/csrf.php';
 require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
@@ -45,7 +46,7 @@ $stmt = $conn->prepare("SELECT item_type, COUNT(*) review_count, ROUND(AVG(ratin
 $stmt->bind_param('s', $periodStartSql); $stmt->execute(); $typeStats = $stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
 $reviews = [];
 if ($tab === 'ratings') {
-    $stmt = $conn->prepare("SELECT r.review_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status,r.created_at,COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,CONCAT('Item #',r.item_id)) item_name FROM item_reviews r LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id=r.item_id LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id WHERE r.status IN ('visible','demo') AND r.created_at>=? ORDER BY r.created_at DESC LIMIT 200");
+    $stmt = $conn->prepare("SELECT r.review_id,r.user_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status,r.created_at,COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,CONCAT('Item #',r.item_id)) item_name FROM item_reviews r LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id=r.item_id LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id WHERE r.status IN ('visible','demo') AND r.created_at>=? ORDER BY r.created_at DESC LIMIT 200");
     $stmt->bind_param('s',$periodStartSql); $stmt->execute(); $reviews=$stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
 }
 $reports = [];
@@ -55,6 +56,13 @@ if ($tab === 'reports') {
 }
 $reviewHierarchy = [];
 foreach ($reviews as $review) {
+    $reviewUserId = (int) $review['user_id'];
+    $isReservedSample = $reviewUserId >= 2000000001 && $reviewUserId <= 2000000050;
+    $review['is_sample'] = $review['status'] === 'demo' || $isReservedSample;
+    if ($review['is_sample']) {
+        $reviewIndex = $isReservedSample ? $reviewUserId - 2000000001 : ((int) $review['review_id'] % 50);
+        $review['review_text'] = kt_demo_review_text($review['item_type'], (int) $review['item_id'], (string) $review['item_name'], '', (int) $review['rating'], $reviewIndex);
+    }
     $type = $review['item_type'];
     $itemKey = (string)$review['item_id'];
     if (!isset($reviewHierarchy[$type])) {
@@ -274,7 +282,7 @@ if ($tab === 'ratings') {
 <details class="hierarchy-category"><summary><span class="folder-title"><i data-lucide="folder"></i><?= htmlspecialchars($categoryGroup['label']) ?></span><span class="hierarchy-summary-meta"><?= $categoryGroup['count'] ?> reviews &middot; <?= count($categoryGroup['items']) ?> items</span></summary>
 <div class="hierarchy-item-list"><?php foreach ($categoryGroup['items'] as $itemGroup): $itemAverage = $itemGroup['rating_total'] / $itemGroup['count']; ?>
 <details class="hierarchy-item"><summary><span><?= htmlspecialchars($itemGroup['name']) ?></span><span class="hierarchy-summary-meta">&#9733; <?= number_format($itemAverage, 1) ?> &middot; <?= $itemGroup['count'] ?> reviews</span></summary>
-<div class="review-table hierarchy-review-list"><?php foreach ($itemGroup['reviews'] as $r): ?><article class="review-row"><div class="review-row-head"><span><?= htmlspecialchars($r['display_name']) ?><?php if ($r['status'] === 'demo'): ?><span class="sample-review-label">Sample data</span><?php endif; ?></span><span><?= htmlspecialchars(date('M j, Y g:i A', strtotime($r['created_at']))) ?></span></div><div class="review-row-stars"><?= str_repeat('&#9733;', (int)$r['rating']) . str_repeat('&#9734;', 5 - (int)$r['rating']) ?></div><p><?= htmlspecialchars($r['review_text']) ?></p></article><?php endforeach; ?></div>
+<div class="review-table hierarchy-review-list"><?php foreach ($itemGroup['reviews'] as $r): ?><article class="review-row"><div class="review-row-head"><span><?= htmlspecialchars($r['display_name']) ?><?php if ($r['is_sample']): ?><span class="sample-review-label">Sample data</span><?php endif; ?></span><span><?= htmlspecialchars(date('M j, Y g:i A', strtotime($r['created_at']))) ?></span></div><div class="review-row-stars"><?= str_repeat('&#9733;', (int)$r['rating']) . str_repeat('&#9734;', 5 - (int)$r['rating']) ?></div><p><?= htmlspecialchars($r['review_text']) ?></p></article><?php endforeach; ?></div>
 </details><?php endforeach; ?></div></details><?php endforeach; endif; ?></section>
 <?php else: ?>
 <section class="chart-box review-hierarchy"><h4>Reports by Content <span class="review-count"><?= count($reports) ?> latest reports</span></h4>
