@@ -708,6 +708,67 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         @media(max-width:850px) { .category-chart-grid { grid-template-columns:1fr; } }
         @media (max-width: 900px) { .tourism-category-groups { grid-template-columns: 1fr; } }
         @media (max-width: 600px) { .tourism-category-heading { align-items: flex-start; flex-direction: column; gap: 5px; } }
+        .dash-wrapper { max-width: 1540px; padding: 28px clamp(18px, 3vw, 46px) 64px; }
+        .page-header { margin-bottom: 18px; }
+        .page-header h1 { font-size: clamp(1.8rem, 3vw, 2.65rem); }
+        .page-header p { max-width: 680px; }
+        .analytics-primary-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 0 0 10px; }
+        .analytics-primary-kpis .kpi-card { min-height: 104px; padding: 14px 16px; border-radius: 10px; background: rgba(157,187,134,.075); }
+        .analytics-primary-kpis .kpi-card:first-child { grid-column: span 2; }
+        .analytics-primary-kpis .kpi-icon { display: none; }
+        .analytics-primary-kpis .kpi-num { font: 700 1.65rem/1.05 'Playfair Display', serif; }
+        .analytics-primary-kpis .kpi-card:first-child .kpi-num { font-size: 2.2rem; }
+        .analytics-primary-kpis .kpi-label { margin-top: 5px; font-size: .61rem; letter-spacing: .08em; }
+        .analytics-primary-kpis .kpi-change { margin-top: 5px; font-size: .65rem; }
+        .analytics-secondary-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
+        .analytics-secondary-kpis .kpi-card { min-height: 62px; padding: 9px 12px; border-radius: 9px; }
+        .analytics-secondary-kpis .kpi-icon, .analytics-secondary-kpis .kpi-change { display: none; }
+        .analytics-secondary-kpis .kpi-num { font: 700 1.05rem/1.1 'DM Sans', sans-serif; color: var(--cream); }
+        .analytics-secondary-kpis .kpi-label { margin-top: 4px; font-size: .57rem; letter-spacing: .07em; }
+        .analytics-summary .kpi-card::before { display: none; }
+        .analytics-category-select-label { display: block; margin: 2px 0 5px; color: rgba(var(--cream-rgb),.58); font: 600 .65rem 'DM Sans',sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+        .analytics-category-select { min-width: 190px; height: 36px; padding: 0 12px; border: 1px solid rgba(var(--overlay-rgb),.16); border-radius: 8px; background: #17271c; color: var(--cream); font: 500 .75rem 'DM Sans',sans-serif; }
+        :root[data-theme="light"] .analytics-category-select { background: #fff; color: #2c1a0e; }
+        .tourism-category-heading { align-items: flex-end; margin-bottom: 10px; }
+        .tourism-category-heading p { margin-left: auto; }
+        .category-chart-grid { grid-template-columns: minmax(0, 1.5fr) minmax(250px, 1fr); gap: 10px; margin: 10px 0 14px; }
+        .category-chart-box { padding: 13px 15px; border-radius: 10px; }
+        .category-chart-box h3 { margin-bottom: 8px; font-size: .84rem; }
+        .category-chart-canvas { height: 220px; }
+        .category-chart-canvas.donut { height: 220px; }
+        .analytics-filter-bar { margin: 4px 0 18px; }
+        .analytics-filter-pill { padding: 6px 13px; font-size: .69rem; }
+        .chart-box { padding: 19px 21px; border-radius: 11px; }
+        .chart-box h4 { margin-bottom: 14px; }
+        .charts-2col { gap: 12px; margin-bottom: 12px; }
+        .analytics-report-export { background: rgba(157,187,134,.16) !important; border-color: rgba(157,187,134,.25) !important; color: var(--cream) !important; }
+        .traffic-overview { margin-bottom: 16px; padding: 18px 20px 14px; border-radius: 11px; }
+        .traffic-overview-header h2 { font-size: 1.05rem; }
+        .traffic-chart-wrap { height: 245px; }
+        .content-performance-track { height: 4px; margin-top: 8px; border-radius: 99px; background: rgba(var(--overlay-rgb),.08); overflow: hidden; }
+        .content-performance-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--clay),var(--gold)); }
+        .activity-type-chart { gap: 8px; }
+        .activity-type-chart .bar-name { min-width: 150px; font-size: .7rem; }
+        .activity-type-chart .bar-track { height: 6px; }
+        .activity-type-chart .bar-pct { font-size: .68rem; }
+        .alabel-desc { margin: 20px 0 10px; padding: 0; background: none; color: var(--cream); font-size: .72rem; letter-spacing: .04em; }
+        @media (max-width: 900px) {
+            .analytics-primary-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .analytics-primary-kpis .kpi-card:first-child { grid-column: span 2; }
+            .analytics-secondary-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
+            .tourism-category-heading { align-items: flex-start; flex-direction: column; }
+            .tourism-category-heading p { margin-left: 0; }
+        }
+        @media (max-width: 560px) {
+            .analytics-secondary-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .analytics-primary-kpis .kpi-card { padding: 12px; }
+            .analytics-primary-kpis .kpi-num { font-size: 1.35rem; }
+            .analytics-primary-kpis .kpi-card:first-child .kpi-num { font-size: 1.8rem; }
+            .analytics-category-select { width: 100%; }
+            .analytics-controls { width: 100%; }
+            .period-selector { gap: 5px; }
+            .period-selector .period-btn, .period-selector .print-analytics-btn { min-height: 34px; padding: 0 10px; font-size: .69rem; }
+        }
         @media print {
             body, .main-content, .dash-wrapper { background: #fff !important; color: #111 !important; }
             .sidebar, .hamburger-btn, .admin-site-switch-row, .analytics-controls, .analytics-filter-bar { display: none !important; }
@@ -772,8 +833,8 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <div class="page-header">
             <div>
                 <div class="section-label">Tourism Insights</div>
-                <h1>Analytics <em>Dashboard</em></h1>
-                <p>Overview of tourism activity, engagement, and content performance for Malvar, Batangas. Figures update automatically as visitors use the site.</p>
+                <h1>Tourism <em>analytics</em></h1>
+                <p>Explore visitor activity, content performance, and tourism engagement in Malvar, Batangas.</p>
             </div>
             <div class="analytics-controls">
             <div class="period-selector">
@@ -782,6 +843,8 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <a href="?period=week" class="period-btn<?php echo $period === 'week' ? ' active' : ''; ?>">This Week</a>
                 <a href="?period=month" class="period-btn<?php echo $period === 'month' ? ' active' : ''; ?>">This Month</a>
                 <a href="?period=year" class="period-btn<?php echo $period === 'year' ? ' active' : ''; ?>">This Year</a>
+                <a class="period-btn analytics-report-export" href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>">Export report CSV</a>
+                <button type="button" class="period-btn analytics-theme-toggle" id="analyticsThemeToggle">Light mode</button>
                 <button type="button" class="print-analytics-btn" onclick="window.print()"><i data-lucide="printer" aria-hidden="true"></i>Print Analytics</button>
             </div>
             <form class="date-range-form" method="get" action="admindashboard.php" aria-label="Filter analytics by date range">
@@ -798,6 +861,27 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
             </div>
         </div>
+        <section class="analytics-summary" aria-label="Analytics summary">
+            <div class="kpi-grid analytics-primary-kpis tourism-overview-kpis">
+                <?php $primaryKpis = [
+                    ['eye', 'Page views', $totalPageViews, 'Public page visits in ' . strtolower($periodLabels[$period])],
+                    ['users-round', 'Active now', $activeUsers, 'Visitors online in the last 5 minutes'],
+                    ['user-round', 'Registered users', $registeredUsers, 'Visitor accounts'],
+                    ['star', 'Average rating', $overallRatingCount ? number_format($overallAverageRating, 1) . ' / 5' : '—', number_format($overallRatingCount) . ' actual ratings'],
+                    ['message-square', 'Visitor reviews', $overallRatingCount, 'Visible reviews in this period'],
+                ]; foreach ($primaryKpis as $index => [$icon, $label, $value, $detail]): ?>
+                <div class="kpi-card accent-<?= ['clay','green','gold','blue'][$index] ?>"><div class="kpi-icon"><i data-lucide="<?= htmlspecialchars($icon) ?>" class="lucide"></i></div><div class="kpi-num"><?= htmlspecialchars((string) (is_numeric($value) ? number_format((float) $value) : $value)) ?></div><div class="kpi-label"><?= htmlspecialchars($label) ?></div><div class="kpi-change"><?= htmlspecialchars($detail) ?></div></div>
+                <?php endforeach; ?>
+            </div>
+            <div class="kpi-grid analytics-secondary-kpis tourism-overview-kpis">
+                <?php $summaryKpis = [
+                    ['Content views', $totalContentViews], ['Clicks', $totalClicks], ['Searches', $totalSearches],
+                    ['Interactions', $totalInteractions], ['Listed entries', $totalListedTourismEntries], ['Categories', $totalCategories],
+                ]; foreach ($summaryKpis as [$label, $value]): ?>
+                <div class="kpi-card"><div class="kpi-num"><?= number_format($value) ?></div><div class="kpi-label"><?= htmlspecialchars($label) ?></div></div>
+                <?php endforeach; ?>
+            </div>
+        </section>
         <section class="traffic-overview chart-box animate" aria-labelledby="trafficOverviewTitle">
             <div class="traffic-overview-header">
                 <div><span class="section-label">Audience activity</span><h2 id="trafficOverviewTitle">Traffic overview</h2><p><?php echo htmlspecialchars($trafficSubtitle); ?></p></div>
@@ -811,20 +895,16 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 <div><span class="section-label">Content catalog</span><h2 id="tourismCategoryTitle">Tourism Categories</h2></div>
                 <p>Choose a category to see its analytics for <?php echo htmlspecialchars($periodLabels[$period]); ?>. <a href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>" class="analytics-export-link">Export category report (CSV)</a></p>
             </div>
-            <button type="button" class="tourism-category-all is-active" data-dashboard-category="all">All Analytics</button>
-            <div class="tourism-category-groups">
+            <label class="analytics-category-select-label" for="analyticsCategorySelect">Category</label>
+            <select id="analyticsCategorySelect" class="analytics-category-select" aria-label="Choose analytics category">
+                <option value="all">All categories</option>
                 <?php foreach (kt_activity_parents() as $parentKey => $parentMeta): ?>
-                <details class="tourism-category-folder" open>
-                    <summary><i data-lucide="folder" class="lucide"></i><span><?= htmlspecialchars($parentMeta['label']) ?></span><span class="tourism-category-total"><?php $parentListingTotal = 0; foreach ($parentMeta['categories'] as $categoryKey) $parentListingTotal += $tourismCatalogCounts[$categoryKey]; echo number_format($parentListingTotal); ?></span></summary>
-                    <div class="tourism-category-items">
-                        <button type="button" class="tourism-parent-filter" data-dashboard-category="<?= htmlspecialchars($parentKey) ?>"><span>All <?= htmlspecialchars($parentMeta['label']) ?></span><strong>View analytics</strong></button>
-                        <?php foreach ($parentMeta['categories'] as $categoryKey): ?>
-                        <button type="button" data-dashboard-category="<?= htmlspecialchars($categoryKey) ?>"><span><?= htmlspecialchars($tourismCategoryDefinitions[$categoryKey]['label']) ?></span><strong><?= number_format($tourismCatalogCounts[$categoryKey]) ?></strong></button>
-                        <?php endforeach; ?>
-                    </div>
-                </details>
+                <optgroup label="<?= htmlspecialchars($parentMeta['label']) ?>">
+                    <option value="<?= htmlspecialchars($parentKey) ?>">All <?= htmlspecialchars($parentMeta['label']) ?></option>
+                    <?php foreach ($parentMeta['categories'] as $categoryKey): ?><option value="<?= htmlspecialchars($categoryKey) ?>"><?= htmlspecialchars($tourismCategoryDefinitions[$categoryKey]['label']) ?> (<?= number_format($tourismCatalogCounts[$categoryKey]) ?>)</option><?php endforeach; ?>
+                </optgroup>
                 <?php endforeach; ?>
-            </div>
+            </select>
             <div class="category-chart-grid" id="categorySummaryVisuals">
                 <div class="category-chart-box"><h3>Views, Clicks, and Searches by Category</h3><div class="category-chart-canvas"><canvas id="tourismCategoryComparison" aria-label="Tourism category comparison chart" role="img"></canvas></div></div>
                 <div class="category-chart-box"><h3>Engagement Share</h3><div class="category-chart-canvas donut"><canvas id="tourismCategoryEngagement" aria-label="Tourism category engagement share chart" role="img"></canvas></div></div>
@@ -908,33 +988,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         </div>
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Trending &amp; Highly Visited Destinations <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
-        <div class="kpi-grid animate tourism-overview-kpis">
-            <?php $overviewKpis = [
-                ['layers', 'Total Categories', $totalCategories, 'In the tourism taxonomy'],
-                ['user-round', 'Registered Users', $registeredUsers, 'All visitor accounts'],
-                ['users', 'Active Users', $activeUsers, 'Online in the last 5 minutes'],
-                ['map-pin', 'Active Tourism Listings', $totalListedTourismEntries, 'Destinations, culture, products, and establishments'],
-                ['eye', 'Page Views', $totalPageViews, 'All public page visits'],
-                ['scan-eye', 'Content Views', $totalContentViews, 'Opened tourism item details'],
-                ['mouse-pointer-click', 'Clicks', $totalClicks, 'Recorded visitor clicks'],
-                ['search', 'Searches', $totalSearches, 'Site searches in selected period'],
-                ['activity', 'User Interactions', $totalInteractions, 'Clicks, searches, ratings, and other actions'],
-                ['star', 'Overall Average Rating', $overallRatingCount ? number_format($overallAverageRating, 1) . ' / 5' : '—', number_format($overallRatingCount) . ' actual ratings'],
-                ['trending-up', 'Most Viewed Category', $mostViewedCategory['label'] ?? '—', number_format($mostViewedCategory['views'] ?? 0) . ' content views'],
-                ['trending-down', 'Least Viewed Category', $leastViewedCategory['label'] ?? '—', number_format($leastViewedCategory['views'] ?? 0) . ' content views'],
-                ['mouse-pointer', 'Most Clicked Category', $mostClickedCategory['label'] ?? '—', number_format($mostClickedCategory['clicks'] ?? 0) . ' clicks'],
-                ['search', 'Most Searched Category', $mostSearchedCategory['label'] ?? '—', number_format($mostSearchedCategory['searches'] ?? 0) . ' searches'],
-                ['star', 'Highest-Rated Category', $highestRatedCategory ? $highestRatedCategory['label'] . ' · ' . number_format($highestRatedCategory['average_rating'], 1) : '—', $highestRatedCategory ? number_format($highestRatedCategory['ratings']) . ' actual ratings' : 'No ratings yet'],
-                ['star', 'Lowest-Rated Category', $lowestRatedCategory ? $lowestRatedCategory['label'] . ' · ' . number_format($lowestRatedCategory['average_rating'], 1) : '—', $lowestRatedCategory ? number_format($lowestRatedCategory['ratings']) . ' actual ratings; review for improvement' : 'No ratings yet'],
-            ]; foreach ($overviewKpis as $index => [$icon, $label, $value, $detail]): ?>
-            <div class="kpi-card <?php echo ['accent-clay', 'accent-green', 'accent-blue', 'accent-gold'][$index % 4]; ?>">
-                <div class="kpi-icon"><i data-lucide="<?php echo htmlspecialchars($icon); ?>" class="lucide"></i></div>
-                <div class="kpi-num" style="<?php echo is_string($value) && mb_strlen((string) $value) > 18 ? 'font-size:1.15rem;' : ''; ?>"><?php echo htmlspecialchars((string) (is_numeric($value) ? number_format((float) $value) : $value)); ?></div>
-                <div class="kpi-label"><?php echo htmlspecialchars($label); ?></div>
-                <div class="kpi-change"><?php echo htmlspecialchars($detail); ?></div>
-            </div>
-            <?php endforeach; ?>
-        </div>
         <div class="kpi-grid animate" hidden>
             <div class="kpi-card accent-clay">
                 <div class="kpi-icon"><i data-lucide="users" class="lucide"></i></div>
@@ -1019,12 +1072,14 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 </div>
             <?php else: ?>
                 <div class="trending-list">
+                        <?php $topItemViewMax = max(1, max(array_column($topItems, 'views'))); ?>
                     <?php foreach ($topItems as $i => $it): ?>
                         <div class="trending-row">
                             <div class="trending-rank">#<?php echo $i + 1; ?></div>
                             <div class="trending-info">
                                 <div class="trending-name"><?php echo htmlspecialchars($it['name']); ?></div>
                                 <div class="trending-sub"><?php echo htmlspecialchars($itemTypeLabels[$it['type']] ?? ucfirst($it['type'])); ?></div>
+                                    <div class="content-performance-track"><span style="width:<?php echo (int) round($it['views'] / $topItemViewMax * 100); ?>%"></span></div>
                             </div>
                             <div class="trending-visits"><?php echo (int) $it['views']; ?> views</div>
                         </div>
@@ -1199,27 +1254,20 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <div class="alabel-desc">Tourist Engagement &amp; Content Interactions <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
         <div class="charts-2col animate">
             <div class="chart-box">
-                <h4>Content Engagement by Category</h4>
-                <?php if (empty($categoryShare)): ?>
+                <h4>Interactions by type</h4>
+                <?php $interactionLabels = ['click'=>'Clicks','search'=>'Searches','generate'=>'Itinerary generations','download'=>'Downloads','rating'=>'Ratings','review'=>'Reviews','comment'=>'Comments','recommendation'=>'Recommendations opened','map_interaction'=>'Map interactions','language'=>'Language selections','other'=>'Other']; $interactionMax = max(1, max($overallActivityCounts)); ?>
+                <?php if (array_sum($overallActivityCounts) === 0): ?>
                     <div class="chart-empty">
-                        <i data-lucide="pie-chart" class="lucide"></i>
+                        <i data-lucide="activity" class="lucide"></i>
                         <div class="chart-empty-title">No engagement data yet</div>
-                        <div class="chart-empty-sub">Category breakdown appears once users start browsing content.</div>
+                        <div class="chart-empty-sub">Clicks, searches, ratings, and other visitor actions will appear as they are recorded.</div>
                     </div>
                 <?php else: ?>
-                    <div class="donut-wrapper">
-                        <div class="donut-chart" style="background:conic-gradient(<?php echo htmlspecialchars($donutGradient); ?>)"><div class="donut-hole"><?php echo (int) $contentTotal; ?><span>listings</span></div></div>
-                        <div class="donut-legend">
-                            <?php foreach ($categoryShare as $c): ?>
-                                <div class="legend-item">
-                                    <div class="legend-dot" style="background:<?php echo htmlspecialchars($c['color']); ?>"></div>
-                                    <?php echo htmlspecialchars($c['label']); ?>
-                                    <span class="legend-pct"><?php echo (int) $c['pct']; ?>%</span>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                    <div class="bar-chart activity-type-chart">
+                        <?php foreach ($interactionLabels as $type => $label): $count = $overallActivityCounts[$type] ?? 0; if ($count === 0) continue; ?>
+                        <div class="bar-row"><span class="bar-name"><?= htmlspecialchars($label) ?></span><div class="bar-track"><div class="bar-fill" style="width:<?= (int) round($count / $interactionMax * 100) ?>%"></div></div><span class="bar-pct"><?= number_format($count) ?></span></div>
+                        <?php endforeach; ?>
                     </div>
-                    <?php kt_render_chart_insight($chartInsights, 'category_engagement'); ?>
                 <?php endif; ?>
             </div>
             <div class="chart-box">

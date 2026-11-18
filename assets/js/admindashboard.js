@@ -1,12 +1,36 @@
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
+(function initAnalyticsThemeToggle() {
+  const button = document.getElementById('analyticsThemeToggle');
+  if (!button) return;
+  const storageKey = 'kultoura-admin-theme';
+  const applyTheme = theme => {
+    const isLight = theme === 'light';
+    document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
+    button.textContent = isLight ? 'Dark mode' : 'Light mode';
+    button.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+  };
+  let savedTheme = 'dark';
+  try { savedTheme = localStorage.getItem(storageKey) || 'dark'; } catch (error) {}
+  applyTheme(savedTheme);
+  button.addEventListener('click', function () {
+    const nextTheme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    try {
+      localStorage.setItem(storageKey, nextTheme);
+      window.location.reload();
+    } catch (error) {
+      applyTheme(nextTheme);
+    }
+  });
+})();
 (function initAnalyticsFilter() {
   const bar = document.getElementById('analyticsFilterBar');
   const categoryOverview = document.querySelector('.tourism-category-overview');
   const trafficOverview = document.querySelector('.traffic-overview');
   const categoryVisuals = document.getElementById('categorySummaryVisuals');
-  const overallKpis = document.querySelector('.tourism-overview-kpis');
+  const overallKpis = document.querySelectorAll('.tourism-overview-kpis');
+  const categorySelect = document.getElementById('analyticsCategorySelect');
   const comparisonTables = categoryOverview?.querySelectorAll('.category-comparison') || [];
   if (!bar || !categoryOverview) return;
   const sections = document.querySelectorAll('.analytics-section');
@@ -18,7 +42,8 @@ function toggleSidebar() {
     bar.style.display = selectedCategory === 'all' ? '' : 'none';
     trafficOverview?.classList.toggle('is-hidden', selectedCategory !== 'all');
     categoryVisuals?.classList.toggle('is-hidden', selectedCategory !== 'all');
-    overallKpis?.classList.toggle('is-hidden', selectedCategory !== 'all');
+    overallKpis.forEach(kpis => kpis.classList.toggle('is-hidden', selectedCategory !== 'all'));
+    if (categorySelect && categorySelect.value !== selectedCategory) categorySelect.value = selectedCategory;
     comparisonTables.forEach(panel => panel.classList.toggle('is-hidden', selectedCategory !== 'all'));
     sections.forEach(section => {
       const show = selectedCategory === 'all' && (analysisType === 'all' || section.dataset.category === analysisType);
@@ -46,6 +71,10 @@ function toggleSidebar() {
     selectedCategory = button.dataset.dashboardCategory;
     applyFilters();
   });
+  categorySelect?.addEventListener('change', function () {
+    selectedCategory = categorySelect.value || 'all';
+    applyFilters();
+  });
   applyFilters();
 })();
 (function initTourismCategoryCharts() {
@@ -55,10 +84,17 @@ function toggleSidebar() {
   try { data = JSON.parse(dataNode.textContent || '{}'); } catch (error) { return; }
   const labels = Array.isArray(data.labels) ? data.labels : [];
   const keys = Array.isArray(data.keys) ? data.keys : [];
+  const lightTheme = document.documentElement.dataset.theme === 'light';
+  const chartText = lightTheme ? '#4b463d' : '#e8e1ce';
+  const chartMuted = lightTheme ? '#706b61' : '#b7b39f';
   const selectCategory = index => {
     const key = keys[index];
     if (!key) return;
-    document.querySelector(`[data-dashboard-category="${CSS.escape(key)}"]`)?.click();
+    const selector = document.getElementById('analyticsCategorySelect');
+    if (selector) {
+      selector.value = key;
+      selector.dispatchEvent(new Event('change', { bubbles: true }));
+    }
     document.querySelector('.tourism-category-overview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   const colors = ['#9dbb86', '#d4ad62', '#bc684e', '#789c80', '#b9874e', '#668b69', '#d18465', '#a9c28e', '#8c7459', '#cfb887', '#527b5d'];
@@ -70,17 +106,17 @@ function toggleSidebar() {
       { label: 'Clicks', data: data.clicks || [], backgroundColor: '#d4ad62' },
       { label: 'Searches', data: data.searches || [], backgroundColor: '#bc684e' }
     ] },
-    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) selectCategory(elements[0].index); }, scales: { x: { ticks: { color: '#d9d4c5', maxRotation: 40, minRotation: 0 }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: '#b7b39f', precision: 0 }, grid: { color: 'rgba(230,225,205,.09)' } } }, plugins: { legend: { labels: { color: '#e8e1ce' } } } }
+    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) selectCategory(elements[0].index); }, scales: { x: { ticks: { color: chartText, maxRotation: 40, minRotation: 0 }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: chartMuted, precision: 0 }, grid: { color: lightTheme ? 'rgba(70,65,55,.12)' : 'rgba(230,225,205,.09)' } } }, plugins: { legend: { labels: { color: chartText } } } }
   });
   const engagement = document.getElementById('tourismCategoryEngagement');
   if (engagement && labels.length) new Chart(engagement, {
     type: 'doughnut', data: { labels, datasets: [{ data: data.engagement || [], backgroundColor: colors, borderColor: '#142017', borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) selectCategory(elements[0].index); }, plugins: { legend: { position: 'bottom', labels: { color: '#e8e1ce', boxWidth: 10, padding: 10 } } } }
+    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) selectCategory(elements[0].index); }, plugins: { legend: { position: 'bottom', labels: { color: chartText, boxWidth: 10, padding: 10 } } } }
   });
   const ratings = document.getElementById('tourismRatingDistribution');
   if (ratings) new Chart(ratings, {
     type: 'doughnut', data: { labels: ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'], datasets: [{ data: data.ratings || [], backgroundColor: ['#9c4737', '#bc684e', '#d4ad62', '#9dbb86', '#62845c'], borderColor: '#142017', borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) window.location.href = `adminreviews.php?rating=${elements[0].index + 1}`; }, plugins: { legend: { position: 'bottom', labels: { color: '#e8e1ce', boxWidth: 10, padding: 12 } } } }
+    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) window.location.href = `adminreviews.php?rating=${elements[0].index + 1}`; }, plugins: { legend: { position: 'bottom', labels: { color: chartText, boxWidth: 10, padding: 12 } } } }
   });
 })();
 (function initLucide() {
