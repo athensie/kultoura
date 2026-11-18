@@ -514,22 +514,25 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
     const currentMonth = <?= json_encode((string) $currentMonth) ?>;
     const todayIso = <?= json_encode($today) ?>;
     const activeMonths = new Set([currentMonth]);
+    let monthFilterActive = false;
     function applyFilter() {
         const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const category = categorySelect ? categorySelect.value : '';
-        if (clearBtn) clearBtn.hidden = activeMonths.size === 0 && !query && !category;
+        if (clearBtn) clearBtn.hidden = !monthFilterActive && !query && !category;
         let visibleCount = 0;
         const cards = Array.from(grid.querySelectorAll('.p-card')).sort((a, b) => {
+            const aCurrentUpcoming = a.dataset.month === currentMonth && a.dataset.date >= todayIso;
+            const bCurrentUpcoming = b.dataset.month === currentMonth && b.dataset.date >= todayIso;
+            if (aCurrentUpcoming !== bCurrentUpcoming) return aCurrentUpcoming ? -1 : 1;
             const dateA = a.dataset.date || '9999-12-31';
             const dateB = b.dataset.date || '9999-12-31';
             return dateA.localeCompare(dateB);
         });
         cards.forEach((card) => {
-            const matchesMonth = activeMonths.size === 0 || activeMonths.has(card.dataset.month);
-            const isUpcomingThisMonth = activeMonths.size !== 1 || !activeMonths.has(currentMonth) || card.dataset.month !== currentMonth || !card.dataset.date || card.dataset.date >= todayIso;
+            const matchesMonth = !monthFilterActive || activeMonths.size === 0 || activeMonths.has(card.dataset.month);
             const matchesCategory = !category || card.dataset.category === category;
             const matchesSearch = !query || (card.dataset.search || '').includes(query);
-            const show = matchesMonth && isUpcomingThisMonth && matchesCategory && matchesSearch;
+            const show = matchesMonth && matchesCategory && matchesSearch;
             card.style.display = show ? '' : 'none';
             if (show) visibleCount++;
             grid.appendChild(card);
@@ -546,17 +549,21 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
             const pill = e.target.closest('.p-month-pill');
             if (!pill) return;
             const month = pill.dataset.month;
+            monthFilterActive = true;
             if (activeMonths.has(month)) {
                 activeMonths.delete(month);
             } else {
                 activeMonths.add(month);
             }
+            if (activeMonths.size === 0) monthFilterActive = false;
             applyFilter();
         });
     }
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             activeMonths.clear();
+            activeMonths.add(currentMonth);
+            monthFilterActive = false;
             if (searchInput) searchInput.value = '';
             if (categorySelect) categorySelect.value = '';
             applyFilter();
