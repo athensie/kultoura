@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     if ($action === 'save_photo') {
         $key = (string) ($_POST['photo_key'] ?? '');
-        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero', 'tourism_products', 'tourism_destinations', 'tourism_culture', 'tourism_services'], true)) {
+        if (in_array($key, ['home_hero_1', 'home_hero_2', 'home_hero_bg', 'about_hero', 'tourism_products', 'tourism_destinations', 'tourism_resort', 'tourism_industry', 'tourism_churches', 'tourism_culture', 'tourism_people', 'tourism_services'], true)) {
             if (!empty($_POST['remove_image'])) {
                 $stmt = $conn->prepare("INSERT INTO site_photos (photo_key, image) VALUES (?, NULL) ON DUPLICATE KEY UPDATE image = NULL");
                 $stmt->bind_param('s', $key);
@@ -137,8 +137,12 @@ $heroPhotoGroups = [
         'icon' => 'map',
         'slots' => [
             'tourism_products' => ['label' => 'Local Products', 'hint' => 'Featured image for the Local Products section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#products', 'highlight' => '#products'],
-            'tourism_destinations' => ['label' => 'Local Destinations', 'hint' => 'Featured image for the Local Destinations section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#destinations', 'highlight' => '#destinations'],
-            'tourism_culture' => ['label' => 'Culture', 'hint' => 'Featured image for the Culture section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#culture', 'highlight' => '#culture'],
+            'tourism_destinations' => ['label' => 'Nature', 'hint' => 'Featured image for the Nature card on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#destinations', 'highlight' => '.t-card-row > .t-card:nth-child(1)'],
+            'tourism_resort' => ['label' => 'Resorts', 'hint' => 'Featured image for the Resorts card on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#destinations', 'highlight' => '.t-card-row > .t-card:nth-child(2)'],
+            'tourism_industry' => ['label' => 'Industry Zone', 'hint' => 'Featured image for the Industry Zone card on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#destinations', 'highlight' => '.t-card-row > .t-card:nth-child(3)'],
+            'tourism_churches' => ['label' => 'Churches', 'hint' => 'Featured image for the Churches card on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#destinations', 'highlight' => '.t-card-row > .t-card:nth-child(4)'],
+            'tourism_culture' => ['label' => 'Fiestas', 'hint' => 'Featured image for the Fiestas card on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#culture', 'highlight' => '.t-card-row > .t-card:nth-child(1)'],
+            'tourism_people' => ['label' => 'People of Malvar', 'hint' => 'Featured image for the People of Malvar card on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#culture', 'highlight' => '.t-card-row > .t-card:nth-child(2)'],
             'tourism_services' => ['label' => 'Other Services', 'hint' => 'Featured image for the Other Services section on the Tourism page.', 'url' => BASE_URL . '/pages/tourism.php#services', 'highlight' => '#services'],
         ],
     ],

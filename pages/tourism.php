@@ -12,7 +12,11 @@ $tourismHeroPhoto = sitecontent_get_photo($conn, 'tourism_hero');
 $tourismCategoryPhotos = [
     'products' => sitecontent_get_photo($conn, 'tourism_products'),
     'destinations' => sitecontent_get_photo($conn, 'tourism_destinations'),
+    'resort' => sitecontent_get_photo($conn, 'tourism_resort'),
+    'industry' => sitecontent_get_photo($conn, 'tourism_industry'),
+    'churches' => sitecontent_get_photo($conn, 'tourism_churches'),
     'culture' => sitecontent_get_photo($conn, 'tourism_culture'),
+    'people' => sitecontent_get_photo($conn, 'tourism_people'),
     'services' => sitecontent_get_photo($conn, 'tourism_services'),
 ];
 $isLoggedIn = isset($_SESSION['user_id']);
@@ -65,7 +69,11 @@ foreach ($hubImages as $key => $value) {
 }
 $hubImages['products'] = $tourismCategoryPhotos['products'] ?: ($hubImages['products'] ?? null);
 $hubImages['nature'] = $tourismCategoryPhotos['destinations'] ?: ($hubImages['nature'] ?? null);
+$hubImages['resort'] = $tourismCategoryPhotos['resort'] ?: ($hubImages['resort'] ?? null);
+$hubImages['industry'] = $tourismCategoryPhotos['industry'] ?: ($hubImages['industry'] ?? null);
+$hubImages['churches'] = $tourismCategoryPhotos['churches'] ?: ($hubImages['churches'] ?? null);
 $hubImages['fiestas'] = $tourismCategoryPhotos['culture'] ?: ($hubImages['fiestas'] ?? null);
+$hubImages['people'] = $tourismCategoryPhotos['people'] ?: ($hubImages['people'] ?? null);
 $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['services'] ?? null);
 ?>
 <!DOCTYPE html>
