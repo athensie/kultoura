@@ -39,6 +39,7 @@ $calMonthLabel  = date('F Y', $calTimestamp);
 $calFirstDow    = (int) date('w', $calTimestamp);
 $calDaysInMonth = (int) date('t', $calTimestamp);
 $today          = date('Y-m-d');
+$currentMonth   = (int) date('n');
 $prevMonth      = date('Y-m', strtotime('-1 month', $calTimestamp));
 $nextMonth      = date('Y-m', strtotime('+1 month', $calTimestamp));
 $calEventsByDay = [];
@@ -388,7 +389,7 @@ if (isset($_GET['ajax_calendar'])) {
                 <p class="p-month-filter-label">When to visit</p>
                 <div class="p-month-pills" id="pMonthPills">
                     <?php foreach (range(1, 12) as $m): ?>
-                        <button type="button" class="p-month-pill" data-month="<?= $m ?>"><?= date('F', mktime(0, 0, 0, $m, 1)) ?></button>
+                        <button type="button" class="p-month-pill<?= $m === $currentMonth ? ' is-active' : '' ?>" data-month="<?= $m ?>" aria-pressed="<?= $m === $currentMonth ? 'true' : 'false' ?>"><?= date('F', mktime(0, 0, 0, $m, 1)) ?></button>
                     <?php endforeach; ?>
                 </div>
                 <button type="button" class="p-month-clear" id="pMonthClear" hidden>Clear All Filters</button>
@@ -417,11 +418,12 @@ if (isset($_GET['ajax_calendar'])) {
                         $fid   = (int) $item['fiesta_id'];
                         $isFav = in_array((string) $fid, $favoritedFiestaIds, true);
                         $fMonth = !empty($item['celebration_date']) ? (int) date('n', strtotime($item['celebration_date'])) : '';
+                        $fDate = !empty($item['celebration_date']) ? date('Y-m-d', strtotime($item['celebration_date'])) : '';
                     ?>
                     <?php
                         $searchBlob = mb_strtolower(trim(($item['fiesta_name'] ?? '') . ' ' . ($item['location'] ?? '') . ' ' . ($item['description'] ?? '')));
                     ?>
-                    <article class="p-card" data-id="<?= $fid ?>" data-month="<?= $fMonth ?>" data-category="<?= htmlspecialchars($item['type'] ?? '') ?>" data-search="<?= htmlspecialchars($searchBlob) ?>" onclick="openViewDetails(<?= $fid ?>)">
+                    <article class="p-card" data-id="<?= $fid ?>" data-month="<?= $fMonth ?>" data-date="<?= htmlspecialchars($fDate) ?>" data-category="<?= htmlspecialchars($item['type'] ?? '') ?>" data-search="<?= htmlspecialchars($searchBlob) ?>" onclick="openViewDetails(<?= $fid ?>)">
                         <div class="p-card-media">
                             <?php if (!empty($item['image'])): ?>
                                 <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['fiesta_name']) ?>" class="p-card-img">
@@ -509,19 +511,33 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
     const searchInput = document.getElementById('pSearchInput');
     const categorySelect = document.getElementById('pCategorySelect');
     if (!grid) return;
-    const activeMonths = new Set();
+    const currentMonth = <?= json_encode((string) $currentMonth) ?>;
+    const todayIso = <?= json_encode($today) ?>;
+    const activeMonths = new Set([currentMonth]);
     function applyFilter() {
-        if (clearBtn) clearBtn.hidden = activeMonths.size === 0 && !searchInput.value.trim() && !categorySelect.value;
         const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const category = categorySelect ? categorySelect.value : '';
+        if (clearBtn) clearBtn.hidden = activeMonths.size === 0 && !query && !category;
         let visibleCount = 0;
-        grid.querySelectorAll('.p-card').forEach((card) => {
+        const cards = Array.from(grid.querySelectorAll('.p-card')).sort((a, b) => {
+            const dateA = a.dataset.date || '9999-12-31';
+            const dateB = b.dataset.date || '9999-12-31';
+            return dateA.localeCompare(dateB);
+        });
+        cards.forEach((card) => {
             const matchesMonth = activeMonths.size === 0 || activeMonths.has(card.dataset.month);
+            const isUpcomingThisMonth = activeMonths.size !== 1 || !activeMonths.has(currentMonth) || card.dataset.month !== currentMonth || !card.dataset.date || card.dataset.date >= todayIso;
             const matchesCategory = !category || card.dataset.category === category;
             const matchesSearch = !query || (card.dataset.search || '').includes(query);
-            const show = matchesMonth && matchesCategory && matchesSearch;
+            const show = matchesMonth && isUpcomingThisMonth && matchesCategory && matchesSearch;
             card.style.display = show ? '' : 'none';
             if (show) visibleCount++;
+            grid.appendChild(card);
+        });
+        if (pillBar) pillBar.querySelectorAll('.p-month-pill').forEach((pill) => {
+            const selected = activeMonths.has(pill.dataset.month);
+            pill.classList.toggle('is-active', selected);
+            pill.setAttribute('aria-pressed', selected ? 'true' : 'false');
         });
         if (emptyState) emptyState.hidden = visibleCount !== 0;
     }
@@ -532,10 +548,8 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
             const month = pill.dataset.month;
             if (activeMonths.has(month)) {
                 activeMonths.delete(month);
-                pill.classList.remove('is-active');
             } else {
                 activeMonths.add(month);
-                pill.classList.add('is-active');
             }
             applyFilter();
         });
@@ -543,7 +557,6 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             activeMonths.clear();
-            if (pillBar) pillBar.querySelectorAll('.p-month-pill').forEach((p) => p.classList.remove('is-active'));
             if (searchInput) searchInput.value = '';
             if (categorySelect) categorySelect.value = '';
             applyFilter();
@@ -551,6 +564,7 @@ function closePModal(id) { document.getElementById(id).classList.remove('open');
     }
     if (searchInput) searchInput.addEventListener('input', applyFilter);
     if (categorySelect) categorySelect.addEventListener('change', applyFilter);
+    applyFilter();
 })();
 // ── Calendar month navigation (no page reload) ──
 async function loadCalendarMonth(month) {
