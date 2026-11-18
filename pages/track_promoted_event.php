@@ -41,7 +41,8 @@ $stmt->execute();
 $stmt->close();
 
 if ($event === 'click') {
-    analytics_track_item($conn, $type, $id);
+    // The global delegated click listener records the click once; this endpoint
+    // owns only promotion-specific effectiveness counters.
     $interactionType = array_key_exists($type, analytics_type_group_map()) ? 'destination' : $type;
     if (isset($_SESSION['user_id'])) {
         analytics_track_user_item($conn, (int) $_SESSION['user_id'], $interactionType, $id);

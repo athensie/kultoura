@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/activity.php';
 $conn->query(
     "CREATE TABLE IF NOT EXISTS page_views (
         view_id       INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,6 +75,7 @@ function analytics_track(mysqli $conn, string $page): void
         $stmt->execute();
         $stmt->close();
     }
+    kt_activity_record($conn, 'view', kt_activity_category_for_page($page), $page, 'Page view');
 }
 function analytics_active_users(mysqli $conn, int $minutes = 5): int
 {
@@ -211,6 +213,7 @@ function analytics_track_item(mysqli $conn, string $itemType, int $itemId): void
         $stmt->execute();
         $stmt->close();
     }
+    kt_activity_record($conn, 'view', $itemType, $itemType, 'Content details opened', $itemType, $itemId);
 }
 function analytics_track_user_item(mysqli $conn, int $userId, string $itemType, int $itemId): void
 {
@@ -398,7 +401,7 @@ function analytics_conversion_top_items(mysqli $conn, int $limit = 8, int $minVi
     usort($out, fn($a, $b) => $b['views'] <=> $a['views']);
     return array_slice($out, 0, $limit);
 }
-function analytics_track_search(mysqli $conn, string $query, int $resultCount): void
+function analytics_track_search(mysqli $conn, string $query, int $resultCount, array $resultCategories = []): void
 {
     $query = trim($query);
     if ($query === '' || mb_strlen($query) > 150) {
@@ -410,24 +413,31 @@ function analytics_track_search(mysqli $conn, string $query, int $resultCount): 
         $stmt->execute();
         $stmt->close();
     }
+    $resultCategories = array_values(array_unique(array_filter($resultCategories, static fn($category) => isset(kt_activity_categories()[$category]))));
+    $activityCategory = count($resultCategories) === 1 ? $resultCategories[0] : null;
+    kt_activity_record($conn, 'search', $activityCategory, 'search', 'Site search', null, null, ['query' => $query, 'result_count' => max(0, $resultCount), 'result_categories' => $resultCategories]);
 }
-function analytics_top_searches(mysqli $conn, int $limit = 8): array
+function analytics_top_searches(mysqli $conn, int $limit = 8, ?string $sinceSql = null, ?string $untilSql = null): array
 {
-    $stmt = $conn->prepare(
-        "SELECT LOWER(query) AS q, COUNT(*) c FROM search_log GROUP BY LOWER(query) ORDER BY c DESC LIMIT ?"
-    );
-    $stmt->bind_param('i', $limit);
+    $sql = "SELECT LOWER(query) AS q, COUNT(*) c FROM search_log";
+    if ($sinceSql !== null) $sql .= ' WHERE searched_at >= ?' . ($untilSql !== null ? ' AND searched_at < ?' : '');
+    $stmt = $conn->prepare($sql . ' GROUP BY LOWER(query) ORDER BY c DESC LIMIT ?');
+    if ($sinceSql !== null && $untilSql !== null) $stmt->bind_param('ssi', $sinceSql, $untilSql, $limit);
+    elseif ($sinceSql !== null) $stmt->bind_param('si', $sinceSql, $limit);
+    else $stmt->bind_param('i', $limit);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     return array_map(fn($r) => ['query' => $r['q'], 'count' => (int) $r['c']], $rows);
 }
-function analytics_zero_result_searches(mysqli $conn, int $limit = 8): array
+function analytics_zero_result_searches(mysqli $conn, int $limit = 8, ?string $sinceSql = null, ?string $untilSql = null): array
 {
-    $stmt = $conn->prepare(
-        "SELECT LOWER(query) AS q, COUNT(*) c FROM search_log WHERE result_count = 0 GROUP BY LOWER(query) ORDER BY c DESC LIMIT ?"
-    );
-    $stmt->bind_param('i', $limit);
+    $sql = "SELECT LOWER(query) AS q, COUNT(*) c FROM search_log WHERE result_count = 0";
+    if ($sinceSql !== null) $sql .= ' AND searched_at >= ?' . ($untilSql !== null ? ' AND searched_at < ?' : '');
+    $stmt = $conn->prepare($sql . ' GROUP BY LOWER(query) ORDER BY c DESC LIMIT ?');
+    if ($sinceSql !== null && $untilSql !== null) $stmt->bind_param('ssi', $sinceSql, $untilSql, $limit);
+    elseif ($sinceSql !== null) $stmt->bind_param('si', $sinceSql, $limit);
+    else $stmt->bind_param('i', $limit);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();

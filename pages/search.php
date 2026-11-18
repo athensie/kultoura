@@ -13,7 +13,7 @@ $userName   = htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?
 $query   = trim($_GET['q'] ?? '');
 $results = $query !== '' ? kt_search_all($conn, $query, 20) : [];
 if ($query !== '') {
-    analytics_track_search($conn, $query, count($results));
+    analytics_track_search($conn, $query, count($results), array_column($results, 'category'));
 }
 ?>
 <!DOCTYPE html>
@@ -121,7 +121,7 @@ if ($query !== '') {
     <?php else: ?>
         <div class="fy-grid search-results-grid">
             <?php foreach ($results as $r): ?>
-                <div class="fy-card">
+                <div class="fy-card" data-item-type="<?php echo htmlspecialchars($r['type']); ?>" data-item-id="<?php echo (int) $r['id']; ?>">
                     <a class="fy-card-link" href="<?php echo htmlspecialchars($r['link']); ?>">
                         <div class="fy-gcard-media">
                             <span class="fy-gcard-badge fy-badge-<?php echo htmlspecialchars($r['category']); ?>"><?php echo htmlspecialchars($r['badgeText']); ?></span>

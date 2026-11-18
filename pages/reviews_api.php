@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/reviews.php';
 require_once __DIR__ . '/../config/demo_review_content.php';
+require_once __DIR__ . '/../config/activity.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -162,4 +163,6 @@ if (!$saveStmt->execute()) {
     kt_review_response(500, ['success' => false, 'message' => 'Could not save your review. Please try again.']);
 }
 $saveStmt->close();
+kt_activity_record($conn, 'rating', $type, 'reviews', 'Rating submitted', $type, $itemId, ['rating' => $rating]);
+kt_activity_record($conn, 'review', $type, 'reviews', 'Review submitted', $type, $itemId);
 kt_review_response(200, ['success' => true, 'message' => $existing ? 'Your review was updated.' : 'Your review was submitted.']);

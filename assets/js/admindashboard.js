@@ -5,6 +5,9 @@ function toggleSidebar() {
   const bar = document.getElementById('analyticsFilterBar');
   const categoryOverview = document.querySelector('.tourism-category-overview');
   const trafficOverview = document.querySelector('.traffic-overview');
+  const categoryVisuals = document.getElementById('categorySummaryVisuals');
+  const overallKpis = document.querySelector('.tourism-overview-kpis');
+  const comparisonTables = categoryOverview?.querySelectorAll('.category-comparison') || [];
   if (!bar || !categoryOverview) return;
   const sections = document.querySelectorAll('.analytics-section');
   const categoryButtons = categoryOverview.querySelectorAll('[data-dashboard-category]');
@@ -14,6 +17,9 @@ function toggleSidebar() {
     const analysisType = bar.querySelector('.analytics-filter-pill.is-active')?.dataset.filter || 'all';
     bar.style.display = selectedCategory === 'all' ? '' : 'none';
     trafficOverview?.classList.toggle('is-hidden', selectedCategory !== 'all');
+    categoryVisuals?.classList.toggle('is-hidden', selectedCategory !== 'all');
+    overallKpis?.classList.toggle('is-hidden', selectedCategory !== 'all');
+    comparisonTables.forEach(panel => panel.classList.toggle('is-hidden', selectedCategory !== 'all'));
     sections.forEach(section => {
       const show = selectedCategory === 'all' && (analysisType === 'all' || section.dataset.category === analysisType);
       section.classList.toggle('is-hidden', !show);
@@ -41,6 +47,34 @@ function toggleSidebar() {
     applyFilters();
   });
   applyFilters();
+})();
+(function initTourismCategoryCharts() {
+  const dataNode = document.getElementById('tourismCategoryChartData');
+  if (!dataNode || typeof Chart === 'undefined') return;
+  let data;
+  try { data = JSON.parse(dataNode.textContent || '{}'); } catch (error) { return; }
+  const labels = Array.isArray(data.labels) ? data.labels : [];
+  const colors = ['#9dbb86', '#d4ad62', '#bc684e', '#789c80', '#b9874e', '#668b69', '#d18465', '#a9c28e', '#8c7459', '#cfb887', '#527b5d'];
+  const comparison = document.getElementById('tourismCategoryComparison');
+  if (comparison && labels.length) new Chart(comparison, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Views', data: data.views || [], backgroundColor: '#9dbb86' },
+      { label: 'Clicks', data: data.clicks || [], backgroundColor: '#d4ad62' },
+      { label: 'Searches', data: data.searches || [], backgroundColor: '#bc684e' }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#d9d4c5', maxRotation: 40, minRotation: 0 }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: '#b7b39f', precision: 0 }, grid: { color: 'rgba(230,225,205,.09)' } } }, plugins: { legend: { labels: { color: '#e8e1ce' } } } }
+  });
+  const engagement = document.getElementById('tourismCategoryEngagement');
+  if (engagement && labels.length) new Chart(engagement, {
+    type: 'doughnut', data: { labels, datasets: [{ data: data.engagement || [], backgroundColor: colors, borderColor: '#142017', borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#e8e1ce', boxWidth: 10, padding: 10 } } } }
+  });
+  const ratings = document.getElementById('tourismRatingDistribution');
+  if (ratings) new Chart(ratings, {
+    type: 'doughnut', data: { labels: ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'], datasets: [{ data: data.ratings || [], backgroundColor: ['#9c4737', '#bc684e', '#d4ad62', '#9dbb86', '#62845c'], borderColor: '#142017', borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#e8e1ce', boxWidth: 10, padding: 12 } } } }
+  });
 })();
 (function initLucide() {
   if (typeof lucide !== 'undefined') {

@@ -63,18 +63,21 @@ if ($res = $conn->query("SELECT COUNT(*) c FROM destination WHERE status = 'acti
     $listedDestinations = (int) ($res->fetch_assoc()['c'] ?? 0);
 }
 $tourismCatalogCounts = [
-    'products' => 0, 'nature' => 0, 'industry' => 0, 'resort' => 0,
-    'churches' => 0, 'fiestas' => 0, 'people' => 0, 'services' => 0,
+    'product' => 0, 'nature' => 0, 'industry' => 0, 'resort' => 0, 'church' => 0,
+    'fiesta' => 0, 'person' => 0, 'service' => 0, 'restaurant' => 0, 'accommodation' => 0, 'bank' => 0,
 ];
 $tourismCatalogQueries = [
-    'products' => "SELECT COUNT(*) c FROM products WHERE status = 'active'",
+    'product' => "SELECT COUNT(*) c FROM products WHERE status = 'active'",
     'nature' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'nature'",
     'industry' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'industry'",
     'resort' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'resort'",
-    'churches' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'church'",
-    'fiestas' => "SELECT COUNT(*) c FROM fiestas WHERE status = 'active'",
-    'people' => "SELECT COUNT(*) c FROM people WHERE status = 'active'",
-    'services' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'service'",
+    'church' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'church'",
+    'fiesta' => "SELECT COUNT(*) c FROM fiestas WHERE status = 'active'",
+    'person' => "SELECT COUNT(*) c FROM people WHERE status = 'active'",
+    'service' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'service'",
+    'restaurant' => "SELECT COUNT(*) c FROM restaurants WHERE status = 'active'",
+    'accommodation' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'accommodation'",
+    'bank' => "SELECT COUNT(*) c FROM destination WHERE status = 'active' AND category = 'bank'",
 ];
 foreach ($tourismCatalogQueries as $key => $sql) {
     if ($res = $conn->query($sql)) {
@@ -82,25 +85,102 @@ foreach ($tourismCatalogQueries as $key => $sql) {
     }
 }
 $tourismCategoryDefinitions = [
-    'products' => ['label' => 'Products', 'type' => 'product'],
+    'product' => ['label' => 'Products of Malvar', 'type' => 'product'],
     'nature' => ['label' => 'Nature', 'type' => 'nature'],
     'industry' => ['label' => 'Industry Zone', 'type' => 'industry'],
     'resort' => ['label' => 'Resort', 'type' => 'resort'],
-    'churches' => ['label' => 'Churches', 'type' => 'church'],
-    'fiestas' => ['label' => 'Fiestas', 'type' => 'fiesta'],
-    'people' => ['label' => 'People of Malvar', 'type' => 'person'],
-    'services' => ['label' => 'Other Services', 'type' => 'service'],
+    'church' => ['label' => 'Churches', 'type' => 'church'],
+    'fiesta' => ['label' => 'Fiestas', 'type' => 'fiesta'],
+    'person' => ['label' => 'People of Malvar', 'type' => 'person'],
+    'service' => ['label' => 'Other Services', 'type' => 'service'],
+    'restaurant' => ['label' => 'Restaurants', 'type' => 'restaurant'],
+    'accommodation' => ['label' => 'Accommodation', 'type' => 'accommodation'],
+    'bank' => ['label' => 'Banks', 'type' => 'bank'],
 ];
 $tourismCategoryAnalytics = [];
+$itemReviewRatings = [];
+$ratingDistribution = array_fill(1, 5, 0);
+$reviewTableExists = $conn->query("SHOW TABLES LIKE 'item_reviews'");
+if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
+    $distributionStmt = $conn->prepare("SELECT rating, COUNT(*) total FROM item_reviews WHERE status = 'visible' AND created_at >= ? AND created_at < ? GROUP BY rating");
+    if ($distributionStmt) {
+        $distributionStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
+        $distributionStmt->execute();
+        foreach ($distributionStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $ratingRow) $ratingDistribution[(int) $ratingRow['rating']] = (int) $ratingRow['total'];
+        $distributionStmt->close();
+    }
+    $reviewStmt = $conn->prepare("SELECT item_type, COUNT(*) total, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE status = 'visible' AND created_at >= ? AND created_at < ? GROUP BY item_type");
+    if ($reviewStmt) {
+        $reviewStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
+        $reviewStmt->execute();
+        foreach ($reviewStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $reviewStat) $itemReviewRatings[$reviewStat['item_type']] = ['count' => (int) $reviewStat['total'], 'average' => (float) $reviewStat['average_rating']];
+        $reviewStmt->close();
+    }
+}
+$interactionTypes = ['click', 'search', 'generate', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
 foreach ($tourismCategoryDefinitions as $key => $definition) {
     $categoryItems = analytics_top_items($conn, 10000, $periodStartSql, [], [$definition['type']], $periodEndExclusiveSql);
+    $rating = $itemReviewRatings[$definition['type']] ?? ['count' => 0, 'average' => 0.0];
+    $activityCounts = [];
+    foreach ($interactionTypes as $activityType) $activityCounts[$activityType] = kt_activity_count($conn, $activityType, $key, null, $periodStartSql, $periodEndExclusiveSql);
     $tourismCategoryAnalytics[$key] = [
         'label' => $definition['label'],
         'listings' => $tourismCatalogCounts[$key],
         'views' => array_sum(array_column($categoryItems, 'views')),
+        'clicks' => $activityCounts['click'],
+        'searches' => $activityCounts['search'],
+        'interactions' => array_sum($activityCounts),
+        'ratings' => $rating['count'],
+        'average_rating' => $rating['average'],
         'top_items' => array_slice($categoryItems, 0, 5),
     ];
 }
+$tourismParentAnalytics = [];
+foreach (kt_activity_parents() as $parentKey => $parentMeta) {
+    $types = array_map(static fn($category) => $tourismCategoryDefinitions[$category]['type'], $parentMeta['categories']);
+    $parentItems = analytics_top_items($conn, 10000, $periodStartSql, [], $types, $periodEndExclusiveSql);
+    $parentAnalytics = ['label' => $parentMeta['label'], 'listings' => 0, 'views' => array_sum(array_column($parentItems, 'views')), 'clicks' => kt_activity_count($conn, 'click', null, $parentKey, $periodStartSql, $periodEndExclusiveSql), 'searches' => kt_activity_count($conn, 'search', null, $parentKey, $periodStartSql, $periodEndExclusiveSql), 'ratings' => 0, 'rating_total' => 0, 'top_items' => array_slice($parentItems, 0, 5)];
+    foreach ($parentMeta['categories'] as $categoryKey) {
+        $stats = $tourismCategoryAnalytics[$categoryKey];
+        $parentAnalytics['listings'] += $stats['listings'];
+        $parentAnalytics['ratings'] += $stats['ratings'];
+        $parentAnalytics['rating_total'] += $stats['average_rating'] * $stats['ratings'];
+    }
+    $parentAnalytics['interactions'] = 0;
+    foreach ($parentMeta['categories'] as $categoryKey) $parentAnalytics['interactions'] += $tourismCategoryAnalytics[$categoryKey]['interactions'];
+    $parentAnalytics['average_rating'] = $parentAnalytics['ratings'] > 0 ? $parentAnalytics['rating_total'] / $parentAnalytics['ratings'] : 0.0;
+    unset($parentAnalytics['rating_total']);
+    $tourismParentAnalytics[$parentKey] = $parentAnalytics;
+}
+$overallActivityTypes = ['click', 'search', 'generate', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
+$overallActivityCounts = [];
+foreach ($overallActivityTypes as $activityType) $overallActivityCounts[$activityType] = kt_activity_count($conn, $activityType, null, null, $periodStartSql, $periodEndExclusiveSql);
+$totalClicks = $overallActivityCounts['click'];
+$totalSearches = $overallActivityCounts['search'];
+$totalInteractions = array_sum($overallActivityCounts);
+$totalListedTourismEntries = array_sum($tourismCatalogCounts);
+$totalCategories = count($tourismCategoryDefinitions);
+$totalContentViews = array_sum(array_column($tourismCategoryAnalytics, 'views'));
+$allCategoryRanks = array_values($tourismCategoryAnalytics);
+$mostViewedCategory = null;
+$leastViewedCategory = null;
+$mostClickedCategory = null;
+$highestRatedCategory = null;
+$lowestRatedCategory = null;
+foreach ($allCategoryRanks as $categoryRank) {
+    if ($mostViewedCategory === null || $categoryRank['views'] > $mostViewedCategory['views']) $mostViewedCategory = $categoryRank;
+    if ($leastViewedCategory === null || $categoryRank['views'] < $leastViewedCategory['views']) $leastViewedCategory = $categoryRank;
+    if ($mostClickedCategory === null || $categoryRank['clicks'] > $mostClickedCategory['clicks']) $mostClickedCategory = $categoryRank;
+    if ($categoryRank['ratings'] > 0 && ($highestRatedCategory === null || $categoryRank['average_rating'] > $highestRatedCategory['average_rating'])) $highestRatedCategory = $categoryRank;
+    if ($categoryRank['ratings'] > 0 && ($lowestRatedCategory === null || $categoryRank['average_rating'] < $lowestRatedCategory['average_rating'])) $lowestRatedCategory = $categoryRank;
+}
+$overallRatingCount = 0;
+$overallRatingTotal = 0.0;
+foreach ($tourismCategoryAnalytics as $categoryStats) {
+    $overallRatingCount += $categoryStats['ratings'];
+    $overallRatingTotal += $categoryStats['average_rating'] * $categoryStats['ratings'];
+}
+$overallAverageRating = $overallRatingCount > 0 ? $overallRatingTotal / $overallRatingCount : 0.0;
 $topCategory = '—';
 $categoryCounts = [];
 if ($res = $conn->query("SELECT category, COUNT(*) c FROM products WHERE category IS NOT NULL AND category <> '' GROUP BY category")) {
@@ -138,8 +218,8 @@ $promotedImpressions = array_sum(array_column($promotedEffectiveness, 'impressio
 $promotedClicks = array_sum(array_column($promotedEffectiveness, 'clicks'));
 $promotedCtr = $promotedImpressions > 0 ? round(($promotedClicks / $promotedImpressions) * 100, 1) : 0;
 $promotedChartItems = array_slice($promotedEffectiveness, 0, 8);
-$topSearches = analytics_top_searches($conn, 6);
-$zeroResultSearches = analytics_zero_result_searches($conn, 6);
+$topSearches = analytics_top_searches($conn, 6, $periodStartSql, $periodEndExclusiveSql);
+$zeroResultSearches = analytics_zero_result_searches($conn, 6, $periodStartSql, $periodEndExclusiveSql);
 $trending = [];
 $recentUnion = [];
 if ($res = $conn->query("SELECT destination_name AS name, category AS sub, created_at FROM destination WHERE created_at >= '$periodStartSql' AND created_at < '$periodEndExclusiveSql' ORDER BY created_at DESC")) {
@@ -572,11 +652,30 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .category-analytics-top h4 { margin: 0 0 8px; color: var(--cream); font: 600 .88rem 'DM Sans', sans-serif; }
         .category-analytics-top > div { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid rgba(var(--overlay-rgb), .07); color: rgba(var(--cream-rgb), .72); font: 400 .78rem 'DM Sans', sans-serif; }
         .category-analytics-top > div b, .category-analytics-top > div strong { color: var(--gold); }
+        .analytics-export-link { margin-left: 8px; color: var(--gold); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+        .category-comparison { margin: 8px 0 24px; padding: 20px; border: 1px solid rgba(var(--overlay-rgb), .1); border-radius: 14px; background: rgba(var(--overlay-rgb), .025); overflow-x: auto; }
+        .category-comparison h3 { margin: 0 0 14px; color: var(--cream); font: 700 1.1rem 'Playfair Display', serif; }
+        .category-comparison table { width: 100%; border-collapse: collapse; min-width: 650px; }
+        .category-comparison th, .category-comparison td { padding: 10px 12px; border-bottom: 1px solid rgba(var(--overlay-rgb), .07); text-align: right; color: rgba(var(--cream-rgb), .72); font: 400 .78rem 'DM Sans', sans-serif; }
+        .category-comparison th { color: var(--gold); font-weight: 700; }
+        .category-comparison th:first-child, .category-comparison td:first-child { text-align: left; }
+        .category-comparison tr:last-child td { border-bottom: 0; }
+        .category-comparison ul { margin: 0; padding-left: 20px; color: rgba(var(--cream-rgb), .72); font: 400 .82rem/1.65 'DM Sans', sans-serif; }
+        .category-comparison li + li { margin-top: 7px; }
+        .kpi-grid[hidden] { display: none !important; }
+        .category-chart-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(240px,1fr); gap:16px; margin:16px 0 22px; }
+        .category-chart-box { min-width:0; padding:18px; border:1px solid rgba(var(--overlay-rgb),.1); border-radius:13px; background:rgba(var(--overlay-rgb),.025); }
+        .category-chart-box h3 { margin:0 0 14px; color:var(--cream); font:700 1rem 'Playfair Display',serif; }
+        .category-chart-canvas { position:relative; height:285px; }
+        .category-chart-canvas.donut { height:260px; }
+        .category-chart-grid.is-hidden, .category-comparison.is-hidden { display:none; }
+        .tourism-overview-kpis.is-hidden { display:none; }
+        @media(max-width:850px) { .category-chart-grid { grid-template-columns:1fr; } }
         @media (max-width: 900px) { .tourism-category-groups { grid-template-columns: 1fr; } }
         @media (max-width: 600px) { .tourism-category-heading { align-items: flex-start; flex-direction: column; gap: 5px; } }
         @media print {
             body, .main-content, .dash-wrapper { background: #fff !important; color: #111 !important; }
-            .sidebar, .hamburger-btn, .admin-site-switch-row, .analytics-controls, .analytics-filter-bar, .tourism-category-overview { display: none !important; }
+            .sidebar, .hamburger-btn, .admin-site-switch-row, .analytics-controls, .analytics-filter-bar { display: none !important; }
             .main-content { margin: 0 !important; padding: 0 !important; }
             .dash-wrapper { max-width: none !important; padding: 0 !important; }
             .page-header, .chart-box, .kpi-card, .analytics-section { background: #fff !important; color: #111 !important; box-shadow: none !important; break-inside: avoid; }
@@ -594,6 +693,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php" class="active"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminactivitylog.php"><span class="nav-icon"><i data-lucide="activity" class="lucide"></i></span> User Activity Log</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminreviews.php"><span class="nav-icon"><i data-lucide="star" class="lucide"></i></span> Ratings &amp; Reviews</a></li>
     </ul>
     <div class="sidebar-section">Content</div>
@@ -674,40 +774,38 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <section class="tourism-category-overview" aria-labelledby="tourismCategoryTitle">
             <div class="tourism-category-heading">
                 <div><span class="section-label">Content catalog</span><h2 id="tourismCategoryTitle">Tourism Categories</h2></div>
-                <p>Choose a category to see its analytics for <?php echo htmlspecialchars($periodLabels[$period]); ?>.</p>
+                <p>Choose a category to see its analytics for <?php echo htmlspecialchars($periodLabels[$period]); ?>. <a href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>" class="analytics-export-link">Export category report (CSV)</a></p>
             </div>
             <button type="button" class="tourism-category-all is-active" data-dashboard-category="all">All Analytics</button>
             <div class="tourism-category-groups">
+                <?php foreach (kt_activity_parents() as $parentKey => $parentMeta): ?>
                 <details class="tourism-category-folder" open>
-                    <summary><i data-lucide="folder" class="lucide"></i><span>Local Products</span><span class="tourism-category-total"><?php echo number_format($tourismCatalogCounts['products']); ?></span></summary>
-                    <div class="tourism-category-items"><button type="button" data-dashboard-category="products"><span>Products</span><strong><?php echo number_format($tourismCatalogCounts['products']); ?></strong></button></div>
-                </details>
-                <details class="tourism-category-folder" open>
-                    <?php $destinationTotal = $tourismCatalogCounts['nature'] + $tourismCatalogCounts['industry'] + $tourismCatalogCounts['resort'] + $tourismCatalogCounts['churches']; ?>
-                    <summary><i data-lucide="folder" class="lucide"></i><span>Local Destinations</span><span class="tourism-category-total"><?php echo number_format($destinationTotal); ?></span></summary>
+                    <summary><i data-lucide="folder" class="lucide"></i><span><?= htmlspecialchars($parentMeta['label']) ?></span><span class="tourism-category-total"><?php $parentListingTotal = 0; foreach ($parentMeta['categories'] as $categoryKey) $parentListingTotal += $tourismCatalogCounts[$categoryKey]; echo number_format($parentListingTotal); ?></span></summary>
                     <div class="tourism-category-items">
-                        <button type="button" data-dashboard-category="nature"><span>Nature</span><strong><?php echo number_format($tourismCatalogCounts['nature']); ?></strong></button>
-                        <button type="button" data-dashboard-category="industry"><span>Industry Zone</span><strong><?php echo number_format($tourismCatalogCounts['industry']); ?></strong></button>
-                        <button type="button" data-dashboard-category="resort"><span>Resort</span><strong><?php echo number_format($tourismCatalogCounts['resort']); ?></strong></button>
-                        <button type="button" data-dashboard-category="churches"><span>Churches</span><strong><?php echo number_format($tourismCatalogCounts['churches']); ?></strong></button>
+                        <button type="button" class="tourism-parent-filter" data-dashboard-category="<?= htmlspecialchars($parentKey) ?>"><span>All <?= htmlspecialchars($parentMeta['label']) ?></span><strong>View analytics</strong></button>
+                        <?php foreach ($parentMeta['categories'] as $categoryKey): ?>
+                        <button type="button" data-dashboard-category="<?= htmlspecialchars($categoryKey) ?>"><span><?= htmlspecialchars($tourismCategoryDefinitions[$categoryKey]['label']) ?></span><strong><?= number_format($tourismCatalogCounts[$categoryKey]) ?></strong></button>
+                        <?php endforeach; ?>
                     </div>
                 </details>
-                <details class="tourism-category-folder" open>
-                    <?php $cultureServicesTotal = $tourismCatalogCounts['fiestas'] + $tourismCatalogCounts['people'] + $tourismCatalogCounts['services']; ?>
-                    <summary><i data-lucide="folder" class="lucide"></i><span>Culture &amp; Services</span><span class="tourism-category-total"><?php echo number_format($cultureServicesTotal); ?></span></summary>
-                    <div class="tourism-category-items">
-                        <button type="button" data-dashboard-category="fiestas"><span>Fiestas</span><strong><?php echo number_format($tourismCatalogCounts['fiestas']); ?></strong></button>
-                        <button type="button" data-dashboard-category="people"><span>People of Malvar</span><strong><?php echo number_format($tourismCatalogCounts['people']); ?></strong></button>
-                        <button type="button" data-dashboard-category="services"><span>Other Services</span><strong><?php echo number_format($tourismCatalogCounts['services']); ?></strong></button>
-                    </div>
-                </details>
+                <?php endforeach; ?>
             </div>
-            <?php foreach ($tourismCategoryAnalytics as $key => $categoryAnalytics): ?>
+            <div class="category-chart-grid" id="categorySummaryVisuals">
+                <div class="category-chart-box"><h3>Views, Clicks, and Searches by Category</h3><div class="category-chart-canvas"><canvas id="tourismCategoryComparison" aria-label="Tourism category comparison chart" role="img"></canvas></div></div>
+                <div class="category-chart-box"><h3>Engagement Share</h3><div class="category-chart-canvas donut"><canvas id="tourismCategoryEngagement" aria-label="Tourism category engagement share chart" role="img"></canvas></div></div>
+                <div class="category-chart-box"><h3>Visitor Rating Distribution</h3><div class="category-chart-canvas donut"><canvas id="tourismRatingDistribution" aria-label="Actual visitor rating distribution chart" role="img"></canvas></div></div>
+                <script type="application/json" id="tourismCategoryChartData"><?php echo json_encode(['labels' => array_column(array_values($tourismCategoryAnalytics), 'label'), 'views' => array_column(array_values($tourismCategoryAnalytics), 'views'), 'clicks' => array_column(array_values($tourismCategoryAnalytics), 'clicks'), 'searches' => array_column(array_values($tourismCategoryAnalytics), 'searches'), 'engagement' => array_map(static fn($stats) => $stats['views'] + $stats['clicks'] + $stats['searches'], array_values($tourismCategoryAnalytics)), 'ratings' => array_values($ratingDistribution)], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+            </div>
+            <?php $allTourismAnalytics = $tourismParentAnalytics + $tourismCategoryAnalytics; foreach ($allTourismAnalytics as $key => $categoryAnalytics): ?>
             <div class="category-analytics-panel is-hidden" data-category-panel="<?php echo htmlspecialchars($key); ?>">
-                <div class="category-analytics-header"><h3><?php echo htmlspecialchars($categoryAnalytics['label']); ?> Analytics</h3><span><?php echo htmlspecialchars($periodLabels[$period]); ?></span></div>
-                <div class="category-analytics-kpis">
+                <div class="category-analytics-header"><h3><?php echo htmlspecialchars($categoryAnalytics['label']); ?> Analytics</h3><span><?php echo htmlspecialchars($periodLabels[$period]); ?> · <a class="analytics-export-link" href="<?php echo BASE_URL; ?>/admin/analytics_export.php?<?php echo isset($tourismCategoryDefinitions[$key]) ? 'category=' . urlencode($key) : 'parent=' . urlencode($key); ?>&amp;period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>">Export CSV</a></span></div>
+                <div class="category-analytics-kpis category-analytics-kpis-wide">
                     <div><strong><?php echo number_format($categoryAnalytics['listings']); ?></strong><span>Active listings</span></div>
                     <div><strong><?php echo number_format($categoryAnalytics['views']); ?></strong><span>Views in selected period</span></div>
+                    <div><strong><?php echo number_format($categoryAnalytics['clicks']); ?></strong><span>Clicks recorded</span></div>
+                    <div><strong><?php echo number_format($categoryAnalytics['searches']); ?></strong><span>Category searches</span></div>
+                    <div><strong><?php echo number_format($categoryAnalytics['ratings']); ?></strong><span>Submitted ratings</span></div>
+                    <div><strong><?php echo $categoryAnalytics['ratings'] > 0 ? number_format($categoryAnalytics['average_rating'], 1) . ' / 5' : '—'; ?></strong><span>Average rating</span></div>
                 </div>
                 <div class="category-analytics-top">
                     <h4>Most viewed <?php echo htmlspecialchars($categoryAnalytics['label']); ?></h4>
@@ -721,6 +819,27 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
                 </div>
             </div>
             <?php endforeach; ?>
+            <div class="category-comparison">
+                <h3>Category Performance Comparison</h3>
+                <table><thead><tr><th>Category</th><th>Active Listings</th><th>Views</th><th>Clicks</th><th>Searches</th><th>Interactions</th><th>Avg. Rating</th></tr></thead><tbody>
+                <?php $comparisonRows = array_values($tourismCategoryAnalytics); usort($comparisonRows, static fn($a, $b) => $b['views'] <=> $a['views']); foreach ($comparisonRows as $stats): ?>
+                <tr><td><?= htmlspecialchars($stats['label']) ?></td><td><?= number_format($stats['listings']) ?></td><td><?= number_format($stats['views']) ?></td><td><?= number_format($stats['clicks']) ?></td><td><?= number_format($stats['searches']) ?></td><td><?= number_format($stats['interactions']) ?></td><td><?= $stats['ratings'] ? number_format($stats['average_rating'], 1) . ' / 5' : '—' ?></td></tr>
+                <?php endforeach; ?></tbody></table>
+            </div>
+            <div class="category-comparison">
+                <h3>Data-Based Promotion and Improvement Opportunities</h3>
+                <?php
+                $averageCategoryViews = $totalContentViews / max(1, count($tourismCategoryAnalytics));
+                $opportunities = [];
+                foreach ($tourismCategoryAnalytics as $stats) {
+                    if ($stats['listings'] > 0 && $stats['views'] < $averageCategoryViews) $opportunities[] = $stats['label'] . ' has ' . number_format($stats['views']) . ' content views, below the category average of ' . number_format((int) round($averageCategoryViews)) . '. Consider giving its listings more visibility; low views alone do not indicate poor quality.';
+                    if ($stats['ratings'] >= 3 && $stats['average_rating'] < 3.5) $opportunities[] = $stats['label'] . ' averages ' . number_format($stats['average_rating'], 1) . ' / 5 across ' . number_format($stats['ratings']) . ' actual ratings. Review visitor feedback and investigate possible service or content issues.';
+                    if ($stats['ratings'] >= 3 && $stats['average_rating'] >= 4.5 && $stats['views'] < $averageCategoryViews) $opportunities[] = $stats['label'] . ' has strong visitor ratings but below-average views. Consider featuring it in a promotion.';
+                }
+                if (!$opportunities) $opportunities[] = 'There is not enough recorded engagement or rating data in this period to recommend a category action.';
+                ?>
+                <ul><?php foreach (array_slice($opportunities, 0, 6) as $opportunity): ?><li><?= htmlspecialchars($opportunity) ?></li><?php endforeach; ?></ul>
+            </div>
         </section>
         <div class="analytics-filter-bar" id="analyticsFilterBar">
             <button type="button" class="analytics-filter-pill is-active" data-filter="all">All</button>
@@ -730,7 +849,32 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         </div>
         <div class="analytics-section" data-category="descriptive">
         <div class="alabel-desc">Trending &amp; Highly Visited Destinations <span class="analytics-tag">Descriptive</span><?php if ($chartInsightsAreAI): ?> <span class="analytics-tag tag-ai">AI-Powered</span><?php endif; ?></div>
-        <div class="kpi-grid animate">
+        <div class="kpi-grid animate tourism-overview-kpis">
+            <?php $overviewKpis = [
+                ['layers', 'Total Categories', $totalCategories, 'In the tourism taxonomy'],
+                ['users', 'Active Users', $activeUsers, 'Online in the last 5 minutes'],
+                ['map-pin', 'Active Tourism Listings', $totalListedTourismEntries, 'Destinations, culture, products, and establishments'],
+                ['eye', 'Page Views', $totalPageViews, 'All public page visits'],
+                ['scan-eye', 'Content Views', $totalContentViews, 'Opened tourism item details'],
+                ['mouse-pointer-click', 'Clicks', $totalClicks, 'Recorded visitor clicks'],
+                ['search', 'Searches', $totalSearches, 'Site searches in selected period'],
+                ['activity', 'User Interactions', $totalInteractions, 'Clicks, searches, ratings, and other actions'],
+                ['star', 'Overall Average Rating', $overallRatingCount ? number_format($overallAverageRating, 1) . ' / 5' : '—', number_format($overallRatingCount) . ' actual ratings'],
+                ['trending-up', 'Most Viewed Category', $mostViewedCategory['label'] ?? '—', number_format($mostViewedCategory['views'] ?? 0) . ' content views'],
+                ['trending-down', 'Least Viewed Category', $leastViewedCategory['label'] ?? '—', number_format($leastViewedCategory['views'] ?? 0) . ' content views'],
+                ['mouse-pointer', 'Most Clicked Category', $mostClickedCategory['label'] ?? '—', number_format($mostClickedCategory['clicks'] ?? 0) . ' clicks'],
+                ['star', 'Highest-Rated Category', $highestRatedCategory ? $highestRatedCategory['label'] . ' · ' . number_format($highestRatedCategory['average_rating'], 1) : '—', $highestRatedCategory ? number_format($highestRatedCategory['ratings']) . ' actual ratings' : 'No ratings yet'],
+                ['star', 'Lowest-Rated Category', $lowestRatedCategory ? $lowestRatedCategory['label'] . ' · ' . number_format($lowestRatedCategory['average_rating'], 1) : '—', $lowestRatedCategory ? number_format($lowestRatedCategory['ratings']) . ' actual ratings; review for improvement' : 'No ratings yet'],
+            ]; foreach ($overviewKpis as $index => [$icon, $label, $value, $detail]): ?>
+            <div class="kpi-card <?php echo ['accent-clay', 'accent-green', 'accent-blue', 'accent-gold'][$index % 4]; ?>">
+                <div class="kpi-icon"><i data-lucide="<?php echo htmlspecialchars($icon); ?>" class="lucide"></i></div>
+                <div class="kpi-num" style="<?php echo is_string($value) && mb_strlen((string) $value) > 18 ? 'font-size:1.15rem;' : ''; ?>"><?php echo htmlspecialchars((string) (is_numeric($value) ? number_format((float) $value) : $value)); ?></div>
+                <div class="kpi-label"><?php echo htmlspecialchars($label); ?></div>
+                <div class="kpi-change"><?php echo htmlspecialchars($detail); ?></div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="kpi-grid animate" hidden>
             <div class="kpi-card accent-clay">
                 <div class="kpi-icon"><i data-lucide="users" class="lucide"></i></div>
                 <div class="kpi-num"><?php echo htmlspecialchars((string) $activeUsers); ?></div>
