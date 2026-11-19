@@ -679,9 +679,9 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             padding: 0 15px; border: 1px solid rgba(var(--overlay-rgb), .12); border-radius: 999px;
             font: 500 .84rem 'DM Sans', sans-serif; white-space: nowrap;
         }
-        .analytics-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-        .period-selector { justify-content: flex-end; flex-wrap: nowrap; align-self: flex-start; gap: 7px; }
-        .page-header { align-items: flex-start; }
+        .analytics-controls { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; min-width: 0; }
+        .period-selector { justify-content: flex-start; flex-wrap: wrap; align-self: stretch; gap: 6px; max-width: 100%; }
+        .page-header { align-items: flex-start; flex-direction: column; }
         .period-selector .period-btn { background: transparent; color: rgba(var(--cream-rgb), .72); }
         .period-selector .period-btn.active,
         .period-selector .period-btn:hover,
@@ -692,7 +692,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .period-selector .print-analytics-btn { gap: 7px; cursor: pointer; font-weight: 700; }
         .period-selector .print-analytics-btn:hover { filter: brightness(1.06); }
         .period-selector .print-analytics-btn i { width: 18px; height: 18px; }
-        .date-range-form { display: flex; align-items: flex-end; justify-content: flex-end; gap: 7px; margin: 0; }
+        .date-range-form { display: flex; align-items: flex-end; justify-content: flex-start; flex-wrap: wrap; gap: 8px; margin: 0; }
         .date-range-field { display: grid; gap: 3px; color: rgba(var(--cream-rgb), .62); font: 500 .68rem 'DM Sans', sans-serif; }
         .date-range-field input { width: 138px; height: 34px; padding: 0 8px; border: 1px solid rgba(var(--overlay-rgb), .14); border-radius: 8px; background: rgba(var(--overlay-rgb), .04); color: var(--cream); font: 500 .75rem 'DM Sans', sans-serif; color-scheme: dark; }
         :root[data-theme="light"] .date-range-field input { color-scheme: light; }
@@ -772,18 +772,18 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .page-header { margin-bottom: 18px; }
         .page-header h1 { font-size: clamp(1.8rem, 3vw, 2.65rem); }
         .page-header p { max-width: 680px; }
-        .analytics-primary-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 10px; }
-        .analytics-primary-kpis .kpi-card { min-height: 104px; padding: 14px 16px; border-radius: 10px; background: rgba(157,187,134,.075); }
+        .analytics-primary-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 12px; }
+        .analytics-primary-kpis .kpi-card { min-height: 112px; padding: 16px 18px; border-radius: 12px; background: #142217; border-color: rgba(var(--overlay-rgb),.13); }
         .analytics-primary-kpis .kpi-card:first-child { grid-column: auto; }
         .analytics-primary-kpis .kpi-icon { display: none; }
         .analytics-primary-kpis .kpi-num { font: 700 1.65rem/1.05 'Playfair Display', serif; }
-        .analytics-primary-kpis .kpi-label { margin-top: 5px; font-size: .61rem; letter-spacing: .08em; }
-        .analytics-primary-kpis .kpi-change { margin-top: 5px; font-size: .65rem; }
-        .analytics-secondary-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
-        .analytics-secondary-kpis .kpi-card { min-height: 62px; padding: 9px 12px; border-radius: 9px; }
+        .analytics-primary-kpis .kpi-label { margin-top: 7px; color: rgba(var(--cream-rgb),.82); font-size: .68rem; letter-spacing: .045em; }
+        .analytics-primary-kpis .kpi-change { margin-top: 6px; color: rgba(var(--cream-rgb),.64); font-size: .69rem; line-height: 1.4; }
+        .analytics-secondary-kpis { grid-template-columns: repeat(2, minmax(150px, 220px)); gap: 8px; margin: 0 0 18px; }
+        .analytics-secondary-kpis .kpi-card { min-height: 62px; padding: 10px 13px; border-radius: 9px; }
         .analytics-secondary-kpis .kpi-icon, .analytics-secondary-kpis .kpi-change { display: none; }
         .analytics-secondary-kpis .kpi-num { font: 700 1.05rem/1.1 'DM Sans', sans-serif; color: var(--cream); }
-        .analytics-secondary-kpis .kpi-label { margin-top: 4px; font-size: .57rem; letter-spacing: .07em; }
+        .analytics-secondary-kpis .kpi-label { margin-top: 4px; color: rgba(var(--cream-rgb),.72); font-size: .62rem; letter-spacing: .05em; }
         .analytics-summary .kpi-card::before { display: none; }
         .analytics-summary .kpi-card { min-width: 0; }
         .charts-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -816,7 +816,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .alabel-desc { margin: 20px 0 10px; padding: 0; background: none; color: var(--cream); font-size: .72rem; letter-spacing: .04em; }
         @media (max-width: 900px) {
             .analytics-primary-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
-            .analytics-secondary-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
+            .analytics-secondary-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
             .main-content { width: 100%; }
             .charts-2col { grid-template-columns: minmax(0, 1fr); }
             .tourism-category-heading { align-items: flex-start; flex-direction: column; }
@@ -944,8 +944,7 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             </div>
             <div class="kpi-grid analytics-secondary-kpis tourism-overview-kpis">
                 <?php $summaryKpis = [
-                    ['Content views', $totalContentViews], ['Clicks', $totalClicks], ['Searches', $totalSearches],
-                    ['Interactions', $totalInteractions], ['Listed entries', $totalListedTourismEntries], ['Categories', $totalCategories],
+                    ['Active tourism listings', $totalListedTourismEntries], ['Content categories', $totalCategories],
                 ]; foreach ($summaryKpis as [$label, $value]): ?>
                 <div class="kpi-card"><div class="kpi-num"><?= number_format($value) ?></div><div class="kpi-label"><?= htmlspecialchars($label) ?></div></div>
                 <?php endforeach; ?>
