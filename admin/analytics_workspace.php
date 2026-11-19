@@ -31,9 +31,9 @@ $culturalKeys = array_values(array_filter(array_keys($tourismCategoryAnalytics),
 $cultureEngagementLabels = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['label'],$culturalKeys);
 $cultureEngagementValues = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['views']+$tourismCategoryAnalytics[$key]['clicks']+$tourismCategoryAnalytics[$key]['searches'],$culturalKeys);
 $cultureEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#2196f3','Clicks'=>'#4ccca0','Searches'=>'#ffb844'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#4a7c47','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
 $sectionEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#2196f3','Clicks'=>'#4ccca0','Searches'=>'#ffb844'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#4a7c47','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
 $ratingLabels = ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'];
 $ratingValues = array_values($ratingDistribution);
 $cultureRatingDistribution = array_fill(1,5,0);
@@ -321,24 +321,24 @@ $chartData['visitors'] = $visitorDonut;
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <style>
-.main-content { background:#f2f4f8; color:#263449; }
+.main-content { background:#f4f6f1; color:#26342b; }
 .dash-wrapper { max-width:1660px; padding:32px 38px 64px; }
-.analytics-workspace { --aw-bg:#f2f4f8; --aw-card:#fff; --aw-line:#dce1e9; --aw-muted:#738096; --aw-text:#263449; --aw-chart-text:#536278; --aw-blue:#1689ed; --aw-purple:#b36cf2; }
+.analytics-workspace { --aw-bg:#f4f6f1; --aw-card:#fff; --aw-line:#dbe4d8; --aw-muted:#6c796d; --aw-text:#26342b; --aw-chart-text:#465648; --aw-green:#4a7c47; --aw-sage:#9fb88a; --aw-gold:#8b7434; --aw-highlight:#78956b; }
 .analytics-workspace, .analytics-workspace * { box-sizing:border-box; }
 .aw-heading { display:flex; flex-direction:column; gap:7px; margin:0 0 22px; }
 .aw-heading .section-label { margin:0; }
 .aw-heading h1 { margin:0; color:var(--aw-text); font:700 clamp(1.8rem,3vw,2.45rem)/1.15 'Playfair Display',serif; }
-.aw-heading h1 em { color:var(--aw-blue); }
-.aw-heading .section-label { color:#8a63bd; }
+.aw-heading h1 em { color:var(--aw-green); }
+.aw-heading .section-label { color:#758b67; }
 .aw-heading p { margin:0; max-width:65ch; color:var(--aw-muted); font:.88rem/1.5 'DM Sans',sans-serif; }
 .aw-toolbar { display:grid; gap:12px; margin:0 0 20px; }
 .aw-periods { display:flex; flex-wrap:wrap; gap:7px; min-width:0; }
 .aw-periods a { display:inline-flex; align-items:center; min-height:35px; padding:0 13px; border:1px solid var(--aw-line); border-radius:8px; color:var(--aw-muted); font:500 .75rem 'DM Sans',sans-serif; text-decoration:none; }
-.aw-periods a.active,.aw-periods a:hover { border-color:var(--aw-blue); background:var(--aw-blue); color:#fff; }
+.aw-periods a.active,.aw-periods a:hover { border-color:var(--aw-green); background:var(--aw-green); color:#fff; }
 .aw-controls { display:flex; align-items:flex-end; flex-wrap:wrap; gap:10px; }
-.aw-tabs { display:flex; gap:5px; overflow-x:auto; padding:5px; margin:0 0 22px; border:1px solid var(--aw-line); border-radius:9px; background:#e9edf4; scrollbar-width:thin; }
+.aw-tabs { display:flex; gap:5px; overflow-x:auto; padding:5px; margin:0 0 22px; border:1px solid var(--aw-line); border-radius:9px; background:#e9eee8; scrollbar-width:thin; }
 .aw-tab { flex:0 0 auto; min-height:38px; padding:0 13px; border:0; border-radius:7px; background:transparent; color:var(--aw-muted); font:600 .76rem 'DM Sans',sans-serif; cursor:pointer; }
-.aw-tab[aria-selected="true"] { background:var(--aw-blue); color:#fff; }
+.aw-tab[aria-selected="true"] { background:var(--aw-green); color:#fff; }
 .aw-section { display:none; }
 .aw-section.is-active { display:block; }
 .aw-section-head { display:flex; align-items:end; justify-content:space-between; gap:12px; margin:0 0 14px; }
@@ -348,49 +348,49 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 .aw-card { grid-column:span 3; min-width:0; min-height:280px; padding:14px; border:1px solid var(--aw-line); border-radius:8px; background:var(--aw-card); box-shadow:0 1px 3px rgba(30,48,75,.05); }
 .aw-card--wide { grid-column:span 6; }
 .aw-card h3 { position:relative; min-height:0; margin:-14px -14px 12px; padding:12px 14px 11px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .88rem/1.35 'DM Sans',sans-serif; }
-.aw-card h3::after { position:absolute; bottom:-1px; left:14px; width:96px; height:3px; background:var(--aw-purple); content:""; }
+.aw-card h3::after { position:absolute; bottom:-1px; left:14px; width:96px; height:3px; background:var(--aw-highlight); content:""; }
 .aw-card-canvas { position:relative; height:195px; }
 .aw-card--wide .aw-card-canvas { height:225px; }
 .aw-leaflet-map { height:220px; overflow:hidden; border-radius:6px; background:#edf1f7; }
 .aw-card-empty { display:grid; min-height:205px; place-content:center; gap:8px; padding:16px; border:1px dashed var(--aw-line); border-radius:8px; color:var(--aw-muted); text-align:center; }
-.aw-card-empty strong { color:var(--aw-blue); font:600 .8rem 'DM Sans',sans-serif; }
+.aw-card-empty strong { color:var(--aw-green); font:600 .8rem 'DM Sans',sans-serif; }
 .aw-card-empty span { max-width:42ch; font:.73rem/1.5 'DM Sans',sans-serif; }
-.aw-kpi-value { padding:18px 0 8px; color:var(--aw-blue); font:700 clamp(1.8rem,3vw,2.4rem)/1.1 'Playfair Display',serif; }
+.aw-kpi-value { padding:18px 0 8px; color:var(--aw-green); font:700 clamp(1.8rem,3vw,2.4rem)/1.1 'Playfair Display',serif; }
 .aw-kpi-note { color:var(--aw-muted); font:.75rem/1.5 'DM Sans',sans-serif; }
-.aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:var(--aw-blue); font:.72rem 'DM Sans',sans-serif; }
+.aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:var(--aw-green); font:.72rem 'DM Sans',sans-serif; }
 .aw-word-cloud { display:flex; min-height:205px; align-content:center; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px 14px; padding:16px; }
-.aw-word-cloud span { color:var(--aw-blue); font:600 1rem/1.2 'DM Sans',sans-serif; }
+.aw-word-cloud span { color:var(--aw-green); font:600 1rem/1.2 'DM Sans',sans-serif; }
 .aw-heatmap { display:grid; grid-template-columns:34px repeat(24,minmax(10px,1fr)); gap:3px; align-items:center; overflow-x:auto; padding:8px 0; }
 .aw-heatmap-label { color:var(--aw-muted); font:500 .58rem 'DM Sans',sans-serif; text-align:center; }
-.aw-heatmap-cell { width:100%; min-width:10px; height:13px; border:0; border-radius:3px; background:#1689ed; }
+.aw-heatmap-cell { width:100%; min-width:10px; height:13px; border:0; border-radius:3px; background:var(--aw-green); }
 .aw-calendar { display:grid; grid-template-columns:repeat(7,minmax(20px,1fr)); gap:4px; max-height:210px; overflow:auto; padding:8px 0; }
-.aw-calendar-cell { aspect-ratio:1; min-width:20px; border-radius:4px; background:#1689ed; }
+.aw-calendar-cell { aspect-ratio:1; min-width:20px; border-radius:4px; background:var(--aw-green); }
 .analytics-workspace .date-range-field { color:var(--aw-muted); }
 .analytics-workspace .date-range-field input { border-color:var(--aw-line); background:#fff; color:var(--aw-text); color-scheme:light; }
-.analytics-workspace .date-range-submit { background:var(--aw-blue); color:#fff; }
+.analytics-workspace .date-range-submit { background:var(--aw-green); color:#fff; }
 .analytics-workspace .date-range-clear { color:var(--aw-muted); }
 .analytics-workspace .date-range-error { color:#a33434; }
 .analytics-workspace .analytics-report-export { border-color:var(--aw-line); background:#fff; color:#43536b; }
 .aw-ai-dashboard { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr); gap:14px; margin:0 0 22px; }
 .aw-ai-card { min-width:0; border:1px solid var(--aw-line); border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(30,48,75,.05); }
 .aw-ai-card h2 { position:relative; margin:0; padding:13px 16px 12px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .95rem 'DM Sans',sans-serif; }
-.aw-ai-card h2::after { position:absolute; bottom:-1px; left:16px; width:115px; height:3px; background:var(--aw-purple); content:""; }
+.aw-ai-card h2::after { position:absolute; bottom:-1px; left:16px; width:115px; height:3px; background:var(--aw-highlight); content:""; }
 .aw-ai-card-body { padding:15px 16px 17px; }
-.aw-ai-badge { display:inline-flex; align-items:center; gap:6px; margin:0 0 10px; padding:4px 9px; border-radius:999px; background:#f2e9fb; color:#8052ad; font:600 .65rem 'DM Sans',sans-serif; }
+.aw-ai-badge { display:inline-flex; align-items:center; gap:6px; margin:0 0 10px; padding:4px 9px; border-radius:999px; background:#e8f0e4; color:#426d3e; font:600 .65rem 'DM Sans',sans-serif; }
 .aw-ai-summary { margin:0; color:#45536a; font:.83rem/1.65 'DM Sans',sans-serif; }
 .aw-ai-actions-title { margin:16px 0 8px; color:var(--aw-text); font:600 .75rem 'DM Sans',sans-serif; }
 .aw-ai-actions { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
 .aw-ai-actions li { display:flex; gap:8px; align-items:flex-start; color:#536278; font:.74rem/1.5 'DM Sans',sans-serif; }
-.aw-ai-actions li::before { width:7px; height:7px; flex:0 0 7px; margin-top:5px; border-radius:50%; background:#4ccca0; content:""; }
+.aw-ai-actions li::before { width:7px; height:7px; flex:0 0 7px; margin-top:5px; border-radius:50%; background:var(--aw-sage); content:""; }
 .aw-forecast-total { display:flex; align-items:baseline; gap:9px; margin-bottom:4px; }
-.aw-forecast-total strong { color:var(--aw-blue); font:700 2rem/1.1 'Playfair Display',serif; }
+.aw-forecast-total strong { color:var(--aw-green); font:700 2rem/1.1 'Playfair Display',serif; }
 .aw-forecast-total span { color:var(--aw-muted); font:.72rem 'DM Sans',sans-serif; }
 .aw-forecast-change { margin:0 0 12px; color:var(--aw-muted); font:.7rem 'DM Sans',sans-serif; }
 .aw-forecast-chart { display:flex; align-items:flex-end; gap:8px; height:115px; padding:8px 2px 0; border-bottom:1px solid var(--aw-line); }
 .aw-forecast-month { display:flex; min-width:0; height:100%; flex:1; flex-direction:column; align-items:center; justify-content:flex-end; gap:5px; }
 .aw-forecast-month strong { color:#738096; font:500 .55rem 'DM Sans',sans-serif; white-space:nowrap; }
-.aw-forecast-bar { width:min(100%,30px); min-height:4px; border-radius:4px 4px 0 0; background:#77baf2; }
-.aw-forecast-month.is-projected .aw-forecast-bar { background:var(--aw-purple); }
+.aw-forecast-bar { width:min(100%,30px); min-height:4px; border-radius:4px 4px 0 0; background:var(--aw-sage); }
+.aw-forecast-month.is-projected .aw-forecast-bar { background:var(--aw-green); }
 .aw-forecast-month span { max-width:100%; overflow:hidden; color:#738096; font:500 .57rem 'DM Sans',sans-serif; text-overflow:ellipsis; white-space:nowrap; }
 .aw-forecast-note { margin:9px 0 0; color:var(--aw-muted); font:.66rem/1.45 'DM Sans',sans-serif; }
 @media(max-width:1100px){.aw-card{grid-column:span 6}.aw-card--wide{grid-column:span 12}.dash-wrapper{padding:30px 24px 56px}}
@@ -415,7 +415,7 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
     </div>
     <section class="aw-ai-dashboard" aria-label="AI interpretation and traffic prediction">
         <article class="aw-ai-card">
-            <h2><i data-lucide="sparkles" class="lucide" style="width:1rem;height:1rem;color:#1689ed;vertical-align:-2px;"></i> AI interpretation</h2>
+            <h2><i data-lucide="sparkles" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> AI interpretation</h2>
             <div class="aw-ai-card-body">
                 <span class="aw-ai-badge"><?php echo htmlspecialchars($aiAnalysisLabel); ?></span>
                 <p class="aw-ai-summary"><?php echo htmlspecialchars($aiSummary); ?></p>
@@ -425,7 +425,7 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
             </div>
         </article>
         <article class="aw-ai-card">
-            <h2><i data-lucide="trending-up" class="lucide" style="width:1rem;height:1rem;color:#1689ed;vertical-align:-2px;"></i> Next month page-view forecast</h2>
+            <h2><i data-lucide="trending-up" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Next month page-view forecast</h2>
             <div class="aw-ai-card-body">
                 <?php if ($forecastEstimate !== null): ?>
                     <div class="aw-forecast-total"><strong><?php echo number_format($forecastEstimate); ?></strong><span>estimated views</span></div>
