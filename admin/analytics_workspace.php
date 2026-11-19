@@ -191,6 +191,131 @@ $workspaceMetrics = [
         ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'], ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'],
     ],
 ];
+$forecastHistoryRows = array_values(array_filter(
+    analytics_monthly_trend($conn, 7),
+    static fn($row) => ($row['ym'] ?? '') < date('Y-m')
+));
+$forecastHistoryRows = array_slice($forecastHistoryRows, -6);
+$forecastValues = array_map(static fn($row) => (int) $row['value'], $forecastHistoryRows);
+$forecastAvailable = count($forecastValues) >= 3 && array_sum($forecastValues) > 0;
+$forecastEstimate = null;
+$forecastChangePct = null;
+$forecastIsAi = false;
+$forecastConfidence = $forecastAvailable ? (count($forecastValues) >= 6 ? 'Moderate confidence' : 'Low confidence') : 'Insufficient history';
+$forecastReason = 'At least three complete months of page-view history are needed for a useful prediction.';
+if ($forecastAvailable) {
+    $recentValues = array_slice($forecastValues, -3);
+    $recentAverage = array_sum($recentValues) / count($recentValues);
+    $historyAverage = array_sum($forecastValues) / count($forecastValues);
+    $forecastEstimate = max(0, (int) round(($recentAverage * 0.7) + ($historyAverage * 0.3)));
+    $latestCompletedViews = (int) end($forecastValues);
+    $forecastChangePct = $latestCompletedViews > 0
+        ? (int) round((($forecastEstimate - $latestCompletedViews) / $latestCompletedViews) * 100)
+        : null;
+    $forecastReason = 'Weighted trend estimate using the last three complete months and the available complete-month average.';
+}
+$aiDestinationSummary = array_map(static fn($row) => [
+    'name' => (string) ($row['name'] ?? 'Destination'), 'views' => (int) ($row['views'] ?? 0),
+], array_slice($destinationRows, 0, 5));
+$aiSearchSummary = array_map(static fn($row) => [
+    'query' => (string) ($row['query'] ?? ''), 'searches' => (int) ($row['count'] ?? 0),
+], array_slice($topSearches, 0, 5));
+$aiDashboardFacts = [
+    'selected_period' => $periodLabels[$period] ?? 'Selected period',
+    'selected_period_page_views' => array_sum(array_column($trafficTrend, 'value')),
+    'destination_views' => (int) $destinationViews,
+    'cultural_content_views' => (int) $cultureViews,
+    'registered_users' => array_sum($registrationBuckets),
+    'generated_itineraries' => array_sum($itineraryMonthBuckets),
+    'visible_ratings' => (int) $overallRatingCount,
+    'average_rating' => round((float) $overallAverageRating, 2),
+    'top_destinations' => $aiDestinationSummary,
+    'top_searches' => $aiSearchSummary,
+    'completed_monthly_page_views' => array_map(static fn($row) => [
+        'month' => $row['label'], 'views' => (int) $row['value'],
+    ], $forecastHistoryRows),
+];
+$aiDashboardResult = null;
+$aiCacheKey = 'dashai_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql), 0, 24);
+if (ai_text_configured()) {
+    $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
+    $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
+    if ($cachedAiStmt) {
+        $cachedAiStmt->bind_param('s', $aiCacheKey);
+        $cachedAiStmt->execute();
+        $cachedAiRow = $cachedAiStmt->get_result()->fetch_assoc();
+        $cachedAiStmt->close();
+        if ($cachedAiRow) $aiDashboardResult = json_decode((string) $cachedAiRow['result'], true);
+    }
+    if (!is_array($aiDashboardResult)) {
+        $conn->query("DELETE FROM analytics_forecasts WHERE forecast_key='" . $conn->real_escape_string($aiCacheKey) . "'");
+        $aiDashboardResult = ai_cached_or_generate($conn, $aiCacheKey, $aiDashboardFacts, $aiPrompt);
+    }
+}
+$aiSummary = '';
+$aiActions = [];
+$aiSummaryIsGenerated = false;
+if (is_array($aiDashboardResult) && isset($aiDashboardResult['summary']) && is_string($aiDashboardResult['summary'])) {
+    $aiSummary = mb_substr(trim($aiDashboardResult['summary']), 0, 600);
+    $aiSummaryIsGenerated = $aiSummary !== '';
+    if (isset($aiDashboardResult['actions']) && is_array($aiDashboardResult['actions'])) {
+        foreach (array_slice($aiDashboardResult['actions'], 0, 3) as $action) {
+            if (is_string($action) && trim($action) !== '') $aiActions[] = mb_substr(trim($action), 0, 220);
+        }
+    }
+    $candidateForecast = $aiDashboardResult['forecast_next_month'] ?? null;
+    if ($forecastAvailable && is_numeric($candidateForecast)) {
+        $candidateForecast = max(0, (int) $candidateForecast);
+        $recentMaximum = max(1, max($forecastValues));
+        if ($candidateForecast <= $recentMaximum * 4) {
+            $forecastEstimate = $candidateForecast;
+            $forecastIsAi = true;
+            $candidateConfidence = strtolower((string) ($aiDashboardResult['forecast_confidence'] ?? 'low'));
+            $forecastConfidence = in_array($candidateConfidence, ['high', 'medium', 'low'], true)
+                ? ucfirst($candidateConfidence) . ' confidence' : 'Low confidence';
+            $latestCompletedViews = (int) end($forecastValues);
+            $forecastChangePct = $latestCompletedViews > 0
+                ? (int) round((($forecastEstimate - $latestCompletedViews) / $latestCompletedViews) * 100)
+                : null;
+            $forecastReason = mb_substr(trim((string) ($aiDashboardResult['forecast_reason'] ?? 'AI-assisted estimate based on recent completed months.')), 0, 260);
+        }
+    }
+}
+if ($aiSummary === '') {
+    if (count($forecastHistoryRows) >= 2) {
+        $firstHistory = $forecastHistoryRows[0];
+        $lastHistory = $forecastHistoryRows[count($forecastHistoryRows) - 1];
+        $change = (int) $lastHistory['value'] - (int) $firstHistory['value'];
+        $direction = $change > 0 ? 'increased' : ($change < 0 ? 'decreased' : 'held steady');
+        $aiSummary = 'Across the latest complete months, page views ' . $direction . ' from ' . number_format((int) $firstHistory['value']) . ' to ' . number_format((int) $lastHistory['value']) . '. ';
+    } else {
+        $aiSummary = 'There is not enough complete monthly history yet to describe a reliable traffic trend. ';
+    }
+    if (!empty($aiDestinationSummary)) {
+        $topDestination = $aiDestinationSummary[0];
+        $aiSummary .= $topDestination['name'] . ' leads destination views in the selected period with ' . number_format($topDestination['views']) . ' views.';
+    } else {
+        $aiSummary .= 'Destination view totals are currently limited for this period.';
+    }
+}
+if (!$aiActions) {
+    if (!empty($aiDestinationSummary) && $aiDestinationSummary[0]['views'] > 0) {
+        $aiActions[] = 'Keep ' . $aiDestinationSummary[0]['name'] . ' easy to find; it leads destination views in this period.';
+    }
+    if (!empty($aiSearchSummary) && $aiSearchSummary[0]['query'] !== '') {
+        $aiActions[] = 'Review the top search, “' . $aiSearchSummary[0]['query'] . '”, and make sure related content is discoverable.';
+    }
+    if ($overallRatingCount > 0) {
+        $aiActions[] = 'Track the ' . number_format($overallRatingCount) . ' visible ratings and ' . number_format($overallAverageRating, 1) . ' average as new reviews arrive.';
+    }
+    if (!$aiActions) $aiActions[] = 'Continue collecting page views, searches, and ratings to improve the reliability of future insights.';
+}
+$forecastChartRows = $forecastHistoryRows;
+if ($forecastEstimate !== null) {
+    $forecastChartRows[] = ['label' => (new DateTimeImmutable('first day of next month'))->format('M Y'), 'value' => $forecastEstimate, 'projected' => true];
+}
+$forecastChartMax = max(1, (int) max(array_merge([0], array_map(static fn($row) => (int) $row['value'], $forecastChartRows))));
+$aiAnalysisLabel = $aiSummaryIsGenerated ? 'AI assisted' : 'Data-based fallback';
 $visitorDonut = ['labels' => ['New tracked sessions', 'Returning tracked sessions'], 'values' => [$newTrackedVisitors, $returningTrackedVisitors]];
 $chartData['visitors'] = $visitorDonut;
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -246,7 +371,30 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 .analytics-workspace .date-range-clear { color:var(--aw-muted); }
 .analytics-workspace .date-range-error { color:#a33434; }
 .analytics-workspace .analytics-report-export { border-color:var(--aw-line); background:#fff; color:#43536b; }
+.aw-ai-dashboard { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr); gap:14px; margin:0 0 22px; }
+.aw-ai-card { min-width:0; border:1px solid var(--aw-line); border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(30,48,75,.05); }
+.aw-ai-card h2 { position:relative; margin:0; padding:13px 16px 12px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .95rem 'DM Sans',sans-serif; }
+.aw-ai-card h2::after { position:absolute; bottom:-1px; left:16px; width:115px; height:3px; background:var(--aw-purple); content:""; }
+.aw-ai-card-body { padding:15px 16px 17px; }
+.aw-ai-badge { display:inline-flex; align-items:center; gap:6px; margin:0 0 10px; padding:4px 9px; border-radius:999px; background:#f2e9fb; color:#8052ad; font:600 .65rem 'DM Sans',sans-serif; }
+.aw-ai-summary { margin:0; color:#45536a; font:.83rem/1.65 'DM Sans',sans-serif; }
+.aw-ai-actions-title { margin:16px 0 8px; color:var(--aw-text); font:600 .75rem 'DM Sans',sans-serif; }
+.aw-ai-actions { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+.aw-ai-actions li { display:flex; gap:8px; align-items:flex-start; color:#536278; font:.74rem/1.5 'DM Sans',sans-serif; }
+.aw-ai-actions li::before { width:7px; height:7px; flex:0 0 7px; margin-top:5px; border-radius:50%; background:#4ccca0; content:""; }
+.aw-forecast-total { display:flex; align-items:baseline; gap:9px; margin-bottom:4px; }
+.aw-forecast-total strong { color:var(--aw-blue); font:700 2rem/1.1 'Playfair Display',serif; }
+.aw-forecast-total span { color:var(--aw-muted); font:.72rem 'DM Sans',sans-serif; }
+.aw-forecast-change { margin:0 0 12px; color:var(--aw-muted); font:.7rem 'DM Sans',sans-serif; }
+.aw-forecast-chart { display:flex; align-items:flex-end; gap:8px; height:115px; padding:8px 2px 0; border-bottom:1px solid var(--aw-line); }
+.aw-forecast-month { display:flex; min-width:0; height:100%; flex:1; flex-direction:column; align-items:center; justify-content:flex-end; gap:5px; }
+.aw-forecast-month strong { color:#738096; font:500 .55rem 'DM Sans',sans-serif; white-space:nowrap; }
+.aw-forecast-bar { width:min(100%,30px); min-height:4px; border-radius:4px 4px 0 0; background:#77baf2; }
+.aw-forecast-month.is-projected .aw-forecast-bar { background:var(--aw-purple); }
+.aw-forecast-month span { max-width:100%; overflow:hidden; color:#738096; font:500 .57rem 'DM Sans',sans-serif; text-overflow:ellipsis; white-space:nowrap; }
+.aw-forecast-note { margin:9px 0 0; color:var(--aw-muted); font:.66rem/1.45 'DM Sans',sans-serif; }
 @media(max-width:1100px){.aw-card{grid-column:span 6}.aw-card--wide{grid-column:span 12}.dash-wrapper{padding:30px 24px 56px}}
+@media(max-width:760px){.aw-ai-dashboard{grid-template-columns:1fr}}
 @media(max-width:700px){.aw-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aw-card,.aw-card--wide{grid-column:span 2;min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas,.aw-card--wide .aw-card-canvas{height:205px}.dash-wrapper{padding:24px 15px 44px}}
 </style>
 <div class="analytics-workspace">
@@ -265,6 +413,38 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
         </div>
         <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
     </div>
+    <section class="aw-ai-dashboard" aria-label="AI interpretation and traffic prediction">
+        <article class="aw-ai-card">
+            <h2><i data-lucide="sparkles" class="lucide" style="width:1rem;height:1rem;color:#1689ed;vertical-align:-2px;"></i> AI interpretation</h2>
+            <div class="aw-ai-card-body">
+                <span class="aw-ai-badge"><?php echo htmlspecialchars($aiAnalysisLabel); ?></span>
+                <p class="aw-ai-summary"><?php echo htmlspecialchars($aiSummary); ?></p>
+                <p class="aw-forecast-note">Interpretation uses <?php echo htmlspecialchars($periodLabels[$period] ?? 'the selected period'); ?> totals. Metrics refresh with the page; <?php echo $aiSummaryIsGenerated ? 'AI interpretation is reused for up to six hours.' : 'this rule-based interpretation uses the available recorded data.'; ?></p>
+                <h3 class="aw-ai-actions-title">Suggested admin actions</h3>
+                <ul class="aw-ai-actions"><?php foreach ($aiActions as $action): ?><li><?php echo htmlspecialchars($action); ?></li><?php endforeach; ?></ul>
+            </div>
+        </article>
+        <article class="aw-ai-card">
+            <h2><i data-lucide="trending-up" class="lucide" style="width:1rem;height:1rem;color:#1689ed;vertical-align:-2px;"></i> Next month page-view forecast</h2>
+            <div class="aw-ai-card-body">
+                <?php if ($forecastEstimate !== null): ?>
+                    <div class="aw-forecast-total"><strong><?php echo number_format($forecastEstimate); ?></strong><span>estimated views</span></div>
+                    <p class="aw-forecast-change"><?php echo $forecastIsAi ? 'AI-assisted estimate' : 'Trend-based estimate'; ?> · <?php echo htmlspecialchars($forecastConfidence); ?><?php if ($forecastChangePct !== null): ?> · <?php echo $forecastChangePct > 0 ? '+' : ''; ?><?php echo $forecastChangePct; ?>% vs. latest complete month<?php endif; ?></p>
+                    <div class="aw-forecast-chart" role="img" aria-label="Monthly page views and next month forecast">
+                        <?php foreach ($forecastChartRows as $forecastRow): $forecastHeight = max(5, (int) round(((int) $forecastRow['value'] / $forecastChartMax) * 100)); ?>
+                        <div class="aw-forecast-month<?php echo !empty($forecastRow['projected']) ? ' is-projected' : ''; ?>" title="<?php echo htmlspecialchars($forecastRow['label'] . ': ' . number_format((int) $forecastRow['value']) . (!empty($forecastRow['projected']) ? ' projected' : ' views')); ?>">
+                            <strong><?php echo number_format((int) $forecastRow['value']); ?></strong><i class="aw-forecast-bar" style="height:<?php echo $forecastHeight; ?>%"></i><span><?php echo htmlspecialchars($forecastRow['label']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="aw-forecast-total"><strong>—</strong><span>forecast unavailable</span></div>
+                    <p class="aw-forecast-note">At least three complete months with recorded page views are needed before showing a forecast.</p>
+                <?php endif; ?>
+                <p class="aw-forecast-note"><?php echo htmlspecialchars($forecastReason); ?> Forecast uses complete months and does not include the current partial month.</p>
+            </div>
+        </article>
+    </section>
     <div class="aw-tabs" role="tablist" aria-label="Analytics sections">
         <?php foreach ($workspaceTabs as $key=>$label): ?><button class="aw-tab" type="button" role="tab" id="aw-tab-<?php echo $key; ?>" aria-controls="aw-section-<?php echo $key; ?>" aria-selected="<?php echo $key === 'engagement' ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($label); ?></button><?php endforeach; ?>
     </div>

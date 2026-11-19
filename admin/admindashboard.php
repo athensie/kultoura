@@ -14,6 +14,7 @@ $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 include '../config/dbmain.php';
 include '../config/analytics.php';
+require_once __DIR__ . '/../config/ai_recommend.php';
 date_default_timezone_set('Asia/Manila');
 @$conn->query("SET time_zone = '+08:00'");
 require_once '../config/admin_requests.php';
