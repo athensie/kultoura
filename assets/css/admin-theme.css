@@ -1,48 +1,121 @@
-/* Match the public site’s forest, sage, cream, and earth palette. */
+/* Shared light theme for the admin workspace. */
 :root {
-  --clay: #9FB88A;
-  --gold: #C8A96E;
-  --cream: #F0EBD8;
-  --forest: #111E14;
-  --dark: #0A1209;
-  --warm: #4A7C47;
-  --muted: rgba(240, 235, 216, .58);
-  --light: #162019;
-  --success: #4A7C47;
-  --info: #8FB5D8;
-  --sidebar: #111E14;
-  --green: #4A7C47;
-  --cream-rgb: 240, 235, 216;
-  --overlay-rgb: 255, 255, 255;
-  --card-shadow: rgba(0, 0, 0, .35);
-  --text-success: #9FB88A;
-  --text-info: #9CC8E8;
-  --text-danger: #E76E6E;
-  --text-amber: #C8A96E;
-  color-scheme: dark;
-}
-:root[data-theme="light"] {
-  --dark: #F0EBE3;
-  --cream: #2C1A0E;
-  --sidebar: #FFFFFF;
-  --cream-rgb: 44, 26, 14;
-  --overlay-rgb: 0, 0, 0;
-  --card-shadow: rgba(44, 26, 14, .12);
   --clay: #4A7C47;
-  --forest: #E8E1D5;
+  --gold: #8B7434;
+  --cream: #26342B;
+  --forest: #FFFFFF;
+  --dark: #F4F6F1;
   --warm: #3D6B3A;
+  --muted: #66746A;
   --light: #FFFFFF;
-  --muted: #786F64;
   --success: #3D6B3A;
+  --info: #275B89;
+  --sidebar: #FFFFFF;
   --green: #3D6B3A;
+  --cream-rgb: 38, 52, 43;
+  --overlay-rgb: 38, 52, 43;
+  --card-shadow: rgba(38, 52, 43, .11);
   --text-success: #3D6B3A;
-  --text-info: #1A3A8A;
-  --text-danger: #C93A3A;
-  --text-amber: #8B2E1A;
-  --gold: #8B2E1A;
+  --text-info: #275B89;
+  --text-danger: #B93838;
+  --text-amber: #80651F;
   color-scheme: light;
 }
-:root[data-theme="light"] body { background: #F0EBE3; }
+:root[data-theme="light"] {
+  --dark: #F4F6F1;
+  --cream: #26342B;
+  --sidebar: #FFFFFF;
+  --forest: #FFFFFF;
+  --cream-rgb: 38, 52, 43;
+  --overlay-rgb: 38, 52, 43;
+  --card-shadow: rgba(38, 52, 43, .11);
+  --clay: #4A7C47;
+  --warm: #3D6B3A;
+  --light: #FFFFFF;
+  --muted: #66746A;
+  --success: #3D6B3A;
+  --green: #3D6B3A;
+  --info: #275B89;
+  --text-success: #3D6B3A;
+  --text-info: #275B89;
+  --text-danger: #B93838;
+  --text-amber: #80651F;
+  --gold: #8B7434;
+  color-scheme: light;
+}
+:root body { background: var(--dark); color: var(--cream); }
+:root[data-theme="light"] body { background: #F4F6F1; }
+:root .sidebar { background: #FFFFFF; border-right: 1px solid #E1E7DF; }
+:root .sidebar-tagline,
+:root .sidebar-section,
+:root .avatar-role,
+:root .logout-link { color: #758276; }
+:root .sidebar-nav li a { color: #465648; }
+:root .sidebar-nav li a .nav-icon { color: #637565; }
+:root .page-header p,
+:root .promote-header p,
+:root .content-sub,
+:root .setting-desc,
+:root .modal-sub,
+:root .image-current-hint,
+:root .photo-card-hint,
+:root .section-row-preview,
+:root .caption-word-count,
+:root .tab-sub,
+:root .promote-folder-title small,
+:root .promote-sortbar,
+:root .promote-category-empty,
+:root .pw-admin-row-empty,
+:root .chart-empty,
+:root .chart-empty-sub,
+:root .chart-sub,
+:root .activity-label,
+:root .analytics-tag,
+:root .kpi-label,
+:root .kpi-change,
+:root .mini-kpi-label,
+:root .user-email,
+:root .bar-pct,
+:root .forecast-label,
+:root .forecast-insight,
+:root .traffic-chart-hint,
+:root .trend-empty,
+:root .trend-sentiment,
+:root .table-empty,
+:root .table-empty-sub,
+:root .table-empty-title,
+:root .form-label,
+:root .form-hint,
+:root .data-table thead th,
+:root .category-item-table th,
+:root .category-comparison th,
+:root .setting-row .setting-desc,
+:root .sidebar-tagline,
+:root .sidebar-section,
+:root .avatar-role,
+:root .logout-link,
+:root .date-range-field,
+:root .review-trend-intro,
+:root .trend-card p,
+:root .trend-metrics span,
+:root .trend-theme { color: #68776B; }
+:root input::placeholder,
+:root textarea::placeholder { color: #879388; opacity: 1; }
+:root .data-table,
+:root .category-item-table,
+:root .category-comparison,
+:root .review-table { border-color: #DCE4DA; }
+:root .data-table th,
+:root .data-table td,
+:root .category-item-table th,
+:root .category-item-table td,
+:root .category-comparison th,
+:root .category-comparison td { border-color: #E2E8E0; }
+:root .data-table thead th,
+:root .category-item-table th,
+:root .category-comparison th { background: #F6F8F4; color: #5D6B60; }
+:root .trend-sentiment { color: #3D6B3A; }
+:root .description-paragraph-hint { color: #68776B; }
 :root .sidebar-nav li a.active { background: rgba(159, 184, 138, .16); color: var(--clay); }
 :root .sidebar-nav li a.active .nav-icon { color: var(--clay); }
 :root[data-theme="light"] .sidebar-nav li a.active { background: rgba(74, 124, 71, .12); }

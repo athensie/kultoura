@@ -151,7 +151,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
     <link rel="stylesheet" href="../assets/css/admineventandfiesta.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261119-global-light">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
