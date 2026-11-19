@@ -63,6 +63,20 @@ $yearStmt = $conn->prepare("SELECT YEAR(viewed_at) bucket, COUNT(*) total FROM p
 if ($yearStmt) { $yearStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql); $yearStmt->execute(); foreach ($yearStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $yearlyVisitBuckets[(string)$row['bucket']] = (int)$row['total']; $yearStmt->close(); }
 $monthlyVisitTrend = [];
 if ($monthlyVisitBuckets) { $fromMonth = new DateTimeImmutable(array_key_first($monthlyVisitBuckets) . '-01'); $toMonth = new DateTimeImmutable(array_key_last($monthlyVisitBuckets) . '-01'); for ($month=$fromMonth; $month<=$toMonth; $month=$month->modify('+1 month')) { $key=$month->format('Y-m'); $monthlyVisitTrend[]=['label'=>$month->format('M Y'),'value'=>$monthlyVisitBuckets[$key]??0]; } }
+$selectedRangeDays = (int)$periodStart->diff($periodEndExclusive->modify('-1 day'))->days;
+if ($period === 'today') {
+    $visitsTrendChart=['labels'=>array_column($trafficTrend,'label'),'values'=>array_column($trafficTrend,'value')];
+    $visitsMetricTitle='Visits by Hour';
+    $visitsMetricNote='Hourly page views for today.';
+} elseif ($selectedRangeDays > 90) {
+    $visitsTrendChart=['labels'=>array_column($monthlyVisitTrend,'label'),'values'=>array_column($monthlyVisitTrend,'value')];
+    $visitsMetricTitle='Visits per Month';
+    $visitsMetricNote='Monthly page views for the selected range; monthly grouping keeps long-range trends readable.';
+} else {
+    $visitsTrendChart=$dailyChart;
+    $visitsMetricTitle='Visits per Day';
+    $visitsMetricNote='Daily page views recorded during the selected period.';
+}
 $yearlyVisitTrend = [];
 if ($yearlyVisitBuckets) for ($year=(int)array_key_first($yearlyVisitBuckets); $year<=(int)array_key_last($yearlyVisitBuckets); $year++) $yearlyVisitTrend[]=['label'=>(string)$year,'value'=>$yearlyVisitBuckets[(string)$year]??0];
 $heatmapViews = array_fill(1, 7, array_fill(0, 24, 0));
@@ -177,7 +191,7 @@ $chartData = [
     'sectionEngagement' => ['labels'=>$categoryLabels,'values'=>$categoryViews,'datasets'=>$sectionEngagementDatasets],
     'allCategories' => ['labels' => $categoryLabels, 'values' => $categoryViews], 'ratings' => ['labels' => $ratingLabels, 'values' => $ratingValues],
     'cultureRatings' => ['labels'=>$ratingLabels,'values'=>array_values($cultureRatingDistribution)],
-    'signup' => $bucketSeries($registrationBuckets), 'daily' => $dailyChart,
+    'signup' => $bucketSeries($registrationBuckets), 'daily' => $visitsTrendChart,
     'monthlyVisits' => ['labels'=>array_column($monthlyVisitTrend,'label'),'values'=>array_column($monthlyVisitTrend,'value')],
     'yearlyVisits' => ['labels'=>array_column($yearlyVisitTrend,'label'),'values'=>array_column($yearlyVisitTrend,'value')],
     'cultureMonthly' => $bucketSeries($cultureMonthBuckets), 'fiestaMonthly' => $bucketSeries($fiestaMonthBuckets),
@@ -213,7 +227,7 @@ $workspaceTabs = [
 $workspaceMetrics = [
     'engagement' => [
         ['Visits per Hour', 'heatmap', 'heatmapViews', 'Days of week × hours · exact recorded page views.'],
-        ['Visits per Day', 'line', 'daily', 'Daily page views recorded during the selected period.'],
+        [$visitsMetricTitle, 'line', 'daily', $visitsMetricNote],
         ['Visits per Week', 'bar', 'weekday', 'Visits grouped by weekday for the selected period.'],
         ['Visits per Month', 'area', 'monthlyVisits', 'Monthly page views in the selected period.'],
         ['Visits per Year', 'line', 'yearlyVisits', 'Annual page views in the selected period.'],
@@ -400,7 +414,7 @@ $aiDashboardFacts = [
     ], $forecastHistoryRows),
 ];
 $aiDashboardResult = null;
-$aiCacheKey = 'dashai_v2_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql), 0, 24);
+$aiCacheKey = 'dashai_v3_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
 if (ai_text_configured()) {
     $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. If a card has no usable data, explain the limitation from data_note. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
     $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
