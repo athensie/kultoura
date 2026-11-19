@@ -31,9 +31,9 @@ $culturalKeys = array_values(array_filter(array_keys($tourismCategoryAnalytics),
 $cultureEngagementLabels = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['label'],$culturalKeys);
 $cultureEngagementValues = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['views']+$tourismCategoryAnalytics[$key]['clicks']+$tourismCategoryAnalytics[$key]['searches'],$culturalKeys);
 $cultureEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#a8c28e','Clicks'=>'#d8b66c','Searches'=>'#c98267'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#2196f3','Clicks'=>'#4ccca0','Searches'=>'#ffb844'][$label]];
 $sectionEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#a8c28e','Clicks'=>'#d8b66c','Searches'=>'#c98267'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#2196f3','Clicks'=>'#4ccca0','Searches'=>'#ffb844'][$label]];
 $ratingLabels = ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'];
 $ratingValues = array_values($ratingDistribution);
 $cultureRatingDistribution = array_fill(1,5,0);
@@ -196,52 +196,58 @@ $chartData['visitors'] = $visitorDonut;
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <style>
-.main-content { background:#f4f6f1; color:#26342b; }
-.analytics-workspace { --aw-bg:#f4f6f1; --aw-card:#fff; --aw-line:rgba(38,52,43,.14); --aw-muted:#66746a; --aw-text:#26342b; --aw-chart-text:#34443a; }
+.main-content { background:#f2f4f8; color:#263449; }
+.dash-wrapper { max-width:1660px; padding:32px 38px 64px; }
+.analytics-workspace { --aw-bg:#f2f4f8; --aw-card:#fff; --aw-line:#dce1e9; --aw-muted:#738096; --aw-text:#263449; --aw-chart-text:#536278; --aw-blue:#1689ed; --aw-purple:#b36cf2; }
 .analytics-workspace, .analytics-workspace * { box-sizing:border-box; }
 .aw-heading { display:flex; flex-direction:column; gap:7px; margin:0 0 22px; }
 .aw-heading .section-label { margin:0; }
 .aw-heading h1 { margin:0; color:var(--aw-text); font:700 clamp(1.8rem,3vw,2.45rem)/1.15 'Playfair Display',serif; }
-.aw-heading h1 em { color:#88641f; }
+.aw-heading h1 em { color:var(--aw-blue); }
+.aw-heading .section-label { color:#8a63bd; }
 .aw-heading p { margin:0; max-width:65ch; color:var(--aw-muted); font:.88rem/1.5 'DM Sans',sans-serif; }
 .aw-toolbar { display:grid; gap:12px; margin:0 0 20px; }
 .aw-periods { display:flex; flex-wrap:wrap; gap:7px; min-width:0; }
 .aw-periods a { display:inline-flex; align-items:center; min-height:35px; padding:0 13px; border:1px solid var(--aw-line); border-radius:8px; color:var(--aw-muted); font:500 .75rem 'DM Sans',sans-serif; text-decoration:none; }
-.aw-periods a.active,.aw-periods a:hover { border-color:#547958; background:#547958; color:#fff; }
+.aw-periods a.active,.aw-periods a:hover { border-color:var(--aw-blue); background:var(--aw-blue); color:#fff; }
 .aw-controls { display:flex; align-items:flex-end; flex-wrap:wrap; gap:10px; }
-.aw-tabs { display:flex; gap:5px; overflow-x:auto; padding:4px; margin:0 0 18px; border:1px solid var(--aw-line); border-radius:10px; background:#e9eee8; scrollbar-width:thin; }
+.aw-tabs { display:flex; gap:5px; overflow-x:auto; padding:5px; margin:0 0 22px; border:1px solid var(--aw-line); border-radius:9px; background:#e9edf4; scrollbar-width:thin; }
 .aw-tab { flex:0 0 auto; min-height:38px; padding:0 13px; border:0; border-radius:7px; background:transparent; color:var(--aw-muted); font:600 .76rem 'DM Sans',sans-serif; cursor:pointer; }
-.aw-tab[aria-selected="true"] { background:#547958; color:#fff; }
+.aw-tab[aria-selected="true"] { background:var(--aw-blue); color:#fff; }
 .aw-section { display:none; }
 .aw-section.is-active { display:block; }
-.aw-section-head { display:flex; align-items:end; justify-content:space-between; gap:12px; margin:0 0 12px; }
+.aw-section-head { display:flex; align-items:end; justify-content:space-between; gap:12px; margin:0 0 14px; }
 .aw-section-head h2 { margin:0; color:var(--aw-text); font:700 1.2rem 'Playfair Display',serif; }
 .aw-section-head p { margin:0; color:var(--aw-muted); font:.72rem 'DM Sans',sans-serif; }
-.aw-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.aw-card { min-width:0; min-height:290px; padding:17px; border:1px solid var(--aw-line); border-radius:11px; background:var(--aw-card); box-shadow:0 2px 10px rgba(38,52,43,.04); }
-.aw-card h3 { min-height:2.5em; margin:0 0 10px; color:var(--aw-text); font:600 .88rem/1.35 'DM Sans',sans-serif; }
-.aw-card-canvas { position:relative; height:220px; }
-.aw-leaflet-map { height:220px; overflow:hidden; border-radius:8px; background:#edf1eb; }
+.aw-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:14px; align-items:stretch; }
+.aw-card { grid-column:span 3; min-width:0; min-height:280px; padding:14px; border:1px solid var(--aw-line); border-radius:8px; background:var(--aw-card); box-shadow:0 1px 3px rgba(30,48,75,.05); }
+.aw-card--wide { grid-column:span 6; }
+.aw-card h3 { position:relative; min-height:0; margin:-14px -14px 12px; padding:12px 14px 11px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .88rem/1.35 'DM Sans',sans-serif; }
+.aw-card h3::after { position:absolute; bottom:-1px; left:14px; width:96px; height:3px; background:var(--aw-purple); content:""; }
+.aw-card-canvas { position:relative; height:195px; }
+.aw-card--wide .aw-card-canvas { height:225px; }
+.aw-leaflet-map { height:220px; overflow:hidden; border-radius:6px; background:#edf1f7; }
 .aw-card-empty { display:grid; min-height:205px; place-content:center; gap:8px; padding:16px; border:1px dashed var(--aw-line); border-radius:8px; color:var(--aw-muted); text-align:center; }
-.aw-card-empty strong { color:#5e6f60; font:600 .8rem 'DM Sans',sans-serif; }
+.aw-card-empty strong { color:var(--aw-blue); font:600 .8rem 'DM Sans',sans-serif; }
 .aw-card-empty span { max-width:42ch; font:.73rem/1.5 'DM Sans',sans-serif; }
-.aw-kpi-value { padding:18px 0 8px; color:#88641f; font:700 clamp(1.8rem,3vw,2.4rem)/1.1 'Playfair Display',serif; }
+.aw-kpi-value { padding:18px 0 8px; color:var(--aw-blue); font:700 clamp(1.8rem,3vw,2.4rem)/1.1 'Playfair Display',serif; }
 .aw-kpi-note { color:var(--aw-muted); font:.75rem/1.5 'DM Sans',sans-serif; }
-.aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:#88641f; font:.72rem 'DM Sans',sans-serif; }
+.aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:var(--aw-blue); font:.72rem 'DM Sans',sans-serif; }
 .aw-word-cloud { display:flex; min-height:205px; align-content:center; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px 14px; padding:16px; }
-.aw-word-cloud span { color:#88641f; font:600 1rem/1.2 'DM Sans',sans-serif; }
+.aw-word-cloud span { color:var(--aw-blue); font:600 1rem/1.2 'DM Sans',sans-serif; }
 .aw-heatmap { display:grid; grid-template-columns:34px repeat(24,minmax(10px,1fr)); gap:3px; align-items:center; overflow-x:auto; padding:8px 0; }
 .aw-heatmap-label { color:var(--aw-muted); font:500 .58rem 'DM Sans',sans-serif; text-align:center; }
-.aw-heatmap-cell { width:100%; min-width:10px; height:13px; border:0; border-radius:3px; background:#a8c28e; }
+.aw-heatmap-cell { width:100%; min-width:10px; height:13px; border:0; border-radius:3px; background:#1689ed; }
 .aw-calendar { display:grid; grid-template-columns:repeat(7,minmax(20px,1fr)); gap:4px; max-height:210px; overflow:auto; padding:8px 0; }
-.aw-calendar-cell { aspect-ratio:1; min-width:20px; border-radius:4px; background:#a8c28e; }
+.aw-calendar-cell { aspect-ratio:1; min-width:20px; border-radius:4px; background:#1689ed; }
 .analytics-workspace .date-range-field { color:var(--aw-muted); }
 .analytics-workspace .date-range-field input { border-color:var(--aw-line); background:#fff; color:var(--aw-text); color-scheme:light; }
-.analytics-workspace .date-range-submit { background:#547958; color:#fff; }
+.analytics-workspace .date-range-submit { background:var(--aw-blue); color:#fff; }
 .analytics-workspace .date-range-clear { color:var(--aw-muted); }
 .analytics-workspace .date-range-error { color:#a33434; }
-.analytics-workspace .analytics-report-export { border-color:var(--aw-line); background:#fff; color:#43564a; }
-@media(max-width:760px){.aw-grid{grid-template-columns:1fr}.aw-card{min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas{height:205px}}
+.analytics-workspace .analytics-report-export { border-color:var(--aw-line); background:#fff; color:#43536b; }
+@media(max-width:1100px){.aw-card{grid-column:span 6}.aw-card--wide{grid-column:span 12}.dash-wrapper{padding:30px 24px 56px}}
+@media(max-width:700px){.aw-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aw-card,.aw-card--wide{grid-column:span 2;min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas,.aw-card--wide .aw-card-canvas{height:205px}.dash-wrapper{padding:24px 15px 44px}}
 </style>
 <div class="analytics-workspace">
     <div class="admin-site-switch-row"><a class="admin-site-switch" href="<?php echo BASE_URL; ?>/index.php"><i data-lucide="external-link" class="lucide"></i> View user site</a></div>
@@ -267,8 +273,8 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
     <section class="aw-section <?php echo $sectionKey === 'engagement' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'engagement' ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
         <div class="aw-grid">
-            <?php foreach ($metrics as [$title,$kind,$dataKey,$note]): $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); ?>
-            <article class="aw-card"><h3><?php echo htmlspecialchars($title); ?></h3>
+            <?php foreach ($metrics as [$title,$kind,$dataKey,$note]): $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud'; ?>
+            <article class="aw-card<?php echo $cardWide ? ' aw-card--wide' : ''; ?>"><h3><?php echo htmlspecialchars($title); ?></h3>
                 <?php if ($kind === 'kpi'): ?><div class="aw-kpi-value"><?php echo htmlspecialchars($note); ?></div><div class="aw-kpi-note">Selected period · actual records</div>
                 <?php elseif ($kind === 'kpi-empty'): ?><div class="aw-card-empty"><strong>Not tracked yet</strong><span><?php echo htmlspecialchars($note); ?></span></div>
                 <?php elseif ($isMap && $hasData): ?><div class="aw-leaflet-map" id="<?php echo $mapId; ?>" data-aw-map="<?php echo htmlspecialchars($dataKey); ?>" aria-label="<?php echo htmlspecialchars($title); ?>"></div><?php if ($note !== ''): ?><div class="aw-kpi-note"><?php echo htmlspecialchars($note); ?></div><?php endif; ?>
@@ -284,4 +290,4 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261119-dashboard-layout"></script>
