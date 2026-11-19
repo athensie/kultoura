@@ -528,7 +528,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         <section class="aw-date-filter" aria-label="Analytics date filter">
             <div class="aw-date-filter-head"><h2>Date Filter</h2><span class="aw-date-current"><?php echo htmlspecialchars($periodLabels[$period] ?? 'Selected range'); ?></span></div>
             <nav class="aw-periods" aria-label="Quick date ranges">
-                <?php foreach (['today'=>'Today','yesterday'=>'Yesterday','7days'=>'7 Days','30days'=>'30 Days','month'=>'This Month'] as $key=>$label): ?><a href="?period=<?php echo $key; ?>" class="<?php echo $period === $key ? 'active' : ''; ?>"><?php echo $label; ?></a><?php endforeach; ?>
+                <?php foreach (['today'=>'Today','yesterday'=>'Yesterday','7days'=>'7 Days','30days'=>'30 Days','month'=>'This Month'] as $key=>$label): $periodIsActive = $period === $key; ?><a href="?period=<?php echo $periodIsActive ? 'all' : $key; ?>" class="<?php echo $periodIsActive ? 'active' : ''; ?>"<?php echo $periodIsActive ? ' aria-current="true" title="Click again to clear this filter and show all time"' : ''; ?>><?php echo $label; ?></a><?php endforeach; ?>
                 <button class="aw-period-custom<?php echo $customRange ? ' active' : ''; ?>" type="button" aria-pressed="<?php echo $customRange ? 'true' : 'false'; ?>" data-custom-range>Custom</button>
             </nav>
             <div class="aw-date-filter-divider" aria-hidden="true"></div>
