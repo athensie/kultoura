@@ -121,7 +121,7 @@ if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
         $reviewStmt->close();
     }
 }
-$interactionTypes = ['click', 'search', 'generate', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
+$interactionTypes = ['click', 'search', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
 foreach ($tourismCategoryDefinitions as $key => $definition) {
     $categoryItems = analytics_category_item_performance($conn, $definition['type'], $periodStartSql, $periodEndExclusiveSql);
     $rating = $itemReviewRatings[$definition['type']] ?? ['count' => 0, 'average' => 0.0];
@@ -156,7 +156,7 @@ foreach (kt_activity_parents() as $parentKey => $parentMeta) {
     unset($parentAnalytics['rating_total']);
     $tourismParentAnalytics[$parentKey] = $parentAnalytics;
 }
-$overallActivityTypes = ['click', 'search', 'generate', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
+$overallActivityTypes = ['click', 'search', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
 $overallActivityCounts = [];
 foreach ($overallActivityTypes as $activityType) $overallActivityCounts[$activityType] = kt_activity_count($conn, $activityType, null, null, $periodStartSql, $periodEndExclusiveSql);
 $overallRatingCount = 0;

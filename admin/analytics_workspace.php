@@ -95,7 +95,7 @@ $calendarStmt = $conn->prepare("SELECT DATE(activity_date) day,COUNT(*) total FR
 if ($calendarStmt) { $calendarStmt->bind_param('ss',$calendarStartSql,$calendarEndSql); $calendarStmt->execute(); foreach ($calendarStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $dailyActivityCounts[$row['day']]=(int)$row['total']; $calendarStmt->close(); }
 $interactionCalendar = [];
 for ($day=$calendarStartDate; $day<$periodEndExclusive; $day=$day->modify('+1 day')) $interactionCalendar[]=['date'=>$day->format('Y-m-d'),'label'=>$day->format('M j, Y'),'value'=>$dailyActivityCounts[$day->format('Y-m-d')]??0];
-$cultureMonthBuckets = $fiestaMonthBuckets = $commentMonthBuckets = $searchMonthBuckets = $itineraryMonthBuckets = $engagementMonthBuckets = $registrationBuckets = [];
+$cultureMonthBuckets = $fiestaMonthBuckets = $commentMonthBuckets = $searchMonthBuckets = $engagementMonthBuckets = $registrationBuckets = [];
 $cultureMonthStmt = $conn->prepare("SELECT DATE_FORMAT(viewed_at,'%Y-%m') bucket,COUNT(*) total FROM item_views WHERE item_type IN ('product','fiesta','person') AND viewed_at>=? AND viewed_at<? GROUP BY bucket ORDER BY bucket");
 if ($cultureMonthStmt) { $cultureMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $cultureMonthStmt->execute(); foreach ($cultureMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $cultureMonthBuckets[$row['bucket']]=(int)$row['total']; $cultureMonthStmt->close(); }
 $fiestaMonthStmt = $conn->prepare("SELECT DATE_FORMAT(viewed_at,'%Y-%m') bucket,COUNT(*) total FROM item_views WHERE item_type='fiesta' AND viewed_at>=? AND viewed_at<? GROUP BY bucket ORDER BY bucket");
@@ -104,8 +104,6 @@ $commentMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bu
 if ($commentMonthStmt) { $commentMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $commentMonthStmt->execute(); foreach ($commentMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $commentMonthBuckets[$row['bucket']]=(int)$row['total']; $commentMonthStmt->close(); }
 $searchMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bucket,COUNT(*) total FROM user_activity_log WHERE activity_type='search' AND activity_date>=? AND activity_date<? GROUP BY bucket ORDER BY bucket");
 if ($searchMonthStmt) { $searchMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $searchMonthStmt->execute(); foreach ($searchMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $searchMonthBuckets[$row['bucket']]=(int)$row['total']; $searchMonthStmt->close(); }
-$itineraryMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bucket,COUNT(*) total FROM user_activity_log WHERE activity_type='generate' AND activity_date>=? AND activity_date<? GROUP BY bucket ORDER BY bucket");
-if ($itineraryMonthStmt) { $itineraryMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $itineraryMonthStmt->execute(); foreach ($itineraryMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $itineraryMonthBuckets[$row['bucket']]=(int)$row['total']; $itineraryMonthStmt->close(); }
 $engagementMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bucket,COUNT(*) total FROM user_activity_log WHERE activity_date>=? AND activity_date<? GROUP BY bucket ORDER BY bucket");
 if ($engagementMonthStmt) { $engagementMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $engagementMonthStmt->execute(); foreach ($engagementMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $engagementMonthBuckets[$row['bucket']]=(int)$row['total']; $engagementMonthStmt->close(); }
 $registrationStmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') bucket,COUNT(*) total FROM users WHERE created_at>=? AND created_at<? GROUP BY bucket ORDER BY bucket");
@@ -153,9 +151,6 @@ foreach (['destination'=>"'nature','industry','resort','church'",'restaurant'=>"
     $recommendationStmt=$conn->prepare("SELECT content_name name,COUNT(*) total FROM user_activity_log WHERE activity_type='recommendation' AND category IN ({$categoriesSql}) AND item_id IS NOT NULL AND content_name IS NOT NULL AND content_name<>'' AND activity_date>=? AND activity_date<? GROUP BY item_type,item_id,content_name ORDER BY total DESC LIMIT 8");
     if ($recommendationStmt) { $recommendationStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $recommendationStmt->execute(); $recommendationRankings[$group]=$recommendationStmt->get_result()->fetch_all(MYSQLI_ASSOC); $recommendationStmt->close(); }
 }
-$itineraryCategoryCounts=[];
-$itineraryCategoryStmt=$conn->prepare("SELECT COALESCE(NULLIF(category,''),'Other') category,COUNT(*) total FROM user_activity_log WHERE activity_type='generate' AND activity_date>=? AND activity_date<? GROUP BY category ORDER BY total DESC");
-if ($itineraryCategoryStmt) { $itineraryCategoryStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $itineraryCategoryStmt->execute(); $itineraryCategoryCounts=$itineraryCategoryStmt->get_result()->fetch_all(MYSQLI_ASSOC); $itineraryCategoryStmt->close(); }
 $languageCounts=[];
 $languageStmt=$conn->prepare("SELECT COALESCE(NULLIF(element_name,''),'Other') language,COUNT(*) total FROM user_activity_log WHERE activity_type='language' AND activity_date>=? AND activity_date<? GROUP BY element_name ORDER BY total DESC");
 if ($languageStmt) { $languageStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $languageStmt->execute(); $languageCounts=$languageStmt->get_result()->fetch_all(MYSQLI_ASSOC); $languageStmt->close(); }
@@ -196,7 +191,7 @@ $chartData = [
     'yearlyVisits' => ['labels'=>array_column($yearlyVisitTrend,'label'),'values'=>array_column($yearlyVisitTrend,'value')],
     'cultureMonthly' => $bucketSeries($cultureMonthBuckets), 'fiestaMonthly' => $bucketSeries($fiestaMonthBuckets),
     'commentsMonthly' => $bucketSeries($commentMonthBuckets), 'searchMonthly' => $bucketSeries($searchMonthBuckets),
-    'itineraryMonthly' => $bucketSeries($itineraryMonthBuckets), 'engagementMonthly' => $bucketSeries($engagementMonthBuckets),
+    'engagementMonthly' => $bucketSeries($engagementMonthBuckets),
     'sentiment' => ['labels'=>array_keys($sentimentCounts),'values'=>array_values($sentimentCounts)],
     'destinationRatingGauge' => $destinationRatingGauge, 'cultureRatingGauge' => $cultureRatingGauge,
     'heatmapViews' => $heatmapViews, 'heatmapClicks' => $heatmapClicks,
@@ -207,7 +202,6 @@ $chartData = [
     'cultureBarangays'=>['labels'=>$cultureBarangayLabels,'values'=>$cultureBarangayValues],
     'recommendedDestinations'=>['labels'=>array_column($recommendationRankings['destination'],'name'),'values'=>array_map('intval',array_column($recommendationRankings['destination'],'total'))],
     'recommendedRestaurants'=>['labels'=>array_column($recommendationRankings['restaurant'],'name'),'values'=>array_map('intval',array_column($recommendationRankings['restaurant'],'total'))],
-    'itineraryCategories'=>['labels'=>array_column($itineraryCategoryCounts,'category'),'values'=>array_map('intval',array_column($itineraryCategoryCounts,'total'))],
     'languagePreferences'=>['labels'=>array_column($languageCounts,'language'),'values'=>array_map('intval',array_column($languageCounts,'total'))],
     'destinationPerformance'=>['labels'=>$destinationPerformanceLabels,'values'=>$destinationPerformanceValues,'datasets'=>$destinationPerformanceDatasets],
     'recommendationComparison'=>['labels'=>$recommendationVsViewsLabels,'values'=>$recommendationVsViewsValues,'datasets'=>[['label'=>'Recommendation clicks','data'=>$recommendationVsViewsValues,'backgroundColor'=>'#2c4a2e'],['label'=>'Destination views','data'=>$recommendationVsViewsActual,'backgroundColor'=>'#9fb88a']]],
@@ -259,9 +253,8 @@ $workspaceMetrics = [
     'recommendations' => [
         ['Most Recommended Destinations', 'rank', 'recommendedDestinations', 'Destinations associated with recorded recommendation events.'], ['Most Recommended Establishments', 'rank', 'recommendedRestaurants', 'Establishments associated with recorded recommendation events.'],
         ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions are not logged, so a click-through rate cannot be calculated.'], ['Recommended vs. Actually Viewed Destinations', 'bar', 'recommendationComparison', 'Compares recommendation events with destination detail views; impressions are not tracked.'],
-        ['Most Generated Itinerary Categories', 'donut', 'itineraryCategories', 'Itinerary generation events grouped by their recorded content category.'], ['Itinerary Generation Trends', 'line', 'itineraryMonthly', 'Recorded itinerary generation events grouped by month.'],
         ['Most Selected User Preferences', 'bar', 'languagePreferences', 'Recorded language selections; other preference types are not tracked.'], ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'],
-        ['Generated Itineraries', 'kpi', null, number_format($overallActivityCounts['generate'])], ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
+        ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
     ],
     'community' => [
         ['Total Comments', 'kpi', null, number_format($overallActivityCounts['comment'])], ['Total Ratings', 'kpi', null, number_format($overallRatingCount)],
@@ -403,7 +396,6 @@ $aiDashboardFacts = [
     'destination_views' => (int) $destinationViews,
     'cultural_content_views' => (int) $cultureViews,
     'registered_users' => array_sum($registrationBuckets),
-    'generated_itineraries' => array_sum($itineraryMonthBuckets),
     'visible_ratings' => (int) $overallRatingCount,
     'average_rating' => round((float) $overallAverageRating, 2),
     'top_destinations' => $aiDestinationSummary,
@@ -414,7 +406,7 @@ $aiDashboardFacts = [
     ], $forecastHistoryRows),
 ];
 $aiDashboardResult = null;
-$aiCacheKey = 'dashai_v3_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
+$aiCacheKey = 'dashai_v4_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
 if (ai_text_configured()) {
     $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. If a card has no usable data, explain the limitation from data_note. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
     $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
