@@ -191,6 +191,88 @@ $workspaceMetrics = [
         ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'], ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'],
     ],
 ];
+$aiCardFacts = [];
+$aiCardFallbacks = [];
+$weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+foreach ($workspaceMetrics as $sectionKey => $metrics) {
+    foreach ($metrics as $metricIndex => [$title, $kind, $dataKey, $note]) {
+        $cardId = $sectionKey . '_' . $metricIndex;
+        $fact = ['title' => $title, 'visualization' => $kind, 'data_note' => (string) $note];
+        $payload = $dataKey !== null ? ($chartData[$dataKey] ?? null) : null;
+        $fallback = '';
+        if ($kind === 'kpi') {
+            $fact['recorded_value'] = (string) $note;
+            $fallback = $title . ' recorded ' . $note . ' in the selected period.';
+        } elseif (is_array($payload) && $kind === 'heatmap') {
+            $cells = [];
+            foreach ($payload as $day => $hours) {
+                foreach ($hours as $hour => $value) {
+                    $cells[] = ['day' => $weekdayNames[((int) $day - 1) % 7], 'hour' => (int) $hour, 'value' => (int) $value];
+                }
+            }
+            usort($cells, static fn($a, $b) => $b['value'] <=> $a['value']);
+            $fact['total_events'] = array_sum(array_column($cells, 'value'));
+            $fact['busiest_periods'] = array_slice($cells, 0, 3);
+            $peak = $cells[0] ?? null;
+            $fallback = $peak && $peak['value'] > 0
+                ? 'Recorded activity was highest on ' . $peak['day'] . ' around ' . sprintf('%02d:00', $peak['hour']) . ' (' . number_format($peak['value']) . ' events).'
+                : 'No activity was recorded in this heatmap for the selected period.';
+        } elseif (is_array($payload) && $kind === 'map') {
+            $points = array_values(array_filter($payload, 'is_array'));
+            usort($points, static fn($a, $b) => (int) ($b['views'] ?? 0) <=> (int) ($a['views'] ?? 0));
+            $fact['mapped_locations'] = count($points);
+            $fact['total_views_at_mapped_locations'] = array_sum(array_map(static fn($point) => (int) ($point['views'] ?? 0), $points));
+            $fact['most_viewed_mapped_locations'] = array_map(static fn($point) => ['name' => $point['name'], 'views' => (int) $point['views']], array_slice($points, 0, 3));
+            $fallback = count($points) . ' locations have usable map coordinates; mapped records may not represent locations without coordinates.';
+        } elseif (is_array($payload) && $kind === 'calendar') {
+            $values = array_map(static fn($day) => (int) ($day['value'] ?? 0), $payload);
+            $fact['days_with_activity'] = count(array_filter($values, static fn($value) => $value > 0));
+            $fact['total_events'] = array_sum($values);
+            $fallback = number_format(array_sum($values)) . ' recorded interactions occurred across ' . count(array_filter($values, static fn($value) => $value > 0)) . ' active days in the displayed calendar.';
+        } elseif (is_array($payload) && isset($payload['labels'], $payload['values'])) {
+            $pairs = [];
+            foreach ($payload['labels'] as $index => $label) {
+                if (!array_key_exists($index, $payload['values']) || !is_numeric($payload['values'][$index])) continue;
+                $pairs[] = ['label' => (string) $label, 'value' => (float) $payload['values'][$index]];
+            }
+            $sortedPairs = $pairs;
+            usort($sortedPairs, static fn($a, $b) => $b['value'] <=> $a['value']);
+            $fact['record_count'] = count($pairs);
+            $fact['total'] = array_sum(array_column($pairs, 'value'));
+            $fact['leading_values'] = array_slice($sortedPairs, 0, 5);
+            if (isset($payload['datasets'])) {
+                $fact['series_totals'] = array_map(static fn($dataset) => [
+                    'series' => (string) ($dataset['label'] ?? 'Series'),
+                    'total' => array_sum(array_map('floatval', $dataset['data'] ?? [])),
+                ], $payload['datasets']);
+            }
+            if ($kind === 'scatter' && !empty($payload['points'])) {
+                $fact['points'] = array_slice(array_map(static fn($point) => [
+                    'label' => (string) ($point['label'] ?? ''), 'views' => (int) ($point['x'] ?? 0), 'rating' => (float) ($point['y'] ?? 0),
+                ], $payload['points']), 0, 12);
+            }
+            if ($pairs && array_sum(array_column($pairs, 'value')) > 0) {
+                $leader = $sortedPairs[0];
+                $fallback = $title . ': ' . $leader['label'] . ' is highest in the displayed data (' . rtrim(rtrim(number_format($leader['value'], 2), '0'), '.') . ').';
+                if (in_array($kind, ['line', 'area'], true) && count($pairs) > 1) {
+                    $first = $pairs[0]; $last = $pairs[count($pairs) - 1];
+                    $direction = $last['value'] > $first['value'] ? 'up' : ($last['value'] < $first['value'] ? 'down' : 'unchanged');
+                    $fallback = 'The series is ' . $direction . ' from ' . $first['label'] . ' (' . number_format($first['value']) . ') to ' . $last['label'] . ' (' . number_format($last['value']) . '); the highest displayed point is ' . $leader['label'] . '.';
+                }
+            } else {
+                $fallback = 'No values are available to interpret for this metric in the selected period.';
+            }
+        }
+        if (($payload === null && $kind !== 'kpi') || $payload === [] || $kind === 'kpi-empty' || $fallback === '') {
+            $limitation = trim((string) $note);
+            $fallback = $limitation !== ''
+                ? 'This metric cannot be interpreted from current records: ' . $limitation
+                : 'There are not enough recorded values to interpret this metric for the selected period.';
+        }
+        $aiCardFacts[$cardId] = $fact;
+        $aiCardFallbacks[$cardId] = $fallback;
+    }
+}
 $forecastHistoryRows = array_values(array_filter(
     analytics_monthly_trend($conn, 7),
     static fn($row) => ($row['ym'] ?? '') < date('Y-m')
@@ -231,14 +313,15 @@ $aiDashboardFacts = [
     'average_rating' => round((float) $overallAverageRating, 2),
     'top_destinations' => $aiDestinationSummary,
     'top_searches' => $aiSearchSummary,
+    'analytics_cards' => $aiCardFacts,
     'completed_monthly_page_views' => array_map(static fn($row) => [
         'month' => $row['label'], 'views' => (int) $row['value'],
     ], $forecastHistoryRows),
 ];
 $aiDashboardResult = null;
-$aiCacheKey = 'dashai_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql), 0, 24);
+$aiCacheKey = 'dashai_v2_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql), 0, 24);
 if (ai_text_configured()) {
-    $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
+    $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. If a card has no usable data, explain the limitation from data_note. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
     $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
     if ($cachedAiStmt) {
         $cachedAiStmt->bind_param('s', $aiCacheKey);
@@ -254,6 +337,7 @@ if (ai_text_configured()) {
 }
 $aiSummary = '';
 $aiActions = [];
+$aiCardInterpretations = $aiCardFallbacks;
 $aiSummaryIsGenerated = false;
 if (is_array($aiDashboardResult) && isset($aiDashboardResult['summary']) && is_string($aiDashboardResult['summary'])) {
     $aiSummary = mb_substr(trim($aiDashboardResult['summary']), 0, 600);
@@ -261,6 +345,14 @@ if (is_array($aiDashboardResult) && isset($aiDashboardResult['summary']) && is_s
     if (isset($aiDashboardResult['actions']) && is_array($aiDashboardResult['actions'])) {
         foreach (array_slice($aiDashboardResult['actions'], 0, 3) as $action) {
             if (is_string($action) && trim($action) !== '') $aiActions[] = mb_substr(trim($action), 0, 220);
+        }
+    }
+    if (isset($aiDashboardResult['card_insights']) && is_array($aiDashboardResult['card_insights'])) {
+        foreach ($aiCardFallbacks as $cardId => $fallbackInsight) {
+            $candidateInsight = $aiDashboardResult['card_insights'][$cardId] ?? null;
+            if (is_string($candidateInsight) && trim($candidateInsight) !== '') {
+                $aiCardInterpretations[$cardId] = mb_substr(trim($candidateInsight), 0, 260);
+            }
         }
     }
     $candidateForecast = $aiDashboardResult['forecast_next_month'] ?? null;
@@ -357,6 +449,9 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 .aw-card-empty span { max-width:42ch; font:.73rem/1.5 'DM Sans',sans-serif; }
 .aw-kpi-value { padding:18px 0 8px; color:var(--aw-green); font:700 clamp(1.8rem,3vw,2.4rem)/1.1 'Playfair Display',serif; }
 .aw-kpi-note { color:var(--aw-muted); font:.75rem/1.5 'DM Sans',sans-serif; }
+.aw-card-insight { display:grid; gap:4px; margin:12px 0 0; padding:9px 10px; border-left:3px solid var(--aw-highlight); border-radius:0 5px 5px 0; background:#f3f7f1; }
+.aw-card-insight strong { color:var(--aw-green); font:600 .65rem 'DM Sans',sans-serif; }
+.aw-card-insight p { margin:0; color:#536257; font:.68rem/1.5 'DM Sans',sans-serif; }
 .aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:var(--aw-green); font:.72rem 'DM Sans',sans-serif; }
 .aw-word-cloud { display:flex; min-height:205px; align-content:center; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px 14px; padding:16px; }
 .aw-word-cloud span { color:var(--aw-green); font:600 1rem/1.2 'DM Sans',sans-serif; }
@@ -453,7 +548,7 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
     <section class="aw-section <?php echo $sectionKey === 'engagement' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'engagement' ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
         <div class="aw-grid">
-            <?php foreach ($metrics as [$title,$kind,$dataKey,$note]): $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
+            <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
             <article class="aw-card<?php echo $cardWide ? ' aw-card--wide' : ''; ?>"><h3><?php echo htmlspecialchars($title); ?></h3>
                 <?php if ($kind === 'kpi'): ?><div class="aw-kpi-value"><?php echo htmlspecialchars($note); ?></div><div class="aw-kpi-note">Selected period · actual records</div>
                 <?php elseif ($kind === 'kpi-empty'): ?><div class="aw-card-empty"><strong>Not tracked yet</strong><span><?php echo htmlspecialchars($note); ?></span></div>
@@ -463,6 +558,8 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
                 <?php elseif ($hasData && $dataKey && $kind === 'wordcloud'): ?><div class="aw-word-cloud"><?php $wordMax = max(1, max($payload['values'])); foreach ($payload['labels'] as $wordIndex => $word): $wordScale = 1 + .9 * ((float) $payload['values'][$wordIndex] / $wordMax); ?><span style="font-size:<?php echo number_format($wordScale, 2); ?>rem" title="<?php echo (int) $payload['values'][$wordIndex]; ?> searches"><?php echo htmlspecialchars($word); ?></span><?php endforeach; ?></div>
                 <?php elseif ($hasData && $dataKey): ?><div class="aw-card-canvas"><canvas data-aw-chart="<?php echo htmlspecialchars($kind); ?>" data-aw-key="<?php echo htmlspecialchars($dataKey); ?>" role="img" aria-label="<?php echo htmlspecialchars($title); ?>"></canvas></div><div class="aw-drilldown" aria-live="polite"></div><?php if ($note !== ''): ?><div class="aw-kpi-note"><?php echo htmlspecialchars($note); ?></div><?php endif; ?>
                 <?php else: ?><div class="aw-card-empty"><strong><?php echo $kind === 'map' ? 'Map data unavailable' : 'More data needed'; ?></strong><span><?php echo htmlspecialchars($note ?: 'There are no matching records in this period.'); ?></span></div><?php endif; ?>
+                <?php $cardInsightIsAi = isset($aiDashboardResult['card_insights'][$cardId]) && is_string($aiDashboardResult['card_insights'][$cardId]) && trim($aiDashboardResult['card_insights'][$cardId]) !== ''; ?>
+                <aside class="aw-card-insight"><strong><i data-lucide="sparkles" class="lucide" style="width:.8rem;height:.8rem;vertical-align:-2px;"></i> <?php echo $cardInsightIsAi ? 'AI interpretation' : 'Data interpretation'; ?></strong><p><?php echo htmlspecialchars($aiCardInterpretations[$cardId] ?? 'There are not enough recorded values to interpret this metric.'); ?></p></aside>
             </article>
             <?php endforeach; ?>
         </div>
