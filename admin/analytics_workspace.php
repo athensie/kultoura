@@ -345,8 +345,8 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 .aw-section-head h2 { margin:0; color:var(--aw-text); font:700 1.2rem 'Playfair Display',serif; }
 .aw-section-head p { margin:0; color:var(--aw-muted); font:.72rem 'DM Sans',sans-serif; }
 .aw-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:14px; align-items:stretch; }
-.aw-card { grid-column:span 3; min-width:0; min-height:280px; padding:14px; border:1px solid var(--aw-line); border-radius:8px; background:var(--aw-card); box-shadow:0 1px 3px rgba(30,48,75,.05); }
-.aw-card--wide { grid-column:span 6; }
+.aw-card { grid-column:span 4; min-width:0; min-height:280px; padding:14px; border:1px solid var(--aw-line); border-radius:8px; background:var(--aw-card); box-shadow:0 1px 3px rgba(30,48,75,.05); }
+.aw-card--wide { grid-column:span 8; }
 .aw-card h3 { position:relative; min-height:0; margin:-14px -14px 12px; padding:12px 14px 11px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .88rem/1.35 'DM Sans',sans-serif; }
 .aw-card h3::after { position:absolute; bottom:-1px; left:14px; width:96px; height:3px; background:var(--aw-highlight); content:""; }
 .aw-card-canvas { position:relative; height:195px; }
@@ -453,7 +453,7 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
     <section class="aw-section <?php echo $sectionKey === 'engagement' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'engagement' ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
         <div class="aw-grid">
-            <?php foreach ($metrics as [$title,$kind,$dataKey,$note]): $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud'; ?>
+            <?php foreach ($metrics as [$title,$kind,$dataKey,$note]): $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
             <article class="aw-card<?php echo $cardWide ? ' aw-card--wide' : ''; ?>"><h3><?php echo htmlspecialchars($title); ?></h3>
                 <?php if ($kind === 'kpi'): ?><div class="aw-kpi-value"><?php echo htmlspecialchars($note); ?></div><div class="aw-kpi-note">Selected period · actual records</div>
                 <?php elseif ($kind === 'kpi-empty'): ?><div class="aw-card-empty"><strong>Not tracked yet</strong><span><?php echo htmlspecialchars($note); ?></span></div>
@@ -470,4 +470,4 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261119-dashboard-layout"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261119-green-charts-2"></script>

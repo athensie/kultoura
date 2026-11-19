@@ -111,8 +111,8 @@
         rotation: kind === 'gauge' ? 180 : undefined,
         circumference: kind === 'gauge' ? 180 : undefined,
         scales: doughnut ? {} : {
-          x: { beginAtZero: true, stacked: kind === 'stacked', grid: { display: horizontal, color: lineColor }, ticks: { color: mutedColor, precision: 0, maxRotation: 0 }, border: { display: false } },
-          y: { beginAtZero: true, stacked: kind === 'stacked', grid: { display: !horizontal, color: lineColor }, ticks: { color: mutedColor, precision: 0, autoSkip: !horizontal, maxTicksLimit: 9 }, border: { display: false } }
+          x: { beginAtZero: true, stacked: kind === 'stacked', grid: { display: horizontal, color: lineColor }, ticks: { color: mutedColor, precision: 0, maxRotation: 0, autoSkip: true, maxTicksLimit: horizontal ? 9 : 6, font: { size: 10 } }, border: { display: false } },
+          y: { beginAtZero: true, stacked: kind === 'stacked', grid: { display: !horizontal, color: lineColor }, ticks: { color: mutedColor, precision: 0, autoSkip: true, maxTicksLimit: horizontal ? 9 : 6, font: { size: 10 } }, border: { display: false } }
         }
       }
     });
