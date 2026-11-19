@@ -14,12 +14,14 @@ $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 include '../config/dbmain.php';
 include '../config/analytics.php';
+date_default_timezone_set('Asia/Manila');
+@$conn->query("SET time_zone = '+08:00'");
 require_once '../config/promotions.php';
 require_once '../config/admin_requests.php';
 require_once '../config/ai_recommend.php';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
-$validPeriods = ['all', 'today', 'week', 'month', 'year'];
+$validPeriods = ['all', 'today', 'yesterday', '7days', '30days', 'week', 'month', 'lastmonth', 'year'];
 $period = $_GET['period'] ?? 'month';
 $dateFromInput = trim((string) ($_GET['date_from'] ?? ''));
 $dateToInput = trim((string) ($_GET['date_to'] ?? ''));
@@ -41,7 +43,7 @@ if ($dateFromInput !== '' || $dateToInput !== '') {
 if (!$customRange && !in_array($period, $validPeriods, true)) {
     $period = 'month';
 }
-$periodLabels = ['all' => 'All Time', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
+$periodLabels = ['all' => 'All Time', 'today' => 'Today', 'yesterday' => 'Yesterday', '7days' => 'Last 7 Days', '30days' => 'Last 30 Days', 'week' => 'This Week', 'month' => 'This Month', 'lastmonth' => 'Last Month', 'year' => 'This Year'];
 $periodStart = new DateTime('today');
 if ($customRange) {
     $periodStart = DateTime::createFromImmutable($dateFrom);
@@ -49,14 +51,23 @@ if ($customRange) {
 } else {
     switch ($period) {
         case 'all':   $periodStart = new DateTime('1000-01-01'); break;
+        case 'yesterday': $periodStart = new DateTime('yesterday'); break;
+        case '7days': $periodStart = new DateTime('today -6 days'); break;
+        case '30days': $periodStart = new DateTime('today -29 days'); break;
         case 'week':  $periodStart = new DateTime('monday this week'); break;
         case 'month': $periodStart = new DateTime('first day of this month'); break;
+        case 'lastmonth': $periodStart = new DateTime('first day of last month'); break;
         case 'year':  $periodStart = new DateTime('first day of january this year'); break;
     }
 }
+$periodEndExclusive = $customRange ? $dateTo->modify('+1 day') : ($period === 'yesterday' ? $today : ($period === 'lastmonth' ? new DateTimeImmutable('first day of this month') : $today->modify('+1 day')));
+$periodDurationDays = max(1, (int) $periodStart->diff($periodEndExclusive)->days);
+$previousStart = $periodStart->modify('-' . $periodDurationDays . ' days');
+$previousEnd = $periodStart;
 $periodStartSql = $periodStart->format('Y-m-d 00:00:00');
-$periodEndExclusive = $customRange ? $dateTo->modify('+1 day') : $today->modify('+1 day');
 $periodEndExclusiveSql = $periodEndExclusive->format('Y-m-d 00:00:00');
+$previousStartSql = $previousStart->format('Y-m-d 00:00:00');
+$previousEndSql = $previousEnd->format('Y-m-d 00:00:00');
 $activeUsers = analytics_active_users($conn, 5);
 $registeredUsers = 0;
 if ($res = $conn->query("SELECT COUNT(*) c FROM users")) $registeredUsers = (int) ($res->fetch_assoc()['c'] ?? 0);
@@ -186,6 +197,14 @@ foreach ($tourismCategoryAnalytics as $categoryStats) {
     $overallRatingTotal += $categoryStats['average_rating'] * $categoryStats['ratings'];
 }
 $overallAverageRating = $overallRatingCount > 0 ? $overallRatingTotal / $overallRatingCount : 0.0;
+$destinationRatingCount = 0;
+$destinationRatingTotal = 0.0;
+foreach (['nature', 'industry', 'resort', 'church'] as $destinationType) {
+    $destinationRating = $itemReviewRatings[$destinationType] ?? ['count' => 0, 'average' => 0.0];
+    $destinationRatingCount += $destinationRating['count'];
+    $destinationRatingTotal += $destinationRating['average'] * $destinationRating['count'];
+}
+$averageDestinationRating = $destinationRatingCount > 0 ? $destinationRatingTotal / $destinationRatingCount : 0.0;
 $categoryRatingDistribution = [];
 $categoryRecentReviews = [];
 if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
@@ -228,6 +247,44 @@ if (!empty($categoryCounts)) {
 }
 $topCategoryCount = $categoryCounts[$topCategory] ?? 0;
 $totalPageViews = analytics_total_views($conn, $periodStartSql, $periodEndExclusiveSql);
+$previousPageViews = 0;
+$previousSearches = 0;
+$previousInteractions = 0;
+$previousContentViews = 0;
+$previousDestinationViews = 0;
+$previousCultureViews = 0;
+$destinationViews = $tourismParentAnalytics['tourism_attractions']['views'] ?? 0;
+$cultureViews = $tourismParentAnalytics['culture_heritage']['views'] ?? 0;
+$newTrackedVisitors = 0;
+$returningTrackedVisitors = 0;
+$visitorStmt = $conn->prepare("SELECT SUM(first_seen >= ?) new_visitors, SUM(first_seen < ?) returning_visitors FROM (SELECT session_hash, MIN(activity_date) first_seen FROM user_activity_log WHERE activity_date < ? GROUP BY session_hash) sessions WHERE first_seen >= ?");
+if ($visitorStmt) {
+    $visitorStmt->bind_param('ssss', $periodStartSql, $periodStartSql, $periodEndExclusiveSql, $periodStartSql);
+    $visitorStmt->execute();
+    $visitorCounts = $visitorStmt->get_result()->fetch_assoc() ?: [];
+    $newTrackedVisitors = (int) ($visitorCounts['new_visitors'] ?? 0);
+    $returningTrackedVisitors = (int) ($visitorCounts['returning_visitors'] ?? 0);
+    $visitorStmt->close();
+}
+if ($period !== 'all') {
+    $previousPageViews = analytics_total_views($conn, $previousStartSql, $previousEndSql);
+    foreach ($overallActivityTypes as $activityType) {
+        $count = kt_activity_count($conn, $activityType, null, null, $previousStartSql, $previousEndSql);
+        $previousInteractions += $count;
+        if ($activityType === 'search') $previousSearches = $count;
+    }
+    $previousItems = analytics_top_items($conn, 10000, $previousStartSql, [], [], $previousEndSql);
+    foreach ($previousItems as $previousItem) {
+        if (in_array($previousItem['type'], ['nature', 'industry', 'resort', 'church'], true)) $previousDestinationViews += $previousItem['views'];
+        if (in_array($previousItem['type'], ['product', 'fiesta', 'person'], true)) $previousCultureViews += $previousItem['views'];
+    }
+    $previousContentViews = $previousCultureViews;
+}
+$periodChange = static function (int $current, int $previous): string {
+    if ($previous <= 0) return $current > 0 ? 'New activity vs. previous period' : 'No activity in either period';
+    $change = round((($current - $previous) / $previous) * 100, 1);
+    return ($change > 0 ? '+' : '') . $change . '% vs. previous period';
+};
 $topPages = analytics_page_breakdown($conn, $periodStartSql, 5, $periodEndExclusiveSql);
 $topPagesMax = !empty($topPages) ? max(array_column($topPages, 'views')) : 0;
 foreach ($topPages as &$tp) {
@@ -419,7 +476,7 @@ if ($period === 'all') {
         $dailyVisitors[] = $point;
     }
 } else {
-    $rangeEnd = $customRange ? $dateTo : new DateTimeImmutable('today');
+    $rangeEnd = $customRange ? $dateTo : ($period === 'yesterday' ? $periodEndExclusive->modify('-1 day') : ($period === 'lastmonth' ? $periodEndExclusive->modify('-1 day') : new DateTimeImmutable('today')));
     for ($date = clone $periodStart; $date <= $rangeEnd; $date->modify('+1 day')) {
         $dateKey = $date->format('Y-m-d');
         $point = ['label' => $date->format('M j'), 'value' => $trafficBucketCounts[$dateKey] ?? 0];
@@ -715,12 +772,11 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .page-header { margin-bottom: 18px; }
         .page-header h1 { font-size: clamp(1.8rem, 3vw, 2.65rem); }
         .page-header p { max-width: 680px; }
-        .analytics-primary-kpis { grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 10px; }
+        .analytics-primary-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 10px; }
         .analytics-primary-kpis .kpi-card { min-height: 104px; padding: 14px 16px; border-radius: 10px; background: rgba(157,187,134,.075); }
         .analytics-primary-kpis .kpi-card:first-child { grid-column: auto; }
         .analytics-primary-kpis .kpi-icon { display: none; }
         .analytics-primary-kpis .kpi-num { font: 700 1.65rem/1.05 'Playfair Display', serif; }
-        .analytics-primary-kpis .kpi-card:first-child .kpi-num { font-size: 2.2rem; }
         .analytics-primary-kpis .kpi-label { margin-top: 5px; font-size: .61rem; letter-spacing: .08em; }
         .analytics-primary-kpis .kpi-change { margin-top: 5px; font-size: .65rem; }
         .analytics-secondary-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
@@ -760,7 +816,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         .alabel-desc { margin: 20px 0 10px; padding: 0; background: none; color: var(--cream); font-size: .72rem; letter-spacing: .04em; }
         @media (max-width: 900px) {
             .analytics-primary-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
-            .analytics-primary-kpis .kpi-card:first-child { grid-column: 1 / -1; }
             .analytics-secondary-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
             .main-content { width: 100%; }
             .charts-2col { grid-template-columns: minmax(0, 1fr); }
@@ -771,7 +826,6 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             .analytics-secondary-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
             .analytics-primary-kpis .kpi-card { padding: 12px; }
             .analytics-primary-kpis .kpi-num { font-size: 1.35rem; }
-            .analytics-primary-kpis .kpi-card:first-child .kpi-num { font-size: 1.8rem; }
             .analytics-category-select { width: 100%; }
             .analytics-controls { width: 100%; }
             .period-selector { gap: 5px; }
@@ -848,8 +902,12 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
             <div class="period-selector">
                 <a href="?period=all" class="period-btn<?php echo $period === 'all' ? ' active' : ''; ?>">All</a>
                 <a href="?period=today" class="period-btn<?php echo $period === 'today' ? ' active' : ''; ?>">Today</a>
+                <a href="?period=yesterday" class="period-btn<?php echo $period === 'yesterday' ? ' active' : ''; ?>">Yesterday</a>
+                <a href="?period=7days" class="period-btn<?php echo $period === '7days' ? ' active' : ''; ?>">Last 7 Days</a>
+                <a href="?period=30days" class="period-btn<?php echo $period === '30days' ? ' active' : ''; ?>">Last 30 Days</a>
                 <a href="?period=week" class="period-btn<?php echo $period === 'week' ? ' active' : ''; ?>">This Week</a>
                 <a href="?period=month" class="period-btn<?php echo $period === 'month' ? ' active' : ''; ?>">This Month</a>
+                <a href="?period=lastmonth" class="period-btn<?php echo $period === 'lastmonth' ? ' active' : ''; ?>">Last Month</a>
                 <a href="?period=year" class="period-btn<?php echo $period === 'year' ? ' active' : ''; ?>">This Year</a>
                 <a class="period-btn analytics-report-export" href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>">Export report CSV</a>
                 <button type="button" class="period-btn analytics-theme-toggle" id="analyticsThemeToggle">Light mode</button>
@@ -872,13 +930,16 @@ function kt_render_chart_insight(array $chartInsights, string $key): void
         <section class="analytics-summary" aria-label="Analytics summary">
             <div class="kpi-grid analytics-primary-kpis tourism-overview-kpis">
                 <?php $primaryKpis = [
-                    ['eye', 'Page views', $totalPageViews, 'Public page visits in ' . strtolower($periodLabels[$period])],
-                    ['users-round', 'Active now', $activeUsers, 'Visitors online in the last 5 minutes'],
-                    ['user-round', 'Registered users', $registeredUsers, 'Visitor accounts'],
-                    ['star', 'Average rating', $overallRatingCount ? number_format($overallAverageRating, 1) . ' / 5' : '—', number_format($overallRatingCount) . ' actual ratings'],
-                    ['message-square', 'Visitor reviews', $overallRatingCount, 'Visible reviews in this period'],
+                    ['map-pin', 'Destination views', $destinationViews, $periodChange($destinationViews, $previousDestinationViews)],
+                    ['scroll-text', 'Cultural content views', $cultureViews, $periodChange($cultureViews, $previousCultureViews)],
+                    ['search', 'Search submissions', $totalSearches, $periodChange($totalSearches, $previousSearches)],
+                    ['map', 'Generated itineraries', $overallActivityCounts['generate'], 'Recorded generation events'],
+                    ['activity', 'User interactions', $totalInteractions, $periodChange($totalInteractions, $previousInteractions)],
+                    ['star', 'Average destination rating', $destinationRatingCount ? number_format($averageDestinationRating, 1) . ' / 5' : '—', number_format($destinationRatingCount) . ' actual ratings'],
+                    ['user-round', 'Registered users', $registeredUsers, 'All visitor accounts'],
+                    ['users-round', 'New / returning visitors', $newTrackedVisitors . ' / ' . $returningTrackedVisitors, 'Distinct tracked sessions; activity logging only'],
                 ]; foreach ($primaryKpis as $index => [$icon, $label, $value, $detail]): ?>
-                <div class="kpi-card accent-<?= ['clay','green','gold','blue'][$index] ?>"><div class="kpi-icon"><i data-lucide="<?= htmlspecialchars($icon) ?>" class="lucide"></i></div><div class="kpi-num"><?= htmlspecialchars((string) (is_numeric($value) ? number_format((float) $value) : $value)) ?></div><div class="kpi-label"><?= htmlspecialchars($label) ?></div><div class="kpi-change"><?= htmlspecialchars($detail) ?></div></div>
+                <div class="kpi-card accent-<?= ['clay','green','gold','blue'][$index % 4] ?>"><div class="kpi-icon"><i data-lucide="<?= htmlspecialchars($icon) ?>" class="lucide"></i></div><div class="kpi-num"><?= htmlspecialchars((string) (is_numeric($value) ? number_format((float) $value) : $value)) ?></div><div class="kpi-label"><?= htmlspecialchars($label) ?></div><div class="kpi-change"><?= htmlspecialchars($detail) ?></div></div>
                 <?php endforeach; ?>
             </div>
             <div class="kpi-grid analytics-secondary-kpis tourism-overview-kpis">
