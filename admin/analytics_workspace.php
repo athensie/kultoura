@@ -247,7 +247,7 @@ $workspaceMetrics = [
         ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions are not logged, so a click-through rate cannot be calculated.'], ['Recommended vs. Actually Viewed Destinations', 'bar', 'recommendationComparison', 'Compares recommendation events with destination detail views; impressions are not tracked.'],
         ['Most Generated Itinerary Categories', 'donut', 'itineraryCategories', 'Itinerary generation events grouped by their recorded content category.'], ['Itinerary Generation Trends', 'line', 'itineraryMonthly', 'Recorded itinerary generation events grouped by month.'],
         ['Most Selected User Preferences', 'bar', 'languagePreferences', 'Recorded language selections; other preference types are not tracked.'], ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'],
-        ['Generated Itineraries', 'kpi', null, number_format($overallActivityCounts['generate'])], ['Itinerary Download Count', 'kpi', null, number_format($overallActivityCounts['download'])], ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
+        ['Generated Itineraries', 'kpi', null, number_format($overallActivityCounts['generate'])], ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
     ],
     'community' => [
         ['Total Comments', 'kpi', null, number_format($overallActivityCounts['comment'])], ['Total Ratings', 'kpi', null, number_format($overallRatingCount)],
