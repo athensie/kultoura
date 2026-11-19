@@ -31,9 +31,9 @@ $culturalKeys = array_values(array_filter(array_keys($tourismCategoryAnalytics),
 $cultureEngagementLabels = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['label'],$culturalKeys);
 $cultureEngagementValues = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['views']+$tourismCategoryAnalytics[$key]['clicks']+$tourismCategoryAnalytics[$key]['searches'],$culturalKeys);
 $cultureEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#4a7c47','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#2c4a2e','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
 $sectionEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#4a7c47','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#2c4a2e','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
 $ratingLabels = ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'];
 $ratingValues = array_values($ratingDistribution);
 $cultureRatingDistribution = array_fill(1,5,0);
@@ -191,6 +191,14 @@ $workspaceMetrics = [
         ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'], ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'],
     ],
 ];
+$dashboardKpis = [];
+foreach ($workspaceMetrics as $sectionKey => &$metrics) {
+    foreach ($metrics as $metricIndex => $metric) {
+        if (($metric[1] ?? '') !== 'kpi') continue;
+        $dashboardKpis[] = ['section' => $sectionKey, 'index' => $metricIndex, 'title' => $metric[0], 'value' => $metric[3]];
+    }
+}
+unset($metrics);
 $aiCardFacts = [];
 $aiCardFallbacks = [];
 $weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -415,9 +423,9 @@ $filterFromValue = $customRange ? $dateFromInput : ($period === 'all' ? '' : $pe
 $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $periodEndExclusive->modify('-1 day')->format('Y-m-d'));
 ?>
 <style>
-.main-content { background:#f4f6f1; color:#26342b; }
+.main-content { background:#f0ebd8; color:#111e14; }
 .dash-wrapper { max-width:1660px; padding:32px 38px 64px; }
-.analytics-workspace { --aw-bg:#f4f6f1; --aw-card:#fff; --aw-line:#dbe4d8; --aw-muted:#6c796d; --aw-text:#26342b; --aw-chart-text:#465648; --aw-green:#4a7c47; --aw-sage:#9fb88a; --aw-gold:#8b7434; --aw-highlight:#78956b; }
+.analytics-workspace { --aw-bg:#f0ebd8; --aw-card:#fff; --aw-line:#d9dfd2; --aw-muted:#657265; --aw-text:#111e14; --aw-chart-text:#354839; --aw-green:#2c4a2e; --aw-sage:#9fb88a; --aw-gold:#c8a96e; --aw-highlight:#2c7a45; }
 .analytics-workspace, .analytics-workspace * { box-sizing:border-box; }
 .aw-heading { display:flex; flex-direction:column; gap:7px; margin:0 0 22px; }
 .aw-heading .section-label { margin:0; }
@@ -451,6 +459,11 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
 .aw-section-head h2 { margin:0; color:var(--aw-text); font:700 1.2rem 'Playfair Display',serif; }
 .aw-section-head p { margin:0; color:var(--aw-muted); font:.72rem 'DM Sans',sans-serif; }
 .aw-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:14px; align-items:stretch; }
+.aw-kpi-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:0 0 20px; }
+.aw-kpi-card { min-width:0; padding:15px 16px; border:1px solid var(--aw-line); border-top:3px solid var(--aw-green); border-radius:8px; background:var(--aw-card); box-shadow:0 1px 3px rgba(17,30,20,.06); }
+.aw-kpi-card h2 { margin:0 0 9px; color:var(--aw-muted); font:600 .72rem 'DM Sans',sans-serif; }
+.aw-kpi-card strong { display:block; color:var(--aw-text); font:700 clamp(1.45rem,2.1vw,2rem)/1.1 'Playfair Display',serif; }
+.aw-kpi-card p { margin:8px 0 0; color:var(--aw-muted); font:.69rem/1.45 'DM Sans',sans-serif; }
 .aw-card { grid-column:span 4; min-width:0; min-height:280px; padding:14px; border:1px solid var(--aw-line); border-radius:8px; background:var(--aw-card); box-shadow:0 1px 3px rgba(30,48,75,.05); }
 .aw-card--wide { grid-column:span 8; }
 .aw-card h3 { position:relative; min-height:0; margin:-14px -14px 12px; padding:12px 14px 11px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .88rem/1.35 'DM Sans',sans-serif; }
@@ -500,8 +513,9 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
 .aw-forecast-month span { max-width:100%; overflow:hidden; color:#738096; font:500 .57rem 'DM Sans',sans-serif; text-overflow:ellipsis; white-space:nowrap; }
 .aw-forecast-note { margin:9px 0 0; color:var(--aw-muted); font:.66rem/1.45 'DM Sans',sans-serif; }
 @media(max-width:1100px){.aw-card{grid-column:span 6}.aw-card--wide{grid-column:span 12}.dash-wrapper{padding:30px 24px 56px}}
+@media(max-width:900px){.aw-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.aw-ai-dashboard{grid-template-columns:1fr}}
-@media(max-width:700px){.aw-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aw-card,.aw-card--wide{grid-column:span 2;min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas,.aw-card--wide .aw-card-canvas{height:205px}.dash-wrapper{padding:24px 15px 44px}.aw-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;gap:7px}.aw-controls .date-range-field input{height:44px;padding:0 7px;font-size:.75rem}.aw-controls .date-range-submit{min-width:0;padding:0 11px}.aw-controls .analytics-report-export{width:40px;min-width:40px;height:40px}.aw-periods a,.aw-period-custom{min-height:40px;padding:0 12px;font-size:.76rem}}
+@media(max-width:700px){.aw-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aw-card,.aw-card--wide{grid-column:span 2;min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas,.aw-card--wide .aw-card-canvas{height:205px}.dash-wrapper{padding:24px 15px 44px}.aw-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;gap:7px}.aw-controls .date-range-field input{height:44px;padding:0 7px;font-size:.75rem}.aw-controls .date-range-submit{min-width:0;padding:0 11px}.aw-controls .analytics-report-export{width:40px;min-width:40px;height:40px}.aw-periods a,.aw-period-custom{min-height:40px;padding:0 12px;font-size:.76rem}.aw-kpi-grid{gap:10px}}
 @media(max-width:430px){.aw-date-filter{padding:13px;gap:13px}.aw-controls{grid-template-columns:1fr 1fr}.aw-controls .date-range-submit{width:100%}.aw-controls .analytics-report-export{width:100%;height:44px}.aw-date-filter-head h2{font-size:.92rem}}
 </style>
 <div class="analytics-workspace">
@@ -528,6 +542,13 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         </section>
         <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
     </div>
+    <?php if ($dashboardKpis): ?>
+    <section class="aw-kpi-grid" aria-label="Key performance indicators">
+        <?php foreach ($dashboardKpis as $kpi): $kpiId = $kpi['section'] . '_' . $kpi['index']; ?>
+        <article class="aw-kpi-card"><h2><?php echo htmlspecialchars($kpi['title']); ?></h2><strong><?php echo htmlspecialchars($kpi['value']); ?></strong><p><?php echo htmlspecialchars($aiCardInterpretations[$kpiId] ?? 'Selected period · actual records'); ?></p></article>
+        <?php endforeach; ?>
+    </section>
+    <?php endif; ?>
     <section class="aw-ai-dashboard" aria-label="AI interpretation and traffic prediction">
         <article class="aw-ai-card">
             <h2><i data-lucide="sparkles" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> AI interpretation</h2>
@@ -568,7 +589,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <section class="aw-section <?php echo $sectionKey === 'engagement' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'engagement' ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
         <div class="aw-grid">
-            <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
+            <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): if ($kind === 'kpi') continue; $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
             <article class="aw-card<?php echo $cardWide ? ' aw-card--wide' : ''; ?>"><h3><?php echo htmlspecialchars($title); ?></h3>
                 <?php if ($kind === 'kpi'): ?><div class="aw-kpi-value"><?php echo htmlspecialchars($note); ?></div><div class="aw-kpi-note">Selected period · actual records</div>
                 <?php elseif ($kind === 'kpi-empty'): ?><div class="aw-card-empty"><strong>Not tracked yet</strong><span><?php echo htmlspecialchars($note); ?></span></div>
@@ -587,4 +608,4 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261119-date-filter"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261119-kpi-green"></script>

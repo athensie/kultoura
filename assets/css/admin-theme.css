@@ -1,50 +1,50 @@
 /* Shared light theme for the admin workspace. */
 :root {
-  --clay: #4A7C47;
-  --gold: #8B7434;
-  --cream: #26342B;
+  --clay: #2C7A45;
+  --gold: #C8A96E;
+  --cream: #111E14;
   --forest: #FFFFFF;
-  --dark: #F4F6F1;
-  --warm: #3D6B3A;
-  --muted: #66746A;
+  --dark: #F0EBD8;
+  --warm: #2C4A2E;
+  --muted: #657265;
   --light: #FFFFFF;
-  --success: #3D6B3A;
+  --success: #2C7A45;
   --info: #275B89;
   --sidebar: #FFFFFF;
-  --green: #3D6B3A;
-  --cream-rgb: 38, 52, 43;
-  --overlay-rgb: 38, 52, 43;
-  --card-shadow: rgba(38, 52, 43, .11);
-  --text-success: #3D6B3A;
+  --green: #2C7A45;
+  --cream-rgb: 17, 30, 20;
+  --overlay-rgb: 17, 30, 20;
+  --card-shadow: rgba(17, 30, 20, .11);
+  --text-success: #2C7A45;
   --text-info: #275B89;
   --text-danger: #B93838;
-  --text-amber: #80651F;
+  --text-amber: #8F6D35;
   color-scheme: light;
 }
 :root[data-theme="light"] {
-  --dark: #F4F6F1;
-  --cream: #26342B;
+  --dark: #F0EBD8;
+  --cream: #111E14;
   --sidebar: #FFFFFF;
   --forest: #FFFFFF;
-  --cream-rgb: 38, 52, 43;
-  --overlay-rgb: 38, 52, 43;
-  --card-shadow: rgba(38, 52, 43, .11);
-  --clay: #4A7C47;
-  --warm: #3D6B3A;
+  --cream-rgb: 17, 30, 20;
+  --overlay-rgb: 17, 30, 20;
+  --card-shadow: rgba(17, 30, 20, .11);
+  --clay: #2C7A45;
+  --warm: #2C4A2E;
   --light: #FFFFFF;
-  --muted: #66746A;
-  --success: #3D6B3A;
-  --green: #3D6B3A;
+  --muted: #657265;
+  --success: #2C7A45;
+  --green: #2C7A45;
   --info: #275B89;
-  --text-success: #3D6B3A;
+  --text-success: #2C7A45;
   --text-info: #275B89;
   --text-danger: #B93838;
-  --text-amber: #80651F;
-  --gold: #8B7434;
+  --text-amber: #8F6D35;
+  --gold: #C8A96E;
   color-scheme: light;
 }
 :root body { background: var(--dark); color: var(--cream); }
-:root[data-theme="light"] body { background: #F4F6F1; }
+:root[data-theme="light"] body { background: #F0EBD8; }
 :root .sidebar { background: #FFFFFF; border-right: 1px solid #E1E7DF; }
 :root .sidebar-tagline,
 :root .sidebar-section,
@@ -114,7 +114,7 @@
 :root .data-table thead th,
 :root .category-item-table th,
 :root .category-comparison th { background: #F6F8F4; color: #5D6B60; }
-:root .trend-sentiment { color: #3D6B3A; }
+:root .trend-sentiment { color: #2C7A45; }
 :root .description-paragraph-hint { color: #68776B; }
 :root .sidebar-nav li a.active { background: rgba(159, 184, 138, .16); color: var(--clay); }
 :root .sidebar-nav li a.active .nav-icon { color: var(--clay); }

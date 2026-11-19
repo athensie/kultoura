@@ -52,7 +52,7 @@
       const map = L.map(element, { scrollWheelZoom: false, preferCanvas: true });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
       const markers = points.map(point => {
-        const marker = L.circleMarker([point.lat, point.lng], { radius: Math.min(12, 5 + Math.log2(point.views + 1)), color: '#fff', weight: 2, fillColor: '#4a7c47', fillOpacity: .9 }).addTo(map);
+        const marker = L.circleMarker([point.lat, point.lng], { radius: Math.min(12, 5 + Math.log2(point.views + 1)), color: '#fff', weight: 2, fillColor: '#2c4a2e', fillOpacity: .9 }).addTo(map);
         const popup = document.createElement('div');
         popup.textContent = `${point.name} — ${Number(point.views).toLocaleString()} views`;
         marker.bindPopup(popup);
@@ -71,7 +71,7 @@
   const textColor = workspaceStyle.getPropertyValue('--aw-chart-text').trim() || '#34443a';
   const mutedColor = workspaceStyle.getPropertyValue('--aw-muted').trim() || '#66746a';
   const lineColor = 'rgba(45,65,50,.14)';
-  const colors = ['#4a7c47', '#9fb88a', '#6b9661', '#c8a96e', '#78956b', '#b8c7aa', '#7a8a64', '#d5b57c'];
+  const colors = ['#2c4a2e', '#9fb88a', '#2c7a45', '#c8a96e', '#597854', '#b8c7aa', '#7a8a64', '#d5b57c'];
   const horizontalKinds = new Set(['rank', 'rank-low', 'wordcloud']);
   document.querySelectorAll('canvas[data-aw-chart]').forEach(canvas => {
     const kind = canvas.dataset.awChart;
@@ -85,8 +85,8 @@
     const datasets = [{
       label: kind === 'destinationRated' || kind === 'cultureRated' ? 'Average rating / 5' : (doughnut ? 'Views' : 'Records'),
       data: chartType === 'scatter' ? series.points : series.values,
-      backgroundColor: kind === 'gauge' ? ['#4a7c47','rgba(74,124,71,.14)'] : (doughnut ? series.values.map((_, i) => colors[i % colors.length]) : (horizontal ? '#6b9661' : 'rgba(107,150,97,.72)')),
-      borderColor: doughnut ? '#fff' : (chartType === 'line' ? '#4a7c47' : '#6b9661'),
+      backgroundColor: kind === 'gauge' ? ['#2c4a2e','rgba(44,74,46,.14)'] : (doughnut ? series.values.map((_, i) => colors[i % colors.length]) : (horizontal ? '#2c7a45' : 'rgba(44,122,69,.72)')),
+      borderColor: doughnut ? '#fff' : (chartType === 'line' ? '#2c4a2e' : '#2c7a45'),
       borderWidth: doughnut ? 2 : 1,
       borderRadius: chartType === 'bar' && !horizontal ? 4 : 0,
       fill: area,
@@ -95,7 +95,7 @@
       pointHoverRadius: chartType === 'line' ? 5 : 0
     }];
     if (Array.isArray(series.datasets)) datasets.splice(0, datasets.length, ...series.datasets.map(dataset => ({ ...dataset, borderWidth: 0, borderRadius: 3 })));
-    if (chartType === 'scatter') { datasets[0].pointRadius = 5; datasets[0].pointHoverRadius = 7; datasets[0].backgroundColor = '#4a7c47'; }
+    if (chartType === 'scatter') { datasets[0].pointRadius = 5; datasets[0].pointHoverRadius = 7; datasets[0].backgroundColor = '#2c4a2e'; }
     new Chart(canvas, {
       type: chartType,
       plugins: kind === 'gauge' ? [{ id: 'gaugeCenter', afterDraw(chart) { const { ctx, chartArea } = chart; if (!chartArea) return; ctx.save(); ctx.fillStyle = textColor; ctx.font = '700 20px "DM Sans"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${Number(series.values[0]).toFixed(1)} / 5`, (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 12); ctx.restore(); } }] : [],
