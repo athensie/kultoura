@@ -112,7 +112,7 @@
         },
         plugins: {
           legend: { display: (doughnut && kind !== 'gauge') || kind === 'stacked', position: 'bottom', labels: { color: textColor, boxWidth: 10, padding: 12, font: { family: 'DM Sans', size: 11 } } },
-          tooltip: { enabled: true, callbacks: { label: context => chartType === 'scatter' ? `${context.raw.label}: ${context.raw.x} views, ${context.raw.y} / 5` : `${context.label}: ${context.parsed.x ?? context.parsed.y ?? context.parsed}` } }
+          tooltip: { enabled: true, callbacks: { label: context => chartType === 'scatter' ? (canvas.dataset.awKey === 'cultureComments' ? `${context.raw.label}: ${context.raw.x} views, ${context.raw.y} comments` : `${context.raw.label}: ${context.raw.x} views, ${context.raw.y} / 5`) : `${context.label}: ${context.parsed.x ?? context.parsed.y ?? context.parsed}` } }
         },
         cutout: kind === 'gauge' ? '78%' : '62%',
         rotation: kind === 'gauge' ? 180 : undefined,

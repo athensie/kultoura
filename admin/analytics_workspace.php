@@ -50,7 +50,12 @@ $cultureLeastChart = ['labels' => array_column(array_slice($cultureAllRows, 0, 1
 $destinationScatter = array_values(array_map(static fn($row) => ['x'=>(int)$row['views'],'y'=>(float)$row['average_rating'],'label'=>$row['name']], array_filter($destinationRatedRows, static fn($row) => ($row['views']??0)>0)));
 $cultureScatter = array_values(array_map(static fn($row) => ['x'=>(int)$row['views'],'y'=>(float)$row['average_rating'],'label'=>$row['name']], array_filter($cultureRatedRows, static fn($row) => ($row['views']??0)>0)));
 $restaurantChart = ['labels' => array_column($restaurantRows, 'name'), 'values' => array_column($restaurantRows, 'views')];
-$dailyChart = ['labels' => array_column($trafficTrend, 'label'), 'values' => array_column($trafficTrend, 'value')];
+$dailyVisitBuckets=[];
+$dailyVisitStmt=$conn->prepare("SELECT DATE(viewed_at) bucket,COUNT(*) total FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at>=? AND viewed_at<? GROUP BY DATE(viewed_at) ORDER BY bucket");
+if ($dailyVisitStmt) { $dailyVisitStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $dailyVisitStmt->execute(); foreach ($dailyVisitStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $dailyVisitBuckets[$row['bucket']]=(int)$row['total']; $dailyVisitStmt->close(); }
+$dailyVisitLabels=$dailyVisitValues=[];
+if ($dailyVisitBuckets) { $day=(new DateTimeImmutable(array_key_first($dailyVisitBuckets)));$lastDay=(new DateTimeImmutable(array_key_last($dailyVisitBuckets))); for(;$day<=$lastDay;$day=$day->modify('+1 day')) { $dayKey=$day->format('Y-m-d');$dailyVisitLabels[]=$day->format('M j, Y');$dailyVisitValues[]=$dailyVisitBuckets[$dayKey]??0; } }
+$dailyChart = ['labels'=>$dailyVisitLabels,'values'=>$dailyVisitValues];
 $monthlyVisitBuckets = $yearlyVisitBuckets = [];
 $bucketStmt = $conn->prepare("SELECT DATE_FORMAT(viewed_at,'%Y-%m') bucket, COUNT(*) total FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at>=? AND viewed_at<? GROUP BY bucket ORDER BY bucket");
 if ($bucketStmt) { $bucketStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql); $bucketStmt->execute(); foreach ($bucketStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $monthlyVisitBuckets[$row['bucket']] = (int)$row['total']; $bucketStmt->close(); }
@@ -105,6 +110,64 @@ if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
 $destinationMapPoints = [];
 $mapStmt = $conn->prepare("SELECT d.destination_name,d.latitude,d.longitude,COUNT(v.view_id) views FROM destination d LEFT JOIN item_views v ON v.item_type=d.category AND v.item_id=d.destination_id AND v.viewed_at>=? AND v.viewed_at<? WHERE d.status='active' AND d.latitude IS NOT NULL AND d.longitude IS NOT NULL GROUP BY d.destination_id,d.destination_name,d.latitude,d.longitude");
 if ($mapStmt) { $mapStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $mapStmt->execute(); foreach ($mapStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $destinationMapPoints[]=['name'=>(string)$row['destination_name'],'lat'=>(float)$row['latitude'],'lng'=>(float)$row['longitude'],'views'=>(int)$row['views']]; $mapStmt->close(); }
+$destinationBarangayLabels = $destinationBarangayValues = [];
+require_once __DIR__ . '/../config/malvar_locations.php';
+$destinationBarangays = array_fill_keys(kt_malvar_barangays(), 0);
+$barangayStmt = $conn->prepare("SELECT d.address,COUNT(v.view_id) views FROM destination d LEFT JOIN item_views v ON v.item_type=d.category AND v.item_id=d.destination_id AND v.viewed_at>=? AND v.viewed_at<? WHERE d.status='active' GROUP BY d.destination_id,d.address");
+if ($barangayStmt) { $barangayStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $barangayStmt->execute(); foreach ($barangayStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) { $address=mb_strtolower((string)$row['address']); foreach ($destinationBarangays as $barangay=>$count) if (str_contains($address,mb_strtolower($barangay))) { $destinationBarangays[$barangay]+=(int)$row['views']; break; } } $barangayStmt->close(); }
+arsort($destinationBarangays);
+foreach ($destinationBarangays as $barangay=>$views) if ($views>0) { $destinationBarangayLabels[]=$barangay; $destinationBarangayValues[]=$views; }
+$cultureBarangays=array_fill_keys(kt_malvar_barangays(),0);
+$cultureLocationQueries=[
+    "SELECT pl.address,COUNT(v.view_id) views FROM product_locations pl INNER JOIN item_views v ON v.item_type='product' AND v.item_id=pl.product_id AND v.viewed_at>=? AND v.viewed_at<? GROUP BY pl.location_id,pl.address",
+    "SELECT f.location address,COUNT(v.view_id) views FROM fiestas f INNER JOIN item_views v ON v.item_type='fiesta' AND v.item_id=f.fiesta_id AND v.viewed_at>=? AND v.viewed_at<? GROUP BY f.fiesta_id,f.location",
+];
+foreach ($cultureLocationQueries as $cultureLocationSql) {
+    $cultureLocationStmt=$conn->prepare($cultureLocationSql);
+    if ($cultureLocationStmt) { $cultureLocationStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $cultureLocationStmt->execute(); foreach ($cultureLocationStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) { $address=mb_strtolower((string)$row['address']); foreach ($cultureBarangays as $barangay=>$count) if (str_contains($address,mb_strtolower($barangay))) { $cultureBarangays[$barangay]+=(int)$row['views']; break; } } $cultureLocationStmt->close(); }
+}
+arsort($cultureBarangays);$cultureBarangayLabels=[];$cultureBarangayValues=[];
+foreach ($cultureBarangays as $barangay=>$views) if ($views>0) { $cultureBarangayLabels[]=$barangay;$cultureBarangayValues[]=$views; }
+$searchRankings = ['destination'=>[],'culture'=>[]];
+$searchCategoryGroups = ['destination'=>"'nature','industry','resort','church'",'culture'=>"'product','fiesta','person'"];
+foreach ($searchCategoryGroups as $group=>$categoriesSql) {
+    $searchStmt=$conn->prepare("SELECT content_name name,COUNT(*) total FROM user_activity_log WHERE activity_type='search' AND category IN ({$categoriesSql}) AND item_id IS NOT NULL AND content_name IS NOT NULL AND content_name<>'' AND activity_date>=? AND activity_date<? GROUP BY item_type,item_id,content_name ORDER BY total DESC LIMIT 8");
+    if ($searchStmt) { $searchStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $searchStmt->execute(); $searchRankings[$group]=$searchStmt->get_result()->fetch_all(MYSQLI_ASSOC); $searchStmt->close(); }
+}
+$recommendationRankings=['destination'=>[],'restaurant'=>[]];
+foreach (['destination'=>"'nature','industry','resort','church'",'restaurant'=>"'restaurant'"] as $group=>$categoriesSql) {
+    $recommendationStmt=$conn->prepare("SELECT content_name name,COUNT(*) total FROM user_activity_log WHERE activity_type='recommendation' AND category IN ({$categoriesSql}) AND item_id IS NOT NULL AND content_name IS NOT NULL AND content_name<>'' AND activity_date>=? AND activity_date<? GROUP BY item_type,item_id,content_name ORDER BY total DESC LIMIT 8");
+    if ($recommendationStmt) { $recommendationStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $recommendationStmt->execute(); $recommendationRankings[$group]=$recommendationStmt->get_result()->fetch_all(MYSQLI_ASSOC); $recommendationStmt->close(); }
+}
+$itineraryCategoryCounts=[];
+$itineraryCategoryStmt=$conn->prepare("SELECT COALESCE(NULLIF(category,''),'Other') category,COUNT(*) total FROM user_activity_log WHERE activity_type='generate' AND activity_date>=? AND activity_date<? GROUP BY category ORDER BY total DESC");
+if ($itineraryCategoryStmt) { $itineraryCategoryStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $itineraryCategoryStmt->execute(); $itineraryCategoryCounts=$itineraryCategoryStmt->get_result()->fetch_all(MYSQLI_ASSOC); $itineraryCategoryStmt->close(); }
+$languageCounts=[];
+$languageStmt=$conn->prepare("SELECT COALESCE(NULLIF(element_name,''),'Other') language,COUNT(*) total FROM user_activity_log WHERE activity_type='language' AND activity_date>=? AND activity_date<? GROUP BY element_name ORDER BY total DESC");
+if ($languageStmt) { $languageStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $languageStmt->execute(); $languageCounts=$languageStmt->get_result()->fetch_all(MYSQLI_ASSOC); $languageStmt->close(); }
+$cultureCommentPoints=[];
+$commentScatterStmt=$conn->prepare("SELECT l.item_type,l.item_id,MAX(l.content_name) name,COUNT(*) comments,COALESCE(v.views,0) views FROM user_activity_log l LEFT JOIN (SELECT item_type,item_id,COUNT(*) views FROM item_views WHERE viewed_at>=? AND viewed_at<? GROUP BY item_type,item_id) v ON v.item_type=l.item_type AND v.item_id=l.item_id WHERE l.activity_type='comment' AND l.category IN ('product','fiesta','person') AND l.item_id IS NOT NULL AND l.activity_date>=? AND l.activity_date<? GROUP BY l.item_type,l.item_id,v.views ORDER BY comments DESC LIMIT 40");
+if ($commentScatterStmt) { $commentScatterStmt->bind_param('ssss',$periodStartSql,$periodEndExclusiveSql,$periodStartSql,$periodEndExclusiveSql); $commentScatterStmt->execute(); foreach ($commentScatterStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $cultureCommentPoints[]=['x'=>(int)$row['views'],'y'=>(int)$row['comments'],'label'=>(string)($row['name']?:'Cultural item')]; $commentScatterStmt->close(); }
+$destinationMonthRows=[];
+$destinationMonthStmt=$conn->prepare("SELECT d.destination_name name,DATE_FORMAT(v.viewed_at,'%Y-%m') bucket,COUNT(*) total FROM item_views v INNER JOIN destination d ON d.destination_id=v.item_id AND d.category=v.item_type WHERE v.item_type IN ('nature','industry','resort','church') AND v.viewed_at>=? AND v.viewed_at<? AND d.status='active' GROUP BY d.destination_id,d.destination_name,bucket ORDER BY bucket");
+if ($destinationMonthStmt) { $destinationMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $destinationMonthStmt->execute(); $destinationMonthRows=$destinationMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC); $destinationMonthStmt->close(); }
+$destinationMonthTotals=[];
+foreach ($destinationMonthRows as $row) $destinationMonthTotals[$row['name']]=($destinationMonthTotals[$row['name']]??0)+(int)$row['total'];
+arsort($destinationMonthTotals);
+$destinationMonthRowsByName=[];
+foreach ($destinationMonthRows as $row) $destinationMonthRowsByName[$row['name']][$row['bucket']]=(int)$row['total'];
+$destinationPerformanceLabels=array_map(static fn($key)=>(new DateTimeImmutable($key.'-01'))->format('M Y'),array_keys($monthlyVisitBuckets));
+$destinationPerformanceDatasets=[];
+foreach (array_slice(array_keys($destinationMonthTotals),0,5) as $name) $destinationPerformanceDatasets[]=['label'=>$name,'data'=>array_map(static fn($key)=>$destinationMonthRowsByName[$name][$key]??0,array_keys($monthlyVisitBuckets)),'borderColor'=>'#2c7a45','backgroundColor'=>'rgba(44,122,69,.12)','tension'=>.3,'fill'=>false];
+$destinationPerformanceValues=[];
+foreach (array_keys($monthlyVisitBuckets) as $monthKey) { $monthTotal=0; foreach ($destinationPerformanceDatasets as $series) { $monthTotal+=(int)($series['data'][count($destinationPerformanceValues)]??0); } $destinationPerformanceValues[]=$monthTotal; }
+$recommendationVsViewsLabels=[];$recommendationVsViewsValues=[];$recommendationVsViewsData=[];
+foreach ($recommendationRankings['destination'] as $row) { $recommendationVsViewsLabels[]=(string)$row['name']; $recommendationVsViewsValues[]=(int)$row['total']; }
+$recommendationVsViewsStmt=$conn->prepare("SELECT d.destination_name name,COUNT(v.view_id) total FROM destination d LEFT JOIN item_views v ON v.item_type=d.category AND v.item_id=d.destination_id AND v.viewed_at>=? AND v.viewed_at<? WHERE d.status='active' GROUP BY d.destination_id,d.destination_name");
+if ($recommendationVsViewsStmt) { $recommendationVsViewsStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $recommendationVsViewsStmt->execute(); foreach ($recommendationVsViewsStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $recommendationVsViewsData[$row['name']]=(int)$row['total']; $recommendationVsViewsStmt->close(); }
+$recommendationVsViewsLabels=array_slice($recommendationVsViewsLabels,0,8);
+$recommendationVsViewsValues=array_slice($recommendationVsViewsValues,0,8);
+$recommendationVsViewsActual=array_map(static fn($name)=>$recommendationVsViewsData[$name]??0,$recommendationVsViewsLabels);
 $chartData = [
     'weekday' => $weekdayChart, 'pages' => ['labels' => $pageLabels, 'values' => $pageValues], 'searches' => ['labels' => $searchLabels, 'values' => $searchValues],
     'destinationRanks' => $destinationChart, 'destinationLeast' => $destinationLeastChart, 'cultureRanks' => $cultureChart, 'cultureLeast' => $cultureLeastChart, 'restaurants' => $restaurantChart,
@@ -124,6 +187,17 @@ $chartData = [
     'destinationRatingGauge' => $destinationRatingGauge, 'cultureRatingGauge' => $cultureRatingGauge,
     'heatmapViews' => $heatmapViews, 'heatmapClicks' => $heatmapClicks,
     'destinationMap' => $destinationMapPoints,
+    'destinationBarangays'=>['labels'=>$destinationBarangayLabels,'values'=>$destinationBarangayValues],
+    'destinationSearches'=>['labels'=>array_column($searchRankings['destination'],'name'),'values'=>array_map('intval',array_column($searchRankings['destination'],'total'))],
+    'cultureSearches'=>['labels'=>array_column($searchRankings['culture'],'name'),'values'=>array_map('intval',array_column($searchRankings['culture'],'total'))],
+    'cultureBarangays'=>['labels'=>$cultureBarangayLabels,'values'=>$cultureBarangayValues],
+    'recommendedDestinations'=>['labels'=>array_column($recommendationRankings['destination'],'name'),'values'=>array_map('intval',array_column($recommendationRankings['destination'],'total'))],
+    'recommendedRestaurants'=>['labels'=>array_column($recommendationRankings['restaurant'],'name'),'values'=>array_map('intval',array_column($recommendationRankings['restaurant'],'total'))],
+    'itineraryCategories'=>['labels'=>array_column($itineraryCategoryCounts,'category'),'values'=>array_map('intval',array_column($itineraryCategoryCounts,'total'))],
+    'languagePreferences'=>['labels'=>array_column($languageCounts,'language'),'values'=>array_map('intval',array_column($languageCounts,'total'))],
+    'destinationPerformance'=>['labels'=>$destinationPerformanceLabels,'values'=>$destinationPerformanceValues,'datasets'=>$destinationPerformanceDatasets],
+    'recommendationComparison'=>['labels'=>$recommendationVsViewsLabels,'values'=>$recommendationVsViewsValues,'datasets'=>[['label'=>'Recommendation clicks','data'=>$recommendationVsViewsValues,'backgroundColor'=>'#2c4a2e'],['label'=>'Destination views','data'=>$recommendationVsViewsActual,'backgroundColor'=>'#9fb88a']]],
+    'cultureComments'=>['labels'=>array_column($cultureCommentPoints,'label'),'values'=>array_column($cultureCommentPoints,'y'),'points'=>$cultureCommentPoints],
     'interactionCalendar' => $interactionCalendar,
     'clickSections' => ['labels' => $categoryLabels, 'values' => array_column(array_values($tourismCategoryAnalytics), 'clicks')],
     'destinationRated' => ['labels' => array_column(array_slice($destinationRatedRows, 0, 10), 'name'), 'values' => array_map(static fn($r) => round((float) $r['average_rating'], 2), array_slice($destinationRatedRows, 0, 10))],
@@ -132,7 +206,6 @@ $chartData = [
     'cultureScatter' => ['labels'=>array_column($cultureScatter,'label'),'values'=>array_column($cultureScatter,'y'),'points'=>$cultureScatter],
 ];
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-$dailyTrafficSupported = in_array($period, ['yesterday', '7days', '30days', 'week', 'month'], true) || ($customRange && $dateFrom->diff($dateTo)->days <= 62);
 $workspaceTabs = [
     'engagement' => 'Tourism Engagement', 'destination' => 'Destinations', 'culture' => 'Cultural Content',
     'recommendations' => 'AI Recommendations', 'community' => 'Community', 'audience' => 'Audience',
@@ -140,7 +213,7 @@ $workspaceTabs = [
 $workspaceMetrics = [
     'engagement' => [
         ['Visits per Hour', 'heatmap', 'heatmapViews', 'Days of week × hours · exact recorded page views.'],
-        ['Visits per Day', 'line', $dailyTrafficSupported ? 'daily' : null, $dailyTrafficSupported ? '' : 'Choose a daily date range to view daily visits.'],
+        ['Visits per Day', 'line', 'daily', 'Daily page views recorded during the selected period.'],
         ['Visits per Week', 'bar', 'weekday', 'Visits grouped by weekday for the selected period.'],
         ['Visits per Month', 'area', 'monthlyVisits', 'Monthly page views in the selected period.'],
         ['Visits per Year', 'line', 'yearlyVisits', 'Annual page views in the selected period.'],
@@ -154,26 +227,26 @@ $workspaceMetrics = [
     ],
     'destination' => [
         ['Most Popular Destinations', 'rank', 'destinationRanks', ''], ['Least Popular Destinations', 'rank-low', 'destinationLeast', ''],
-        ['Destination Popularity by Barangay', 'map', 'destinationMap', 'Map markers show verified destination coordinates; barangay boundaries are not available.'], ['Destination Views by Barangay', 'map', null, 'No verified barangay boundary geometry is available for a choropleth.'],
+        ['Destination Popularity by Barangay', 'map', 'destinationMap', 'Map markers show verified destination coordinates; barangay boundaries are not available.'], ['Destination Views by Barangay', 'bar', 'destinationBarangays', 'Views are grouped using the barangay named in each destination address.'],
         ['Destination Ratings', 'bar', 'destinationRated', 'Destinations with visitor ratings in the selected period.'], ['Destination Rating Distribution', 'histogram', 'ratings', ''],
-        ['Most Searched Destinations', 'rank', null, 'Search logs store query totals, not selected destination IDs.'], ['Most Viewed Establishments', 'rank', 'restaurants', 'Restaurant listing detail views.'],
+        ['Most Searched Destinations', 'rank', 'destinationSearches', 'Destination-related search events linked to a destination record.'], ['Most Viewed Establishments', 'rank', 'restaurants', 'Restaurant listing detail views.'],
         ['Restaurant Engagement', 'bar', 'restaurants', 'Views are available; restaurant-specific searches and recommendations are not fully tracked.'],
-        ['Destination Performance Over Time', 'line', null, 'Per-destination historical view buckets are not currently queried.'], ['Views vs. Ratings', 'scatter', 'destinationScatter', 'Each point is one destination with both views and a rating.'],
+        ['Destination Performance Over Time', 'line', 'destinationPerformance', 'Monthly detail views for the five most-viewed destinations in this period.'], ['Views vs. Ratings', 'scatter', 'destinationScatter', 'Each point is one destination with both views and a rating.'],
         ['Destination Category Comparison', 'donut', 'destinationCategories', ''],
     ],
     'culture' => [
         ['Most Viewed Cultural Content', 'rank', 'cultureRanks', ''], ['Least Viewed Cultural Content', 'rank-low', 'cultureLeast', ''],
         ['Culture vs. Tradition vs. Fiesta Views', 'donut', 'cultureCategories', 'Available category groups: products, fiestas, and people of Malvar.'], ['Cultural Content Views per Month', 'line', 'cultureMonthly', 'Product, fiesta, and people detail views.'],
-        ['Most Searched Cultural Topics', 'wordcloud', null, 'Search logs do not associate queries with cultural topics.'], ['Cultural Content Engagement', 'stacked', 'cultureEngagement', 'Recorded views, clicks, and searches by cultural category.'],
-        ['Content Performance by Barangay', 'map', null, 'Cultural content barangay mapping is not available.'], ['Fiesta Interest Over Time', 'line', 'fiestaMonthly', 'Recorded fiesta detail views.'],
+        ['Most Searched Cultural Topics', 'wordcloud', 'cultureSearches', 'Cultural search events linked to a cultural content category.'], ['Cultural Content Engagement', 'stacked', 'cultureEngagement', 'Recorded views, clicks, and searches by cultural category.'],
+        ['Content Performance by Barangay', 'bar', 'cultureBarangays', 'Cultural views grouped by barangay from product store and fiesta location records.'], ['Fiesta Interest Over Time', 'line', 'fiestaMonthly', 'Recorded fiesta detail views.'],
         ['Most Rated Cultural Content', 'rank', 'cultureRated', 'Rated cultural items in the selected period.'], ['Cultural Content Ratings', 'histogram', 'cultureRatings', ''],
-        ['Views vs. Comments', 'scatter', null, 'Item-level comments are not linked to view totals in the current analytics data.'], ['Cultural Content Popularity Ranking', 'rank', 'cultureRanks', ''],
+        ['Views vs. Comments', 'scatter', 'cultureComments', 'Each point compares item detail views with linked comment events.'], ['Cultural Content Popularity Ranking', 'rank', 'cultureRanks', ''],
     ],
     'recommendations' => [
-        ['Most Recommended Destinations', 'rank', null, 'Recommendation impressions are not logged separately from recommendation clicks.'], ['Most Recommended Establishments', 'rank', null, 'Recommendation impressions are not logged separately from recommendation clicks.'],
-        ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions and clicks are not linked.'], ['Recommended vs. Actually Viewed Destinations', 'bar', null, 'Recommendation impressions cannot be compared to views without impression records.'],
-        ['Most Generated Itinerary Categories', 'donut', null, 'Itinerary categories are not recorded.'], ['Itinerary Generation Trends', 'line', 'itineraryMonthly', 'Recorded itinerary generation events grouped by month.'],
-        ['Most Selected User Preferences', 'bar', null, 'Preference selections are not recorded as analytics events.'], ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'],
+        ['Most Recommended Destinations', 'rank', 'recommendedDestinations', 'Destinations associated with recorded recommendation events.'], ['Most Recommended Establishments', 'rank', 'recommendedRestaurants', 'Establishments associated with recorded recommendation events.'],
+        ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions are not logged, so a click-through rate cannot be calculated.'], ['Recommended vs. Actually Viewed Destinations', 'bar', 'recommendationComparison', 'Compares recommendation events with destination detail views; impressions are not tracked.'],
+        ['Most Generated Itinerary Categories', 'donut', 'itineraryCategories', 'Itinerary generation events grouped by their recorded content category.'], ['Itinerary Generation Trends', 'line', 'itineraryMonthly', 'Recorded itinerary generation events grouped by month.'],
+        ['Most Selected User Preferences', 'bar', 'languagePreferences', 'Recorded language selections; other preference types are not tracked.'], ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'],
         ['Generated Itineraries', 'kpi', null, number_format($overallActivityCounts['generate'])], ['Itinerary Download Count', 'kpi', null, number_format($overallActivityCounts['download'])], ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
     ],
     'community' => [
@@ -187,7 +260,7 @@ $workspaceMetrics = [
     'audience' => [
         ['Visitors by Location', 'map', null, 'Visitor location is not collected.'], ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'],
         ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'], ['User Registration Trends', 'line', 'signup', 'Monthly registrations from account creation records.'],
-        ['Preferred Language', 'donut', null, 'Language preference values are not stored in analytics.'], ['Most Active User Groups', 'bar', null, 'User groups or demographics are not collected.'],
+        ['Preferred Language', 'donut', 'languagePreferences', 'Recorded language selection events; current counts are not a user-level preference profile.'], ['Most Active User Groups', 'bar', null, 'User groups or demographics are not collected.'],
         ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'], ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'],
     ],
 ];
@@ -608,4 +681,4 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261119-kpi-green"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261119-analytics-data"></script>
