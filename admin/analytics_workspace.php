@@ -151,9 +151,6 @@ foreach (['destination'=>"'nature','industry','resort','church'",'restaurant'=>"
     $recommendationStmt=$conn->prepare("SELECT content_name name,COUNT(*) total FROM user_activity_log WHERE activity_type='recommendation' AND category IN ({$categoriesSql}) AND item_id IS NOT NULL AND content_name IS NOT NULL AND content_name<>'' AND activity_date>=? AND activity_date<? GROUP BY item_type,item_id,content_name ORDER BY total DESC LIMIT 8");
     if ($recommendationStmt) { $recommendationStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $recommendationStmt->execute(); $recommendationRankings[$group]=$recommendationStmt->get_result()->fetch_all(MYSQLI_ASSOC); $recommendationStmt->close(); }
 }
-$languageCounts=[];
-$languageStmt=$conn->prepare("SELECT COALESCE(NULLIF(element_name,''),'Other') language,COUNT(*) total FROM user_activity_log WHERE activity_type='language' AND activity_date>=? AND activity_date<? GROUP BY element_name ORDER BY total DESC");
-if ($languageStmt) { $languageStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $languageStmt->execute(); $languageCounts=$languageStmt->get_result()->fetch_all(MYSQLI_ASSOC); $languageStmt->close(); }
 $cultureCommentPoints=[];
 $commentScatterStmt=$conn->prepare("SELECT l.item_type,l.item_id,MAX(l.content_name) name,COUNT(*) comments,COALESCE(v.views,0) views FROM user_activity_log l LEFT JOIN (SELECT item_type,item_id,COUNT(*) views FROM item_views WHERE viewed_at>=? AND viewed_at<? GROUP BY item_type,item_id) v ON BINARY v.item_type=BINARY l.item_type AND v.item_id=l.item_id WHERE l.activity_type='comment' AND l.category IN ('product','fiesta','person') AND l.item_id IS NOT NULL AND l.activity_date>=? AND l.activity_date<? GROUP BY l.item_type,l.item_id,v.views ORDER BY comments DESC LIMIT 40");
 if ($commentScatterStmt) { $commentScatterStmt->bind_param('ssss',$periodStartSql,$periodEndExclusiveSql,$periodStartSql,$periodEndExclusiveSql); $commentScatterStmt->execute(); foreach ($commentScatterStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $cultureCommentPoints[]=['x'=>(int)$row['views'],'y'=>(int)$row['comments'],'label'=>(string)($row['name']?:'Cultural item')]; $commentScatterStmt->close(); }
@@ -202,7 +199,6 @@ $chartData = [
     'cultureBarangays'=>['labels'=>$cultureBarangayLabels,'values'=>$cultureBarangayValues],
     'recommendedDestinations'=>['labels'=>array_column($recommendationRankings['destination'],'name'),'values'=>array_map('intval',array_column($recommendationRankings['destination'],'total'))],
     'recommendedRestaurants'=>['labels'=>array_column($recommendationRankings['restaurant'],'name'),'values'=>array_map('intval',array_column($recommendationRankings['restaurant'],'total'))],
-    'languagePreferences'=>['labels'=>array_column($languageCounts,'language'),'values'=>array_map('intval',array_column($languageCounts,'total'))],
     'destinationPerformance'=>['labels'=>$destinationPerformanceLabels,'values'=>$destinationPerformanceValues,'datasets'=>$destinationPerformanceDatasets],
     'recommendationComparison'=>['labels'=>$recommendationVsViewsLabels,'values'=>$recommendationVsViewsValues,'datasets'=>[['label'=>'Recommendation clicks','data'=>$recommendationVsViewsValues,'backgroundColor'=>'#2c4a2e'],['label'=>'Destination views','data'=>$recommendationVsViewsActual,'backgroundColor'=>'#9fb88a']]],
     'cultureComments'=>['labels'=>array_column($cultureCommentPoints,'label'),'values'=>array_column($cultureCommentPoints,'y'),'points'=>$cultureCommentPoints],
@@ -253,21 +249,20 @@ $workspaceMetrics = [
     'recommendations' => [
         ['Most Recommended Destinations', 'rank', 'recommendedDestinations', 'Destinations associated with recorded recommendation events.'], ['Most Recommended Establishments', 'rank', 'recommendedRestaurants', 'Establishments associated with recorded recommendation events.'],
         ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions are not logged, so a click-through rate cannot be calculated.'], ['Recommended vs. Actually Viewed Destinations', 'bar', 'recommendationComparison', 'Compares recommendation events with destination detail views; impressions are not tracked.'],
-        ['Most Selected User Preferences', 'bar', 'languagePreferences', 'Recorded language selections; other preference types are not tracked.'], ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'],
+        ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'],
         ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
     ],
     'community' => [
         ['Total Comments', 'kpi', null, number_format($overallActivityCounts['comment'])], ['Total Ratings', 'kpi', null, number_format($overallRatingCount)],
         ['Average Destination Rating', 'gauge', 'destinationRatingGauge', $destinationRatingCount ? number_format($averageDestinationRating, 1) . ' / 5 average from ' . number_format($destinationRatingCount) . ' ratings' : 'No ratings yet'],
         ['Average Cultural Content Rating', 'gauge', 'cultureRatingGauge', $cultureRatingCount ? number_format($cultureAverageRating, 1) . ' / 5 average from ' . number_format($cultureRatingCount) . ' ratings' : 'No cultural ratings yet'], ['Comments per Month', 'line', 'commentsMonthly', 'Recorded comment events grouped by month.'],
-        ['Most Discussed Destinations', 'rank', null, 'Comments are not linked to destination IDs in current analytics.'], ['Positive vs. Negative Feedback', 'donut', 'sentiment', 'Rule-based sentiment estimate from recorded visitor reviews; neutral reviews are shown separately.'],
+        ['Positive vs. Negative Feedback', 'donut', 'sentiment', 'Rule-based sentiment estimate from recorded visitor reviews; neutral reviews are shown separately.'],
         ['Rating Distribution', 'histogram', 'ratings', ''], ['Most Engaged Destinations', 'rank', 'destinationRanks', 'Ranked by recorded detail views.'],
         ['User Engagement by Section', 'stacked', 'sectionEngagement', 'Recorded views, clicks, and searches by catalog section.'],
     ],
     'audience' => [
-        ['Visitors by Location', 'map', null, 'Visitor location is not collected.'], ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'],
+        ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'],
         ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'], ['User Registration Trends', 'line', 'signup', 'Monthly registrations from account creation records.'],
-        ['Preferred Language', 'donut', 'languagePreferences', 'Recorded language selection events; current counts are not a user-level preference profile.'], ['Most Active User Groups', 'bar', null, 'User groups or demographics are not collected.'],
         ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'], ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'],
     ],
 ];
@@ -406,7 +401,7 @@ $aiDashboardFacts = [
     ], $forecastHistoryRows),
 ];
 $aiDashboardResult = null;
-$aiCacheKey = 'dashai_v4_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
+$aiCacheKey = 'dashai_v5_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
 if (ai_text_configured()) {
     $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. If a card has no usable data, explain the limitation from data_note. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
     $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
