@@ -1,6 +1,13 @@
 (function () {
   window.toggleSidebar = function () { document.getElementById('sidebar')?.classList.toggle('open'); };
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  const customRangeButton = document.querySelector('[data-custom-range]');
+  customRangeButton?.addEventListener('click', () => {
+    customRangeButton.classList.add('active');
+    customRangeButton.setAttribute('aria-pressed', 'true');
+    customRangeButton.closest('.aw-periods')?.querySelectorAll('a').forEach(link => link.classList.remove('active'));
+    document.querySelector('.date-range-form input[name="date_from"]')?.focus();
+  });
   const tabs = Array.from(document.querySelectorAll('.aw-tab'));
   const panels = Array.from(document.querySelectorAll('.aw-section'));
   if (!tabs.length || !panels.length) return;

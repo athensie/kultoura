@@ -411,6 +411,8 @@ $aiAnalysisLabel = $aiSummaryIsGenerated ? 'AI assisted' : 'Data-based fallback'
 $visitorDonut = ['labels' => ['New tracked sessions', 'Returning tracked sessions'], 'values' => [$newTrackedVisitors, $returningTrackedVisitors]];
 $chartData['visitors'] = $visitorDonut;
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$filterFromValue = $customRange ? $dateFromInput : ($period === 'all' ? '' : $periodStart->format('Y-m-d'));
+$filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $periodEndExclusive->modify('-1 day')->format('Y-m-d'));
 ?>
 <style>
 .main-content { background:#f4f6f1; color:#26342b; }
@@ -424,10 +426,22 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 .aw-heading .section-label { color:#758b67; }
 .aw-heading p { margin:0; max-width:65ch; color:var(--aw-muted); font:.88rem/1.5 'DM Sans',sans-serif; }
 .aw-toolbar { display:grid; gap:12px; margin:0 0 20px; }
+.aw-date-filter { display:grid; gap:16px; padding:16px; border:1px solid var(--aw-line); border-radius:16px; background:#fff; box-shadow:0 2px 8px rgba(38,52,43,.035); }
+.aw-date-filter-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.aw-date-filter-head h2 { margin:0; color:var(--aw-text); font:600 1rem 'DM Sans',sans-serif; }
+.aw-date-current { padding:5px 11px; border-radius:999px; background:#dcf4e6; color:#287448; font:600 .72rem 'DM Sans',sans-serif; white-space:nowrap; }
 .aw-periods { display:flex; flex-wrap:wrap; gap:7px; min-width:0; }
-.aw-periods a { display:inline-flex; align-items:center; min-height:35px; padding:0 13px; border:1px solid var(--aw-line); border-radius:8px; color:var(--aw-muted); font:500 .75rem 'DM Sans',sans-serif; text-decoration:none; }
-.aw-periods a.active,.aw-periods a:hover { border-color:var(--aw-green); background:var(--aw-green); color:#fff; }
-.aw-controls { display:flex; align-items:flex-end; flex-wrap:wrap; gap:10px; }
+.aw-periods a,.aw-period-custom { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 15px; border:1px solid transparent; border-radius:10px; background:#f0f3ee; color:#34443a; font:500 .82rem 'DM Sans',sans-serif; text-decoration:none; cursor:pointer; transition:background .15s ease,color .15s ease,border-color .15s ease; }
+.aw-periods a.active,.aw-periods a:hover,.aw-period-custom.active,.aw-period-custom:hover { border-color:var(--aw-green); background:var(--aw-green); color:#fff; }
+.aw-date-filter-divider { height:1px; background:#e9eee8; }
+.aw-controls { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto; align-items:end; gap:10px; }
+.aw-controls .date-range-field { display:grid; gap:6px; min-width:0; color:var(--aw-muted); font:500 .75rem 'DM Sans',sans-serif; }
+.aw-controls .date-range-field input { width:100%; min-width:0; height:48px; padding:0 11px; border:1px solid var(--aw-line); border-radius:10px; background:#fff; color:var(--aw-text); color-scheme:light; font:400 .88rem 'DM Sans',sans-serif; }
+.aw-controls .date-range-field input:focus { border-color:var(--aw-green); outline:3px solid rgba(74,124,71,.12); }
+.aw-controls .date-range-submit,.aw-controls .analytics-report-export { display:inline-flex; align-items:center; justify-content:center; min-width:48px; height:44px; align-self:end; border:1px solid var(--aw-line); border-radius:10px; background:#fff; color:var(--aw-green); }
+.aw-controls .date-range-submit { padding:0 17px; border-color:var(--aw-green); background:var(--aw-green); color:#fff; font:600 .82rem 'DM Sans',sans-serif; cursor:pointer; }
+.aw-controls .analytics-report-export { width:44px; min-width:44px; text-decoration:none; }
+.aw-controls .analytics-report-export:hover { border-color:var(--aw-green); background:#f0f6ed; }
 .aw-tabs { display:flex; gap:5px; overflow-x:auto; padding:5px; margin:0 0 22px; border:1px solid var(--aw-line); border-radius:9px; background:#e9eee8; scrollbar-width:thin; }
 .aw-tab { flex:0 0 auto; min-height:38px; padding:0 13px; border:0; border-radius:7px; background:transparent; color:var(--aw-muted); font:600 .76rem 'DM Sans',sans-serif; cursor:pointer; }
 .aw-tab[aria-selected="true"] { background:var(--aw-green); color:#fff; }
@@ -460,12 +474,9 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 .aw-heatmap-cell { width:100%; min-width:10px; height:13px; border:0; border-radius:3px; background:var(--aw-green); }
 .aw-calendar { display:grid; grid-template-columns:repeat(7,minmax(20px,1fr)); gap:4px; max-height:210px; overflow:auto; padding:8px 0; }
 .aw-calendar-cell { aspect-ratio:1; min-width:20px; border-radius:4px; background:var(--aw-green); }
-.analytics-workspace .date-range-field { color:var(--aw-muted); }
-.analytics-workspace .date-range-field input { border-color:var(--aw-line); background:#fff; color:var(--aw-text); color-scheme:light; }
-.analytics-workspace .date-range-submit { background:var(--aw-green); color:#fff; }
 .analytics-workspace .date-range-clear { color:var(--aw-muted); }
 .analytics-workspace .date-range-error { color:#a33434; }
-.analytics-workspace .analytics-report-export { border-color:var(--aw-line); background:#fff; color:#43536b; }
+.analytics-workspace .aw-controls .analytics-report-export { border-color:var(--aw-line); background:#fff; color:var(--aw-green); }
 .aw-ai-dashboard { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr); gap:14px; margin:0 0 22px; }
 .aw-ai-card { min-width:0; border:1px solid var(--aw-line); border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(30,48,75,.05); }
 .aw-ai-card h2 { position:relative; margin:0; padding:13px 16px 12px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .95rem 'DM Sans',sans-serif; }
@@ -490,7 +501,8 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 .aw-forecast-note { margin:9px 0 0; color:var(--aw-muted); font:.66rem/1.45 'DM Sans',sans-serif; }
 @media(max-width:1100px){.aw-card{grid-column:span 6}.aw-card--wide{grid-column:span 12}.dash-wrapper{padding:30px 24px 56px}}
 @media(max-width:760px){.aw-ai-dashboard{grid-template-columns:1fr}}
-@media(max-width:700px){.aw-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aw-card,.aw-card--wide{grid-column:span 2;min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas,.aw-card--wide .aw-card-canvas{height:205px}.dash-wrapper{padding:24px 15px 44px}}
+@media(max-width:700px){.aw-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aw-card,.aw-card--wide{grid-column:span 2;min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas,.aw-card--wide .aw-card-canvas{height:205px}.dash-wrapper{padding:24px 15px 44px}.aw-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;gap:7px}.aw-controls .date-range-field input{height:44px;padding:0 7px;font-size:.75rem}.aw-controls .date-range-submit{min-width:0;padding:0 11px}.aw-controls .analytics-report-export{width:40px;min-width:40px;height:40px}.aw-periods a,.aw-period-custom{min-height:40px;padding:0 12px;font-size:.76rem}}
+@media(max-width:430px){.aw-date-filter{padding:13px;gap:13px}.aw-controls{grid-template-columns:1fr 1fr}.aw-controls .date-range-submit{width:100%}.aw-controls .analytics-report-export{width:100%;height:44px}.aw-date-filter-head h2{font-size:.92rem}}
 </style>
 <div class="analytics-workspace">
     <div class="admin-site-switch-row"><a class="admin-site-switch" href="<?php echo BASE_URL; ?>/index.php"><i data-lucide="external-link" class="lucide"></i> View user site</a></div>
@@ -499,13 +511,21 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
         <p>Explore visitor activity, destination performance, cultural engagement, and audience trends.</p>
     </header>
     <div class="aw-toolbar">
-        <nav class="aw-periods" aria-label="Analytics date range">
-            <?php foreach (['today'=>'Today','yesterday'=>'Yesterday','7days'=>'Last 7 days','30days'=>'Last 30 days','week'=>'This week','month'=>'This month','lastmonth'=>'Last month','year'=>'This year','all'=>'All time'] as $key=>$label): ?><a href="?period=<?php echo $key; ?>" class="<?php echo $period === $key ? 'active' : ''; ?>"><?php echo $label; ?></a><?php endforeach; ?>
-        </nav>
-        <div class="aw-controls">
-            <form class="date-range-form" method="get" action="admindashboard.php" aria-label="Custom date range"><input type="hidden" name="period" value="custom"><label class="date-range-field">From<input type="date" name="date_from" value="<?php echo htmlspecialchars($dateFromInput); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required></label><label class="date-range-field">To<input type="date" name="date_to" value="<?php echo htmlspecialchars($dateToInput); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required></label><button class="date-range-submit" type="submit">Apply</button><?php if ($customRange): ?><a class="date-range-clear" href="?period=month">Reset</a><?php endif; ?></form>
-            <a class="period-btn analytics-report-export" href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>">Export CSV</a>
-        </div>
+        <section class="aw-date-filter" aria-label="Analytics date filter">
+            <div class="aw-date-filter-head"><h2>Date Filter</h2><span class="aw-date-current"><?php echo htmlspecialchars($periodLabels[$period] ?? 'Selected range'); ?></span></div>
+            <nav class="aw-periods" aria-label="Quick date ranges">
+                <?php foreach (['today'=>'Today','yesterday'=>'Yesterday','7days'=>'7 Days','30days'=>'30 Days','month'=>'This Month'] as $key=>$label): ?><a href="?period=<?php echo $key; ?>" class="<?php echo $period === $key ? 'active' : ''; ?>"><?php echo $label; ?></a><?php endforeach; ?>
+                <button class="aw-period-custom<?php echo $customRange ? ' active' : ''; ?>" type="button" aria-pressed="<?php echo $customRange ? 'true' : 'false'; ?>" data-custom-range>Custom</button>
+            </nav>
+            <div class="aw-date-filter-divider" aria-hidden="true"></div>
+            <form class="aw-controls date-range-form" method="get" action="admindashboard.php" aria-label="Choose a date range">
+                <input type="hidden" name="period" value="custom">
+                <label class="date-range-field">Start date<input type="date" name="date_from" value="<?php echo htmlspecialchars($filterFromValue); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required></label>
+                <label class="date-range-field">End date<input type="date" name="date_to" value="<?php echo htmlspecialchars($filterToValue); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required></label>
+                <button class="date-range-submit" type="submit">Apply</button>
+                <a class="analytics-report-export" href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>" title="Download CSV report" aria-label="Download CSV report"><i data-lucide="download" class="lucide" aria-hidden="true"></i></a>
+            </form>
+        </section>
         <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
     </div>
     <section class="aw-ai-dashboard" aria-label="AI interpretation and traffic prediction">
@@ -567,4 +587,4 @@ $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261119-green-charts-2"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261119-date-filter"></script>
