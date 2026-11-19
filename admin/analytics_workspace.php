@@ -134,7 +134,7 @@ $chartData = [
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 $dailyTrafficSupported = in_array($period, ['yesterday', '7days', '30days', 'week', 'month'], true) || ($customRange && $dateFrom->diff($dateTo)->days <= 62);
 $workspaceTabs = [
-    'engagement' => 'Tourism Engagement', 'destination' => 'Destinations', 'culture' => 'Cultural Content', 'activity' => 'User Activity',
+    'engagement' => 'Tourism Engagement', 'destination' => 'Destinations', 'culture' => 'Cultural Content',
     'recommendations' => 'AI Recommendations', 'community' => 'Community', 'audience' => 'Audience',
 ];
 $workspaceMetrics = [
@@ -169,14 +169,6 @@ $workspaceMetrics = [
         ['Most Rated Cultural Content', 'rank', 'cultureRated', 'Rated cultural items in the selected period.'], ['Cultural Content Ratings', 'histogram', 'cultureRatings', ''],
         ['Views vs. Comments', 'scatter', null, 'Item-level comments are not linked to view totals in the current analytics data.'], ['Cultural Content Popularity Ranking', 'rank', 'cultureRanks', ''],
     ],
-    'activity' => [
-        ['User Clicks per Hour', 'heatmap', 'heatmapClicks', 'Days of week × hours · exact recorded click events.'], ['Most Clicked Website Sections', 'bar', 'clickSections', 'Recorded category click totals.'],
-        ['User Navigation Flow', 'sankey', null, 'Navigation source-to-destination paths are not recorded.'], ['Most Visited Pages', 'rank', 'pages', ''],
-        ['Search Activity Over Time', 'line', 'searchMonthly', 'Recorded search submissions grouped by month.'], ['Search Keywords', 'wordcloud', 'searches', 'Top submitted queries, shown by count.'],
-        ['Itinerary Generator Usage', 'kpi', null, number_format($overallActivityCounts['generate'])], ['Number of Generated Itineraries', 'bar', 'itineraryMonthly', 'Recorded itinerary generation events grouped by month.'],
-        ['Most Selected Itinerary Destinations', 'rank', null, 'Itinerary destination selections are not recorded as item-level events.'], ['Language Preferences', 'donut', null, 'Language selection events do not currently record a preference value.'],
-        ['User Session Duration', 'histogram', null, 'Session start and end times are not recorded.'], ['User Interaction Frequency', 'calendar', 'interactionCalendar', 'Daily recorded activity; at most the latest 365 days in the selected range.'],
-    ],
     'recommendations' => [
         ['Most Recommended Destinations', 'rank', null, 'Recommendation impressions are not logged separately from recommendation clicks.'], ['Most Recommended Establishments', 'rank', null, 'Recommendation impressions are not logged separately from recommendation clicks.'],
         ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions and clicks are not linked.'], ['Recommended vs. Actually Viewed Destinations', 'bar', null, 'Recommendation impressions cannot be compared to views without impression records.'],
@@ -204,43 +196,51 @@ $chartData['visitors'] = $visitorDonut;
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <style>
-.analytics-workspace { --aw-bg:#101b12; --aw-card:#152318; --aw-line:rgba(238,231,210,.11); --aw-muted:rgba(238,231,210,.67); }
+.main-content { background:#f4f6f1; color:#26342b; }
+.analytics-workspace { --aw-bg:#f4f6f1; --aw-card:#fff; --aw-line:rgba(38,52,43,.14); --aw-muted:#66746a; --aw-text:#26342b; --aw-chart-text:#34443a; }
 .analytics-workspace, .analytics-workspace * { box-sizing:border-box; }
 .aw-heading { display:flex; flex-direction:column; gap:7px; margin:0 0 22px; }
 .aw-heading .section-label { margin:0; }
-.aw-heading h1 { margin:0; color:var(--cream); font:700 clamp(1.8rem,3vw,2.45rem)/1.15 'Playfair Display',serif; }
+.aw-heading h1 { margin:0; color:var(--aw-text); font:700 clamp(1.8rem,3vw,2.45rem)/1.15 'Playfair Display',serif; }
+.aw-heading h1 em { color:#88641f; }
 .aw-heading p { margin:0; max-width:65ch; color:var(--aw-muted); font:.88rem/1.5 'DM Sans',sans-serif; }
 .aw-toolbar { display:grid; gap:12px; margin:0 0 20px; }
 .aw-periods { display:flex; flex-wrap:wrap; gap:7px; min-width:0; }
 .aw-periods a { display:inline-flex; align-items:center; min-height:35px; padding:0 13px; border:1px solid var(--aw-line); border-radius:8px; color:var(--aw-muted); font:500 .75rem 'DM Sans',sans-serif; text-decoration:none; }
-.aw-periods a.active,.aw-periods a:hover { border-color:#a8c28e; background:#a8c28e; color:#162319; }
+.aw-periods a.active,.aw-periods a:hover { border-color:#547958; background:#547958; color:#fff; }
 .aw-controls { display:flex; align-items:flex-end; flex-wrap:wrap; gap:10px; }
-.aw-tabs { display:flex; gap:5px; overflow-x:auto; padding:4px; margin:0 0 18px; border:1px solid var(--aw-line); border-radius:10px; background:rgba(255,255,255,.025); scrollbar-width:thin; }
+.aw-tabs { display:flex; gap:5px; overflow-x:auto; padding:4px; margin:0 0 18px; border:1px solid var(--aw-line); border-radius:10px; background:#e9eee8; scrollbar-width:thin; }
 .aw-tab { flex:0 0 auto; min-height:38px; padding:0 13px; border:0; border-radius:7px; background:transparent; color:var(--aw-muted); font:600 .76rem 'DM Sans',sans-serif; cursor:pointer; }
-.aw-tab[aria-selected="true"] { background:#a8c28e; color:#162319; }
+.aw-tab[aria-selected="true"] { background:#547958; color:#fff; }
 .aw-section { display:none; }
 .aw-section.is-active { display:block; }
 .aw-section-head { display:flex; align-items:end; justify-content:space-between; gap:12px; margin:0 0 12px; }
-.aw-section-head h2 { margin:0; color:var(--cream); font:700 1.2rem 'Playfair Display',serif; }
+.aw-section-head h2 { margin:0; color:var(--aw-text); font:700 1.2rem 'Playfair Display',serif; }
 .aw-section-head p { margin:0; color:var(--aw-muted); font:.72rem 'DM Sans',sans-serif; }
 .aw-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.aw-card { min-width:0; min-height:290px; padding:17px; border:1px solid var(--aw-line); border-radius:11px; background:var(--aw-card); }
-.aw-card h3 { min-height:2.5em; margin:0 0 10px; color:var(--cream); font:600 .88rem/1.35 'DM Sans',sans-serif; }
+.aw-card { min-width:0; min-height:290px; padding:17px; border:1px solid var(--aw-line); border-radius:11px; background:var(--aw-card); box-shadow:0 2px 10px rgba(38,52,43,.04); }
+.aw-card h3 { min-height:2.5em; margin:0 0 10px; color:var(--aw-text); font:600 .88rem/1.35 'DM Sans',sans-serif; }
 .aw-card-canvas { position:relative; height:220px; }
-.aw-leaflet-map { height:220px; overflow:hidden; border-radius:8px; background:rgba(255,255,255,.04); }
+.aw-leaflet-map { height:220px; overflow:hidden; border-radius:8px; background:#edf1eb; }
 .aw-card-empty { display:grid; min-height:205px; place-content:center; gap:8px; padding:16px; border:1px dashed var(--aw-line); border-radius:8px; color:var(--aw-muted); text-align:center; }
-.aw-card-empty strong { color:#d8c18e; font:600 .8rem 'DM Sans',sans-serif; }
+.aw-card-empty strong { color:#5e6f60; font:600 .8rem 'DM Sans',sans-serif; }
 .aw-card-empty span { max-width:42ch; font:.73rem/1.5 'DM Sans',sans-serif; }
-.aw-kpi-value { padding:18px 0 8px; color:#d8b66c; font:700 clamp(1.8rem,3vw,2.4rem)/1.1 'Playfair Display',serif; }
+.aw-kpi-value { padding:18px 0 8px; color:#88641f; font:700 clamp(1.8rem,3vw,2.4rem)/1.1 'Playfair Display',serif; }
 .aw-kpi-note { color:var(--aw-muted); font:.75rem/1.5 'DM Sans',sans-serif; }
-.aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:#d8b66c; font:.72rem 'DM Sans',sans-serif; }
+.aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:#88641f; font:.72rem 'DM Sans',sans-serif; }
 .aw-word-cloud { display:flex; min-height:205px; align-content:center; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px 14px; padding:16px; }
-.aw-word-cloud span { color:#d8b66c; font:600 1rem/1.2 'DM Sans',sans-serif; }
+.aw-word-cloud span { color:#88641f; font:600 1rem/1.2 'DM Sans',sans-serif; }
 .aw-heatmap { display:grid; grid-template-columns:34px repeat(24,minmax(10px,1fr)); gap:3px; align-items:center; overflow-x:auto; padding:8px 0; }
 .aw-heatmap-label { color:var(--aw-muted); font:500 .58rem 'DM Sans',sans-serif; text-align:center; }
 .aw-heatmap-cell { width:100%; min-width:10px; height:13px; border:0; border-radius:3px; background:#a8c28e; }
 .aw-calendar { display:grid; grid-template-columns:repeat(7,minmax(20px,1fr)); gap:4px; max-height:210px; overflow:auto; padding:8px 0; }
 .aw-calendar-cell { aspect-ratio:1; min-width:20px; border-radius:4px; background:#a8c28e; }
+.analytics-workspace .date-range-field { color:var(--aw-muted); }
+.analytics-workspace .date-range-field input { border-color:var(--aw-line); background:#fff; color:var(--aw-text); color-scheme:light; }
+.analytics-workspace .date-range-submit { background:#547958; color:#fff; }
+.analytics-workspace .date-range-clear { color:var(--aw-muted); }
+.analytics-workspace .date-range-error { color:#a33434; }
+.analytics-workspace .analytics-report-export { border-color:var(--aw-line); background:#fff; color:#43564a; }
 @media(max-width:760px){.aw-grid{grid-template-columns:1fr}.aw-card{min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas{height:205px}}
 </style>
 <div class="analytics-workspace">

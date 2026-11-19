@@ -60,10 +60,10 @@
   initMaps(document.querySelector('.aw-section.is-active'));
   if (typeof Chart === 'undefined') return;
 
-  const root = getComputedStyle(document.documentElement);
-  const textColor = root.getPropertyValue('--cream').trim() || '#eee7d2';
-  const mutedColor = 'rgba(238,231,210,.62)';
-  const lineColor = 'rgba(238,231,210,.1)';
+  const workspaceStyle = getComputedStyle(document.querySelector('.analytics-workspace'));
+  const textColor = workspaceStyle.getPropertyValue('--aw-chart-text').trim() || '#34443a';
+  const mutedColor = workspaceStyle.getPropertyValue('--aw-muted').trim() || '#66746a';
+  const lineColor = 'rgba(45,65,50,.14)';
   const colors = ['#a8c28e', '#d8b66c', '#c98267', '#799f9a', '#b68dbe', '#d9a85b', '#74936f', '#d78976'];
   const horizontalKinds = new Set(['rank', 'rank-low', 'wordcloud']);
   document.querySelectorAll('canvas[data-aw-chart]').forEach(canvas => {
@@ -78,8 +78,8 @@
     const datasets = [{
       label: kind === 'destinationRated' || kind === 'cultureRated' ? 'Average rating / 5' : (doughnut ? 'Views' : 'Records'),
       data: chartType === 'scatter' ? series.points : series.values,
-      backgroundColor: kind === 'gauge' ? ['#d8b66c','rgba(238,231,210,.12)'] : (doughnut ? series.values.map((_, i) => colors[i % colors.length]) : (horizontal ? '#a8c28e' : 'rgba(168,194,142,.72)')),
-      borderColor: doughnut ? '#152318' : (chartType === 'line' ? '#d8b66c' : '#a8c28e'),
+      backgroundColor: kind === 'gauge' ? ['#547958','rgba(45,65,50,.12)'] : (doughnut ? series.values.map((_, i) => colors[i % colors.length]) : (horizontal ? '#729675' : 'rgba(114,150,117,.72)')),
+      borderColor: doughnut ? '#fff' : (chartType === 'line' ? '#88641f' : '#729675'),
       borderWidth: doughnut ? 2 : 1,
       borderRadius: chartType === 'bar' && !horizontal ? 4 : 0,
       fill: area,
@@ -88,7 +88,7 @@
       pointHoverRadius: chartType === 'line' ? 5 : 0
     }];
     if (Array.isArray(series.datasets)) datasets.splice(0, datasets.length, ...series.datasets.map(dataset => ({ ...dataset, borderWidth: 0, borderRadius: 3 })));
-    if (chartType === 'scatter') { datasets[0].pointRadius = 5; datasets[0].pointHoverRadius = 7; datasets[0].backgroundColor = '#d8b66c'; }
+    if (chartType === 'scatter') { datasets[0].pointRadius = 5; datasets[0].pointHoverRadius = 7; datasets[0].backgroundColor = '#88641f'; }
     new Chart(canvas, {
       type: chartType,
       plugins: kind === 'gauge' ? [{ id: 'gaugeCenter', afterDraw(chart) { const { ctx, chartArea } = chart; if (!chartArea) return; ctx.save(); ctx.fillStyle = textColor; ctx.font = '700 20px "DM Sans"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${Number(series.values[0]).toFixed(1)} / 5`, (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 12); ctx.restore(); } }] : [],
