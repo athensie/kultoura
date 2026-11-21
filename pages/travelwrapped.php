@@ -53,11 +53,11 @@ body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;ov
 body:before{content:"";position:fixed;inset:0;z-index:-1;background:rgba(20,12,6,.72);pointer-events:none}
 .stage{position:relative;z-index:1;width:min(420px,46vh,calc(100vw - 48px));height:min(760px,88vh,88dvh);border-radius:26px;overflow:hidden;background:var(--paper);user-select:none;transition:background .6s;--bt:rgba(42,26,16,.15);--bf:var(--ink)}
 @media(max-width:480px){.stage{width:min(420px,calc(100vw - 32px));height:min(760px,88vh,88dvh);border-radius:24px}}
-.popup-close{position:absolute;z-index:30;top:52px;right:max(18px,calc((100vw - 420px)/2 + 18px));width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(44,26,14,.1);color:var(--ink);text-decoration:none;font:600 20px/1 var(--sans)}
-.popup-close:hover{background:rgba(44,26,14,.18)}
+.popup-close{position:absolute;z-index:50;top:calc(env(safe-area-inset-top,0px) + 31px);right:12px;width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--card);color:var(--ink);text-decoration:none;font:600 20px/1 var(--sans);box-shadow:0 3px 12px #2a1a1020}
+.popup-close:hover{background:#fffaf3;transform:scale(1.04)}.popup-close:focus-visible,.visit-cta:focus-visible{outline:3px solid var(--terra);outline-offset:3px}
 .stage.dark{background:#130b06;--bt:#ffffff30;--bf:#fff}
 .stage.exporting .rise{opacity:1!important;transform:none!important;animation:none!important}
-.top{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 0}
+.top{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + 14px) 56px 0 18px}
 .bars{display:flex;gap:4px}.bar{flex:1;height:3px;border-radius:9px;background:var(--bt);overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--bf)}
 .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .brand{font:700 11px var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--sage-d)}.stage.dark .brand{color:var(--gold)}
@@ -115,7 +115,7 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 .cut-item .ph img,.cut-item .ph video{object-fit:contain!important;background:#0f0a06}.cut-item .clip-ph{inset:0;background-size:contain;background-repeat:no-repeat;animation:none!important}
 .rail{position:absolute;left:24px;right:24px;bottom:100px;z-index:7;display:flex;gap:8px}.rail>div{flex:1;min-width:0}.rail small{display:block;margin-bottom:7px;font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:#ffffff70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rail .act small{color:#fff}.rail b{display:block;height:3px;border-radius:3px;background:#ffffff35;overflow:hidden}.rail i{display:block;height:100%;width:0;background:#fff}
 .mosaic{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:88px;gap:8px}.mosaic .ph{border-radius:16px}.mosaic .t1{grid-column:span 2;grid-row:span 2}.mosaic .t2{grid-row:span 2}.mosaic .t6{grid-column:span 3}
-.outro h2{font-size:48px;font-weight:800;margin-top:14px}.outro h2 em{color:var(--sage)}.quote{margin:24px 0 22px;border-top:1.5px solid var(--ink)}.quote div{padding:12px 0;border-bottom:1px solid var(--line);font:italic 500 19px var(--serif)}
+.outro h2{font-size:48px;font-weight:800;margin-top:14px}.outro h2 em{color:var(--sage)}.quote{margin:20px 0 16px;border-top:1.5px solid var(--ink)}.quote div{padding:10px 0;border-bottom:1px solid var(--line);font:italic 500 18px var(--serif)}.visit-cta{position:relative;z-index:11;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 2px;padding:14px 16px;border-radius:17px;background:var(--ink);color:#fffaf3;text-decoration:none;box-shadow:0 10px 24px #2a1a1020;transition:transform .18s,background .18s}.visit-cta:hover{transform:translateY(-2px);background:#3b2618}.visit-cta:focus-visible{outline:3px solid var(--terra);outline-offset:3px}.visit-cta span{font:500 11px/1.35 var(--sans);color:#fffaf3b8}.visit-cta strong{display:block;margin-top:3px;color:#fffaf3;font:700 15px var(--serif)}.visit-cta i{font:normal 22px/1 var(--sans);color:var(--gold)}
 .sig{font:800 14px var(--serif);letter-spacing:.16em;color:var(--sage-d)}.sig small{display:block;margin-top:4px;font:600 9.5px var(--sans);letter-spacing:.22em;color:var(--soft)}
 .replay{margin-top:20px;cursor:pointer;padding:11px 18px;border-radius:99px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font:600 13px var(--sans)}
 .pg{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;font-size:42px;background:var(--card);border:1.5px solid var(--ink);margin-bottom:16px}.pt{font:800 40px/1.02 var(--serif);letter-spacing:-.025em}.pt em{color:var(--terra)}.pb{margin-top:18px}.pb div{display:grid;grid-template-columns:104px 1fr 22px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;color:var(--soft)}.pb i{display:block;height:8px;border-radius:9px;background:var(--line);overflow:hidden}.pb u{display:block;height:100%;background:var(--sage);border-radius:9px}.pb b{font:700 14px var(--serif);color:var(--ink);text-align:right}
@@ -132,8 +132,8 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 <style>.bg .bi{overflow:hidden}.bg .bi img{display:block;width:100%;height:100%;object-fit:contain}</style></head>
 <body>
 <?php if (!$isPublicShared): ?><iframe class="diary-backdrop" src="traveldiary.php" title="Travel Diary" aria-hidden="true" tabindex="-1"></iframe><?php endif; ?>
-<a class="popup-close" href="<?php echo $isPublicShared ? '../index.php' : 'traveldiary.php'; ?>" aria-label="Close Travel Wrapped">&times;</a>
 <main class="stage" id="stage">
+<a class="popup-close" href="<?php echo $isPublicShared ? '../index.php' : 'traveldiary.php'; ?>" aria-label="Close Travel Wrapped" title="Close Travel Wrapped">&times;</a>
 <header class="top"><div class="bars" id="bars"></div><div class="meta"><div class="brand" id="brand"></div><div class="count" id="count"></div></div></header>
 <div class="slides" id="slides"></div>
 <div class="zone l" id="zl"></div><div class="zone r" id="zr"></div>
@@ -249,7 +249,7 @@ const SLIDES=[
   if(f.k==='end')return`<div class="cut-item cut-title"><div><span class="eyebrow">Fin</span><h2>${esc(CFG.brand)}</h2><p>${esc(placesLine)}</p></div></div>`;
   const{c,i}=f;return`<div class="cut-item" style="--d:${f.ms}ms">${tile(f.m,'fill graded')}<div class="lt ${f.k==='photo'?'st':''}"><span>${esc(f.p.name)}</span><small>${fmtDate(f.m.date)}</small></div></div>`}).join('')}<div class="cut-fx"></div></div>`},
 {id:'gallery',build:()=>{const it=mix(6);return`${head('Photos &amp; clips','The rest of<br>the story',`${plural(PHOTOS.length,'photo')} and ${plural(CLIPS.length,'clip')} from every stop.`)}<div class="mosaic rise" style="--i:1">${it.map((m,i)=>tile(m,'t'+(i+1))).join('')}</div>${MEDIA.length>it.length?`<p class="more rise" style="--i:2">+ ${MEDIA.length-it.length} more in your gallery</p>`:''}`}},
-{id:'outro',build:()=>`<div class="outro"><div class="eyebrow rise">${esc(CFG.brand)} \u00b7 ${CFG.year}</div><h2 class="rise" style="--i:1">${esc(C.outroTitle[0])}<br><em>${esc(C.outroTitle[1])}</em></h2><p class="lede rise" style="--i:2">${C.outroSub.map(esc).join(' ')}</p><div class="quote rise" style="--i:3">${C.quote.map(q=>`<div>${esc(q)}</div>`).join('')}</div><div class="sig rise" style="--i:4">${esc(CFG.brand.toUpperCase())}<small>${esc(CFG.region.toUpperCase())}</small></div><button class="replay rise" style="--i:5" id="replay">\u21BB Watch again</button></div>`}
+{id:'outro',build:()=>`<div class="outro"><div class="eyebrow rise">${esc(CFG.brand)} \u00b7 ${CFG.year}</div><h2 class="rise" style="--i:1">${esc(C.outroTitle[0])}<br><em>${esc(C.outroTitle[1])}</em></h2><p class="lede rise" style="--i:2">${C.outroSub.map(esc).join(' ')}</p><div class="quote rise" style="--i:3">${C.quote.map(q=>`<div>${esc(q)}</div>`).join('')}</div><a class="visit-cta rise" style="--i:4" href="../index.php"><span>Keep exploring Malvar<strong>Discover more local places, stories, and experiences.</strong></span><i aria-hidden="true">→</i></a><div class="sig rise" style="--i:5">${esc(CFG.brand.toUpperCase())}<small>${esc(CFG.region.toUpperCase())}</small></div><button class="replay rise" style="--i:6" id="replay">\u21BB Watch again</button></div>`}
 ];
 
 /* engine */
