@@ -246,6 +246,7 @@ $workspaceTabs = [
     'search' => 'Search Insights', 'community' => 'Community Feedback', 'audience' => 'Audience',
     'recommendations' => 'Recommendations & Promotions',
 ];
+$initialWorkspaceTab = isset($_GET['review_tab']) ? 'community' : 'traffic';
 $workspaceMetrics = [
     'traffic' => [
         ['Visits per Hour', 'heatmap', 'heatmapViews', 'Page views grouped by weekday and hour.'],
@@ -689,11 +690,11 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         </article>
     </section>
     <div class="aw-tabs" role="tablist" aria-label="Analytics sections">
-        <?php foreach ($workspaceTabs as $key=>$label): ?><button class="aw-tab" type="button" role="tab" id="aw-tab-<?php echo $key; ?>" aria-controls="aw-section-<?php echo $key; ?>" aria-selected="<?php echo $key === 'traffic' ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($label); ?></button><?php endforeach; ?>
+        <?php foreach ($workspaceTabs as $key=>$label): ?><button class="aw-tab" type="button" role="tab" id="aw-tab-<?php echo $key; ?>" aria-controls="aw-section-<?php echo $key; ?>" aria-selected="<?php echo $key === $initialWorkspaceTab ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($label); ?></button><?php endforeach; ?>
     </div>
     <script type="application/json" id="aw-chart-data"><?php echo $chartDataJson; ?></script>
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
-    <section class="aw-section <?php echo $sectionKey === 'traffic' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'traffic' ? '' : 'hidden'; ?>>
+    <section class="aw-section <?php echo $sectionKey === $initialWorkspaceTab ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === $initialWorkspaceTab ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
         <?php if ($sectionKey === 'community'): include __DIR__ . '/reviews_admin_panel.php'; else: ?>
         <div class="aw-grid">
