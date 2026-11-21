@@ -226,7 +226,7 @@ unset($sec);
     </div>
     <p class="a-footer-tag">Promoting culture. Preserving heritage. Inspiring journeys.</p>
 </footer>
-<script src="../assets/js/navbar.js"></script>
+<script src="../assets/js/navbar.js?v=20261121-2"></script>
 <script src="../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="../assets/js/about.js"></script>
 </body>

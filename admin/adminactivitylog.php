@@ -107,5 +107,6 @@ function activity_log_url(array $params, int $page): string { $params['page'] = 
         <?php endforeach; endif; ?></tbody></table></div>
     <nav class="activity-pagination" aria-label="Activity pages"><span><?= number_format($totalRows) ?> activities · page <?= $page ?> of <?= $totalPages ?></span><span><?php if ($page > 1): ?><a href="<?= htmlspecialchars(activity_log_url($baseParams, $page - 1)) ?>">← Previous</a><?php endif; ?><?php if ($page > 1 && $page < $totalPages): ?> · <?php endif; ?><?php if ($page < $totalPages): ?><a href="<?= htmlspecialchars(activity_log_url($baseParams, $page + 1)) ?>">Next →</a><?php endif; ?></span></nav>
 </main>
+<script src="../assets/js/site-tour.js?v=20261121-2"></script>
 </body>
 </html>

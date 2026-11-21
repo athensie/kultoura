@@ -312,7 +312,7 @@ document.querySelectorAll('.p-fav-btn').forEach(function (btn) {
     });
 });
 </script>
-<script src="../../assets/js/navbar.js"></script>
+<script src="../../assets/js/navbar.js?v=20261121-2"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 </body>
 </html>

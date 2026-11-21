@@ -328,7 +328,7 @@ $hubImages['services'] = $tourismCategoryPhotos['services'] ?: ($hubImages['serv
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-<script src="../assets/js/navbar.js"></script>
+<script src="../assets/js/navbar.js?v=20261121-2"></script>
 <script src="../assets/js/navbar-search.js?v=20261101-2"></script>
 </body>
 </html>

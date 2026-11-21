@@ -148,6 +148,6 @@ if ($query !== '') {
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
 
-<script src="../assets/js/navbar.js"></script>
+<script src="../assets/js/navbar.js?v=20261121-2"></script>
 </body>
 </html>

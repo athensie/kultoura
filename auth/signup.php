@@ -221,7 +221,7 @@ unset($_SESSION['error']);
         </div>
     </div>
 </div>
-<script src="../assets/js/navbar.js"></script>
+<script src="../assets/js/navbar.js?v=20261121-2"></script>
 <script src="../assets/js/index.js"></script>
 </body>
 </html>

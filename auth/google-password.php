@@ -181,5 +181,6 @@ document.querySelectorAll('.google-password-toggle').forEach(function(button){bu
 document.querySelectorAll('[data-dialog]').forEach(function(button){button.addEventListener('click',function(){document.getElementById(button.dataset.dialog).showModal();});});
 document.querySelectorAll('.gp-dialog').forEach(function(dialog){dialog.querySelector('.gp-dialog-close').addEventListener('click',function(){dialog.close();});dialog.addEventListener('click',function(event){if(event.target===dialog)dialog.close();});});
 </script>
+<script src="../assets/js/site-tour.js?v=20261121-2"></script>
 </body>
 </html>

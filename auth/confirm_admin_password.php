@@ -96,5 +96,6 @@ if ($pending && $action === 'approve') {
     </main>
 </div>
 <script src="../assets/js/index.js"></script>
+<script src="../assets/js/site-tour.js?v=20261121-2"></script>
 </body>
 </html>

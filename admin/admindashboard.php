@@ -359,5 +359,6 @@ if ($period === 'all') {
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script>initSidebarCollapse();</script>
+<script src="../assets/js/site-tour.js?v=20261121-2"></script>
 </body>
 </html>

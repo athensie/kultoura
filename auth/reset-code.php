@@ -90,6 +90,6 @@ $secondsUntilResend = max(0, 60 - (time() - $pending['sent_at']));
         </div>
     </main>
 </div>
-<script src="../assets/js/navbar.js"></script>
+<script src="../assets/js/navbar.js?v=20261121-2"></script>
 </body>
 </html>
