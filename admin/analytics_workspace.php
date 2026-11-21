@@ -644,7 +644,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                 <label class="date-range-field">Start date<input type="date" name="date_from" value="<?php echo htmlspecialchars($filterFromValue); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required></label>
                 <label class="date-range-field">End date<input type="date" name="date_to" value="<?php echo htmlspecialchars($filterToValue); ?>" max="<?php echo $today->format('Y-m-d'); ?>" required></label>
                 <button class="date-range-submit" type="submit">Apply</button>
-                <a class="analytics-report-export" href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>" title="Download CSV report" aria-label="Download CSV report"><i data-lucide="download" class="lucide" aria-hidden="true"></i></a>
+                <a class="analytics-report-export" href="<?php echo BASE_URL; ?>/admin/analytics_export.php?period=<?php echo urlencode($period); ?>&amp;date_from=<?php echo urlencode($dateFromInput); ?>&amp;date_to=<?php echo urlencode($dateToInput); ?>" title="Download full Excel analytics report" aria-label="Download full Excel analytics report"><i data-lucide="download" class="lucide" aria-hidden="true"></i></a>
             </form>
         </section>
         <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
