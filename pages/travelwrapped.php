@@ -116,7 +116,6 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 .rail{position:absolute;left:24px;right:24px;bottom:100px;z-index:7;display:flex;gap:8px}.rail>div{flex:1;min-width:0}.rail small{display:block;margin-bottom:7px;font:600 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:#ffffff70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rail .act small{color:#fff}.rail b{display:block;height:3px;border-radius:3px;background:#ffffff35;overflow:hidden}.rail i{display:block;height:100%;width:0;background:#fff}
 .mosaic{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:88px;gap:8px}.mosaic .ph{border-radius:16px}.mosaic .t1{grid-column:span 2;grid-row:span 2}.mosaic .t2{grid-row:span 2}.mosaic .t6{grid-column:span 3}
 .outro h2{font-size:48px;font-weight:800;margin-top:14px}.outro h2 em{color:var(--sage)}.quote{margin:20px 0 16px;border-top:1.5px solid var(--ink)}.quote div{padding:10px 0;border-bottom:1px solid var(--line);font:italic 500 18px var(--serif)}.visit-cta{position:relative;z-index:11;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 2px;padding:14px 16px;border-radius:17px;background:var(--ink);color:#fffaf3;text-decoration:none;box-shadow:0 10px 24px #2a1a1020;transition:transform .18s,background .18s}.visit-cta:hover{transform:translateY(-2px);background:#3b2618}.visit-cta:focus-visible{outline:3px solid var(--terra);outline-offset:3px}.visit-cta span{font:500 11px/1.35 var(--sans);color:#fffaf3b8}.visit-cta strong{display:block;margin-top:3px;color:#fffaf3;font:700 15px var(--serif)}.visit-cta i{font:normal 22px/1 var(--sans);color:var(--gold)}
-.share-invitation{position:fixed;left:50%;bottom:12px;z-index:40;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:9px 15px;border:1px solid #fffaf333;border-radius:999px;background:#2a1a10;color:#fffaf3;text-decoration:none;box-shadow:0 8px 26px #0004;transform:translateX(-50%);font:500 11px/1.2 var(--sans);white-space:nowrap;transition:background .18s,transform .18s}.share-invitation:hover{background:#3b2618;transform:translateX(-50%) translateY(-2px)}.share-invitation strong{font:700 12px var(--sans);color:#e8b86b}.share-invitation i{font:normal 17px/1 var(--sans);color:#e8b86b}.share-invitation:focus-visible{outline:3px solid #e8b86b;outline-offset:3px}
 .sig{font:800 14px var(--serif);letter-spacing:.16em;color:var(--sage-d)}.sig small{display:block;margin-top:4px;font:600 9.5px var(--sans);letter-spacing:.22em;color:var(--soft)}
 .replay{margin-top:20px;cursor:pointer;padding:11px 18px;border-radius:99px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font:600 13px var(--sans)}
 .pg{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;font-size:42px;background:var(--card);border:1.5px solid var(--ink);margin-bottom:16px}.pt{font:800 40px/1.02 var(--serif);letter-spacing:-.025em}.pt em{color:var(--terra)}.pb{margin-top:18px}.pb div{display:grid;grid-template-columns:104px 1fr 22px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;color:var(--soft)}.pb i{display:block;height:8px;border-radius:9px;background:var(--line);overflow:hidden}.pb u{display:block;height:100%;background:var(--sage);border-radius:9px}.pb b{font:700 14px var(--serif);color:var(--ink);text-align:right}
@@ -132,7 +131,7 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 </style>
 <style>.bg .bi{overflow:hidden}.bg .bi img{display:block;width:100%;height:100%;object-fit:contain}</style></head>
 <body>
-<?php if (!$isPublicShared): ?><iframe class="diary-backdrop" src="traveldiary.php" title="Travel Diary" aria-hidden="true" tabindex="-1"></iframe><?php endif; ?>
+<iframe class="diary-backdrop" src="<?php echo $isPublicShared ? '../index.php' : 'traveldiary.php'; ?>" title="<?php echo $isPublicShared ? 'KULTOURA homepage' : 'Travel Diary'; ?>" aria-hidden="true" tabindex="-1"></iframe>
 <main class="stage" id="stage">
 <a class="popup-close" href="<?php echo $isPublicShared ? '../index.php' : 'traveldiary.php'; ?>" aria-label="Close Travel Wrapped" title="Close Travel Wrapped">&times;</a>
 <header class="top"><div class="bars" id="bars"></div><div class="meta"><div class="brand" id="brand"></div><div class="count" id="count"></div></div></header>
@@ -145,7 +144,6 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 </footer>
 <div class="toast" id="toast"></div>
 </main>
-<?php if ($isPublicShared): ?><a class="share-invitation" href="../index.php"><strong>KULTOURA</strong></a><?php endif; ?>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 /* DATA — replace with JSON from your backend. media[].src / poster / places[].img / liked[].img = real uploads. */
