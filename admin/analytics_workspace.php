@@ -109,13 +109,20 @@ $calendarStmt = $conn->prepare("SELECT DATE(activity_date) day,COUNT(*) total FR
 if ($calendarStmt) { $calendarStmt->bind_param('ss',$calendarStartSql,$calendarEndSql); $calendarStmt->execute(); foreach ($calendarStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $dailyActivityCounts[$row['day']]=(int)$row['total']; $calendarStmt->close(); }
 $interactionCalendar = [];
 for ($day=$calendarStartDate; $day<$periodEndExclusive; $day=$day->modify('+1 day')) $interactionCalendar[]=['date'=>$day->format('Y-m-d'),'label'=>$day->format('M j, Y'),'value'=>$dailyActivityCounts[$day->format('Y-m-d')]??0];
-$cultureMonthBuckets = $fiestaMonthBuckets = $commentMonthBuckets = $searchMonthBuckets = $engagementMonthBuckets = $registrationBuckets = [];
+$cultureMonthBuckets = $fiestaMonthBuckets = $commentMonthBuckets = $reviewMonthBuckets = $searchMonthBuckets = $engagementMonthBuckets = $registrationBuckets = [];
 $cultureMonthStmt = $conn->prepare("SELECT DATE_FORMAT(viewed_at,'%Y-%m') bucket,COUNT(*) total FROM item_views WHERE item_type IN ('product','fiesta','person') AND viewed_at>=? AND viewed_at<? GROUP BY bucket ORDER BY bucket");
 if ($cultureMonthStmt) { $cultureMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $cultureMonthStmt->execute(); foreach ($cultureMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $cultureMonthBuckets[$row['bucket']]=(int)$row['total']; $cultureMonthStmt->close(); }
 $fiestaMonthStmt = $conn->prepare("SELECT DATE_FORMAT(viewed_at,'%Y-%m') bucket,COUNT(*) total FROM item_views WHERE item_type='fiesta' AND viewed_at>=? AND viewed_at<? GROUP BY bucket ORDER BY bucket");
 if ($fiestaMonthStmt) { $fiestaMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $fiestaMonthStmt->execute(); foreach ($fiestaMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $fiestaMonthBuckets[$row['bucket']]=(int)$row['total']; $fiestaMonthStmt->close(); }
 $commentMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bucket,COUNT(*) total FROM user_activity_log WHERE activity_type='comment' AND activity_date>=? AND activity_date<? GROUP BY bucket ORDER BY bucket");
 if ($commentMonthStmt) { $commentMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $commentMonthStmt->execute(); foreach ($commentMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $commentMonthBuckets[$row['bucket']]=(int)$row['total']; $commentMonthStmt->close(); }
+$reviewCount = 0;
+if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
+    $reviewCountStmt = $conn->prepare("SELECT COUNT(*) total FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<?");
+    if ($reviewCountStmt) { $reviewCountStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $reviewCountStmt->execute(); $reviewCount=(int)($reviewCountStmt->get_result()->fetch_assoc()['total']??0); $reviewCountStmt->close(); }
+    $reviewMonthStmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') bucket,COUNT(*) total FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<? GROUP BY bucket ORDER BY bucket");
+    if ($reviewMonthStmt) { $reviewMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $reviewMonthStmt->execute(); foreach ($reviewMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $reviewMonthBuckets[$row['bucket']]=(int)$row['total']; $reviewMonthStmt->close(); }
+}
 $searchMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bucket,COUNT(*) total FROM user_activity_log WHERE activity_type='search' AND activity_date>=? AND activity_date<? GROUP BY bucket ORDER BY bucket");
 if ($searchMonthStmt) { $searchMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $searchMonthStmt->execute(); foreach ($searchMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $searchMonthBuckets[$row['bucket']]=(int)$row['total']; $searchMonthStmt->close(); }
 $engagementMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bucket,COUNT(*) total FROM user_activity_log WHERE activity_date>=? AND activity_date<? GROUP BY bucket ORDER BY bucket");
@@ -130,7 +137,7 @@ $destinationRatingGauge = $destinationRatingCount ? ['labels'=>['Average rating'
 $cultureRatingGauge = $cultureRatingCount ? ['labels'=>['Average rating','Remaining'],'values'=>[$cultureAverageRating,max(0,5-$cultureAverageRating)]] : ['labels'=>[],'values'=>[]];
 $sentimentCounts = ['Positive'=>0,'Neutral'=>0,'Negative'=>0];
 if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
-    $sentimentStmt = $conn->prepare("SELECT review_text FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<?");
+    $sentimentStmt = $conn->prepare("SELECT review_text FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<?");
     if ($sentimentStmt) { $sentimentStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $sentimentStmt->execute(); foreach ($sentimentStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $reviewRow) { $score=analytics_review_sentiment((string)$reviewRow['review_text']); $sentimentCounts[$score>0?'Positive':($score<0?'Negative':'Neutral')]++; } $sentimentStmt->close(); }
 }
 $destinationMapPoints = [];
@@ -211,7 +218,7 @@ $chartData = [
     'monthlyVisits' => ['labels'=>array_column($monthlyVisitTrend,'label'),'values'=>array_column($monthlyVisitTrend,'value')],
     'yearlyVisits' => ['labels'=>array_column($yearlyVisitTrend,'label'),'values'=>array_column($yearlyVisitTrend,'value')],
     'cultureMonthly' => $bucketSeries($cultureMonthBuckets), 'fiestaMonthly' => $bucketSeries($fiestaMonthBuckets),
-    'commentsMonthly' => $bucketSeries($commentMonthBuckets), 'searchMonthly' => $bucketSeries($searchMonthBuckets),
+    'commentsMonthly' => $bucketSeries($commentMonthBuckets), 'reviewsMonthly' => $bucketSeries($reviewMonthBuckets), 'searchMonthly' => $bucketSeries($searchMonthBuckets),
     'engagementMonthly' => $bucketSeries($engagementMonthBuckets),
     'sentiment' => ['labels'=>array_keys($sentimentCounts),'values'=>array_values($sentimentCounts)],
     'destinationRatingGauge' => $destinationRatingGauge, 'cultureRatingGauge' => $cultureRatingGauge,
@@ -268,13 +275,13 @@ $workspaceMetrics = [
         ['Most Searched Destinations', 'rank', 'destinationSearches', 'Search events linked to destination records.'], ['Most Searched Cultural Topics', 'wordcloud', 'cultureSearches', 'Search events linked to cultural content categories.'],
     ],
     'community' => [
-        ['Total Comments', 'kpi', null, number_format($overallActivityCounts['comment'])], ['Total Ratings', 'kpi', null, number_format($overallRatingCount)],
+        ['Total Written Reviews', 'kpi', null, number_format($reviewCount)], ['Total Ratings', 'kpi', null, number_format($overallRatingCount)],
         ['Average Destination Rating', 'gauge', 'destinationRatingGauge', $destinationRatingCount ? number_format($averageDestinationRating, 1) . ' / 5 average from ' . number_format($destinationRatingCount) . ' ratings' : 'No ratings yet'],
         ['Average Cultural Content Rating', 'gauge', 'cultureRatingGauge', $cultureRatingCount ? number_format($cultureAverageRating, 1) . ' / 5 average from ' . number_format($cultureRatingCount) . ' ratings' : 'No cultural ratings yet'],
-        ['Comments per Month', 'line', 'commentsMonthly', 'Recorded comment events grouped by month.'], ['Positive vs. Negative Feedback', 'donut', 'sentiment', 'Rule-based estimate from reviews; neutral reviews are shown separately.'],
-        ['Destination Ratings', 'bar', 'destinationRated', 'Destinations with visitor ratings in the selected period.'], ['Destination Rating Distribution', 'histogram', 'ratings', 'Visible visitor ratings by star count.'],
-        ['Most Rated Cultural Content', 'rank', 'cultureRated', 'Cultural items ranked by average rating.'], ['Cultural Content Ratings', 'histogram', 'cultureRatings', 'Ratings for products, fiestas, and people of Malvar by star count.'],
-        ['Views vs. Ratings', 'scatter', 'destinationScatter', 'Each point is one destination with both views and a rating.'], ['Most Engaged Destinations', 'rank', 'destinationRanks', 'Ranked by recorded detail views.'], ['User Engagement by Section', 'stacked', 'sectionEngagement', 'Recorded views, clicks, and searches by catalog section.'],
+        ['Written Reviews per Month', 'line', 'reviewsMonthly', 'Visible, non-empty written reviews submitted in the selected period.'], ['Positive vs. Negative Reviews', 'donut', 'sentiment', 'Rule-based estimate from written reviews; neutral reviews are shown separately.'],
+        ['Destination Ratings', 'bar', 'destinationRated', 'Destinations ranked by average visitor rating.'], ['Destination Rating Distribution', 'histogram', 'ratings', 'Visible visitor ratings by star count.'],
+        ['Most Rated Cultural Content', 'rank', 'cultureRated', 'Cultural items ranked by average rating.'], ['Cultural Content Rating Distribution', 'histogram', 'cultureRatings', 'Ratings for products, fiestas, and people of Malvar by star count.'],
+        ['Destination Views vs. Average Rating', 'scatter', 'destinationScatter', 'Each point compares a destination’s recorded views with its average visitor rating.'],
     ],
     'audience' => [
         ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'], ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'],
@@ -423,7 +430,7 @@ $aiDashboardFacts = [
     ], $forecastHistoryRows),
 ];
 $aiDashboardResult = null;
-$aiCacheKey = 'dashai_v7_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
+$aiCacheKey = 'dashai_v8_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
 if (ai_text_configured()) {
     $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights, and one practical, concise admin suggestion for every entry, keyed by its exact ID in card_suggestions. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. Suggestions must be specific and supported by the metric, and should recommend checking, improving, or promoting relevant content where appropriate. If a card has no usable data, suggest collecting enough data or improving tracking rather than inventing a cause. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence), card_suggestions (object mapping every analytics_cards ID to one concise suggestion). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
     $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
