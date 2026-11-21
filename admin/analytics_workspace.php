@@ -31,9 +31,9 @@ $culturalKeys = array_values(array_filter(array_keys($tourismCategoryAnalytics),
 $cultureEngagementLabels = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['label'],$culturalKeys);
 $cultureEngagementValues = array_map(static fn($key)=>$tourismCategoryAnalytics[$key]['views']+$tourismCategoryAnalytics[$key]['clicks']+$tourismCategoryAnalytics[$key]['searches'],$culturalKeys);
 $cultureEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#2c4a2e','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $cultureEngagementDatasets[]=['label'=>$label,'data'=>array_map(static fn($key)=>$tourismCategoryAnalytics[$key][$field],$culturalKeys),'backgroundColor'=>['Views'=>'#2c4a2e','Clicks'=>'#9fb88a','Searches'=>'#987123'][$label]];
 $sectionEngagementDatasets=[];
-foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#2c4a2e','Clicks'=>'#9fb88a','Searches'=>'#c8a96e'][$label]];
+foreach (['views'=>'Views','clicks'=>'Clicks','searches'=>'Searches'] as $field=>$label) $sectionEngagementDatasets[]=['label'=>$label,'data'=>array_column(array_values($tourismCategoryAnalytics),$field),'backgroundColor'=>['Views'=>'#2c4a2e','Clicks'=>'#9fb88a','Searches'=>'#987123'][$label]];
 $ratingLabels = ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'];
 $ratingValues = array_values($ratingDistribution);
 $cultureRatingDistribution = array_fill(1,5,0);
@@ -204,7 +204,7 @@ $chartData = [
         'values'=>array_map(static fn($row)=>$row['impressions']+$row['clicks'],$promotedPerformance),
         'datasets'=>[
             ['label'=>'Impressions','data'=>array_column($promotedPerformance,'impressions'),'backgroundColor'=>'#9fb88a'],
-            ['label'=>'Clicks','data'=>array_column($promotedPerformance,'clicks'),'backgroundColor'=>'#c8a96e'],
+            ['label'=>'Clicks','data'=>array_column($promotedPerformance,'clicks'),'backgroundColor'=>'#987123'],
         ],
     ],
     'destinationRanks' => $destinationChart, 'destinationLeast' => $destinationLeastChart, 'cultureRanks' => $cultureChart, 'cultureLeast' => $cultureLeastChart, 'restaurants' => $restaurantChart,
@@ -530,13 +530,13 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
 <style>
 .main-content { background:#f0ebd8; color:#111e14; }
 .dash-wrapper { max-width:1660px; padding:32px 38px 64px; }
-.analytics-workspace { --aw-bg:#f0ebd8; --aw-card:#fff; --aw-line:#d9dfd2; --aw-muted:#657265; --aw-text:#111e14; --aw-chart-text:#354839; --aw-green:#2c4a2e; --aw-sage:#9fb88a; --aw-gold:#c8a96e; --aw-highlight:#2c7a45; }
+.analytics-workspace { --aw-bg:#f0ebd8; --aw-card:#fff; --aw-line:#d9dfd2; --aw-muted:#657265; --aw-text:#111e14; --aw-chart-text:#354839; --aw-green:#2c4a2e; --aw-sage:#9fb88a; --aw-gold:#987123; --aw-highlight:#2c7a45; }
 .analytics-workspace, .analytics-workspace * { box-sizing:border-box; }
 .aw-heading { display:flex; flex-direction:column; gap:7px; margin:0 0 22px; }
 .aw-heading .section-label { margin:0; }
 .aw-heading h1 { margin:0; color:var(--aw-text); font:700 clamp(1.8rem,3vw,2.45rem)/1.15 'Playfair Display',serif; }
 .aw-heading h1 em { color:var(--aw-green); }
-.aw-heading .section-label { color:#758b67; }
+.aw-heading .section-label { color:#536b4c; }
 .aw-heading p { margin:0; max-width:65ch; color:var(--aw-muted); font:.88rem/1.5 'DM Sans',sans-serif; }
 .aw-toolbar { display:grid; gap:12px; margin:0 0 20px; }
 .aw-date-filter { display:grid; gap:16px; padding:16px; border:1px solid var(--aw-line); border-radius:16px; background:#fff; box-shadow:0 2px 8px rgba(38,52,43,.035); }
@@ -614,10 +614,10 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
 .aw-forecast-change { margin:0 0 12px; color:var(--aw-muted); font:.7rem 'DM Sans',sans-serif; }
 .aw-forecast-chart { display:flex; align-items:flex-end; gap:8px; height:115px; padding:8px 2px 0; border-bottom:1px solid var(--aw-line); }
 .aw-forecast-month { display:flex; min-width:0; height:100%; flex:1; flex-direction:column; align-items:center; justify-content:flex-end; gap:5px; }
-.aw-forecast-month strong { color:#738096; font:500 .55rem 'DM Sans',sans-serif; white-space:nowrap; }
+.aw-forecast-month strong { color:#586779; font:500 .55rem 'DM Sans',sans-serif; white-space:nowrap; }
 .aw-forecast-bar { width:min(100%,30px); min-height:4px; border-radius:4px 4px 0 0; background:var(--aw-sage); }
 .aw-forecast-month.is-projected .aw-forecast-bar { background:var(--aw-green); }
-.aw-forecast-month span { max-width:100%; overflow:hidden; color:#738096; font:500 .57rem 'DM Sans',sans-serif; text-overflow:ellipsis; white-space:nowrap; }
+.aw-forecast-month span { max-width:100%; overflow:hidden; color:#586779; font:500 .57rem 'DM Sans',sans-serif; text-overflow:ellipsis; white-space:nowrap; }
 .aw-forecast-note { margin:9px 0 0; color:var(--aw-muted); font:.66rem/1.45 'DM Sans',sans-serif; }
 @media(max-width:1100px){.aw-card{grid-column:span 6}.aw-card--wide{grid-column:span 12}.dash-wrapper{padding:30px 24px 56px}}
 @media(max-width:900px){.aw-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -75,27 +75,27 @@ $pendingCount = kt_requests_pending_count($conn);
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminusers.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261119-global-light">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <style>
         .req-card { background: rgba(255,255,255,.03); border: 1px solid rgba(245,237,216,.08); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
         .req-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
         .req-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--cream); }
         .req-meta { font-size: .72rem; color: rgba(245,237,216,.4); margin-top: 4px; }
-        .req-tag { display: inline-block; font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: rgba(200,169,110,.15); color: var(--gold,#C8A96E); margin-right: 6px; }
+        .req-tag { display: inline-block; font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: rgba(200,169,110,.15); color: var(--gold,#76551F); margin-right: 6px; }
         .req-tag.archive { background: rgba(229,115,115,.15); color: #e57373; }
         .req-tag.create { background: rgba(129,199,132,.15); color: #81c784; }
         .req-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px; }
         .req-field { background: rgba(255,255,255,.03); border-radius: 8px; padding: 8px 12px; }
         .req-field.changed { background: rgba(200,169,110,.1); border: 1px solid rgba(200,169,110,.35); }
-        .req-field.changed .req-field-label { color: var(--gold,#C8A96E); }
+        .req-field.changed .req-field-label { color: var(--gold,#76551F); }
         .req-field-label { font-size: .62rem; color: rgba(245,237,216,.35); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
         .req-field-value { font-size: .82rem; color: rgba(245,237,216,.85); word-break: break-word; }
         .req-field-value img { max-width: 100px; border-radius: 6px; margin-top: 4px; display: block; }
         .req-actions { display: flex; gap: 10px; }
         .status-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
         .status-tabs a { padding: 7px 16px; border-radius: 20px; font-size: .78rem; color: rgba(245,237,216,.6); text-decoration: none; background: rgba(255,255,255,.03); }
-        .status-tabs a.active { background: var(--gold,#C8A96E); color: #1a1812; font-weight: 600; }
+        .status-tabs a.active { background: var(--gold,#76551F); color: #1a1812; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -122,7 +122,7 @@ $pendingCount = kt_requests_pending_count($conn);
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" class="active"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" class="active"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingCount > 0): ?> <span style="background:var(--gold,#76551F);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingCount; ?></span><?php endif; ?></a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>

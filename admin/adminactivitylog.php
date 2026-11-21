@@ -56,7 +56,7 @@ function activity_log_url(array $params, int $page): string { $params['page'] = 
 <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>User Activity Log | KulToura Admin</title>
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261119-global-light">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin">
     <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261102-1">
     <style>
         body { min-height:100vh; }

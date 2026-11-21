@@ -1,7 +1,7 @@
 /* Shared light theme for the admin workspace. */
 :root {
   --clay: #2C7A45;
-  --gold: #C8A96E;
+  --gold: #76551F;
   --cream: #111E14;
   --forest: #FFFFFF;
   --dark: #F0EBD8;
@@ -18,7 +18,7 @@
   --text-success: #2C7A45;
   --text-info: #275B89;
   --text-danger: #B93838;
-  --text-amber: #8F6D35;
+  --text-amber: #76551F;
   color-scheme: light;
 }
 :root[data-theme="light"] {
@@ -39,8 +39,8 @@
   --text-success: #2C7A45;
   --text-info: #275B89;
   --text-danger: #B93838;
-  --text-amber: #8F6D35;
-  --gold: #C8A96E;
+  --text-amber: #76551F;
+  --gold: #76551F;
   color-scheme: light;
 }
 :root body { background: var(--dark); color: var(--cream); }
@@ -116,6 +116,54 @@
 :root .category-comparison th { background: #F6F8F4; color: #5D6B60; }
 :root .trend-sentiment { color: #2C7A45; }
 :root .description-paragraph-hint { color: #68776B; }
+:root .photo-card-empty,
+:root .section-row-handle,
+:root .section-row-thumb-empty,
+:root .form-checkbox-row,
+:root .btn-ghost,
+:root .filter-select,
+:root .page-btn,
+:root .type-chip,
+:root .status.inactive,
+:root .status-pill-off,
+:root .grid-card-sub,
+:root .grid-card-meta,
+:root .trending-sub,
+:root .traffic-chart-summary span,
+:root .conversion-stat-label,
+:root .month-label,
+:root .daily-views-label,
+:root .promo-effectiveness-summary span,
+:root .promo-effectiveness-table th,
+:root .donut-hole span,
+:root .legend-pct,
+:root .chart-box h4 .chart-sub,
+:root .chart-empty,
+:root .chart-empty-title,
+:root .chart-empty-sub,
+:root .bar-name,
+:root .bar-pct,
+:root .ranking-grid p,
+:root .category-analytics-header > span,
+:root .category-analytics-kpis span,
+:root .category-comparison td:last-child { color: #526157; }
+:root .search-input::placeholder,
+:root .form-input::placeholder,
+:root .form-textarea::placeholder { color: #6B776D; opacity: 1; }
+:root .category-chip b,
+:root .category-item-table th,
+:root .category-comparison th,
+:root .analytics-export-link,
+:root .chart-ai-insight > summary { color: #76551F; }
+:root .tag-ai { background: #EEE8FF; color: #5C3AA3; }
+:root .trend-type,
+:root .hierarchy-summary-meta,
+:root .review-row-head,
+:root .folder-title i,
+:root .sample-review-label { color: #76551F; }
+:root .review-row-stars { color: #8A650D; }
+:root .trend-sentiment { color: #286438; }
+:root .report-reason { color: #73520D; }
 :root .sidebar-nav li a.active { background: rgba(159, 184, 138, .16); color: var(--clay); }
 :root .sidebar-nav li a.active .nav-icon { color: var(--clay); }
 :root[data-theme="light"] .sidebar-nav li a.active { background: rgba(74, 124, 71, .12); }

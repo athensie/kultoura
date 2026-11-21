@@ -69,7 +69,7 @@ unset($group);
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminusers.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261119-global-light">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <style>
         .archive-section-sub { font-size: .8rem; color: rgba(245,237,216,.45); margin-bottom: 24px; }
@@ -91,7 +91,7 @@ unset($group);
         .archive-details-thumb { width: 100%; height: 160px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.04); margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
         .archive-details-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .archive-note-box { text-align: left; background: rgba(200,169,110,.08); border: 1px solid rgba(200,169,110,.25); border-radius: 10px; padding: 12px 14px; margin: 16px 0; }
-        .archive-note-label { font-size: .68rem; letter-spacing: 1px; text-transform: uppercase; color: #C8A96E; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .archive-note-label { font-size: .68rem; letter-spacing: 1px; text-transform: uppercase; color: #76551F; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
         .archive-note-text { font-size: .85rem; color: rgba(245,237,216,.85); line-height: 1.5; white-space: pre-wrap; }
         .archive-note-by { font-size: .68rem; color: rgba(245,237,216,.4); margin-top: 8px; }
         .archive-details-list { text-align: left; display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; }
@@ -124,7 +124,7 @@ unset($group);
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#C8A96E);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#76551F);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php" class="active"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
@@ -189,7 +189,7 @@ unset($group);
                                     <div class="archive-item-date">
                                         Archived · <?php echo htmlspecialchars(date('M j, Y', strtotime($item['created_at']))); ?>
                                         <?php if (!empty($item['archive_note']['note'])): ?>
-                                            <span title="A reason was left for this archive" style="color:#C8A96E;"> · <i data-lucide="message-square" class="lucide" style="width:.65rem;height:.65rem;vertical-align:-1px;"></i> Note</span>
+                                            <span title="A reason was left for this archive" style="color:#76551F;"> · <i data-lucide="message-square" class="lucide" style="width:.65rem;height:.65rem;vertical-align:-1px;"></i> Note</span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
