@@ -19,6 +19,10 @@
   --text-info: #275B89;
   --text-danger: #B93838;
   --text-amber: #76551F;
+  --text-purple: #593A86;
+  --text-tan: #684D25;
+  --text-blue2: #1B5D8C;
+  --text-orange: #8F431E;
   color-scheme: light;
 }
 :root[data-theme="light"] {
@@ -40,6 +44,10 @@
   --text-info: #275B89;
   --text-danger: #B93838;
   --text-amber: #76551F;
+  --text-purple: #593A86;
+  --text-tan: #684D25;
+  --text-blue2: #1B5D8C;
+  --text-orange: #8F431E;
   --gold: #76551F;
   color-scheme: light;
 }
@@ -164,6 +172,31 @@
 :root .review-row-stars { color: #8A650D; }
 :root .trend-sentiment { color: #286438; }
 :root .report-reason { color: #73520D; }
+:root .category-badge,
+:root .type-badge,
+:root .role-badge,
+:root .status,
+:root .type-pill { font-weight: 600; }
+:root .category-badge.nature,
+:root .category-badge.food-cat-vegetarian,
+:root .category-badge.food-cat-vegan { color: #1B6334; }
+:root .category-badge.industry { color: #783715; }
+:root .category-badge.resort,
+:root .category-badge.bank,
+:root .type-badge.info,
+:root .type-badge.update { color: #174E78; }
+:root .category-badge.accommodation,
+:root .category-badge.food-cat-dessert-shop { color: #593A86; }
+:root .category-badge.service,
+:root .category-badge.food-cat-other { color: #59411E; }
+:root .category-badge.church,
+:root .type-badge.alert { color: #922B2B; }
+:root .status.inactive,
+:root .status-pill-off,
+:root .role-badge.user,
+:root .category-badge.food-cat-other { color: #465449; }
+:root .tbl-btn:hover,
+:root .type-badge:hover { opacity: 1; }
 :root .sidebar-nav li a.active { background: rgba(159, 184, 138, .16); color: var(--clay); }
 :root .sidebar-nav li a.active .nav-icon { color: var(--clay); }
 :root[data-theme="light"] .sidebar-nav li a.active { background: rgba(74, 124, 71, .12); }

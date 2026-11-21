@@ -302,7 +302,7 @@ if ($period === 'all') {
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261121-community-feedback">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin2">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
