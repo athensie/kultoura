@@ -756,7 +756,10 @@ if ($wrappedRequested && $canGenerateWrapped) {
                 'media' => $chapterMedia,
             ];
         }
+        $wrappedOwnerName = trim((string) ($_SESSION['username'] ?? $_SESSION['user_name'] ?? ''));
+        if ($wrappedOwnerName === '') $wrappedOwnerName = 'KULTOURA traveler';
         $wrappedStoryData = [
+            'owner' => $wrappedOwnerName,
             'config' => ['brand' => 'KULTOURA', 'region' => 'Malvar, Batangas', 'year' => (int) $wrappedRangeStart->format('Y'), 'slideMs' => 6500, 'maxClipSeconds' => 5],
             'categories' => $storyCategoryMeta,
             'places' => array_values($storyPlaces),
@@ -766,12 +769,12 @@ if ($wrappedRequested && $canGenerateWrapped) {
             'media' => $storyPhotos,
             'edit' => ['title' => 'Malvar in Moments', 'titleMs' => 2200, 'endMs' => 2600, 'maxSeconds' => 30, 'minClipMs' => 900, 'chapters' => $storyChapters],
             'copy' => [
-                'coverTag' => ['Your ' . $wrappedLabel . ' journey,', 'Malvar in moments.'],
+                'coverTag' => [$wrappedOwnerName . "'s " . $wrappedLabel . ' journey,', 'Malvar in moments.'],
                 'startHint' => 'Tap to begin',
                 'quote' => ['Travel is memory.', 'Local places make the journey.', 'See you around Malvar.'],
                 'outroTitle' => ['Here’s to more', 'adventures!'],
                 'outroSub' => ['Thanks for sharing your journey.', 'See you again in Malvar.'],
-                'shareText' => 'My KULTOURA Wrapped ' . $wrappedLabel . ' — Malvar in Moments',
+                'shareText' => $wrappedOwnerName . "'s KULTOURA Wrapped " . $wrappedLabel . ' — Malvar in Moments',
             ],
         ];
         include __DIR__ . '/travelwrapped.php';
