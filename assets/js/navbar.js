@@ -86,14 +86,6 @@
         }
     });
 })();
-(function loadSiteTour() {
-    const currentScript = document.currentScript;
-    const script = document.createElement('script');
-    const tourUrl = currentScript ? new URL('site-tour.js', currentScript.src) : new URL('/kultoura/assets/js/site-tour.js', window.location.origin);
-    tourUrl.searchParams.set('v', '20261121-2');
-    script.src = tourUrl.href;
-    document.head.appendChild(script);
-})();
 (function initKulTouraActivityTracking() {
     if (window.__ktActivityTrackingBound) return;
     window.__ktActivityTrackingBound = true;

@@ -359,5 +359,5 @@ stage.addEventListener('click',e=>{if(e.target.closest('button,a')||Date.now()-d
 stage.addEventListener('pointerup',e=>{const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.4)go(idx+(dx<0?1:-1))});
 document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(idx+1);else if(e.key==='ArrowLeft')go(idx-1);else if(e.key===' '){e.preventDefault();manual=!manual}});
 go(0);try{if(!localStorage.getItem('kultouraWrappedNavHint')){localStorage.setItem('kultouraWrappedNavHint','1');setTimeout(()=>toast('Tap left or right to move \u00b7 hold to pause'),500)}}catch{}requestAnimationFrame(loop);
-</script><script src="../assets/js/site-tour.js?v=20261121-2"></script>
+</script>
 </body></html>

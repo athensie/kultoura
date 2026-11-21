@@ -171,6 +171,6 @@ function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle(
 initSidebarCollapse();
 if (window.lucide) lucide.createIcons();
 </script>
-<script src="../assets/js/site-tour.js?v=20261121-2"></script>
+
 </body>
 </html>

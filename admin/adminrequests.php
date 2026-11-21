@@ -254,6 +254,6 @@ $pendingCount = kt_requests_pending_count($conn);
 </script>
 
     <script src="../assets/js/admin-filter-state.js"></script>
-<script src="../assets/js/site-tour.js?v=20261121-2"></script>
+
 </body>
 </html>

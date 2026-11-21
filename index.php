@@ -688,7 +688,7 @@ if ($result = $conn->query("SELECT image, caption, images_json FROM event_galler
         <button type="button" class="home-scroll-top" id="homeScrollTop" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
     </div>
 </footer>
-<script src="assets/js/navbar.js?v=20261121-2"></script>
+<script src="assets/js/navbar.js?v=20261122-1"></script>
 <script src="assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="assets/js/home.js?v=20261031-3"></script>
 <script src="assets/js/home-promotions.js?v=20261102-1"></script>
