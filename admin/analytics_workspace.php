@@ -252,15 +252,14 @@ $workspaceMetrics = [
         ['Least Popular Destinations', 'rank-low', 'destinationLeast', ''], ['Destination Views by Category', 'donut', 'destinationCategories', ''],
         ['Destination Popularity by Barangay', 'map', 'destinationMap', 'Map markers show verified destination coordinates; barangay boundaries are not available.'],
         ['Destination Views by Barangay', 'bar', 'destinationBarangays', 'Views grouped using the barangay named in each destination address.'],
-        ['Destination Ratings', 'bar', 'destinationRated', 'Destinations with visitor ratings in the selected period.'], ['Destination Rating Distribution', 'histogram', 'ratings', ''],
         ['Most Viewed Establishments', 'rank', 'restaurants', 'Restaurant listing detail views.'], ['Restaurant Engagement', 'bar', 'restaurants', 'Views are available; restaurant-specific searches and recommendations are not fully tracked.'],
-        ['Destination Performance Over Time', 'line', 'destinationPerformance', 'Monthly detail views for the five most-viewed destinations in this period.'], ['Views vs. Ratings', 'scatter', 'destinationScatter', 'Each point is one destination with both views and a rating.'],
+        ['Destination Performance Over Time', 'line', 'destinationPerformance', 'Monthly detail views for the five most-viewed destinations in this period.'],
     ],
     'culture' => [
         ['Most Viewed Cultural Content', 'rank', 'cultureRanks', ''], ['Least Viewed Cultural Content', 'rank-low', 'cultureLeast', ''],
         ['Culture and Heritage Views by Category', 'donut', 'cultureCategories', 'Products, fiestas, and people of Malvar.'], ['Cultural Content Views per Month', 'line', 'cultureMonthly', 'Product, fiesta, and people detail views.'],
         ['Cultural Content Engagement', 'stacked', 'cultureEngagement', 'Recorded views, clicks, and searches by cultural category.'], ['Content Performance by Barangay', 'bar', 'cultureBarangays', 'Cultural views grouped by barangay from product store and fiesta location records.'],
-        ['Fiesta Interest Over Time', 'line', 'fiestaMonthly', 'Recorded fiesta detail views.'], ['Most Rated Cultural Content', 'rank', 'cultureRated', ''], ['Cultural Content Ratings', 'histogram', 'cultureRatings', ''],
+        ['Fiesta Interest Over Time', 'line', 'fiestaMonthly', 'Recorded fiesta detail views.'],
         ['Views vs. Comments', 'scatter', 'cultureComments', 'Each point compares item detail views with linked comment events.'],
     ],
     'search' => [
@@ -273,7 +272,9 @@ $workspaceMetrics = [
         ['Average Destination Rating', 'gauge', 'destinationRatingGauge', $destinationRatingCount ? number_format($averageDestinationRating, 1) . ' / 5 average from ' . number_format($destinationRatingCount) . ' ratings' : 'No ratings yet'],
         ['Average Cultural Content Rating', 'gauge', 'cultureRatingGauge', $cultureRatingCount ? number_format($cultureAverageRating, 1) . ' / 5 average from ' . number_format($cultureRatingCount) . ' ratings' : 'No cultural ratings yet'],
         ['Comments per Month', 'line', 'commentsMonthly', 'Recorded comment events grouped by month.'], ['Positive vs. Negative Feedback', 'donut', 'sentiment', 'Rule-based estimate from reviews; neutral reviews are shown separately.'],
-        ['Rating Distribution', 'histogram', 'ratings', ''], ['Most Engaged Destinations', 'rank', 'destinationRanks', 'Ranked by recorded detail views.'], ['User Engagement by Section', 'stacked', 'sectionEngagement', 'Recorded views, clicks, and searches by catalog section.'],
+        ['Destination Ratings', 'bar', 'destinationRated', 'Destinations with visitor ratings in the selected period.'], ['Destination Rating Distribution', 'histogram', 'ratings', 'Visible visitor ratings by star count.'],
+        ['Most Rated Cultural Content', 'rank', 'cultureRated', 'Cultural items ranked by average rating.'], ['Cultural Content Ratings', 'histogram', 'cultureRatings', 'Ratings for products, fiestas, and people of Malvar by star count.'],
+        ['Views vs. Ratings', 'scatter', 'destinationScatter', 'Each point is one destination with both views and a rating.'], ['Most Engaged Destinations', 'rank', 'destinationRanks', 'Ranked by recorded detail views.'], ['User Engagement by Section', 'stacked', 'sectionEngagement', 'Recorded views, clicks, and searches by catalog section.'],
     ],
     'audience' => [
         ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'], ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'],
@@ -422,9 +423,9 @@ $aiDashboardFacts = [
     ], $forecastHistoryRows),
 ];
 $aiDashboardResult = null;
-$aiCacheKey = 'dashai_v5_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
+$aiCacheKey = 'dashai_v7_' . substr(sha1($period . '|' . $periodStartSql . '|' . $periodEndExclusiveSql . '|' . $visitsMetricTitle), 0, 24);
 if (ai_text_configured()) {
-    $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. If a card has no usable data, explain the limitation from data_note. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
+    $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights, and one practical, concise admin suggestion for every entry, keyed by its exact ID in card_suggestions. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. Suggestions must be specific and supported by the metric, and should recommend checking, improving, or promoting relevant content where appropriate. If a card has no usable data, suggest collecting enough data or improving tracking rather than inventing a cause. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence), card_suggestions (object mapping every analytics_cards ID to one concise suggestion). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
     $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
     if ($cachedAiStmt) {
         $cachedAiStmt->bind_param('s', $aiCacheKey);
@@ -441,6 +442,7 @@ if (ai_text_configured()) {
 $aiSummary = '';
 $aiActions = [];
 $aiCardInterpretations = $aiCardFallbacks;
+$aiCardSuggestions = [];
 $aiSummaryIsGenerated = false;
 if (is_array($aiDashboardResult) && isset($aiDashboardResult['summary']) && is_string($aiDashboardResult['summary'])) {
     $aiSummary = mb_substr(trim($aiDashboardResult['summary']), 0, 600);
@@ -455,6 +457,14 @@ if (is_array($aiDashboardResult) && isset($aiDashboardResult['summary']) && is_s
             $candidateInsight = $aiDashboardResult['card_insights'][$cardId] ?? null;
             if (is_string($candidateInsight) && trim($candidateInsight) !== '') {
                 $aiCardInterpretations[$cardId] = mb_substr(trim($candidateInsight), 0, 260);
+            }
+        }
+    }
+    if (isset($aiDashboardResult['card_suggestions']) && is_array($aiDashboardResult['card_suggestions'])) {
+        foreach ($aiCardFallbacks as $cardId => $fallbackInsight) {
+            $candidateSuggestion = $aiDashboardResult['card_suggestions'][$cardId] ?? null;
+            if (is_string($candidateSuggestion) && trim($candidateSuggestion) !== '') {
+                $aiCardSuggestions[$cardId] = mb_substr(trim($candidateSuggestion), 0, 220);
             }
         }
     }
@@ -574,6 +584,8 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
 .aw-card-insight { display:grid; gap:4px; margin:12px 0 0; padding:9px 10px; border-left:3px solid var(--aw-highlight); border-radius:0 5px 5px 0; background:#f3f7f1; }
 .aw-card-insight strong { color:var(--aw-green); font:600 .65rem 'DM Sans',sans-serif; }
 .aw-card-insight p { margin:0; color:#536257; font:.68rem/1.5 'DM Sans',sans-serif; }
+.aw-card-suggestion { border-left-color:#b88b35; background:#fbf7ed; }
+.aw-card-suggestion strong { color:#87651f; }
 .aw-drilldown { min-height:1.2em; margin:4px 0 6px; color:var(--aw-green); font:.72rem 'DM Sans',sans-serif; }
 .aw-word-cloud { display:flex; min-height:205px; align-content:center; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px 14px; padding:16px; }
 .aw-word-cloud span { color:var(--aw-green); font:600 1rem/1.2 'DM Sans',sans-serif; }
@@ -696,6 +708,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                 <?php else: ?><div class="aw-card-empty"><strong><?php echo $kind === 'map' ? 'Map data unavailable' : 'More data needed'; ?></strong><span><?php echo htmlspecialchars($note ?: 'There are no matching records in this period.'); ?></span></div><?php endif; ?>
                 <?php $cardInsightIsAi = isset($aiDashboardResult['card_insights'][$cardId]) && is_string($aiDashboardResult['card_insights'][$cardId]) && trim($aiDashboardResult['card_insights'][$cardId]) !== ''; ?>
                 <aside class="aw-card-insight"><strong><i data-lucide="sparkles" class="lucide" style="width:.8rem;height:.8rem;vertical-align:-2px;"></i> <?php echo $cardInsightIsAi ? 'AI interpretation' : 'Data interpretation'; ?></strong><p><?php echo htmlspecialchars($aiCardInterpretations[$cardId] ?? 'There are not enough recorded values to interpret this metric.'); ?></p></aside>
+                <aside class="aw-card-insight aw-card-suggestion"><strong><i data-lucide="lightbulb" class="lucide" style="width:.8rem;height:.8rem;vertical-align:-2px;"></i> AI suggestion</strong><p><?php echo htmlspecialchars($aiCardSuggestions[$cardId] ?? 'AI suggestion is unavailable for this metric right now.'); ?></p></aside>
             </article>
             <?php endforeach; ?>
         </div>
