@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare('UPDATE item_reviews SET status = ? WHERE review_id = ?');
         $stmt->bind_param('si', $status, $reviewId); $stmt->execute(); $stmt->close();
         $resolution = $action === 'archive' ? 'archived' : ($action === 'safe' ? 'safe_kept' : ($action === 'hide' ? 'valid_hidden' : ($action === 'remove' ? 'valid_removed' : 'invalid_kept')));
-        $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'resolved', resolution_action = ?, resolved_at = NOW(), resolved_by = ? WHERE review_id = ? AND status = 'pending'");
+        $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'resolved', resolution_action = ?, resolved_at = NOW(), resolved_by = ? WHERE review_id = ? AND status IN ('pending','dismissed')");
         $stmt->bind_param('sii', $resolution, $adminId, $reviewId); $stmt->execute(); $stmt->close();
     } elseif ($action === 'dismiss' && $reportId > 0) {
         $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'dismissed', resolution_action = 'dismissed', resolved_at = NOW(), resolved_by = ? WHERE report_id = ? AND status = 'pending'");
