@@ -118,9 +118,9 @@ $commentMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bu
 if ($commentMonthStmt) { $commentMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $commentMonthStmt->execute(); foreach ($commentMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $commentMonthBuckets[$row['bucket']]=(int)$row['total']; $commentMonthStmt->close(); }
 $reviewCount = 0;
 if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
-    $reviewCountStmt = $conn->prepare("SELECT COUNT(*) total FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<?");
+    $reviewCountStmt = $conn->prepare("SELECT COUNT(*) total FROM item_reviews WHERE status IN ('visible','demo') AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<?");
     if ($reviewCountStmt) { $reviewCountStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $reviewCountStmt->execute(); $reviewCount=(int)($reviewCountStmt->get_result()->fetch_assoc()['total']??0); $reviewCountStmt->close(); }
-    $reviewMonthStmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') bucket,COUNT(*) total FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<? GROUP BY bucket ORDER BY bucket");
+    $reviewMonthStmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') bucket,COUNT(*) total FROM item_reviews WHERE status IN ('visible','demo') AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<? GROUP BY bucket ORDER BY bucket");
     if ($reviewMonthStmt) { $reviewMonthStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $reviewMonthStmt->execute(); foreach ($reviewMonthStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $reviewMonthBuckets[$row['bucket']]=(int)$row['total']; $reviewMonthStmt->close(); }
 }
 $searchMonthStmt = $conn->prepare("SELECT DATE_FORMAT(activity_date,'%Y-%m') bucket,COUNT(*) total FROM user_activity_log WHERE activity_type='search' AND activity_date>=? AND activity_date<? GROUP BY bucket ORDER BY bucket");
@@ -137,7 +137,7 @@ $destinationRatingGauge = $destinationRatingCount ? ['labels'=>['Average rating'
 $cultureRatingGauge = $cultureRatingCount ? ['labels'=>['Average rating','Remaining'],'values'=>[$cultureAverageRating,max(0,5-$cultureAverageRating)]] : ['labels'=>[],'values'=>[]];
 $sentimentCounts = ['Positive'=>0,'Neutral'=>0,'Negative'=>0];
 if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
-    $sentimentStmt = $conn->prepare("SELECT review_text FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<?");
+    $sentimentStmt = $conn->prepare("SELECT review_text FROM item_reviews WHERE status IN ('visible','demo') AND review_text IS NOT NULL AND TRIM(review_text)<>'' AND created_at>=? AND created_at<?");
     if ($sentimentStmt) { $sentimentStmt->bind_param('ss',$periodStartSql,$periodEndExclusiveSql); $sentimentStmt->execute(); foreach ($sentimentStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $reviewRow) { $score=analytics_review_sentiment((string)$reviewRow['review_text']); $sentimentCounts[$score>0?'Positive':($score<0?'Negative':'Neutral')]++; } $sentimentStmt->close(); }
 }
 $destinationMapPoints = [];

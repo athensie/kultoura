@@ -106,14 +106,14 @@ $itemReviewRatings = [];
 $ratingDistribution = array_fill(1, 5, 0);
 $reviewTableExists = $conn->query("SHOW TABLES LIKE 'item_reviews'");
 if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
-    $distributionStmt = $conn->prepare("SELECT rating, COUNT(*) total FROM item_reviews WHERE status = 'visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at >= ? AND created_at < ? GROUP BY rating");
+    $distributionStmt = $conn->prepare("SELECT rating, COUNT(*) total FROM item_reviews WHERE status IN ('visible','demo') AND created_at >= ? AND created_at < ? GROUP BY rating");
     if ($distributionStmt) {
         $distributionStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
         $distributionStmt->execute();
         foreach ($distributionStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $ratingRow) $ratingDistribution[(int) $ratingRow['rating']] = (int) $ratingRow['total'];
         $distributionStmt->close();
     }
-    $reviewStmt = $conn->prepare("SELECT item_type, COUNT(*) total, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE status = 'visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at >= ? AND created_at < ? GROUP BY item_type");
+    $reviewStmt = $conn->prepare("SELECT item_type, COUNT(*) total, COALESCE(AVG(rating), 0) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND created_at >= ? AND created_at < ? GROUP BY item_type");
     if ($reviewStmt) {
         $reviewStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
         $reviewStmt->execute();
@@ -176,7 +176,7 @@ foreach (['nature', 'industry', 'resort', 'church'] as $destinationType) {
 $averageDestinationRating = $destinationRatingCount > 0 ? $destinationRatingTotal / $destinationRatingCount : 0.0;
 $categoryRatingDistribution = [];
 if ($reviewTableExists && $reviewTableExists->num_rows > 0) {
-    $categoryRatingStmt = $conn->prepare("SELECT item_type, rating, COUNT(*) total FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<? GROUP BY item_type,rating");
+    $categoryRatingStmt = $conn->prepare("SELECT item_type, rating, COUNT(*) total FROM item_reviews WHERE status IN ('visible','demo') AND created_at>=? AND created_at<? GROUP BY item_type,rating");
     if ($categoryRatingStmt) {
         $categoryRatingStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
         $categoryRatingStmt->execute();

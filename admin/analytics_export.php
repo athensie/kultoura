@@ -34,7 +34,7 @@ function kt_export_activity_label(string $type, array $row): string
         if (in_array($itemType, ['product', 'fiesta', 'person'], true)) return 'Viewed cultural content';
         return 'Viewed page';
     }
-    $labels = ['search' => 'Searched', 'generate' => 'Generated itinerary', 'review' => 'Submitted review', 'rating' => 'Submitted rating', 'comment' => 'Submitted comment', 'map_interaction' => 'Opened map', 'recommendation' => 'Clicked recommendation', 'download' => 'Downloaded or saved', 'language' => 'Changed language'];
+    $labels = ['search' => 'Searched', 'review' => 'Submitted review', 'rating' => 'Submitted rating', 'comment' => 'Submitted comment', 'map_interaction' => 'Opened map', 'recommendation' => 'Clicked recommendation', 'download' => 'Downloaded or saved', 'language' => 'Changed language'];
     return $labels[$type] ?? ucfirst(str_replace('_', ' ', $type));
 }
 
@@ -156,7 +156,7 @@ $custom = $from && $to && $from->format('Y-m-d') === $fromInput && $to->format('
 if ($custom) {
     $start = $from;
     $endExclusive = $to->modify('+1 day');
-    $periodLabel = $from->format('M j, Y') . ' – ' . $to->format('M j, Y');
+    $periodLabel = $from->format('M j, Y') . ' to ' . $to->format('M j, Y');
 } else {
     switch ($period) {
         case 'all': $start = new DateTimeImmutable('1000-01-01'); $periodLabel = 'All Time'; break;
@@ -177,12 +177,12 @@ $rangeDays = max(1, (int) $start->diff($endExclusive)->days);
 $previousStart = $period === 'all' ? $start : $start->modify('-' . $rangeDays . ' days');
 $previousStartSql = $previousStart->format('Y-m-d 00:00:00');
 $activityReady = kt_activity_ensure_schema($conn);
-$activityRows = $activityReady ? kt_export_stmt_rows($conn, 'SELECT activity_id,user_id,session_hash,activity_type,category,parent_category,item_type,item_id,content_name,element_name,page_section,metadata,activity_date FROM user_activity_log WHERE activity_date>=? AND activity_date<? ORDER BY activity_date,activity_id', 'ss', [$startSql, $endSql]) : [];
+$activityRows = $activityReady ? kt_export_stmt_rows($conn, "SELECT activity_id,user_id,session_hash,activity_type,category,parent_category,item_type,item_id,content_name,element_name,page_section,metadata,activity_date FROM user_activity_log WHERE activity_type<>'generate' AND activity_date>=? AND activity_date<? ORDER BY activity_date,activity_id", 'ss', [$startSql, $endSql]) : [];
 $previousRows = $activityReady ? kt_export_stmt_rows($conn, 'SELECT activity_type,page_section FROM user_activity_log WHERE activity_date>=? AND activity_date<?', 'ss', [$previousStartSql, $startSql]) : [];
 $reviewRows = [];
 $reviewExists = $conn->query("SHOW TABLES LIKE 'item_reviews'");
 if ($reviewExists && $reviewExists->num_rows > 0) {
-    $reviewRows = kt_export_stmt_rows($conn, "SELECT item_type,item_id,rating,review_text,created_at FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<? ORDER BY created_at", 'ss', [$startSql, $endSql]);
+    $reviewRows = kt_export_stmt_rows($conn, "SELECT item_type,item_id,rating,review_text,created_at FROM item_reviews WHERE status IN ('visible','demo') AND created_at>=? AND created_at<? ORDER BY created_at", 'ss', [$startSql, $endSql]);
 }
 $currentPageViews = analytics_total_views($conn, $startSql, $endSql);
 $previousPageViews = analytics_total_views($conn, $previousStartSql, $startSql);
@@ -194,7 +194,7 @@ $currentSearchCount = array_sum(array_column($searchesByDay, 'total'));
 $previousSearchCount = (int) ($previousSearchCount[0]['total'] ?? 0);
 
 $daily = $activityTypes = $devices = $visitorKeys = $pseudonyms = [];
-$metrics = ['views' => $currentPageViews, 'searches' => $currentSearchCount, 'itineraries' => 0, 'ratings' => count($reviewRows), 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+$metrics = ['views' => $currentPageViews, 'searches' => $currentSearchCount, 'ratings' => count($reviewRows), 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
 $previousMetrics = ['views' => 0, 'searches' => 0, 'recommendations' => 0, 'ratings' => 0, 'comments' => 0];
 foreach ($previousRows as $row) {
     $type = (string) $row['activity_type'];
@@ -202,7 +202,7 @@ foreach ($previousRows as $row) {
 }
 $previousMetrics['searches'] = $previousSearchCount;
 $previousReview = $reviewExists && $reviewExists->num_rows > 0
-    ? kt_export_stmt_rows($conn, "SELECT COUNT(*) ratings,SUM(review_text IS NOT NULL AND TRIM(review_text)<>'') comments FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<?", 'ss', [$previousStartSql, $startSql])
+    ? kt_export_stmt_rows($conn, "SELECT COUNT(*) ratings,SUM(review_text IS NOT NULL AND TRIM(review_text)<>'') comments FROM item_reviews WHERE status IN ('visible','demo') AND created_at>=? AND created_at<?", 'ss', [$previousStartSql, $startSql])
     : [];
 $previousMetrics['ratings'] = (int) ($previousReview[0]['ratings'] ?? 0);
 $previousMetrics['comments'] = (int) ($previousReview[0]['comments'] ?? 0);
@@ -212,11 +212,10 @@ foreach ($activityRows as $row) {
     $label = kt_export_activity_label($type, $row);
     $activityTypes[$label] = ($activityTypes[$label] ?? 0) + 1;
     $date = substr((string) $row['activity_date'], 0, 10);
-    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
     $visitorKey = !empty($row['user_id']) ? 'u' . $row['user_id'] : 's' . $row['session_hash'];
     $visitorKeys[$visitorKey] = true;
     $daily[$date]['visitors'][$visitorKey] = true;
-    if ($type === 'generate') { $metrics['itineraries']++; $daily[$date]['itineraries']++; }
     if ($type === 'map_interaction') { $metrics['maps']++; $daily[$date]['maps']++; }
     if ($type === 'recommendation') { $metrics['recommendations']++; $daily[$date]['recommendations']++; }
     $metadata = json_decode((string) ($row['metadata'] ?? ''), true);
@@ -227,19 +226,19 @@ foreach ($activityRows as $row) {
 }
 foreach ($reviewRows as $review) {
     $date = substr((string) $review['created_at'], 0, 10);
-    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
     $daily[$date]['ratings']++;
     if (trim((string) ($review['review_text'] ?? '')) !== '') $daily[$date]['comments']++;
 }
 $previousMetrics['views'] = $previousPageViews;
 foreach ($pageViewsByDay as $row) {
     $date = (string) $row['report_date'];
-    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
     $daily[$date]['views'] = (int) $row['total'];
 }
 foreach ($searchesByDay as $row) {
     $date = (string) $row['report_date'];
-    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
     $daily[$date]['searches'] = (int) $row['total'];
 }
 $metrics['active_users'] = count($visitorKeys);
@@ -306,7 +305,7 @@ $destinationSheetRows = [['kind' => 'title', 'values' => ['KulToura | Destinatio
 foreach ($destinations as $d) {
     $type = (string) $d['item_type']; $key = $type . ':' . (int) $d['id'];
     $rating = $destinationTotals[$key]['ratings'] ?? [];
-    $categoryLabel = $type === 'restaurant' ? 'Restaurant · ' . $d['category'] : ucfirst($type);
+    $categoryLabel = $type === 'restaurant' ? 'Restaurant - ' . $d['category'] : ucfirst($type);
     $destinationSheetRows[] = [$d['name'], $categoryLabel, $d['address'], $itemViews[$key] ?? 0, count($destinationLogStats[$key]['visitors'] ?? []), $rating ? round(array_sum($rating) / count($rating), 2) : '', count($rating)];
 }
 $culturalTypes = ['product', 'fiesta', 'person'];
@@ -364,8 +363,8 @@ foreach ($culturalItems as $item) {
     foreach ($item['daily'] as $date => $values) $contentDaily[] = [$date, $item['name'], ucfirst($item['type']), $values['views'] ?? 0, count($values['readers'] ?? []), $values['saves'] ?? 0];
 }
 
-$engagementRows = [['kind' => 'title', 'values' => ['KulToura | Engagement Analytics']], ['kind' => 'subtitle', 'values' => ['Daily platform engagement metrics | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Unique Tracked Visitors', 'Page Views', 'Searches', 'Itineraries Generated', 'Ratings', 'Written Comments', 'Map Interactions', 'Recommendation Clicks']]];
-foreach ($daily as $date => $d) $engagementRows[] = [$date, count($d['visitors']), $d['views'], $d['searches'], $d['itineraries'], $d['ratings'], $d['comments'], $d['maps'], $d['recommendations']];
+$engagementRows = [['kind' => 'title', 'values' => ['KulToura | Engagement Analytics']], ['kind' => 'subtitle', 'values' => ['Daily platform engagement metrics | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Unique Tracked Visitors', 'Page Views', 'Searches', 'Ratings', 'Written Comments', 'Map Interactions', 'Recommendation Clicks']]];
+foreach ($daily as $date => $d) $engagementRows[] = [$date, count($d['visitors']), $d['views'], $d['searches'], $d['ratings'], $d['comments'], $d['maps'], $d['recommendations']];
 $rawRows = [['kind' => 'title', 'values' => ['KulToura | Raw Activity Data']], ['kind' => 'subtitle', 'values' => ['Anonymized event-level records | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Event ID', 'Date and Time', 'Anonymized User ID', 'Activity', 'Page / Target', 'Device']]];
 foreach ($activityRows as $row) {
     $metadata = json_decode((string) ($row['metadata'] ?? ''), true);
@@ -377,7 +376,7 @@ foreach ($destinationDaily as $date => $items) foreach ($items as $values) $dest
 $contentDailyRows = [['kind' => 'title', 'values' => ['KulToura | Cultural Content Daily Data']], ['kind' => 'subtitle', 'values' => ['Daily cultural content activity | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Content Title', 'Content Type', 'Views', 'Unique Readers', 'Saves / Downloads']]];
 foreach ($contentDaily as $row) $contentDailyRows[] = $row;
 
-$behaviorDescriptions = ['Viewed destination' => 'Destination and local establishment detail views', 'Viewed cultural content' => 'Products, fiestas, and people detail views', 'Viewed page' => 'Tracked page views', 'Searched' => 'Search queries submitted', 'Generated itinerary' => 'Visitor itinerary generation', 'Submitted review' => 'Ratings and comments submitted', 'Submitted rating' => 'Ratings submitted', 'Submitted comment' => 'Comments submitted', 'Opened map' => 'Map interactions', 'Clicked recommendation' => 'Clicks on recommended destinations or content', 'Downloaded or saved' => 'Content downloaded or saved'];
+$behaviorDescriptions = ['Viewed destination' => 'Destination and local establishment detail views', 'Viewed cultural content' => 'Products, fiestas, and people detail views', 'Viewed page' => 'Tracked page views', 'Searched' => 'Search queries submitted', 'Submitted review' => 'Ratings and comments submitted', 'Submitted rating' => 'Ratings submitted', 'Submitted comment' => 'Comments submitted', 'Opened map' => 'Map interactions', 'Clicked recommendation' => 'Clicks on recommended destinations or content', 'Downloaded or saved' => 'Content downloaded or saved'];
 $behaviorRows = [['kind' => 'title', 'values' => ['KulToura | User Behavior Analytics']], ['kind' => 'subtitle', 'values' => ['Actions and device metadata recorded for ' . $periodLabel . '; device type is Unknown when it is not recorded.']], ['kind' => 'header', 'values' => ['Activity Type', 'Event Count', 'Share of Tracked Events', 'Interpretation', '', 'Device', 'Events']]];
 $allActivityCount = count($activityRows);
 foreach ($activityTypes as $label => $count) $behaviorRows[] = [$label, $count, $allActivityCount ? round($count / $allActivityCount * 100, 1) . '%' : '0%', $behaviorDescriptions[$label] ?? 'Recorded visitor activity'];
@@ -418,12 +417,12 @@ foreach ($searchTermRows as $searchRow) {
 $summaryRows[] = ['kind' => 'section', 'values' => ['AUTOMATED INSIGHTS']];
 $summaryRows[] = [$topDestination ? $topDestination['name'] . ' leads destination views with ' . $topDestination['views'] . ' views.' : 'No destination views were recorded in this period.'];
 $summaryRows[] = [$topCulture ? $topCulture['name'] . ' leads cultural content views with ' . $topCulture['views'] . ' views.' : 'No cultural content views were recorded in this period.'];
-$summaryRows[] = [$metrics['searches'] > 0 ? $metrics['searches'] . ' search queries were submitted.' . ($topZeroResultSearch ? ' Most zero-result query: “' . $topZeroResultSearch['query'] . '” (' . $topZeroResultSearch['zero_results'] . ' times).' : ' No zero-result searches were recorded.') : 'No searches were recorded in this period.'];
+$summaryRows[] = [$metrics['searches'] > 0 ? $metrics['searches'] . ' search queries were submitted.' . ($topZeroResultSearch ? ' Most zero-result query: "' . $topZeroResultSearch['query'] . '" (' . $topZeroResultSearch['zero_results'] . ' times).' : ' No zero-result searches were recorded.') : 'No searches were recorded in this period.'];
 $summaryRows[] = [$metrics['ratings'] > 0 ? $metrics['ratings'] . ' visible ratings were submitted, including ' . $metrics['comments'] . ' written comments; the destination average is ' . ($averageDestinationRating ? number_format($averageDestinationRating, 2) . ' stars' : 'not available') . '.' : 'No visible ratings were submitted in this period.'];
 $summaryRows[] = ['kind' => 'section', 'values' => ['REPORT NOTE']];
 $summaryRows[] = ['kind' => 'subtitle', 'values' => ['Live records for the selected dates. Visitor totals combine registered account IDs and anonymous session IDs, not verified people. Raw IDs are temporary workbook labels. Device type is Unknown when unrecorded. Favorite removals are not retained in save history. See Report Filters for each metric source.']];
 
-$filterRows = [['kind' => 'title', 'values' => ['KULTOURA | EXPORT DATE RANGE']], ['kind' => 'subtitle', 'values' => ['All report data is already filtered to these dates. Change the analytics date filter and export again to create a different range.']], ['kind' => 'section', 'values' => ['Selected reporting period']], ['kind' => 'header', 'values' => ['Selected period', $periodLabel]], ['Start date', $start->format('Y-m-d')], ['End date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['Effective start date', $start->format('Y-m-d')], ['Effective end date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['kind' => 'section', 'values' => ['Metric source and interpretation notes']], ['Executive page views', 'page_views table, excluding the demo seed referrer.'], ['Search counts', 'search_log; the User Behavior sheet counts activity events from user_activity_log.'], ['Destination and cultural views', 'item_views; unique visitors/readers are distinct registered account IDs or anonymous session hashes in user_activity_log.'], ['Reviews and ratings', 'Visible item_reviews, excluding seeded demo users; archived destination types may still contribute to the overall attraction rating as on the dashboard.'], ['Raw activity and behavior', 'user_activity_log events; device type is Unknown when the source did not record it.'], ['Saves / downloads', 'Existing favorite records created in range plus tracked download events. Removed favorite records are not retained.'], ['Comparison', $period === 'all' ? 'All-time reports have no prior equal-length period; comparison cells show N/A.' : 'Compared with the immediately preceding period of equal length.'], ['Privacy', 'Raw Data uses temporary anonymized labels instead of account IDs.']];
+$filterRows = [['kind' => 'title', 'values' => ['KULTOURA | EXPORT DATE RANGE']], ['kind' => 'subtitle', 'values' => ['All report data is already filtered to these dates. Change the analytics date filter and export again to create a different range.']], ['kind' => 'section', 'values' => ['Selected reporting period']], ['kind' => 'header', 'values' => ['Selected period', $periodLabel]], ['Start date', $start->format('Y-m-d')], ['End date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['Effective start date', $start->format('Y-m-d')], ['Effective end date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['kind' => 'section', 'values' => ['Metric source and interpretation notes']], ['Executive page views', 'page_views table, excluding the demo seed referrer.'], ['Search counts', 'search_log; the User Behavior sheet counts activity events from user_activity_log.'], ['Destination and cultural views', 'item_views; unique visitors/readers are distinct registered account IDs or anonymous session hashes in user_activity_log.'], ['Reviews and ratings', 'Visible and admin demo item_reviews are included, within the selected dates.'], ['Raw activity and behavior', 'user_activity_log events; device type is Unknown when the source did not record it.'], ['Saves / downloads', 'Existing favorite records created in range plus tracked download events. Removed favorite records are not retained.'], ['Comparison', $period === 'all' ? 'All-time reports have no prior equal-length period; comparison cells show N/A.' : 'Compared with the immediately preceding period of equal length.'], ['Privacy', 'Raw Data uses temporary anonymized labels instead of account IDs.']];
 $searchAnalyticsRows = [['kind' => 'title', 'values' => ['KulToura | Search Analytics']], ['kind' => 'subtitle', 'values' => ['Search query counts and result outcomes from search_log | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Search Query', 'Searches', 'Zero-Result Searches', 'Searches With Results', 'Result Rate']]];
 foreach ($searchTermRows as $searchRow) {
     $searchCount = (int) $searchRow['searches'];
@@ -442,7 +441,7 @@ $sheets = [
     'Report Filters' => ['rows' => $filterRows, 'widths' => [30, 44]],
     'Executive Summary' => ['rows' => $summaryRows, 'widths' => [34, 24, 34, 24, 28, 20, 34, 24]],
     'Raw Data' => ['rows' => $rawRows, 'widths' => [16, 24, 20, 28, 42, 16], 'header' => 3],
-    'Engagement Analytics' => ['rows' => $engagementRows, 'widths' => [18, 20, 16, 14, 24, 14, 20, 20, 26], 'header' => 3],
+    'Engagement Analytics' => ['rows' => $engagementRows, 'widths' => [18, 20, 16, 14, 14, 20, 20, 26], 'header' => 3],
     'Destination Daily Data' => ['rows' => $destinationDailyRows, 'widths' => [18, 38, 14, 20, 18, 14], 'header' => 3],
     'Content Daily Data' => ['rows' => $contentDailyRows, 'widths' => [18, 38, 22, 14, 18, 18], 'header' => 3],
     'Destination Analytics' => ['rows' => $destinationSheetRows, 'widths' => [38, 20, 42, 14, 20, 18, 14], 'header' => 3],

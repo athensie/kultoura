@@ -276,7 +276,7 @@ function analytics_category_item_performance(mysqli $conn, string $itemType, str
     $meta = $types[$itemType];
     $hasReviews = $conn->query("SHOW TABLES LIKE 'item_reviews'");
     $reviewJoin = $hasReviews && $hasReviews->num_rows > 0
-        ? "LEFT JOIN (SELECT item_id,COUNT(*) ratings,AVG(rating) average_rating FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<? AND item_type=? GROUP BY item_id) r ON r.item_id=t.{$meta['id_col']}"
+        ? "LEFT JOIN (SELECT item_id,COUNT(*) ratings,AVG(rating) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND created_at>=? AND created_at<? AND item_type=? GROUP BY item_id) r ON r.item_id=t.{$meta['id_col']}"
         : '';
     $sql = "SELECT t.{$meta['id_col']} id,t.{$meta['name_col']} name,COALESCE(v.views,0) views,COALESCE(c.clicks,0) clicks,COALESCE(s.search_selections,0) search_selections,"
         . ($reviewJoin ? 'COALESCE(r.ratings,0) ratings,COALESCE(r.average_rating,0) average_rating' : '0 ratings,0 average_rating')
