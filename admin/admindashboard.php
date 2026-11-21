@@ -18,8 +18,66 @@ require_once __DIR__ . '/../config/ai_recommend.php';
 date_default_timezone_set('Asia/Manila');
 @$conn->query("SET time_zone = '+08:00'");
 require_once '../config/admin_requests.php';
+require_once __DIR__ . '/../config/csrf.php';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['moderation_action'])) {
+    csrf_verify();
+    $action = (string) $_POST['moderation_action'];
+    $reviewId = (int) ($_POST['review_id'] ?? 0);
+    $reportId = (int) ($_POST['report_id'] ?? 0);
+    $adminId = (int) $_SESSION['user_id'];
+    $isAjaxRequest = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+    $actionSucceeded = false;
+    $transactionStarted = false;
+    $errorMessage = 'The moderation action could not be completed.';
+    try {
+        if (in_array($action, ['archive', 'safe', 'hide', 'remove', 'keep'], true) && $reviewId > 0) {
+            $status = $action === 'archive' ? 'archived' : ($action === 'hide' ? 'hidden' : ($action === 'remove' ? 'removed' : 'visible'));
+            $resolution = $action === 'archive' ? 'archived' : ($action === 'safe' ? 'safe_kept' : ($action === 'hide' ? 'valid_hidden' : ($action === 'remove' ? 'valid_removed' : 'invalid_kept')));
+            $conn->begin_transaction();
+            $transactionStarted = true;
+            $stmt = $conn->prepare('UPDATE item_reviews SET status = ? WHERE review_id = ?');
+            if (!$stmt) throw new RuntimeException('Could not prepare the review update.');
+            $stmt->bind_param('si', $status, $reviewId);
+            if (!$stmt->execute()) throw new RuntimeException('Could not update the review.');
+            $stmt->close();
+            $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'resolved', resolution_action = ?, resolved_at = NOW(), resolved_by = ? WHERE review_id = ? AND status IN ('pending','dismissed')");
+            if (!$stmt) throw new RuntimeException('Could not prepare the report update.');
+            $stmt->bind_param('sii', $resolution, $adminId, $reviewId);
+            if (!$stmt->execute()) throw new RuntimeException('Could not update the report.');
+            $stmt->close();
+            $conn->commit();
+            $transactionStarted = false;
+            $actionSucceeded = true;
+        } elseif ($action === 'dismiss' && $reportId > 0) {
+            $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'dismissed', resolution_action = 'dismissed', resolved_at = NOW(), resolved_by = ? WHERE report_id = ? AND status IN ('pending','dismissed')");
+            if (!$stmt) throw new RuntimeException('Could not prepare the report dismissal.');
+            $stmt->bind_param('ii', $adminId, $reportId);
+            $actionSucceeded = $stmt->execute();
+            $stmt->close();
+        } else {
+            $errorMessage = 'Choose a valid moderation action.';
+        }
+    } catch (Throwable $error) {
+        if ($transactionStarted) { try { $conn->rollback(); } catch (Throwable $ignored) {} }
+        error_log('Review moderation failed: ' . $error->getMessage());
+        $actionSucceeded = false;
+    }
+    if ($isAjaxRequest) {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$actionSucceeded || $action !== 'dismiss') http_response_code(422);
+        echo json_encode($actionSucceeded && $action === 'dismiss'
+            ? ['success' => true, 'action' => $action, 'report_id' => $reportId]
+            : ['success' => false, 'message' => $errorMessage]);
+        exit;
+    }
+    $redirectParams = $_GET;
+    $redirectParams['review_tab'] = 'reports';
+    unset($redirectParams['rating']);
+    header('Location: ' . BASE_URL . '/admin/admindashboard.php?' . http_build_query($redirectParams) . '#community');
+    exit;
+}
 $validPeriods = ['all', 'today', 'yesterday', '7days', '30days', 'week', 'month', 'lastmonth', 'year'];
 $period = $_GET['period'] ?? 'month';
 $dateFromInput = trim((string) ($_GET['date_from'] ?? ''));

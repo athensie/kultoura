@@ -9,7 +9,7 @@
 @media print{.review-actions{display:none!important}}
 </style>
 <?php $reviewParams = $_GET; unset($reviewParams['tab'], $reviewParams['rating']); $reviewParams['review_tab'] = 'ratings'; $reviewRatingsUrl = BASE_URL . '/admin/admindashboard.php?' . http_build_query($reviewParams) . '#community'; $reviewParams['review_tab'] = 'reports'; $reviewReportsUrl = BASE_URL . '/admin/admindashboard.php?' . http_build_query($reviewParams) . '#community'; ?>
-<nav class="review-tabs" aria-label="Review administration"><a class="<?= $tab==='ratings'?'active':'' ?>" href="<?= htmlspecialchars($reviewRatingsUrl) ?>">Ratings &amp; Reviews</a><a class="<?= $tab==='reports'?'active':'' ?>" href="<?= htmlspecialchars($reviewReportsUrl) ?>">Reports<?= $pendingReports ? ' (' . $pendingReports . ')' : '' ?></a></nav>
+<nav class="review-tabs" aria-label="Review administration"><a class="<?= $tab==='ratings'?'active':'' ?>" href="<?= htmlspecialchars($reviewRatingsUrl) ?>">Ratings &amp; Reviews</a><a class="<?= $tab==='reports'?'active':'' ?>" href="<?= htmlspecialchars($reviewReportsUrl) ?>">Reports<?php if ($pendingReports): ?> <span data-reports-pending-badge>(<?= $pendingReports ?>)</span><?php endif; ?></a></nav>
 <?php if ($tab === 'ratings' && $ratingFilter): ?><p class="review-filter-notice">Showing <?= (int) $ratingFilter ?>-star reviews opened from Analytics. <a href="<?= htmlspecialchars($reviewRatingsUrl) ?>">Clear rating filter</a></p><?php endif; ?>
 <?php if($tab==='ratings'): ?>
 <div class="kpi-grid"><div class="kpi-card accent-gold"><div class="kpi-icon"><i data-lucide="star" class="lucide"></i></div><div class="kpi-num"><?= number_format((int)$summary['total']) ?></div><div class="kpi-label">Reviews</div><div class="kpi-change"><?= htmlspecialchars($periodLabel) ?></div></div><div class="kpi-card accent-clay"><div class="kpi-icon"><i data-lucide="message-square-text" class="lucide"></i></div><div class="kpi-num"><?= (int)$summary['total'] ? number_format((float)$summary['average_rating'],1).' / 5' : '&mdash;' ?></div><div class="kpi-label">Average Rating</div><div class="kpi-change">Public and sample reviews</div></div><div class="kpi-card accent-green"><div class="kpi-icon"><i data-lucide="layers" class="lucide"></i></div><div class="kpi-num"><?= (int)$summary['categories'] ?></div><div class="kpi-label">Reviewed Categories</div><div class="kpi-change">Types with visitor feedback</div></div></div>
@@ -46,12 +46,65 @@
 <div class="review-table hierarchy-review-list"><?php foreach ($itemGroup['reviews'] as $r): ?><article class="review-row"><div class="review-row-head"><span><?= htmlspecialchars($r['display_name']) ?><?php if ($r['is_sample']): ?><span class="sample-review-label">Sample data</span><?php endif; ?></span><span><?= htmlspecialchars(date('M j, Y g:i A', strtotime($r['created_at']))) ?></span></div><div class="review-row-stars"><?= str_repeat('&#9733;', (int)$r['rating']) . str_repeat('&#9734;', 5 - (int)$r['rating']) ?></div><p><?= htmlspecialchars($r['review_text']) ?></p></article><?php endforeach; ?></div>
 </details><?php endforeach; ?></div></details><?php endforeach; endif; ?></section>
 <?php else: ?>
-<section class="chart-box review-hierarchy"><h4>Pending Reports <span class="review-count"><?= count($reports) ?> open</span></h4>
-<p class="hierarchy-intro">Expand a category and item to review the reported rating, comment, reason, and details. Archive a review to hide it from visitors while keeping it in moderation history, mark it safe to leave it public, or dismiss the report. Dismissal closes this report and leaves the review unchanged.</p>
-<?php if (!$reportHierarchy): ?><div class="chart-empty"><div class="chart-empty-title">No pending reports</div></div><?php else: ?><div class="review-folder-grid"><?php foreach ($reportHierarchy as $categoryGroup): ?>
+<section class="chart-box review-hierarchy"><h4>Reports <span class="review-count"><?= count($reports) ?> total &middot; <strong data-pending-report-count><?= $pendingReports ?></strong> pending</span></h4>
+<p class="hierarchy-intro">Expand a category and item to review the reported rating, comment, reason, and details. Archive a review to hide it from visitors while keeping it in moderation history, mark it safe to leave it public, or dismiss the report. Dismissal leaves the review unchanged; the report stays here and the open folders close.</p>
+<?php if (!$reportHierarchy): ?><div class="chart-empty"><div class="chart-empty-title">No reports have been submitted</div></div><?php else: ?><div class="review-folder-grid"><?php foreach ($reportHierarchy as $categoryGroup): ?>
 <details class="hierarchy-category"><summary><span class="folder-title"><i data-lucide="folder"></i><?= htmlspecialchars($categoryGroup['label']) ?></span><span class="hierarchy-summary-meta"><?= $categoryGroup['count'] ?> reports &middot; <?= count($categoryGroup['items']) ?> items</span></summary>
 <div class="hierarchy-item-list"><?php foreach ($categoryGroup['items'] as $itemGroup): ?>
 <details class="hierarchy-item"><summary><span><?= htmlspecialchars($itemGroup['name']) ?></span><span class="hierarchy-summary-meta"><?= $itemGroup['count'] ?> reports</span></summary>
-<div class="review-table hierarchy-review-list"><?php foreach ($itemGroup['reports'] as $r): ?><article class="review-row"><div class="review-row-head"><span><?= htmlspecialchars($r['display_name']) ?> &middot; Reporter #<?= (int)$r['reporter_id'] ?></span><span><?= htmlspecialchars(date('M j, Y g:i A', strtotime($r['reported_at']))) ?> &middot; <span class="report-status"><?= htmlspecialchars(ucfirst($r['report_status'])) ?></span></span></div><div class="review-row-stars"><?= str_repeat('&#9733;', (int)$r['rating']) . str_repeat('&#9734;', 5 - (int)$r['rating']) ?> &middot; Report: <span class="report-reason"><?= htmlspecialchars($reportReasonLabels[$r['reason_code']] ?? ucwords(str_replace('_', ' ', $r['reason_code']))) ?></span></div><p><?= htmlspecialchars($r['review_text']) ?></p><?php if ($r['report_details'] !== ''): ?><p class="report-detail"><strong>Report details:</strong> <?= htmlspecialchars($r['report_details']) ?></p><?php endif; ?><?php if ($r['report_status'] === 'pending'): ?><div class="review-actions"><form method="post"><?= csrf_field() ?><input type="hidden" name="review_id" value="<?= (int)$r['review_id'] ?>"><button class="act-hide" name="moderation_action" value="archive" onclick="return confirm('Archive this review? It will be hidden from visitors and retained for admins.')">Archive review</button></form><form method="post"><?= csrf_field() ?><input type="hidden" name="review_id" value="<?= (int)$r['review_id'] ?>"><button class="act-keep" name="moderation_action" value="safe">Mark safe - keep public</button></form><form method="post"><?= csrf_field() ?><input type="hidden" name="report_id" value="<?= (int)$r['report_id'] ?>"><button class="act-dismiss" name="moderation_action" value="dismiss">Dismiss report</button></form></div><?php elseif ($r['report_status'] === 'resolved'): ?><p class="report-detail">Moderation action: <?= htmlspecialchars($reportResolutionLabels[$r['resolution_action'] ?? ''] ?? ucfirst($r['resolution_action'] ?? 'resolved')) ?></p><?php endif; ?></article><?php endforeach; ?></div>
+<div class="review-table hierarchy-review-list"><?php foreach ($itemGroup['reports'] as $r): ?><article class="review-row"><div class="review-row-head"><span><?= htmlspecialchars($r['display_name']) ?> &middot; Reporter #<?= (int)$r['reporter_id'] ?></span><span><?= htmlspecialchars(date('M j, Y g:i A', strtotime($r['reported_at']))) ?> &middot; <span class="report-status"><?= htmlspecialchars(ucfirst($r['report_status'])) ?></span></span></div><div class="review-row-stars"><?= str_repeat('&#9733;', (int)$r['rating']) . str_repeat('&#9734;', 5 - (int)$r['rating']) ?> &middot; Report: <span class="report-reason"><?= htmlspecialchars($reportReasonLabels[$r['reason_code']] ?? ucwords(str_replace('_', ' ', $r['reason_code']))) ?></span></div><p><?= htmlspecialchars($r['review_text']) ?></p><?php if ($r['report_details'] !== ''): ?><p class="report-detail"><strong>Report details:</strong> <?= htmlspecialchars($r['report_details']) ?></p><?php endif; ?><?php if (in_array($r['report_status'], ['pending','dismissed'], true)): ?><div class="review-actions"><form method="post"><?= csrf_field() ?><input type="hidden" name="review_id" value="<?= (int)$r['review_id'] ?>"><button class="act-hide" name="moderation_action" value="archive" onclick="return confirm('Archive this review? It will be hidden from visitors and retained for admins.')">Archive review</button></form><form method="post"><?= csrf_field() ?><input type="hidden" name="review_id" value="<?= (int)$r['review_id'] ?>"><button class="act-keep" name="moderation_action" value="safe">Mark safe - keep public</button></form><form method="post" data-dismiss-report-form><?= csrf_field() ?><input type="hidden" name="report_id" value="<?= (int)$r['report_id'] ?>"><button class="act-dismiss" name="moderation_action" value="dismiss">Dismiss report</button></form></div><?php elseif ($r['report_status'] === 'resolved'): ?><p class="report-detail">Moderation action: <?= htmlspecialchars($reportResolutionLabels[$r['resolution_action'] ?? ''] ?? ucfirst($r['resolution_action'] ?? 'resolved')) ?></p><?php endif; ?></article><?php endforeach; ?></div>
 </details><?php endforeach; ?></div></details><?php endforeach; endif; ?></section><?php endif; ?>
 </section>
+<?php if ($tab === 'reports'): ?>
+<script>
+(() => {
+    const root = document.querySelector('.review-admin-panel');
+    if (!root) return;
+    root.querySelectorAll('[data-dismiss-report-form]').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const button = form.querySelector('button');
+            if (!button || button.disabled) return;
+            button.disabled = true;
+            try {
+                const payload = new FormData(form);
+                payload.set('moderation_action', button.value || 'dismiss');
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    body: payload,
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) throw new Error(result.message || 'Could not dismiss this report.');
+                const report = form.closest('.review-row');
+                const status = report?.querySelector('.report-status');
+                const wasPending = status?.textContent.trim().toLowerCase() === 'pending';
+                if (status) status.textContent = 'Dismissed';
+                const pendingCount = root.querySelector('[data-pending-report-count]');
+                if (wasPending && pendingCount) {
+                    const nextCount = Math.max(0, Number(pendingCount.textContent) - 1);
+                    pendingCount.textContent = String(nextCount);
+                    const badge = root.querySelector('[data-reports-pending-badge]');
+                    if (badge && nextCount > 0) badge.textContent = `(${nextCount})`;
+                    else badge?.remove();
+                }
+                form.closest('details.hierarchy-item')?.removeAttribute('open');
+                form.closest('details.hierarchy-category')?.removeAttribute('open');
+            } catch (error) {
+                let feedback = form.closest('.review-actions')?.querySelector('[data-dismiss-feedback]');
+                if (!feedback) {
+                    feedback = document.createElement('p');
+                    feedback.className = 'report-detail';
+                    feedback.dataset.dismissFeedback = '';
+                    form.closest('.review-actions')?.append(feedback);
+                }
+                if (feedback) feedback.textContent = error.message || 'Could not dismiss this report. Please try again.';
+            } finally {
+                button.disabled = false;
+            }
+        });
+    });
+})();
+</script>
+<?php endif; ?>

@@ -9,27 +9,6 @@ $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
 $tab = ($_GET['review_tab'] ?? 'ratings') === 'reports' ? 'reports' : 'ratings';
 $ratingFilter = filter_var($_GET['rating'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 5]]);
-$adminId = (int) $_SESSION['user_id'];
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_verify();
-    $action = $_POST['moderation_action'] ?? '';
-    $reviewId = (int) ($_POST['review_id'] ?? 0);
-    $reportId = (int) ($_POST['report_id'] ?? 0);
-    if (in_array($action, ['archive', 'safe', 'hide', 'remove', 'keep'], true) && $reviewId > 0) {
-        $status = $action === 'archive' ? 'archived' : (in_array($action, ['hide'], true) ? 'hidden' : (in_array($action, ['remove'], true) ? 'removed' : 'visible'));
-        $stmt = $conn->prepare('UPDATE item_reviews SET status = ? WHERE review_id = ?');
-        $stmt->bind_param('si', $status, $reviewId); $stmt->execute(); $stmt->close();
-        $resolution = $action === 'archive' ? 'archived' : ($action === 'safe' ? 'safe_kept' : ($action === 'hide' ? 'valid_hidden' : ($action === 'remove' ? 'valid_removed' : 'invalid_kept')));
-        $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'resolved', resolution_action = ?, resolved_at = NOW(), resolved_by = ? WHERE review_id = ? AND status = 'pending'");
-        $stmt->bind_param('sii', $resolution, $adminId, $reviewId); $stmt->execute(); $stmt->close();
-    } elseif ($action === 'dismiss' && $reportId > 0) {
-        $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'dismissed', resolution_action = 'dismissed', resolved_at = NOW(), resolved_by = ? WHERE report_id = ? AND status = 'pending'");
-        $stmt->bind_param('ii', $adminId, $reportId); $stmt->execute(); $stmt->close();
-    }
-    $redirectParams = $_GET; $redirectParams['review_tab'] = $tab === 'reports' ? 'reports' : 'ratings'; unset($redirectParams['rating']);
-    header('Location: ' . BASE_URL . '/admin/admindashboard.php?' . http_build_query($redirectParams) . '#community');
-    exit;
-}
 $periodLabel = 'All time';
 $reviewPeriodStartSql = '1970-01-01 00:00:00';
 $categoryLabels = ['restaurant'=>'Restaurants & Cafes','product'=>'Local Products','fiesta'=>'Fiestas & Events','nature'=>'Nature','resort'=>'Resorts','industry'=>'Industry Zones','accommodation'=>'Accommodation','church'=>'Churches','service'=>'Visitor Services'];
@@ -51,7 +30,7 @@ if ($tab === 'ratings') {
 }
 $reports = [];
 if ($tab === 'reports') {
-    $stmt = $conn->prepare("SELECT q.report_id,q.reporter_id,q.reason_code,q.details report_details,q.status report_status,q.resolution_action,q.created_at reported_at,r.review_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status review_status,r.created_at review_date,COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,CONCAT('Item #',r.item_id)) item_name FROM item_review_reports q JOIN item_reviews r ON r.review_id=q.review_id LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id=r.item_id LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id WHERE q.status='pending' ORDER BY q.created_at DESC LIMIT 300");
+    $stmt = $conn->prepare("SELECT q.report_id,q.reporter_id,q.reason_code,q.details report_details,q.status report_status,q.resolution_action,q.created_at reported_at,r.review_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status review_status,r.created_at review_date,COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,CONCAT('Item #',r.item_id)) item_name FROM item_review_reports q JOIN item_reviews r ON r.review_id=q.review_id LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id=r.item_id LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id ORDER BY (q.status='pending') DESC,q.created_at DESC LIMIT 300");
     $stmt->execute(); $reports=$stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
 }
 $reviewHierarchy = [];
