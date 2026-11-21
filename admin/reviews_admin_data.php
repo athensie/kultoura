@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = $action === 'hide' ? 'hidden' : ($action === 'remove' ? 'removed' : 'visible');
         $stmt = $conn->prepare('UPDATE item_reviews SET status = ? WHERE review_id = ?');
         $stmt->bind_param('si', $status, $reviewId); $stmt->execute(); $stmt->close();
-        $resolution = $action === 'hide' ? 'hidden' : ($action === 'remove' ? 'removed' : 'kept');
+        $resolution = $action === 'hide' ? 'valid_hidden' : ($action === 'remove' ? 'valid_removed' : 'invalid_kept');
         $stmt = $conn->prepare("UPDATE item_review_reports SET status = 'resolved', resolution_action = ?, resolved_at = NOW(), resolved_by = ? WHERE review_id = ? AND status = 'pending'");
         $stmt->bind_param('sii', $resolution, $adminId, $reviewId); $stmt->execute(); $stmt->close();
     } elseif ($action === 'dismiss' && $reportId > 0) {
@@ -33,6 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $periodLabel = 'All time';
 $reviewPeriodStartSql = '1970-01-01 00:00:00';
 $categoryLabels = ['restaurant'=>'Restaurants & Cafes','product'=>'Local Products','fiesta'=>'Fiestas & Events','nature'=>'Nature','resort'=>'Resorts','industry'=>'Industry Zones','accommodation'=>'Accommodation','church'=>'Churches','service'=>'Visitor Services'];
+$reportReasonLabels = ['inauthentic'=>'Fake or inauthentic review','spam'=>'Spam','harassment'=>'Harassment or bullying','hate'=>'Hateful content','sexual'=>'Sexual content','personal_info'=>'Personal information','misinformation'=>'Misleading information','other'=>'Other'];
+$reportResolutionLabels = ['valid_hidden'=>'Report upheld; review hidden','valid_removed'=>'Report upheld; review removed from public view','invalid_kept'=>'Report found incorrect; review kept','dismissed'=>'Dismissed without a finding','hidden'=>'Review hidden','removed'=>'Review removed from public view','kept'=>'Review kept'];
 $summaryStmt = $conn->prepare("SELECT COUNT(*) total, COALESCE(AVG(rating),0) average_rating, COUNT(DISTINCT item_type) categories FROM item_reviews WHERE status IN ('visible','demo') AND created_at >= ?");
 $summaryStmt->bind_param('s', $reviewPeriodStartSql); $summaryStmt->execute(); $summary = $summaryStmt->get_result()->fetch_assoc(); $summaryStmt->close();
 $ratingCounts = array_fill(1, 5, 0);

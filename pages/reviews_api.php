@@ -106,7 +106,7 @@ if ($action === 'report') {
     $reviewId = (int) ($_POST['review_id'] ?? 0);
     $reasonCode = strtolower(trim((string) ($_POST['reason'] ?? '')));
     $details = trim((string) ($_POST['details'] ?? ''));
-    $allowedReasons = ['spam', 'harassment', 'hate', 'sexual', 'personal_info', 'misinformation', 'other'];
+    $allowedReasons = ['inauthentic', 'spam', 'harassment', 'hate', 'sexual', 'personal_info', 'misinformation', 'other'];
     if ($reviewId < 1 || !in_array($reasonCode, $allowedReasons, true) || mb_strlen($details) > 1000) {
         kt_review_response(422, ['success' => false, 'message' => 'Choose a report reason and keep additional details under 1,000 characters.']);
     }
