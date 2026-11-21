@@ -38,6 +38,14 @@ function td_is_diary_video(?string $filename): bool
 {
     return $filename !== null && in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), ['mp4', 'webm', 'mov'], true);
 }
+function td_wrapped_short_name(string $name): string
+{
+    $normalized = mb_strtolower($name, 'UTF-8');
+    if (str_contains($normalized, 'batangas state university')) return 'BatStateU JPLPC';
+    if (str_contains($normalized, 'but first, coffee')) return 'BFC Poblacion';
+    if (str_contains($normalized, 'total san pioquinto')) return 'Total San Pioquinto';
+    return mb_strimwidth($name, 0, 20, '…', 'UTF-8');
+}
 $categoryLabels = [
     'product'       => 'Product',
     'restaurant'    => 'Restaurant',
@@ -690,8 +698,11 @@ if ($wrappedRequested && $canGenerateWrapped) {
             $storyPlaces[$placeId] = [
                 'id' => $placeId,
                 'name' => (string) $item['name'],
+                'shortName' => td_wrapped_short_name((string) $item['name']),
                 'short' => mb_strimwidth((string) $item['name'], 0, 22, '…', 'UTF-8'),
+                'short' => td_wrapped_short_name((string) $item['name']),
                 'category' => $storyCategory,
+                'hasCoordinates' => $item['lat'] !== null && $item['lng'] !== null,
                 'lat' => $item['lat'] !== null ? (float) $item['lat'] : 14.0446,
                 'lng' => $item['lng'] !== null ? (float) $item['lng'] : 121.1560,
                 'art' => $meta['art'],
@@ -756,8 +767,25 @@ if ($wrappedRequested && $canGenerateWrapped) {
                 'media' => $chapterMedia,
             ];
         }
-        $wrappedOwnerName = trim((string) ($_SESSION['username'] ?? $_SESSION['user_name'] ?? ''));
+        $wrappedOwnerName = trim((string) ($_SESSION['user_name'] ?? $_SESSION['username'] ?? ''));
         if ($wrappedOwnerName === '') $wrappedOwnerName = 'KULTOURA traveler';
+        $storySuggestions = [];
+        foreach (['local', 'food', 'culture', 'nature'] as $suggestionGroup) {
+            foreach ($catalog as $candidateKey => $candidate) {
+                $candidateGroup = match ($storyCategoryFor($candidate)) {
+                    'service' => 'local',
+                    'coffee', 'food' => 'food',
+                    'event', 'culture' => 'culture',
+                    default => 'nature',
+                };
+                if (isset($storyPlaces[$candidateKey]) || $candidateGroup !== $suggestionGroup) continue;
+                $storySuggestions[$suggestionGroup] = [
+                    'name' => td_wrapped_short_name((string) $candidate['name']),
+                    'url' => (string) ($candidate['link'] ?? '../pages/tourism.php'),
+                ];
+                break;
+            }
+        }
         $wrappedStoryData = [
             'owner' => $wrappedOwnerName,
             'config' => ['brand' => 'KULTOURA', 'region' => 'Malvar, Batangas', 'year' => (int) $wrappedRangeStart->format('Y'), 'slideMs' => 6500, 'maxClipSeconds' => 5],
@@ -765,6 +793,8 @@ if ($wrappedRequested && $canGenerateWrapped) {
             'places' => array_values($storyPlaces),
             'visits' => $storyVisits,
             'liked' => $storyLiked,
+            'suggestions' => $storySuggestions,
+            'mapOutline' => td_wrapped_boundary_latlngs(),
             'stats' => ['favoritesMarked' => $twFavoritesCount],
             'media' => $storyPhotos,
             'edit' => ['title' => 'Malvar in Moments', 'titleMs' => 2200, 'endMs' => 2600, 'maxSeconds' => 30, 'minClipMs' => 900, 'chapters' => $storyChapters],
