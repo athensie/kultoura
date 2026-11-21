@@ -145,7 +145,7 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 </footer>
 <div class="toast" id="toast"></div>
 </main>
-<?php if ($isPublicShared): ?><a class="share-invitation" href="../index.php"><span>Explore Malvar with <strong>KULTOURA</strong></span><i aria-hidden="true">&rarr;</i></a><?php endif; ?>
+<?php if ($isPublicShared): ?><a class="share-invitation" href="../index.php"><strong>KULTOURA</strong></a><?php endif; ?>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 /* DATA — replace with JSON from your backend. media[].src / poster / places[].img / liked[].img = real uploads. */
