@@ -232,8 +232,9 @@ function initWrappedLeaflet(){const box=$('#mapbox');if(!box||wrappedLeaflet||ty
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(wrappedLeaflet);
  if(MAP_BOUNDARY.length>2)L.polygon(MAP_BOUNDARY,{color:'#587a4c',weight:2,fillColor:'#78966b',fillOpacity:.12}).addTo(wrappedLeaflet);
  MAP_PLACES.forEach((p,n)=>{const icon=L.divIcon({className:'wrapped-map-icon',html:`<span class="wrapped-map-pin">${n+1}</span>`,iconSize:[27,27],iconAnchor:[13,13]});L.marker([+p.lat,+p.lng],{icon,title:`${n+1}. ${p.name}`,keyboard:true}).addTo(wrappedLeaflet).bindPopup(`<strong>${n+1}. ${esc(p.name)}</strong><br>${esc(cat(p).label)}`)});
- wrappedRoutePoints=ROUTE.map(r=>[+r.place.lat,+r.place.lng]);wrappedRoute=L.polyline([],{color:'#b5472a',weight:3,opacity:.9,lineCap:'round',lineJoin:'round'}).addTo(wrappedLeaflet);
- const bounds=L.latLngBounds([...(MAP_BOUNDARY.length?MAP_BOUNDARY:[]),...MAP_PLACES.map(p=>[+p.lat,+p.lng])]);if(bounds.isValid())wrappedLeaflet.fitBounds(bounds,{padding:[18,18],maxZoom:15,animate:false});
+ wrappedRoutePoints=ROUTE.slice(0,2).map(r=>[+r.place.lat,+r.place.lng]);wrappedRoute=L.polyline([],{color:'#b5472a',weight:4,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(wrappedLeaflet);
+ const firstLeg=wrappedRoutePoints.slice(0,2),focusPoints=firstLeg.length===2?firstLeg:[...(MAP_BOUNDARY.length?MAP_BOUNDARY:[]),...MAP_PLACES.map(p=>[+p.lat,+p.lng])];
+ const bounds=L.latLngBounds(focusPoints);if(bounds.isValid())wrappedLeaflet.fitBounds(bounds,{padding:[42,50],maxZoom:firstLeg.length===2?17:15,animate:false});
  requestAnimationFrame(()=>wrappedLeaflet?.invalidateSize({pan:false}));
 }
 function tickMap(e){if(!wrappedRoute||RM||wrappedRoutePoints.length<2||e<MAP_START)return;
