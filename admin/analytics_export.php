@@ -28,8 +28,12 @@ function kt_export_stmt_rows(mysqli $conn, string $sql, string $types = '', arra
 
 function kt_export_activity_label(string $type, array $row): string
 {
-    if ($type === 'view') return 'Viewed ' . (!empty($row['item_type']) ? 'destination or content' : 'page');
-    if ($type === 'click' && str_contains(strtolower((string) ($row['page_section'] ?? '')), 'recommend')) return 'Clicked recommendation';
+    if ($type === 'view') {
+        $itemType = (string) ($row['item_type'] ?? '');
+        if (in_array($itemType, ['nature', 'industry', 'resort', 'church', 'accommodation', 'bank', 'service', 'restaurant'], true)) return 'Viewed destination';
+        if (in_array($itemType, ['product', 'fiesta', 'person'], true)) return 'Viewed cultural content';
+        return 'Viewed page';
+    }
     $labels = ['search' => 'Searched', 'generate' => 'Generated itinerary', 'review' => 'Submitted review', 'rating' => 'Submitted rating', 'comment' => 'Submitted comment', 'map_interaction' => 'Opened map', 'recommendation' => 'Clicked recommendation', 'download' => 'Downloaded or saved', 'language' => 'Changed language'];
     return $labels[$type] ?? ucfirst(str_replace('_', ' ', $type));
 }
@@ -170,7 +174,7 @@ if ($custom) {
 $startSql = $start->format('Y-m-d 00:00:00');
 $endSql = $endExclusive->format('Y-m-d 00:00:00');
 $rangeDays = max(1, (int) $start->diff($endExclusive)->days);
-$previousStart = $start->modify('-' . $rangeDays . ' days');
+$previousStart = $period === 'all' ? $start : $start->modify('-' . $rangeDays . ' days');
 $previousStartSql = $previousStart->format('Y-m-d 00:00:00');
 $activityReady = kt_activity_ensure_schema($conn);
 $activityRows = $activityReady ? kt_export_stmt_rows($conn, 'SELECT activity_id,user_id,session_hash,activity_type,category,parent_category,item_type,item_id,content_name,element_name,page_section,metadata,activity_date FROM user_activity_log WHERE activity_date>=? AND activity_date<? ORDER BY activity_date,activity_id', 'ss', [$startSql, $endSql]) : [];
@@ -178,36 +182,43 @@ $previousRows = $activityReady ? kt_export_stmt_rows($conn, 'SELECT activity_typ
 $reviewRows = [];
 $reviewExists = $conn->query("SHOW TABLES LIKE 'item_reviews'");
 if ($reviewExists && $reviewExists->num_rows > 0) {
-    $reviewRows = kt_export_stmt_rows($conn, "SELECT item_type,item_id,rating,created_at FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<? ORDER BY created_at", 'ss', [$startSql, $endSql]);
+    $reviewRows = kt_export_stmt_rows($conn, "SELECT item_type,item_id,rating,review_text,created_at FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<? ORDER BY created_at", 'ss', [$startSql, $endSql]);
 }
 $currentPageViews = analytics_total_views($conn, $startSql, $endSql);
 $previousPageViews = analytics_total_views($conn, $previousStartSql, $startSql);
 $pageViewsByDay = kt_export_stmt_rows($conn, "SELECT DATE(viewed_at) report_date,COUNT(*) total FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local') AND viewed_at>=? AND viewed_at<? GROUP BY DATE(viewed_at)", 'ss', [$startSql, $endSql]);
+$searchesByDay = kt_export_stmt_rows($conn, 'SELECT DATE(searched_at) report_date,COUNT(*) total FROM search_log WHERE searched_at>=? AND searched_at<? GROUP BY DATE(searched_at)', 'ss', [$startSql, $endSql]);
+$searchTermRows = kt_export_stmt_rows($conn, 'SELECT LOWER(query) query,COUNT(*) searches,SUM(result_count=0) zero_results,SUM(result_count>0) with_results FROM search_log WHERE searched_at>=? AND searched_at<? GROUP BY LOWER(query) ORDER BY searches DESC,query ASC', 'ss', [$startSql, $endSql]);
+$previousSearchCount = kt_export_stmt_rows($conn, 'SELECT COUNT(*) total FROM search_log WHERE searched_at>=? AND searched_at<?', 'ss', [$previousStartSql, $startSql]);
+$currentSearchCount = array_sum(array_column($searchesByDay, 'total'));
+$previousSearchCount = (int) ($previousSearchCount[0]['total'] ?? 0);
 
 $daily = $activityTypes = $devices = $visitorKeys = $pseudonyms = [];
-$metrics = ['views' => $currentPageViews, 'searches' => 0, 'itineraries' => 0, 'reviews' => count($reviewRows), 'maps' => 0, 'recommendations' => 0];
-$previousMetrics = ['views' => 0, 'searches' => 0, 'recommendations' => 0, 'reviews' => 0];
+$metrics = ['views' => $currentPageViews, 'searches' => $currentSearchCount, 'itineraries' => 0, 'ratings' => count($reviewRows), 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+$previousMetrics = ['views' => 0, 'searches' => 0, 'recommendations' => 0, 'ratings' => 0, 'comments' => 0];
 foreach ($previousRows as $row) {
     $type = (string) $row['activity_type'];
-    if ($type === 'view') $previousMetrics['views']++;
-    if ($type === 'search') $previousMetrics['searches']++;
-    if ($type === 'recommendation' || ($type === 'click' && str_contains(strtolower((string) $row['page_section']), 'recommend'))) $previousMetrics['recommendations']++;
+    if ($type === 'recommendation') $previousMetrics['recommendations']++;
 }
-$previousReview = kt_export_stmt_rows($conn, "SELECT COUNT(*) total FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<?", 'ss', [$previousStartSql, $startSql]);
-$previousMetrics['reviews'] = (int) ($previousReview[0]['total'] ?? 0);
+$previousMetrics['searches'] = $previousSearchCount;
+$previousReview = $reviewExists && $reviewExists->num_rows > 0
+    ? kt_export_stmt_rows($conn, "SELECT COUNT(*) ratings,SUM(review_text IS NOT NULL AND TRIM(review_text)<>'') comments FROM item_reviews WHERE status='visible' AND (user_id IS NULL OR user_id NOT BETWEEN 2000000001 AND 2000000050) AND created_at>=? AND created_at<?", 'ss', [$previousStartSql, $startSql])
+    : [];
+$previousMetrics['ratings'] = (int) ($previousReview[0]['ratings'] ?? 0);
+$previousMetrics['comments'] = (int) ($previousReview[0]['comments'] ?? 0);
+$metrics['comments'] = count(array_filter($reviewRows, static fn($row) => trim((string) ($row['review_text'] ?? '')) !== ''));
 foreach ($activityRows as $row) {
     $type = (string) $row['activity_type'];
     $label = kt_export_activity_label($type, $row);
     $activityTypes[$label] = ($activityTypes[$label] ?? 0) + 1;
     $date = substr((string) $row['activity_date'], 0, 10);
-    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'reviews' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
     $visitorKey = !empty($row['user_id']) ? 'u' . $row['user_id'] : 's' . $row['session_hash'];
     $visitorKeys[$visitorKey] = true;
     $daily[$date]['visitors'][$visitorKey] = true;
-    if ($type === 'search') { $metrics['searches']++; $daily[$date]['searches']++; }
     if ($type === 'generate') { $metrics['itineraries']++; $daily[$date]['itineraries']++; }
     if ($type === 'map_interaction') { $metrics['maps']++; $daily[$date]['maps']++; }
-    if ($type === 'recommendation' || ($type === 'click' && str_contains(strtolower((string) $row['page_section']), 'recommend'))) { $metrics['recommendations']++; $daily[$date]['recommendations']++; }
+    if ($type === 'recommendation') { $metrics['recommendations']++; $daily[$date]['recommendations']++; }
     $metadata = json_decode((string) ($row['metadata'] ?? ''), true);
     $device = is_array($metadata) ? (string) ($metadata['device'] ?? $metadata['device_type'] ?? 'Unknown') : 'Unknown';
     $device = in_array(strtolower($device), ['mobile', 'desktop', 'tablet'], true) ? ucfirst(strtolower($device)) : 'Unknown';
@@ -216,53 +227,76 @@ foreach ($activityRows as $row) {
 }
 foreach ($reviewRows as $review) {
     $date = substr((string) $review['created_at'], 0, 10);
-    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'reviews' => 0, 'maps' => 0, 'recommendations' => 0];
-    $daily[$date]['reviews']++;
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date]['ratings']++;
+    if (trim((string) ($review['review_text'] ?? '')) !== '') $daily[$date]['comments']++;
 }
 $previousMetrics['views'] = $previousPageViews;
 foreach ($pageViewsByDay as $row) {
     $date = (string) $row['report_date'];
-    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'reviews' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
     $daily[$date]['views'] = (int) $row['total'];
 }
+foreach ($searchesByDay as $row) {
+    $date = (string) $row['report_date'];
+    $daily[$date] ??= ['visitors' => [], 'views' => 0, 'searches' => 0, 'itineraries' => 0, 'ratings' => 0, 'comments' => 0, 'maps' => 0, 'recommendations' => 0];
+    $daily[$date]['searches'] = (int) $row['total'];
+}
 $metrics['active_users'] = count($visitorKeys);
-$metrics['destination_views'] = 0;
 $itemViewRows = kt_export_stmt_rows($conn, 'SELECT item_type,item_id,COUNT(*) total FROM item_views WHERE viewed_at>=? AND viewed_at<? GROUP BY item_type,item_id', 'ss', [$startSql, $endSql]);
+$itemViewDailyRows = kt_export_stmt_rows($conn, 'SELECT DATE(viewed_at) report_date,item_type,item_id,COUNT(*) total FROM item_views WHERE viewed_at>=? AND viewed_at<? GROUP BY DATE(viewed_at),item_type,item_id', 'ss', [$startSql, $endSql]);
 $itemViews = [];
 foreach ($itemViewRows as $row) $itemViews[$row['item_type'] . ':' . $row['item_id']] = (int) $row['total'];
-$metrics['destination_views'] = array_sum(array_map(static fn($key, $value) => in_array(strtok($key, ':'), ['nature', 'industry', 'resort', 'church', 'accommodation', 'bank', 'service'], true) ? $value : 0, array_keys($itemViews), array_values($itemViews)));
+$metrics['destination_views'] = 0;
 $destinationRatingRows = [];
 if ($reviewRows) {
     foreach ($reviewRows as $row) {
-        if (in_array($row['item_type'], ['nature', 'industry', 'resort', 'church', 'accommodation', 'bank', 'service'], true)) $destinationRatingRows[] = $row;
+        if (in_array($row['item_type'], ['nature', 'industry', 'resort', 'church'], true)) $destinationRatingRows[] = $row;
     }
 }
 $averageDestinationRating = $destinationRatingRows ? array_sum(array_column($destinationRatingRows, 'rating')) / count($destinationRatingRows) : 0;
 
-$destinations = kt_export_stmt_rows($conn, "SELECT destination_id,destination_name,category,address FROM destination WHERE status='active' ORDER BY destination_name");
+$destinations = kt_export_stmt_rows($conn, "SELECT destination_id id,destination_name name,category,address FROM destination WHERE status='active' ORDER BY destination_name");
+foreach ($destinations as &$destination) $destination['item_type'] = (string) $destination['category'];
+unset($destination);
+$restaurantListings = kt_export_stmt_rows($conn, "SELECT restaurant_id id,restaurant_name name,category,address FROM restaurants WHERE status='active' ORDER BY restaurant_name");
+foreach ($restaurantListings as &$restaurant) $restaurant['item_type'] = 'restaurant';
+unset($restaurant);
+$destinations = array_merge($destinations, $restaurantListings);
 $destinationDaily = [];
 $destinationTotals = [];
-$knownDestinationTypes = ['nature', 'industry', 'resort', 'church', 'accommodation', 'bank', 'service'];
+$knownDestinationTypes = ['nature', 'industry', 'resort', 'church', 'accommodation', 'bank', 'service', 'restaurant'];
 $destinationLogStats = [];
+$destinationNames = [];
+foreach ($destinations as $destination) {
+    $key = $destination['item_type'] . ':' . (int) $destination['id'];
+    $destinationNames[$key] = $destination['name'];
+    if (in_array($destination['item_type'], ['nature', 'industry', 'resort', 'church'], true)) $metrics['destination_views'] += $itemViews[$key] ?? 0;
+}
+foreach ($itemViewDailyRows as $viewRow) {
+    if (!in_array($viewRow['item_type'], $knownDestinationTypes, true)) continue;
+    $key = $viewRow['item_type'] . ':' . (int) $viewRow['item_id'];
+    if (!isset($destinationNames[$key])) continue;
+    $date = (string) $viewRow['report_date'];
+    $destinationDaily[$date][$key] = ['name' => $destinationNames[$key] ?? 'Destination #' . $viewRow['item_id'], 'views' => (int) $viewRow['total'], 'visitors' => []];
+}
 foreach ($activityRows as $row) {
-    if (!in_array($row['item_type'], $knownDestinationTypes, true) || (int) $row['item_id'] <= 0) continue;
+    if (!in_array($row['item_type'], $knownDestinationTypes, true) || (int) $row['item_id'] <= 0 || $row['activity_type'] !== 'view') continue;
     $key = $row['item_type'] . ':' . (int) $row['item_id'];
+    if (!isset($destinationNames[$key])) continue;
     $destinationLogStats[$key]['visitors'][(empty($row['user_id']) ? 's' . $row['session_hash'] : 'u' . $row['user_id'])] = true;
-    $destinationLogStats[$key]['views'] = ($destinationLogStats[$key]['views'] ?? 0) + ((string) $row['activity_type'] === 'view' ? 1 : 0);
     $d = substr((string) $row['activity_date'], 0, 10);
-    $destinationDaily[$d][$key] ??= ['name' => $row['content_name'] ?: 'Destination #' . $row['item_id'], 'views' => 0, 'visitors' => []];
-    if ($row['activity_type'] === 'view') {
-        $destinationDaily[$d][$key]['views']++;
-        $destinationDaily[$d][$key]['visitors'][$empty = (empty($row['user_id']) ? 's' . $row['session_hash'] : 'u' . $row['user_id'])] = true;
-    }
+    $destinationDaily[$d][$key] ??= ['name' => $destinationNames[$key] ?? ($row['content_name'] ?: 'Destination #' . $row['item_id']), 'views' => 0, 'visitors' => []];
+    $destinationDaily[$d][$key]['visitors'][empty($row['user_id']) ? 's' . $row['session_hash'] : 'u' . $row['user_id']] = true;
 }
 foreach ($reviewRows as $row) {
     if (!isset($destinationTotals[$row['item_type'] . ':' . $row['item_id']])) $destinationTotals[$row['item_type'] . ':' . $row['item_id']] = ['ratings' => [], 'reviews' => 0];
     $destinationTotals[$row['item_type'] . ':' . $row['item_id']]['ratings'][] = (int) $row['rating'];
     $destinationTotals[$row['item_type'] . ':' . $row['item_id']]['reviews']++;
     if (in_array($row['item_type'], $knownDestinationTypes, true)) {
-        $date = substr((string) $row['created_at'], 0, 10);
         $key = $row['item_type'] . ':' . (int) $row['item_id'];
+        if (!isset($destinationNames[$key])) continue;
+        $date = substr((string) $row['created_at'], 0, 10);
         $destinationDaily[$date][$key] ??= ['name' => 'Destination #' . $row['item_id'], 'views' => 0, 'visitors' => [], 'ratingTotal' => 0, 'reviews' => 0];
         $destinationDaily[$date][$key]['ratingTotal'] = ($destinationDaily[$date][$key]['ratingTotal'] ?? 0) + (int) $row['rating'];
         $destinationDaily[$date][$key]['reviews'] = ($destinationDaily[$date][$key]['reviews'] ?? 0) + 1;
@@ -270,9 +304,10 @@ foreach ($reviewRows as $row) {
 }
 $destinationSheetRows = [['kind' => 'title', 'values' => ['KulToura | Destination Analytics']], ['kind' => 'subtitle', 'values' => ['Destination and local establishment performance | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Destination', 'Category', 'Barangay / Address', 'Views', 'Unique Visitors', 'Average Rating', 'Reviews']]];
 foreach ($destinations as $d) {
-    $type = (string) $d['category']; $key = $type . ':' . (int) $d['destination_id'];
+    $type = (string) $d['item_type']; $key = $type . ':' . (int) $d['id'];
     $rating = $destinationTotals[$key]['ratings'] ?? [];
-    $destinationSheetRows[] = [$d['destination_name'], ucfirst($type), $d['address'], $itemViews[$key] ?? 0, count($destinationLogStats[$key]['visitors'] ?? []), $rating ? round(array_sum($rating) / count($rating), 2) : '', count($rating)];
+    $categoryLabel = $type === 'restaurant' ? 'Restaurant · ' . $d['category'] : ucfirst($type);
+    $destinationSheetRows[] = [$d['name'], $categoryLabel, $d['address'], $itemViews[$key] ?? 0, count($destinationLogStats[$key]['visitors'] ?? []), $rating ? round(array_sum($rating) / count($rating), 2) : '', count($rating)];
 }
 $culturalTypes = ['product', 'fiesta', 'person'];
 $culturalTables = ['product' => ['products', 'product_id', 'product_name'], 'fiesta' => ['fiestas', 'fiesta_id', 'fiesta_name'], 'person' => ['people', 'person_id', 'fullname']];
@@ -283,6 +318,26 @@ foreach ($culturalTables as $type => [$table, $idCol, $nameCol]) {
         $culturalItems[$key] = ['type' => $type, 'id' => (int) $item['id'], 'name' => (string) $item['name'], 'views' => $itemViews[$key] ?? 0, 'readers' => [], 'saves' => 0, 'daily' => []];
     }
 }
+foreach ($itemViewDailyRows as $viewRow) {
+    $key = $viewRow['item_type'] . ':' . (int) $viewRow['item_id'];
+    if (!isset($culturalItems[$key])) continue;
+    $culturalItems[$key]['daily'][$viewRow['report_date']] = ['views' => (int) $viewRow['total'], 'readers' => [], 'saves' => 0];
+}
+$favoriteRows = [];
+$favoritesExists = $conn->query("SHOW TABLES LIKE 'favorites'");
+if ($favoritesExists && $favoritesExists->num_rows > 0) {
+    $favoriteRows = kt_export_stmt_rows($conn, "SELECT item_type,item_id,DATE(created_at) report_date,COUNT(*) total FROM favorites WHERE user_id NOT BETWEEN 2000000001 AND 2000000050 AND item_type IN ('product','fiesta','person') AND created_at>=? AND created_at<? GROUP BY item_type,item_id,DATE(created_at)", 'ss', [$startSql, $endSql]);
+}
+$favoriteCounts = [];
+foreach ($favoriteRows as $favorite) {
+    $key = $favorite['item_type'] . ':' . (int) $favorite['item_id'];
+    if (!isset($culturalItems[$key])) continue;
+    $count = (int) $favorite['total'];
+    $favoriteCounts[$key] = ($favoriteCounts[$key] ?? 0) + $count;
+    $culturalItems[$key]['daily'][$favorite['report_date']] ??= ['views' => 0, 'readers' => [], 'saves' => 0];
+    $culturalItems[$key]['daily'][$favorite['report_date']]['saves'] += $count;
+}
+$downloadCounts = [];
 $contentDaily = [];
 foreach ($activityRows as $row) {
     $type = (string) ($row['item_type'] ?? ''); $key = $type . ':' . (int) ($row['item_id'] ?? 0);
@@ -291,37 +346,39 @@ foreach ($activityRows as $row) {
     $date = substr((string) $row['activity_date'], 0, 10);
     if ($row['activity_type'] === 'view') {
         $culturalItems[$key]['readers'][$visitorKey] = true;
-        $culturalItems[$key]['daily'][$date]['views'] = ($culturalItems[$key]['daily'][$date]['views'] ?? 0) + 1;
+        $culturalItems[$key]['daily'][$date] ??= ['views' => 0, 'readers' => [], 'saves' => 0];
         $culturalItems[$key]['daily'][$date]['readers'][$visitorKey] = true;
     }
     if ($row['activity_type'] === 'download') {
-        $culturalItems[$key]['saves']++;
-        $culturalItems[$key]['daily'][$date]['saves'] = ($culturalItems[$key]['daily'][$date]['saves'] ?? 0) + 1;
+        $downloadCounts[$key] = ($downloadCounts[$key] ?? 0) + 1;
+        $culturalItems[$key]['daily'][$date] ??= ['views' => 0, 'readers' => [], 'saves' => 0];
+        $culturalItems[$key]['daily'][$date]['saves']++;
     }
 }
-$culturalSheetRows = [['kind' => 'title', 'values' => ['KulToura | Cultural Content Analytics']], ['kind' => 'subtitle', 'values' => ['Performance of culture, local products, fiestas, and people content | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Content Title', 'Content Type', 'Views', 'Unique Readers', 'Shares / Saves', 'Engagement Rate']]];
+$culturalSheetRows = [['kind' => 'title', 'values' => ['KulToura | Cultural Content Analytics']], ['kind' => 'subtitle', 'values' => ['Performance of culture, local products, fiestas, and people content | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Content Title', 'Content Type', 'Views', 'Unique Readers', 'Saves / Downloads', 'Save Rate']]];
 foreach ($culturalItems as $item) {
     $views = $item['views'];
-    $engagementRate = $views > 0 ? round(($item['saves'] + count($item['readers'])) / $views * 100, 1) . '%' : '0%';
-    $culturalSheetRows[] = [$item['name'], ucfirst($item['type']), $views, count($item['readers']), $item['saves'], $engagementRate];
+    $saves = ($favoriteCounts[$item['type'] . ':' . $item['id']] ?? 0) + ($downloadCounts[$item['type'] . ':' . $item['id']] ?? 0);
+    $engagementRate = $views > 0 ? round($saves / $views * 100, 1) . '%' : '0%';
+    $culturalSheetRows[] = [$item['name'], ucfirst($item['type']), $views, count($item['readers']), $saves, $engagementRate];
     foreach ($item['daily'] as $date => $values) $contentDaily[] = [$date, $item['name'], ucfirst($item['type']), $values['views'] ?? 0, count($values['readers'] ?? []), $values['saves'] ?? 0];
 }
 
-$engagementRows = [['kind' => 'title', 'values' => ['KulToura | Engagement Analytics']], ['kind' => 'subtitle', 'values' => ['Daily platform engagement metrics | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Unique Active Users', 'Page Views', 'Searches', 'Itineraries Generated', 'Reviews', 'Map Interactions', 'Recommendation Clicks']]];
-foreach ($daily as $date => $d) $engagementRows[] = [$date, count($d['visitors']), $d['views'], $d['searches'], $d['itineraries'], $d['reviews'], $d['maps'], $d['recommendations']];
+$engagementRows = [['kind' => 'title', 'values' => ['KulToura | Engagement Analytics']], ['kind' => 'subtitle', 'values' => ['Daily platform engagement metrics | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Unique Tracked Visitors', 'Page Views', 'Searches', 'Itineraries Generated', 'Ratings', 'Written Comments', 'Map Interactions', 'Recommendation Clicks']]];
+foreach ($daily as $date => $d) $engagementRows[] = [$date, count($d['visitors']), $d['views'], $d['searches'], $d['itineraries'], $d['ratings'], $d['comments'], $d['maps'], $d['recommendations']];
 $rawRows = [['kind' => 'title', 'values' => ['KulToura | Raw Activity Data']], ['kind' => 'subtitle', 'values' => ['Anonymized event-level records | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Event ID', 'Date and Time', 'Anonymized User ID', 'Activity', 'Page / Target', 'Device']]];
 foreach ($activityRows as $row) {
     $metadata = json_decode((string) ($row['metadata'] ?? ''), true);
     $device = is_array($metadata) ? ucfirst(strtolower((string) ($metadata['device'] ?? $metadata['device_type'] ?? 'Unknown'))) : 'Unknown';
     $rawRows[] = ['EVT-' . str_pad((string) $row['activity_id'], 8, '0', STR_PAD_LEFT), (string) $row['activity_date'], $pseudonyms[!empty($row['user_id']) ? 'u' . $row['user_id'] : 's' . $row['session_hash']] ?? 'Unknown', kt_export_activity_label((string) $row['activity_type'], $row), $row['content_name'] ?: ($row['element_name'] ?: $row['page_section']), $device];
 }
-$destinationDailyRows = [['kind' => 'title', 'values' => ['KulToura | Destination Daily Data']], ['kind' => 'subtitle', 'values' => ['Daily destination activity and feedback | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Destination', 'Views', 'Unique Visitors', 'Average Rating', 'Reviews']]];
+$destinationDailyRows = [['kind' => 'title', 'values' => ['KulToura | Destination Daily Data']], ['kind' => 'subtitle', 'values' => ['Daily destination and restaurant activity and feedback | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Destination / Establishment', 'Views', 'Unique Visitors', 'Average Rating', 'Ratings']]];
 foreach ($destinationDaily as $date => $items) foreach ($items as $values) $destinationDailyRows[] = [$date, $values['name'], $values['views'], count($values['visitors']), !empty($values['reviews']) ? round($values['ratingTotal'] / $values['reviews'], 2) : '', $values['reviews'] ?? 0];
-$contentDailyRows = [['kind' => 'title', 'values' => ['KulToura | Cultural Content Daily Data']], ['kind' => 'subtitle', 'values' => ['Daily cultural content activity | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Content Title', 'Content Type', 'Views', 'Unique Readers', 'Shares / Saves']]];
+$contentDailyRows = [['kind' => 'title', 'values' => ['KulToura | Cultural Content Daily Data']], ['kind' => 'subtitle', 'values' => ['Daily cultural content activity | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Date', 'Content Title', 'Content Type', 'Views', 'Unique Readers', 'Saves / Downloads']]];
 foreach ($contentDaily as $row) $contentDailyRows[] = $row;
 
-$behaviorDescriptions = ['Viewed destination or content' => 'Destination listing or detail views', 'Viewed page' => 'Tracked page views', 'Searched' => 'Search queries submitted', 'Generated itinerary' => 'Visitor itinerary generation', 'Submitted review' => 'Ratings and comments submitted', 'Submitted rating' => 'Ratings submitted', 'Submitted comment' => 'Comments submitted', 'Opened map' => 'Map interactions', 'Clicked recommendation' => 'Clicks on recommended destinations or content', 'Downloaded or saved' => 'Content downloaded or saved'];
-$behaviorRows = [['kind' => 'title', 'values' => ['KulToura | User Behavior Analytics']], ['kind' => 'subtitle', 'values' => ['Actions, navigation patterns, and device usage | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Activity Type', 'Event Count', 'Share of Tracked Events', 'Interpretation', '', 'Device', 'Events']]];
+$behaviorDescriptions = ['Viewed destination' => 'Destination and local establishment detail views', 'Viewed cultural content' => 'Products, fiestas, and people detail views', 'Viewed page' => 'Tracked page views', 'Searched' => 'Search queries submitted', 'Generated itinerary' => 'Visitor itinerary generation', 'Submitted review' => 'Ratings and comments submitted', 'Submitted rating' => 'Ratings submitted', 'Submitted comment' => 'Comments submitted', 'Opened map' => 'Map interactions', 'Clicked recommendation' => 'Clicks on recommended destinations or content', 'Downloaded or saved' => 'Content downloaded or saved'];
+$behaviorRows = [['kind' => 'title', 'values' => ['KulToura | User Behavior Analytics']], ['kind' => 'subtitle', 'values' => ['Actions and device metadata recorded for ' . $periodLabel . '; device type is Unknown when it is not recorded.']], ['kind' => 'header', 'values' => ['Activity Type', 'Event Count', 'Share of Tracked Events', 'Interpretation', '', 'Device', 'Events']]];
 $allActivityCount = count($activityRows);
 foreach ($activityTypes as $label => $count) $behaviorRows[] = [$label, $count, $allActivityCount ? round($count / $allActivityCount * 100, 1) . '%' : '0%', $behaviorDescriptions[$label] ?? 'Recorded visitor activity'];
 foreach (['Mobile', 'Desktop', 'Tablet', 'Unknown'] as $device) $behaviorRows[] = ['', '', '', '', '', $device, $devices[$device] ?? 0];
@@ -331,50 +388,66 @@ $summaryRows = [
     ['kind' => 'title', 'values' => ['KulToura | Executive Analytics Summary']],
     ['kind' => 'subtitle', 'values' => ['Office of Culture and Tourism | Municipality of Malvar, Batangas | Date-filtered report']],
     ['kind' => 'section', 'values' => ['SELECTED REPORT PERIOD', $periodLabel, $start->format('M j, Y'), $endExclusive->modify('-1 day')->format('M j, Y')]],
-    ['kind' => 'header', 'values' => ['TOTAL PAGE VIEWS', $metrics['views'], 'UNIQUE ACTIVE USERS', $metrics['active_users'], 'SEARCHES', $metrics['searches'], 'RECOMMENDATION CLICKS', $metrics['recommendations']]],
-    ['kind' => 'header', 'values' => ['REVIEWS SUBMITTED', $metrics['reviews'], 'MAP INTERACTIONS', $metrics['maps'], 'DESTINATION VIEWS', $metrics['destination_views'], 'AVERAGE DESTINATION RATING', $averageDestinationRating ? round($averageDestinationRating, 2) : 'No ratings']],
+    ['kind' => 'header', 'values' => ['TOTAL PAGE VIEWS', $metrics['views'], 'UNIQUE TRACKED VISITORS', $metrics['active_users'], 'SEARCH QUERIES', $metrics['searches'], 'RECORDED RECOMMENDATION CLICKS', $metrics['recommendations']]],
+    ['kind' => 'header', 'values' => ['RATINGS SUBMITTED', $metrics['ratings'], 'WRITTEN COMMENTS', $metrics['comments'], 'DESTINATION VIEWS', $metrics['destination_views'], 'AVERAGE DESTINATION RATING', $averageDestinationRating ? round($averageDestinationRating, 2) : 'No ratings']],
     ['kind' => 'section', 'values' => ['PERIOD-OVER-PERIOD COMPARISON']],
     ['kind' => 'header', 'values' => ['Metric', 'Selected Period', 'Previous Equal Period', 'Change']],
 ];
-foreach ([['Page Views', 'views'], ['Searches', 'searches'], ['Recommendation Clicks', 'recommendations'], ['Reviews', 'reviews']] as [$label, $key]) {
+foreach ([['Page Views', 'views'], ['Searches', 'searches'], ['Recommendation Clicks', 'recommendations'], ['Ratings', 'ratings'], ['Written Comments', 'comments']] as [$label, $key]) {
     $current = $metrics[$key]; $previous = $previousMetrics[$key];
-    $change = $previous === 0 ? ($current > 0 ? 'New activity' : '0%') : round(($current - $previous) / $previous * 100, 1) . '%';
-    $summaryRows[] = [$label, $current, $previous, $change];
+    if ($period === 'all') $summaryRows[] = [$label, $current, 'N/A', 'N/A'];
+    else {
+        $change = $previous === 0 ? ($current > 0 ? 'New activity' : '0%') : round(($current - $previous) / $previous * 100, 1) . '%';
+        $summaryRows[] = [$label, $current, $previous, $change];
+    }
 }
 $topDestination = '';
 foreach ($destinations as $d) {
-    $type = (string) $d['category']; $key = $type . ':' . (int) $d['destination_id'];
+    $type = (string) $d['item_type']; $key = $type . ':' . (int) $d['id'];
     $count = $itemViews[$key] ?? 0;
-    if ($count > 0 && (!$topDestination || $count > $topDestination['views'])) $topDestination = ['name' => $d['destination_name'], 'views' => $count];
+    if ($count > 0 && (!$topDestination || $count > $topDestination['views'])) $topDestination = ['name' => $d['name'], 'views' => $count];
 }
 $topCulture = '';
 foreach ($culturalItems as $item) if ($item['views'] > 0 && (!$topCulture || $item['views'] > $topCulture['views'])) $topCulture = ['name' => $item['name'], 'views' => $item['views']];
+$topZeroResultSearch = null;
+foreach ($searchTermRows as $searchRow) {
+    if ((int) $searchRow['zero_results'] > 0 && (!$topZeroResultSearch || (int) $searchRow['zero_results'] > $topZeroResultSearch['zero_results'])) {
+        $topZeroResultSearch = ['query' => (string) $searchRow['query'], 'zero_results' => (int) $searchRow['zero_results']];
+    }
+}
 $summaryRows[] = ['kind' => 'section', 'values' => ['AUTOMATED INSIGHTS']];
 $summaryRows[] = [$topDestination ? $topDestination['name'] . ' leads destination views with ' . $topDestination['views'] . ' views.' : 'No destination views were recorded in this period.'];
 $summaryRows[] = [$topCulture ? $topCulture['name'] . ' leads cultural content views with ' . $topCulture['views'] . ' views.' : 'No cultural content views were recorded in this period.'];
-$summaryRows[] = [$metrics['searches'] > 0 ? $metrics['searches'] . ' searches were submitted; review frequent and zero-result terms to improve discovery.' : 'No searches were recorded in this period.'];
-$summaryRows[] = [$metrics['reviews'] > 0 ? $metrics['reviews'] . ' visible reviews were submitted, averaging ' . ($averageDestinationRating ? number_format($averageDestinationRating, 2) . ' stars for destinations' : 'no destination rating available') . '.' : 'No visible reviews were submitted in this period.'];
+$summaryRows[] = [$metrics['searches'] > 0 ? $metrics['searches'] . ' search queries were submitted.' . ($topZeroResultSearch ? ' Most zero-result query: “' . $topZeroResultSearch['query'] . '” (' . $topZeroResultSearch['zero_results'] . ' times).' : ' No zero-result searches were recorded.') : 'No searches were recorded in this period.'];
+$summaryRows[] = [$metrics['ratings'] > 0 ? $metrics['ratings'] . ' visible ratings were submitted, including ' . $metrics['comments'] . ' written comments; the destination average is ' . ($averageDestinationRating ? number_format($averageDestinationRating, 2) . ' stars' : 'not available') . '.' : 'No visible ratings were submitted in this period.'];
 $summaryRows[] = ['kind' => 'section', 'values' => ['REPORT NOTE']];
-$summaryRows[] = ['kind' => 'subtitle', 'values' => ['This workbook is generated from live KulToura records for the selected dates. User identifiers in Raw Activity Data are anonymized within this workbook.']];
+$summaryRows[] = ['kind' => 'subtitle', 'values' => ['Live records for the selected dates. Visitor totals combine registered account IDs and anonymous session IDs, not verified people. Raw IDs are temporary workbook labels. Device type is Unknown when unrecorded. Favorite removals are not retained in save history. See Report Filters for each metric source.']];
 
-$filterRows = [['kind' => 'title', 'values' => ['KULTOURA | REPORT DATE FILTERS']], ['kind' => 'subtitle', 'values' => ['Selected reporting period used by all sheets in this workbook.']], ['kind' => 'section', 'values' => ['Quick date range']], ['kind' => 'header', 'values' => ['Selected period', $periodLabel]], ['Custom start date', $start->format('Y-m-d')], ['Custom end date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['Effective start date', $start->format('Y-m-d')], ['Effective end date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['kind' => 'section', 'values' => ['Filter notes']], ['The selected date range is used across all report sheets.'], ['Comparison metrics use the immediately preceding period of equal length.'], ['User identifiers are anonymized in the raw activity sheet.']];
+$filterRows = [['kind' => 'title', 'values' => ['KULTOURA | EXPORT DATE RANGE']], ['kind' => 'subtitle', 'values' => ['All report data is already filtered to these dates. Change the analytics date filter and export again to create a different range.']], ['kind' => 'section', 'values' => ['Selected reporting period']], ['kind' => 'header', 'values' => ['Selected period', $periodLabel]], ['Start date', $start->format('Y-m-d')], ['End date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['Effective start date', $start->format('Y-m-d')], ['Effective end date', $endExclusive->modify('-1 day')->format('Y-m-d')], ['kind' => 'section', 'values' => ['Metric source and interpretation notes']], ['Executive page views', 'page_views table, excluding the demo seed referrer.'], ['Search counts', 'search_log; the User Behavior sheet counts activity events from user_activity_log.'], ['Destination and cultural views', 'item_views; unique visitors/readers are distinct registered account IDs or anonymous session hashes in user_activity_log.'], ['Reviews and ratings', 'Visible item_reviews, excluding seeded demo users; archived destination types may still contribute to the overall attraction rating as on the dashboard.'], ['Raw activity and behavior', 'user_activity_log events; device type is Unknown when the source did not record it.'], ['Saves / downloads', 'Existing favorite records created in range plus tracked download events. Removed favorite records are not retained.'], ['Comparison', $period === 'all' ? 'All-time reports have no prior equal-length period; comparison cells show N/A.' : 'Compared with the immediately preceding period of equal length.'], ['Privacy', 'Raw Data uses temporary anonymized labels instead of account IDs.']];
+$searchAnalyticsRows = [['kind' => 'title', 'values' => ['KulToura | Search Analytics']], ['kind' => 'subtitle', 'values' => ['Search query counts and result outcomes from search_log | ' . $periodLabel]], ['kind' => 'header', 'values' => ['Search Query', 'Searches', 'Zero-Result Searches', 'Searches With Results', 'Result Rate']]];
+foreach ($searchTermRows as $searchRow) {
+    $searchCount = (int) $searchRow['searches'];
+    $searchAnalyticsRows[] = [(string) $searchRow['query'], $searchCount, (int) $searchRow['zero_results'], (int) $searchRow['with_results'], $searchCount ? round((int) $searchRow['with_results'] / $searchCount * 100, 1) . '%' : '0%'];
+}
+$searchZeroTotal = array_sum(array_map(static fn($row) => (int) $row['zero_results'], $searchTermRows));
 $recommendationRows = [['kind' => 'title', 'values' => ['KulToura | Tourism Planning Recommendations']], ['kind' => 'subtitle', 'values' => ['Rule-based suggestions based on live activity for ' . $periodLabel . '.']], ['kind' => 'header', 'values' => ['Area', 'Observed Result', 'Suggested Recommendation', 'Priority', 'Basis']],
     ['Destination promotion', $topDestination ? $topDestination['name'] . ' had ' . $topDestination['views'] . ' views.' : 'No destination views recorded.', 'Review listing quality, photos, descriptions, and cross-promotion through related destinations.', 'High', 'Destination views'],
     ['Cultural preservation', $topCulture ? $topCulture['name'] . ' had ' . $topCulture['views'] . ' views.' : 'No cultural content views recorded.', 'Consider refreshing content, adding local stories or multimedia, and featuring it on the homepage.', 'High', 'Cultural content views'],
     ['Recommended content', $metrics['recommendations'] . ' recommendation clicks.', 'Review which recommended destinations and cultural content receive clicks; refine relevance using visitor interests and engagement.', 'Medium', 'Recommendation clicks'],
-    ['Search experience', $metrics['searches'] . ' searches submitted.', 'Review common search terms and zero-result searches; improve keywords and content tagging.', 'Medium', 'Search activity'],
-    ['Visitor feedback', $metrics['reviews'] . ' visible reviews; destination average ' . ($averageDestinationRating ? number_format($averageDestinationRating, 2) . ' stars.' : 'not available.'), 'Review comments and recurring concerns; coordinate with relevant establishments when appropriate.', 'Medium', 'Ratings and comments'],
+    ['Search experience', $metrics['searches'] . ' searches; ' . $searchZeroTotal . ' returned no results.' . ($topZeroResultSearch ? ' Most frequent: ' . $topZeroResultSearch['query'] . ' (' . $topZeroResultSearch['zero_results'] . ').' : ''), 'Review the listed zero-result queries and update keywords or content tagging where relevant.', 'Medium', 'Search Analytics'],
+    ['Visitor feedback', $metrics['ratings'] . ' visible ratings and ' . $metrics['comments'] . ' written comments; destination average ' . ($averageDestinationRating ? number_format($averageDestinationRating, 2) . ' stars.' : 'not available.'), 'Review written comments and recurring concerns; coordinate with relevant establishments when appropriate.', 'Medium', 'Ratings and comments'],
 ];
 
 $sheets = [
     'Report Filters' => ['rows' => $filterRows, 'widths' => [30, 44]],
     'Executive Summary' => ['rows' => $summaryRows, 'widths' => [34, 24, 34, 24, 28, 20, 34, 24]],
     'Raw Data' => ['rows' => $rawRows, 'widths' => [16, 24, 20, 28, 42, 16], 'header' => 3],
-    'Engagement Analytics' => ['rows' => $engagementRows, 'widths' => [18, 20, 16, 14, 24, 14, 20, 26], 'header' => 3],
+    'Engagement Analytics' => ['rows' => $engagementRows, 'widths' => [18, 20, 16, 14, 24, 14, 20, 20, 26], 'header' => 3],
     'Destination Daily Data' => ['rows' => $destinationDailyRows, 'widths' => [18, 38, 14, 20, 18, 14], 'header' => 3],
     'Content Daily Data' => ['rows' => $contentDailyRows, 'widths' => [18, 38, 22, 14, 18, 18], 'header' => 3],
     'Destination Analytics' => ['rows' => $destinationSheetRows, 'widths' => [38, 20, 42, 14, 20, 18, 14], 'header' => 3],
     'Cultural Analytics' => ['rows' => $culturalSheetRows, 'widths' => [42, 24, 14, 18, 18, 18], 'header' => 3],
+    'Search Analytics' => ['rows' => $searchAnalyticsRows, 'widths' => [42, 14, 24, 24, 16], 'header' => 3],
     'User Behavior' => ['rows' => $behaviorRows, 'widths' => [34, 16, 24, 58, 4, 16, 14], 'header' => 3],
     'Recommendations' => ['rows' => $recommendationRows, 'widths' => [26, 40, 82, 14, 24], 'header' => 3],
 ];
