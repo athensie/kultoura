@@ -117,6 +117,17 @@ CREATE TABLE `diary_photos` (
   KEY `idx_entry` (`entry_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `travel_wrapped_shares`;
+CREATE TABLE `travel_wrapped_shares` (
+  `share_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `share_hash` char(64) NOT NULL,
+  `payload` longtext NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`share_id`),
+  UNIQUE KEY `uniq_wrapped_share_hash` (`share_hash`),
+  KEY `idx_wrapped_share_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 DROP TABLE IF EXISTS `favorites`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;

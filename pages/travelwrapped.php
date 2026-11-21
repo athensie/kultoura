@@ -1,4 +1,38 @@
 <?php
+$isPublicShared = false;
+if (!isset($wrappedStoryData) && isset($_GET['share'])) {
+    require_once __DIR__ . '/../config/session_boot.php';
+    include __DIR__ . '/../config/dbmain.php';
+    require_once __DIR__ . '/../config/travel_wrapped_share.php';
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Cache-Control: private, no-store');
+    $token = (string) $_GET['share'];
+    $sharedStory = null;
+    if (preg_match('/^[a-f0-9]{64}$/i', $token)) {
+        try {
+            kt_wrapped_share_ensure_table($conn);
+            $shareHash = hash('sha256', $token);
+            $shareStmt = $conn->prepare('SELECT payload FROM travel_wrapped_shares WHERE share_hash=? LIMIT 1');
+            $shareStmt->bind_param('s', $shareHash);
+            $shareStmt->execute();
+            $shareRow = $shareStmt->get_result()->fetch_assoc();
+            $shareStmt->close();
+            if (!empty($shareRow['payload'])) {
+                $sharedStory = json_decode((string) $shareRow['payload'], true);
+            }
+        } catch (Throwable $error) {
+            error_log('Travel Wrapped public share lookup failed: ' . $error->getMessage());
+        }
+    }
+    if (is_array($sharedStory) && !empty($sharedStory['visits'])) {
+        $wrappedStoryData = $sharedStory;
+        $isPublicShared = true;
+    } else {
+        http_response_code(404);
+        ?><!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wrapped link unavailable</title><body style="font:16px system-ui;max-width:520px;margin:12vh auto;padding:24px;color:#243128"><h1>This Wrapped link is unavailable</h1><p>It may be invalid or no longer available.</p><a href="../index.php">Visit KULTOURA</a></body></html><?php
+        exit;
+    }
+}
 if (!isset($wrappedStoryData) || empty($wrappedStoryData['visits'])) {
     header('Location: traveldiary.php');
     exit;
@@ -97,8 +131,8 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 </style>
 <style>.bg .bi{overflow:hidden}.bg .bi img{display:block;width:100%;height:100%;object-fit:contain}</style></head>
 <body>
-<iframe class="diary-backdrop" src="traveldiary.php" title="Travel Diary" aria-hidden="true" tabindex="-1"></iframe>
-<a class="popup-close" href="traveldiary.php" aria-label="Close Travel Wrapped">&times;</a>
+<?php if (!$isPublicShared): ?><iframe class="diary-backdrop" src="traveldiary.php" title="Travel Diary" aria-hidden="true" tabindex="-1"></iframe><?php endif; ?>
+<a class="popup-close" href="<?php echo $isPublicShared ? '../index.php' : 'traveldiary.php'; ?>" aria-label="Close Travel Wrapped">&times;</a>
 <main class="stage" id="stage">
 <header class="top"><div class="bars" id="bars"></div><div class="meta"><div class="brand" id="brand"></div><div class="count" id="count"></div></div></header>
 <div class="slides" id="slides"></div>
@@ -114,6 +148,7 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 <script>
 /* DATA — replace with JSON from your backend. media[].src / poster / places[].img / liked[].img = real uploads. */
 const DATA = <?php echo json_encode($wrappedStoryData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const IS_PUBLIC_SHARED = <?php echo $isPublicShared ? 'true' : 'false'; ?>;
 
 /* dummy art (inline SVG) — remove once real uploads exist */
 const PAL={campus:['#9cc8e8','#8aa36f','#4a4d52'],coffee:['#f6e7d3','#e2c4a0','#7a4b2a'],fiesta:['#3b2a63','#f08a4b','#1a1020'],hall:['#a9d4ee','#9db37f','#2f6b45'],gas:['#bfe1f3','#6f7378','#c8372d'],pool:['#8fe0d6','#2d8b9a','#4cc2d4'],tower:['#a8cfe8','#8aa36f','#aab6bf']};
@@ -268,8 +303,9 @@ const IMAGE_EXPORT_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const VIDEO_EXPORT_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg>';
 function updateExportButton(){const isFilm=SLIDES[idx]?.id==='film',button=$('#exportVideo');button.innerHTML=isFilm?VIDEO_EXPORT_ICON:IMAGE_EXPORT_ICON;button.title=isFilm?'Export Malvar in Moments as video':'Export this slide as an image';button.setAttribute('aria-label',button.title)}
 $('#exportVideo').onclick=e=>{e.stopPropagation();if(SLIDES[idx]?.id==='film')exportFilm();else exportImage()};
-$('#share').onclick=async e=>{e.stopPropagation();const d={title:CFG.brand+' Wrapped '+CFG.year,text:C.shareText,url:location.href};try{if(navigator.share)await navigator.share(d);else{await navigator.clipboard.writeText(d.url);toast('Link copied to clipboard')}}catch(_){}};
-$('#fb').onclick=e=>{e.stopPropagation();window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(location.href),'_blank','noopener')};
+async function getPublicShareUrl(){if(IS_PUBLIC_SHARED)return location.href;const response=await fetch('travelwrapped_share.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({story:DATA})});const result=await response.json();if(!response.ok||!result.url)throw new Error(result.error||'Could not create a share link.');return result.url}
+$('#share').onclick=async e=>{e.stopPropagation();const button=e.currentTarget;button.disabled=true;try{const url=await getPublicShareUrl(),d={title:CFG.brand+' Wrapped '+CFG.year,text:C.shareText,url};if(navigator.share)await navigator.share(d);else{await navigator.clipboard.writeText(url);toast('Public link copied')}}catch(error){if(error.name!=='AbortError')toast(error.message||'Could not create a share link.')}finally{button.disabled=false}};
+$('#fb').onclick=async e=>{e.stopPropagation();const popup=window.open('about:blank','_blank');try{const url=await getPublicShareUrl();if(popup){popup.opener=null;popup.location.href='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url)}else{await navigator.clipboard.writeText(url);toast('Public link copied')}}catch(error){popup?.close();toast(error.message||'Could not create a share link.')}};
 document.addEventListener('click',e=>{if(e.target.closest('#replay'))go(0)});
 let downAt=0,sx=0,sy=0;
 stage.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;downAt=Date.now();sx=e.clientX;sy=e.clientY;hold=true});
