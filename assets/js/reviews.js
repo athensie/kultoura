@@ -111,13 +111,13 @@
                 <div class="kt-review-entry-head"><strong>${esc(review.display_name)}</strong><time>${esc(new Date(review.created_at.replace(' ', 'T')).toLocaleDateString())}</time></div>
                 <div class="kt-review-stars" aria-label="${Number(review.rating)} out of 5 stars">${stars(review.rating)}</div>
                 <p>${esc(review.comment)}</p>
-                ${canReport && !review.is_sample ? `<button type="button" class="kt-review-report-toggle" data-review-id="${Number(review.review_id)}">Report</button>
+                ${canReport ? `<button type="button" class="kt-review-report-toggle" data-review-id="${Number(review.review_id)}">Report</button>
                 <form class="kt-review-report-form" hidden data-review-id="${Number(review.review_id)}">
                     <label>Reason <select name="reason" required><option value="">Choose a reason</option><option value="inauthentic">Fake or inauthentic review</option><option value="spam">Spam</option><option value="harassment">Harassment or bullying</option><option value="hate">Hateful content</option><option value="sexual">Sexual content</option><option value="personal_info">Personal information</option><option value="misinformation">Misleading information</option><option value="other">Other</option></select></label>
                     <textarea name="details" maxlength="1000" rows="2" placeholder="Additional details (optional)"></textarea>
                     <div><button type="submit" class="kt-review-submit">Send report</button> <button type="button" class="kt-review-report-cancel">Cancel</button></div>
                     <p class="kt-review-report-status" aria-live="polite"></p>
-                </form>` : ''}
+                </form>` : `<a class="kt-review-report-toggle" href="../../auth/login.php">Sign in to report</a>`}
             </article>
         `).join('');
         list.querySelectorAll('.kt-review-report-toggle').forEach((button) => {

@@ -110,7 +110,7 @@ if ($action === 'report') {
     if ($reviewId < 1 || !in_array($reasonCode, $allowedReasons, true) || mb_strlen($details) > 1000) {
         kt_review_response(422, ['success' => false, 'message' => 'Choose a report reason and keep additional details under 1,000 characters.']);
     }
-    $reviewStmt = $conn->prepare("SELECT review_id, user_id FROM item_reviews WHERE review_id = ? AND item_type = ? AND item_id = ? AND status = 'visible' LIMIT 1");
+    $reviewStmt = $conn->prepare("SELECT review_id, user_id FROM item_reviews WHERE review_id = ? AND item_type = ? AND item_id = ? AND status IN ('visible','demo') LIMIT 1");
     $reviewStmt->bind_param('isi', $reviewId, $type, $itemId);
     $reviewStmt->execute();
     $reviewRow = $reviewStmt->get_result()->fetch_assoc();
