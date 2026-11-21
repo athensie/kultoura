@@ -98,10 +98,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') kt_review_response(405, ['success' => false, 'message' => 'Method not allowed.']);
 $userId = (int) ($_SESSION['user_id'] ?? 0);
-if ($userId < 1 || in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true)) {
+$action = strtolower(trim((string) ($_POST['action'] ?? 'review')));
+$isAdmin = in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true);
+if ($userId < 1 || ($isAdmin && $action !== 'report')) {
     kt_review_response(401, ['success' => false, 'needsLogin' => true, 'message' => 'Sign in with a visitor account to leave a review.']);
 }
-$action = strtolower(trim((string) ($_POST['action'] ?? 'review')));
 if ($action === 'report') {
     $reviewId = (int) ($_POST['review_id'] ?? 0);
     $reasonCode = strtolower(trim((string) ($_POST['reason'] ?? '')));
