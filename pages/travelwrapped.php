@@ -154,7 +154,9 @@ h1,h2{font-family:var(--serif);letter-spacing:-.025em;line-height:1.02}h2{font-s
 <div class="slides" id="slides"></div>
 <div class="zone l" id="zl"></div><div class="zone r" id="zr"></div>
 <footer class="actions">
+<?php if (!$isPublicShared): ?>
 <button class="btn btn-share" id="share" type="button" aria-label="Share Travel Wrapped" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6"/></svg><span>Share</span></button>
+<?php endif; ?>
 <button class="btn" id="exportVideo" type="button" aria-label="Save this slide or reel" title="Save this slide or reel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
 </footer>
 <div class="toast" id="toast"></div>
@@ -187,6 +189,10 @@ const $=(s,r=document)=>r.querySelector(s),C=DATA.copy,CFG=DATA.config,EDIT=DATA
 const ORIGINAL_EDIT_CHAPTERS=EDIT.chapters.map(ch=>({...ch,media:ch.media?{...ch.media}:ch.media}));
 if(Array.isArray(C.coverTag)&&C.coverTag[0])C.coverTag[0]=C.coverTag[0].replace(/^.*?(?=20\d{2}\b)/,OWNER_POSSESSIVE+' ');
 C.shareText=OWNER_POSSESSIVE+' KULTOURA Wrapped '+CFG.year;
+if(IS_PUBLIC_SHARED){
+ C.outroSub=[OWNER_POSSESSIVE+' journey through Malvar, in moments.','A story shared with KULTOURA.'];
+ EDIT.chapters.forEach(ch=>{if(/your diary/i.test(ch.label||''))ch.label='A diary moment'});
+}
 const byId=id=>DATA.places.find(p=>p.id===id),cat=p=>DATA.categories[p.category];
 const placeLabel=p=>p.shortName||p.short||String(p.name||'').slice(0,20);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -330,7 +336,7 @@ function applyMediaSelection(){selectedMediaIds=new Set([...$('#mediaChoices').q
 mediaChooser.addEventListener('close',()=>{if(mediaChooser.returnValue!=='default'){afterMediaChoice=null;return}applyMediaSelection();const action=afterMediaChoice;afterMediaChoice=null;if(action)action()});
 async function getPublicShareUrl(){if(IS_PUBLIC_SHARED)return location.href;const response=await fetch('travelwrapped_share.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({story:DATA})});const result=await response.json();if(!response.ok||!result.url)throw new Error(result.error||'Could not create a share link.');return result.url}
 async function prepareShare(){try{const url=await getPublicShareUrl();$('#shareUrl').value=url;$('#messengerShare').href='https://www.facebook.com/dialog/send?link='+encodeURIComponent(url);$('#facebookShare').href='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url);$('#nativeShare').dataset.url=url;$('#copyShare').dataset.url=url;shareSheet.showModal()}catch(error){toast(error.message||'Could not create a share link.')}}
-$('#share').onclick=e=>{e.stopPropagation();prepareShare()};
+if($('#share'))$('#share').onclick=e=>{e.stopPropagation();prepareShare()};
 $('#nativeShare').onclick=async()=>{const url=$('#nativeShare').dataset.url;if(!url)return;try{if(navigator.share)await navigator.share({title:CFG.brand+' Wrapped '+CFG.year,text:C.shareText,url});else await navigator.clipboard.writeText(url);if(!navigator.share)toast('Public link copied')}catch(error){if(error.name!=='AbortError')toast('Sharing was unavailable. Choose another option below.')}};
 $('#copyShare').onclick=async()=>{const url=$('#copyShare').dataset.url;try{await navigator.clipboard.writeText(url);toast('Public link copied');shareSheet.close()}catch{prompt('Copy your public KULTOURA Wrapped link',url)}};
 $('#shareClose').onclick=()=>shareSheet.close();

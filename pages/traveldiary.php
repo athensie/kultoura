@@ -763,7 +763,7 @@ if ($wrappedRequested && $canGenerateWrapped) {
             $storyChapters[] = [
                 'placeId' => $placeId,
                 'clipId' => $chapterMedia['id'],
-                'label' => 'A moment from your diary',
+                'label' => 'A diary moment',
                 'media' => $chapterMedia,
             ];
         }
