@@ -16,6 +16,8 @@
 .kt-review-entry { border-bottom: 1px solid #eee7de; padding: 12px 2px; }
 .kt-review-entry-head { align-items: center; display: flex; justify-content: space-between; gap: 10px; }
 .kt-review-entry-head strong { font-size: .88rem; }
+.kt-review-author { align-items: center; display: inline-flex; flex-wrap: wrap; gap: 7px; }
+.kt-review-sample-label { background: #f1eadc; border: 1px solid #d9cbb4; border-radius: 999px; color: #68553c; font-size: .64rem; font-weight: 600; letter-spacing: .02em; padding: 2px 7px; }
 .kt-review-entry-head time { color: #93877d; font-size: .72rem; }
 .kt-review-entry p { color: #6f6258; font-size: .86rem; line-height: 1.5; margin: 6px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .kt-review-empty,.kt-review-signin { color: #82766b; font-size: .86rem; line-height: 1.5; }
