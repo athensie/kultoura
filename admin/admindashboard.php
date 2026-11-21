@@ -301,7 +301,7 @@ if ($period === 'all') {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261118-2">
+    <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261121-community-feedback">
     <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261119-global-light">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -314,7 +314,7 @@ if ($period === 'all') {
     <div class="sidebar-section">Overview</div>
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php" class="active"><span class="nav-icon"><i data-lucide="bar-chart-2" class="lucide"></i></span> Analytics</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminreviews.php"><span class="nav-icon"><i data-lucide="star" class="lucide"></i></span> Ratings &amp; Reviews</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/admindashboard.php?review_tab=ratings#community"><span class="nav-icon"><i data-lucide="star" class="lucide"></i></span> Community Feedback</a></li>
     </ul>
     <div class="sidebar-section">Content</div>
     <ul class="sidebar-nav">

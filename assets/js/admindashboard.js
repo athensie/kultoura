@@ -116,7 +116,7 @@ function toggleSidebar() {
   const ratings = document.getElementById('tourismRatingDistribution');
   if (ratings) new Chart(ratings, {
     type: 'doughnut', data: { labels: ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'], datasets: [{ data: data.ratings || [], backgroundColor: ['#9c4737', '#bc684e', '#d4ad62', '#9dbb86', '#62845c'], borderColor: '#142017', borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) window.location.href = `adminreviews.php?rating=${elements[0].index + 1}`; }, plugins: { legend: { position: 'bottom', labels: { color: chartText, boxWidth: 10, padding: 12 } } } }
+    options: { responsive: true, maintainAspectRatio: false, onClick: (event, elements) => { if (elements.length) window.location.href = `admindashboard.php?review_tab=ratings&rating=${elements[0].index + 1}#community`; }, plugins: { legend: { position: 'bottom', labels: { color: chartText, boxWidth: 10, padding: 12 } } } }
   });
 })();
 (function initLucide() {

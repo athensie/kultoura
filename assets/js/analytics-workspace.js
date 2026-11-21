@@ -37,6 +37,10 @@
       selectTab(tabs[next], true);
     });
   });
+  if (new URLSearchParams(window.location.search).has('review_tab')) {
+    const communityTab = tabs.find(tab => tab.id === 'aw-tab-community');
+    if (communityTab) selectTab(communityTab);
+  }
 
   const dataNode = document.getElementById('aw-chart-data');
   if (!dataNode) return;

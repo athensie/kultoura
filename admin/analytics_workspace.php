@@ -274,15 +274,7 @@ $workspaceMetrics = [
         ['Searches With No Results', 'rank', 'zeroResultSearches', 'Search log entries with zero results during the selected period.'],
         ['Most Searched Destinations', 'rank', 'destinationSearches', 'Search events linked to destination records.'], ['Most Searched Cultural Topics', 'wordcloud', 'cultureSearches', 'Search events linked to cultural content categories.'],
     ],
-    'community' => [
-        ['Total Written Reviews', 'kpi', null, number_format($reviewCount)], ['Total Ratings', 'kpi', null, number_format($overallRatingCount)],
-        ['Average Destination Rating', 'gauge', 'destinationRatingGauge', $destinationRatingCount ? number_format($averageDestinationRating, 1) . ' / 5 average from ' . number_format($destinationRatingCount) . ' ratings' : 'No ratings yet'],
-        ['Average Cultural Content Rating', 'gauge', 'cultureRatingGauge', $cultureRatingCount ? number_format($cultureAverageRating, 1) . ' / 5 average from ' . number_format($cultureRatingCount) . ' ratings' : 'No cultural ratings yet'],
-        ['Written Reviews per Month', 'line', 'reviewsMonthly', 'Visible, non-empty written reviews submitted in the selected period.'], ['Positive vs. Negative Reviews', 'donut', 'sentiment', 'Rule-based estimate from written reviews; neutral reviews are shown separately.'],
-        ['Destination Ratings', 'bar', 'destinationRated', 'Destinations ranked by average visitor rating.'], ['Destination Rating Distribution', 'histogram', 'ratings', 'Visible visitor ratings by star count.'],
-        ['Most Rated Cultural Content', 'rank', 'cultureRated', 'Cultural items ranked by average rating.'], ['Cultural Content Rating Distribution', 'histogram', 'cultureRatings', 'Ratings for products, fiestas, and people of Malvar by star count.'],
-        ['Destination Views vs. Average Rating', 'scatter', 'destinationScatter', 'Each point compares a destination’s recorded views with its average visitor rating.'],
-    ],
+    'community' => [],
     'audience' => [
         ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'], ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'],
         ['User Registration Trends', 'line', 'signup', 'Monthly registrations from account creation records.'], ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'],
@@ -295,6 +287,7 @@ $workspaceMetrics = [
         ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'], ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
     ],
 ];
+require __DIR__ . '/reviews_admin_data.php';
 $dashboardKpis = [];
 foreach ($workspaceMetrics as $sectionKey => &$metrics) {
     foreach ($metrics as $metricIndex => $metric) {
@@ -702,6 +695,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
     <section class="aw-section <?php echo $sectionKey === 'traffic' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'traffic' ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
+        <?php if ($sectionKey === 'community'): include __DIR__ . '/reviews_admin_panel.php'; else: ?>
         <div class="aw-grid">
             <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): if ($kind === 'kpi') continue; $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
             <article class="aw-card<?php echo $cardWide ? ' aw-card--wide' : ''; ?>"><h3><?php echo htmlspecialchars($title); ?></h3>
@@ -719,8 +713,9 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
             </article>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
     </section>
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261119-analytics-data"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261121-community-feedback"></script>
