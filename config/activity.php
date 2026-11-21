@@ -84,6 +84,15 @@ function kt_activity_item_name(mysqli $conn, string $itemType, int $itemId): ?st
     return $name !== null ? mb_substr((string) $name, 0, 180) : null;
 }
 
+function kt_activity_device_type(): string
+{
+    $userAgent = trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    if ($userAgent === '') return 'Unknown';
+    if (preg_match('/ipad|tablet|kindle|silk|playbook|sm-t\d|android(?!.*mobile)/i', $userAgent)) return 'Tablet';
+    if (preg_match('/mobile|iphone|ipod|windows phone|iemobile|blackberry|opera mini|android/i', $userAgent)) return 'Mobile';
+    return preg_match('/mozilla|chrome|safari|firefox|edg|opr|trident/i', $userAgent) ? 'Desktop' : 'Unknown';
+}
+
 function kt_activity_record(mysqli $conn, string $type, ?string $category, string $page, string $element = '', ?string $itemType = null, ?int $itemId = null, array $metadata = []): bool
 {
     static $allowed = ['view', 'click', 'search', 'generate', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
@@ -96,6 +105,8 @@ function kt_activity_record(mysqli $conn, string $type, ?string $category, strin
     $sessionHash = hash('sha256', session_id());
     $pageSection = substr(basename(parse_url('/' . trim($page, '/'), PHP_URL_PATH) ?: $page), 0, 120);
     $element = mb_substr(trim(strip_tags($element)), 0, 120);
+    $metadata['device'] = kt_activity_device_type();
+    $metadata['device_source'] = 'user_agent';
     $metadataJson = $metadata ? json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) : null;
     $stmt = $conn->prepare('INSERT INTO user_activity_log (user_id, session_hash, activity_type, category, parent_category, item_type, item_id, content_name, element_name, page_section, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     if (!$stmt) return false;
