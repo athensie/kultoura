@@ -40,9 +40,23 @@ $cultureRatingDistribution = array_fill(1,5,0);
 foreach (['product','fiesta','person'] as $cultureType) foreach (($categoryRatingDistribution[$cultureType] ?? []) as $rating=>$count) $cultureRatingDistribution[(int)$rating] += (int)$count;
 $weekdayChart = ['labels' => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], 'values' => array_values($weekdayCounts)];
 $pageLabels = array_map(static fn($row) => $row['label'], $topPages);
+$trafficSources = analytics_traffic_sources($conn, $periodStartSql, 6, $periodEndExclusiveSql);
 $pageValues = array_map(static fn($row) => $row['views'], $topPages);
 $searchLabels = array_map(static fn($row) => $row['query'], $topSearches);
 $searchValues = array_map(static fn($row) => $row['count'], $topSearches);
+$zeroResultSearches = analytics_zero_result_searches($conn, 8, $periodStartSql, $periodEndExclusiveSql);
+$promotedPerformance = [];
+$promotedStmt = $conn->query('SELECT item_type, item_id, impressions, clicks FROM promoted_content_analytics ORDER BY impressions DESC LIMIT 8');
+if ($promotedStmt) {
+    foreach ($promotedStmt->fetch_all(MYSQLI_ASSOC) as $row) {
+        $promotedPerformance[] = [
+            'label' => ucfirst((string) $row['item_type']) . ' #' . (int) $row['item_id'],
+            'impressions' => (int) $row['impressions'],
+            'clicks' => (int) $row['clicks'],
+        ];
+    }
+    $promotedStmt->free();
+}
 $destinationChart = ['labels' => array_column($destinationRows, 'name'), 'values' => array_column($destinationRows, 'views')];
 $destinationLeastChart = ['labels' => array_column(array_slice($destinationAllRows, 0, 10), 'name'), 'values' => array_column(array_slice($destinationAllRows, 0, 10), 'views')];
 $cultureChart = ['labels' => array_column($cultureRows, 'name'), 'values' => array_column($cultureRows, 'views')];
@@ -176,6 +190,16 @@ $recommendationVsViewsValues=array_slice($recommendationVsViewsValues,0,8);
 $recommendationVsViewsActual=array_map(static fn($name)=>$recommendationVsViewsData[$name]??0,$recommendationVsViewsLabels);
 $chartData = [
     'weekday' => $weekdayChart, 'pages' => ['labels' => $pageLabels, 'values' => $pageValues], 'searches' => ['labels' => $searchLabels, 'values' => $searchValues],
+    'sources' => ['labels'=>array_column($trafficSources,'label'),'values'=>array_column($trafficSources,'pct')],
+    'zeroResultSearches' => ['labels'=>array_column($zeroResultSearches,'query'),'values'=>array_column($zeroResultSearches,'count')],
+    'promotedPerformance' => [
+        'labels'=>array_column($promotedPerformance,'label'),
+        'values'=>array_map(static fn($row)=>$row['impressions']+$row['clicks'],$promotedPerformance),
+        'datasets'=>[
+            ['label'=>'Impressions','data'=>array_column($promotedPerformance,'impressions'),'backgroundColor'=>'#9fb88a'],
+            ['label'=>'Clicks','data'=>array_column($promotedPerformance,'clicks'),'backgroundColor'=>'#c8a96e'],
+        ],
+    ],
     'destinationRanks' => $destinationChart, 'destinationLeast' => $destinationLeastChart, 'cultureRanks' => $cultureChart, 'cultureLeast' => $cultureLeastChart, 'restaurants' => $restaurantChart,
     'destinationCategories' => ['labels' => $destinationCategoryLabels, 'values' => $destinationCategoryViews],
     'cultureCategories' => ['labels' => $cultureCategoryLabels, 'values' => $cultureCategoryViews],
@@ -211,59 +235,56 @@ $chartData = [
 ];
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 $workspaceTabs = [
-    'engagement' => 'Tourism Engagement', 'destination' => 'Destinations', 'culture' => 'Cultural Content',
-    'recommendations' => 'AI Recommendations', 'community' => 'Community', 'audience' => 'Audience',
+    'traffic' => 'Website Traffic', 'destination' => 'Tourism & Destinations', 'culture' => 'Culture & Heritage',
+    'search' => 'Search Insights', 'community' => 'Community Feedback', 'audience' => 'Audience',
+    'recommendations' => 'Recommendations & Promotions',
 ];
 $workspaceMetrics = [
-    'engagement' => [
-        ['Visits per Hour', 'heatmap', 'heatmapViews', 'Days of week × hours · exact recorded page views.'],
-        [$visitsMetricTitle, 'line', 'daily', $visitsMetricNote],
-        ['Visits per Week', 'bar', 'weekday', 'Visits grouped by weekday for the selected period.'],
-        ['Visits per Month', 'area', 'monthlyVisits', 'Monthly page views in the selected period.'],
-        ['Visits per Year', 'line', 'yearlyVisits', 'Annual page views in the selected period.'],
-        ['Total Destination Views', 'kpi', null, number_format($destinationViews)],
-        ['Most Visited Destinations', 'rank', 'destinationRanks', 'Recorded destination detail views.'],
-        ['Least Visited Destinations', 'rank-low', 'destinationLeast', ''],
-        ['Destination Views by Category', 'donut', 'destinationCategories', ''],
-        ['Average Time Spent Viewing Content', 'bar', null, 'Content view duration is not recorded.'],
-        ['Returning vs. New Visitors', 'donut', 'visitors', ''],
+    'traffic' => [
+        ['Visits per Hour', 'heatmap', 'heatmapViews', 'Page views grouped by weekday and hour.'],
+        [$visitsMetricTitle, 'line', 'daily', $visitsMetricNote], ['Visits per Week', 'bar', 'weekday', 'Visits grouped by weekday for the selected period.'],
+        ['Visits per Month', 'area', 'monthlyVisits', 'Monthly page views in the selected period.'], ['Visits per Year', 'line', 'yearlyVisits', 'Annual page views in the selected period.'],
+        ['Top Pages', 'rank', 'pages', 'Page view counts from recorded visits.'], ['Traffic Sources', 'donut', 'sources', 'Referrer host recorded with each page view.'],
         ['Visitor Engagement Trends', 'line', 'engagementMonthly', 'Recorded user activity events grouped by month.'],
     ],
     'destination' => [
-        ['Most Popular Destinations', 'rank', 'destinationRanks', ''], ['Least Popular Destinations', 'rank-low', 'destinationLeast', ''],
-        ['Destination Popularity by Barangay', 'map', 'destinationMap', 'Map markers show verified destination coordinates; barangay boundaries are not available.'], ['Destination Views by Barangay', 'bar', 'destinationBarangays', 'Views are grouped using the barangay named in each destination address.'],
+        ['Total Destination Views', 'kpi', null, number_format($destinationViews)], ['Most Popular Destinations', 'rank', 'destinationRanks', 'Recorded destination detail views.'],
+        ['Least Popular Destinations', 'rank-low', 'destinationLeast', ''], ['Destination Views by Category', 'donut', 'destinationCategories', ''],
+        ['Destination Popularity by Barangay', 'map', 'destinationMap', 'Map markers show verified destination coordinates; barangay boundaries are not available.'],
+        ['Destination Views by Barangay', 'bar', 'destinationBarangays', 'Views grouped using the barangay named in each destination address.'],
         ['Destination Ratings', 'bar', 'destinationRated', 'Destinations with visitor ratings in the selected period.'], ['Destination Rating Distribution', 'histogram', 'ratings', ''],
-        ['Most Searched Destinations', 'rank', 'destinationSearches', 'Destination-related search events linked to a destination record.'], ['Most Viewed Establishments', 'rank', 'restaurants', 'Restaurant listing detail views.'],
-        ['Restaurant Engagement', 'bar', 'restaurants', 'Views are available; restaurant-specific searches and recommendations are not fully tracked.'],
+        ['Most Viewed Establishments', 'rank', 'restaurants', 'Restaurant listing detail views.'], ['Restaurant Engagement', 'bar', 'restaurants', 'Views are available; restaurant-specific searches and recommendations are not fully tracked.'],
         ['Destination Performance Over Time', 'line', 'destinationPerformance', 'Monthly detail views for the five most-viewed destinations in this period.'], ['Views vs. Ratings', 'scatter', 'destinationScatter', 'Each point is one destination with both views and a rating.'],
-        ['Destination Category Comparison', 'donut', 'destinationCategories', ''],
     ],
     'culture' => [
         ['Most Viewed Cultural Content', 'rank', 'cultureRanks', ''], ['Least Viewed Cultural Content', 'rank-low', 'cultureLeast', ''],
-        ['Culture vs. Tradition vs. Fiesta Views', 'donut', 'cultureCategories', 'Available category groups: products, fiestas, and people of Malvar.'], ['Cultural Content Views per Month', 'line', 'cultureMonthly', 'Product, fiesta, and people detail views.'],
-        ['Most Searched Cultural Topics', 'wordcloud', 'cultureSearches', 'Cultural search events linked to a cultural content category.'], ['Cultural Content Engagement', 'stacked', 'cultureEngagement', 'Recorded views, clicks, and searches by cultural category.'],
-        ['Content Performance by Barangay', 'bar', 'cultureBarangays', 'Cultural views grouped by barangay from product store and fiesta location records.'], ['Fiesta Interest Over Time', 'line', 'fiestaMonthly', 'Recorded fiesta detail views.'],
-        ['Most Rated Cultural Content', 'rank', 'cultureRated', 'Rated cultural items in the selected period.'], ['Cultural Content Ratings', 'histogram', 'cultureRatings', ''],
-        ['Views vs. Comments', 'scatter', 'cultureComments', 'Each point compares item detail views with linked comment events.'], ['Cultural Content Popularity Ranking', 'rank', 'cultureRanks', ''],
+        ['Culture and Heritage Views by Category', 'donut', 'cultureCategories', 'Products, fiestas, and people of Malvar.'], ['Cultural Content Views per Month', 'line', 'cultureMonthly', 'Product, fiesta, and people detail views.'],
+        ['Cultural Content Engagement', 'stacked', 'cultureEngagement', 'Recorded views, clicks, and searches by cultural category.'], ['Content Performance by Barangay', 'bar', 'cultureBarangays', 'Cultural views grouped by barangay from product store and fiesta location records.'],
+        ['Fiesta Interest Over Time', 'line', 'fiestaMonthly', 'Recorded fiesta detail views.'], ['Most Rated Cultural Content', 'rank', 'cultureRated', ''], ['Cultural Content Ratings', 'histogram', 'cultureRatings', ''],
+        ['Views vs. Comments', 'scatter', 'cultureComments', 'Each point compares item detail views with linked comment events.'],
     ],
-    'recommendations' => [
-        ['Most Recommended Destinations', 'rank', 'recommendedDestinations', 'Destinations associated with recorded recommendation events.'], ['Most Recommended Establishments', 'rank', 'recommendedRestaurants', 'Establishments associated with recorded recommendation events.'],
-        ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions are not logged, so a click-through rate cannot be calculated.'], ['Recommended vs. Actually Viewed Destinations', 'bar', 'recommendationComparison', 'Compares recommendation events with destination detail views; impressions are not tracked.'],
-        ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'],
-        ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
+    'search' => [
+        ['Most Popular Search Queries', 'wordcloud', 'searches', 'Queries and counts recorded by site search.'], ['Searches per Month', 'line', 'searchMonthly', 'Recorded search activity grouped by month.'],
+        ['Searches With No Results', 'rank', 'zeroResultSearches', 'Search log entries with zero results during the selected period.'],
+        ['Most Searched Destinations', 'rank', 'destinationSearches', 'Search events linked to destination records.'], ['Most Searched Cultural Topics', 'wordcloud', 'cultureSearches', 'Search events linked to cultural content categories.'],
     ],
     'community' => [
         ['Total Comments', 'kpi', null, number_format($overallActivityCounts['comment'])], ['Total Ratings', 'kpi', null, number_format($overallRatingCount)],
         ['Average Destination Rating', 'gauge', 'destinationRatingGauge', $destinationRatingCount ? number_format($averageDestinationRating, 1) . ' / 5 average from ' . number_format($destinationRatingCount) . ' ratings' : 'No ratings yet'],
-        ['Average Cultural Content Rating', 'gauge', 'cultureRatingGauge', $cultureRatingCount ? number_format($cultureAverageRating, 1) . ' / 5 average from ' . number_format($cultureRatingCount) . ' ratings' : 'No cultural ratings yet'], ['Comments per Month', 'line', 'commentsMonthly', 'Recorded comment events grouped by month.'],
-        ['Positive vs. Negative Feedback', 'donut', 'sentiment', 'Rule-based sentiment estimate from recorded visitor reviews; neutral reviews are shown separately.'],
-        ['Rating Distribution', 'histogram', 'ratings', ''], ['Most Engaged Destinations', 'rank', 'destinationRanks', 'Ranked by recorded detail views.'],
-        ['User Engagement by Section', 'stacked', 'sectionEngagement', 'Recorded views, clicks, and searches by catalog section.'],
+        ['Average Cultural Content Rating', 'gauge', 'cultureRatingGauge', $cultureRatingCount ? number_format($cultureAverageRating, 1) . ' / 5 average from ' . number_format($cultureRatingCount) . ' ratings' : 'No cultural ratings yet'],
+        ['Comments per Month', 'line', 'commentsMonthly', 'Recorded comment events grouped by month.'], ['Positive vs. Negative Feedback', 'donut', 'sentiment', 'Rule-based estimate from reviews; neutral reviews are shown separately.'],
+        ['Rating Distribution', 'histogram', 'ratings', ''], ['Most Engaged Destinations', 'rank', 'destinationRanks', 'Ranked by recorded detail views.'], ['User Engagement by Section', 'stacked', 'sectionEngagement', 'Recorded views, clicks, and searches by catalog section.'],
     ],
     'audience' => [
-        ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'],
-        ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'], ['User Registration Trends', 'line', 'signup', 'Monthly registrations from account creation records.'],
-        ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'], ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'],
+        ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'], ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'],
+        ['User Registration Trends', 'line', 'signup', 'Monthly registrations from account creation records.'], ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'],
+        ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'], ['Average Time Spent Viewing Content', 'bar', null, 'Content view duration is not recorded.'],
+    ],
+    'recommendations' => [
+        ['Promoted Content Impressions and Clicks', 'stacked', 'promotedPerformance', 'Cumulative totals; the promoted content counter does not retain event dates.'],
+        ['Most Recommended Destinations', 'rank', 'recommendedDestinations', 'Destinations associated with recorded recommendation events.'], ['Most Recommended Establishments', 'rank', 'recommendedRestaurants', 'Establishments associated with recorded recommendation events.'],
+        ['AI Recommendation Click-through Rate', 'kpi-empty', null, 'Recommendation impressions are not logged, so a click-through rate cannot be calculated.'], ['Recommended vs. Actually Viewed Destinations', 'bar', 'recommendationComparison', 'Compares recommendation events with destination detail views; impressions are not tracked.'],
+        ['Recommendation Engagement Rate', 'kpi-empty', null, 'Recommendation impressions are not recorded.'], ['AI Recommendation Performance', 'line', null, 'Recommendation outcomes are not linked to generated recommendations.'],
     ],
 ];
 $dashboardKpis = [];
@@ -656,11 +677,11 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         </article>
     </section>
     <div class="aw-tabs" role="tablist" aria-label="Analytics sections">
-        <?php foreach ($workspaceTabs as $key=>$label): ?><button class="aw-tab" type="button" role="tab" id="aw-tab-<?php echo $key; ?>" aria-controls="aw-section-<?php echo $key; ?>" aria-selected="<?php echo $key === 'engagement' ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($label); ?></button><?php endforeach; ?>
+        <?php foreach ($workspaceTabs as $key=>$label): ?><button class="aw-tab" type="button" role="tab" id="aw-tab-<?php echo $key; ?>" aria-controls="aw-section-<?php echo $key; ?>" aria-selected="<?php echo $key === 'traffic' ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($label); ?></button><?php endforeach; ?>
     </div>
     <script type="application/json" id="aw-chart-data"><?php echo $chartDataJson; ?></script>
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
-    <section class="aw-section <?php echo $sectionKey === 'engagement' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'engagement' ? '' : 'hidden'; ?>>
+    <section class="aw-section <?php echo $sectionKey === 'traffic' ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === 'traffic' ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
         <div class="aw-grid">
             <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): if ($kind === 'kpi') continue; $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
