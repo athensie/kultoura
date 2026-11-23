@@ -903,7 +903,8 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         </article>
     </section>
     <div class="aw-tabs" role="tablist" aria-label="Analytics sections">
-        <?php foreach ($workspaceTabs as $key=>$label): ?><button class="aw-tab" type="button" role="tab" id="aw-tab-<?php echo $key; ?>" aria-controls="aw-section-<?php echo $key; ?>" aria-selected="<?php echo $key === $initialWorkspaceTab ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($label); ?></button><?php endforeach; ?>
+        <?php $workspaceTabIcons = ['traffic' => 'activity', 'destination' => 'map-pin', 'culture' => 'landmark', 'search' => 'search', 'community' => 'messages-square', 'audience' => 'users', 'recommendations' => 'sparkles']; ?>
+        <?php foreach ($workspaceTabs as $key=>$label): ?><button class="aw-tab" type="button" role="tab" id="aw-tab-<?php echo $key; ?>" aria-controls="aw-section-<?php echo $key; ?>" aria-selected="<?php echo $key === $initialWorkspaceTab ? 'true' : 'false'; ?>"><i data-lucide="<?php echo $workspaceTabIcons[$key] ?? 'circle'; ?>" class="lucide" aria-hidden="true"></i><span><?php echo htmlspecialchars($label); ?></span></button><?php endforeach; ?>
     </div>
     <script type="application/json" id="aw-chart-data"><?php echo $chartDataJson; ?></script>
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
