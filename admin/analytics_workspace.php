@@ -598,11 +598,12 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
 .analytics-workspace .date-range-clear { color:var(--aw-muted); }
 .analytics-workspace .date-range-error { color:#a33434; }
 .analytics-workspace .aw-controls .analytics-report-export { border-color:var(--aw-line); background:#fff; color:var(--aw-green); }
-.aw-ai-dashboard { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr); gap:14px; margin:0 0 22px; }
+.aw-ai-dashboard { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:0 0 22px; }
 .aw-ai-card { min-width:0; border:1px solid var(--aw-line); border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(30,48,75,.05); }
 .aw-ai-card h2 { position:relative; margin:0; padding:13px 16px 12px; border-bottom:1px solid var(--aw-line); color:var(--aw-text); font:600 .95rem 'DM Sans',sans-serif; }
 .aw-ai-card h2::after { position:absolute; bottom:-1px; left:16px; width:115px; height:3px; background:var(--aw-highlight); content:""; }
 .aw-ai-card-body { padding:15px 16px 17px; }
+.aw-ai-card-kicker { margin:0 0 9px; color:var(--aw-muted); font:500 .68rem 'DM Sans',sans-serif; }
 .aw-ai-badge { display:inline-flex; align-items:center; gap:6px; margin:0 0 10px; padding:4px 9px; border-radius:999px; background:#e8f0e4; color:#426d3e; font:600 .65rem 'DM Sans',sans-serif; }
 .aw-ai-summary { margin:0; color:#45536a; font:.83rem/1.65 'DM Sans',sans-serif; }
 .aw-ai-actions-title { margin:16px 0 8px; color:var(--aw-text); font:600 .75rem 'DM Sans',sans-serif; }
@@ -622,7 +623,8 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
 .aw-forecast-note { margin:9px 0 0; color:var(--aw-muted); font:.66rem/1.45 'DM Sans',sans-serif; }
 @media(max-width:1100px){.aw-card{grid-column:span 6}.aw-card--wide{grid-column:span 12}.dash-wrapper{padding:30px 24px 56px}}
 @media(max-width:900px){.aw-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.aw-ai-dashboard{grid-template-columns:1fr}}
+@media(max-width:1050px){.aw-ai-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-ai-card--prescriptive{grid-column:span 2}}
+@media(max-width:760px){.aw-ai-dashboard{grid-template-columns:1fr}.aw-ai-card--prescriptive{grid-column:auto}}
 @media(max-width:700px){.aw-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.aw-card,.aw-card--wide{grid-column:span 2;min-height:260px}.aw-section-head{align-items:flex-start;flex-direction:column}.aw-card-canvas,.aw-card--wide .aw-card-canvas{height:205px}.dash-wrapper{padding:24px 15px 44px}.aw-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;gap:7px}.aw-controls .date-range-field input{height:44px;padding:0 7px;font-size:.75rem}.aw-controls .date-range-submit{min-width:0;padding:0 11px}.aw-controls .analytics-report-export{width:40px;min-width:40px;height:40px}.aw-periods a,.aw-period-custom{min-height:40px;padding:0 12px;font-size:.76rem}.aw-kpi-grid{gap:10px}}
 @media(max-width:430px){.aw-date-filter{padding:13px;gap:13px}.aw-controls{grid-template-columns:1fr 1fr}.aw-controls .date-range-submit{width:100%}.aw-controls .analytics-report-export{width:100%;height:44px}.aw-date-filter-head h2{font-size:.92rem}}
 </style>
@@ -657,20 +659,20 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         <?php endforeach; ?>
     </section>
     <?php endif; ?>
-    <section class="aw-ai-dashboard" aria-label="AI interpretation and traffic prediction">
+    <section class="aw-ai-dashboard" aria-label="Descriptive, predictive, and prescriptive analytics">
         <article class="aw-ai-card">
-            <h2><i data-lucide="sparkles" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> AI interpretation</h2>
+            <h2><i data-lucide="file-chart-column" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Descriptive analytics</h2>
             <div class="aw-ai-card-body">
+                <p class="aw-ai-card-kicker">What the recorded data shows</p>
                 <span class="aw-ai-badge"><?php echo htmlspecialchars($aiAnalysisLabel); ?></span>
                 <p class="aw-ai-summary"><?php echo htmlspecialchars($aiSummary); ?></p>
                 <p class="aw-forecast-note">Interpretation uses <?php echo htmlspecialchars($periodLabels[$period] ?? 'the selected period'); ?> totals. Metrics refresh with the page; <?php echo $aiSummaryIsGenerated ? 'AI interpretation is reused for up to six hours.' : 'this rule-based interpretation uses the available recorded data.'; ?></p>
-                <h3 class="aw-ai-actions-title">Suggested admin actions</h3>
-                <ul class="aw-ai-actions"><?php foreach ($aiActions as $action): ?><li><?php echo htmlspecialchars($action); ?></li><?php endforeach; ?></ul>
             </div>
         </article>
         <article class="aw-ai-card">
-            <h2><i data-lucide="trending-up" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Next month page-view forecast</h2>
+            <h2><i data-lucide="trending-up" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Predictive analytics</h2>
             <div class="aw-ai-card-body">
+                <p class="aw-ai-card-kicker">What may happen next · page views</p>
                 <?php if ($forecastEstimate !== null): ?>
                     <div class="aw-forecast-total"><strong><?php echo number_format($forecastEstimate); ?></strong><span>estimated views</span></div>
                     <p class="aw-forecast-change"><?php echo $forecastIsAi ? 'AI-assisted estimate' : 'Trend-based estimate'; ?> · <?php echo htmlspecialchars($forecastConfidence); ?><?php if ($forecastChangePct !== null): ?> · <?php echo $forecastChangePct > 0 ? '+' : ''; ?><?php echo $forecastChangePct; ?>% vs. latest complete month<?php endif; ?></p>
@@ -686,6 +688,14 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                     <p class="aw-forecast-note">At least three complete months with recorded page views are needed before showing a forecast.</p>
                 <?php endif; ?>
                 <p class="aw-forecast-note"><?php echo htmlspecialchars($forecastReason); ?> Forecast uses complete months and does not include the current partial month.</p>
+            </div>
+        </article>
+        <article class="aw-ai-card aw-ai-card--prescriptive">
+            <h2><i data-lucide="list-checks" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Prescriptive analytics</h2>
+            <div class="aw-ai-card-body">
+                <p class="aw-ai-card-kicker">Suggested actions based on the selected period</p>
+                <span class="aw-ai-badge"><?php echo $aiSummaryIsGenerated ? 'AI assisted recommendations' : 'Data-based recommendations'; ?></span>
+                <ul class="aw-ai-actions" aria-label="Recommended admin actions"><?php foreach ($aiActions as $action): ?><li><?php echo htmlspecialchars($action); ?></li><?php endforeach; ?></ul>
             </div>
         </article>
     </section>
