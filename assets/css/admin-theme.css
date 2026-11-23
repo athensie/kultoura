@@ -670,3 +670,16 @@
 :root .aw-tab[aria-selected="true"] { background: var(--ui-accent-soft); color: var(--ui-accent); box-shadow: inset 0 0 0 1px rgba(44, 122, 69, .18); }
 :root .aw-tab[aria-selected="true"] .lucide { opacity: 1; }
 :root .aw-tab:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+
+/* ---------- Fit: never let wide content stretch the page ---------- */
+:root .main-content { min-width: 0; }
+/* Tabs wrap onto extra rows and stretch to fill them instead of forcing a horizontal overflow. */
+:root .aw-tabs { display: flex; flex-wrap: wrap; overflow: visible; }
+:root .aw-tab { flex: 1 1 auto; justify-content: center; min-width: 0; white-space: nowrap; }
+@media (max-width: 640px) {
+  :root .aw-tab { flex-basis: calc(50% - 2px); justify-content: flex-start; padding: 8px 10px; white-space: normal; text-align: left; line-height: 1.25; }
+}
+/* Sidebar: keep the collapse button inside so it no longer causes a sideways scrollbar. */
+:root .sidebar { overflow-x: hidden; }
+:root .sidebar-collapse-btn { right: 12px; top: 30px; }
+:root .sidebar.collapsed .sidebar-collapse-btn { position: static; margin: 18px auto 6px; }
