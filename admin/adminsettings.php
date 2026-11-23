@@ -39,6 +39,7 @@ $settings = site_settings_get_all($conn, [
 ]);
 $aiActive = ai_configured();
 $aiTextActive = ai_text_configured();
+$aiTextIssue = ai_text_configuration_issue();
 $aiTextProvider = ai_configured() && groq_configured()
     ? 'Gemini, with Groq as a fallback'
     : (ai_configured() ? 'Gemini' : (groq_configured() ? 'Groq' : null));
@@ -140,15 +141,15 @@ $aiTextModel = ai_configured() && groq_configured()
                             Powers the Analytics dashboard's forecast, monthly summary, recommended actions, and
                             per-chart insights.
                             <?php if ($aiTextActive): ?>
-                                Running on <?php echo htmlspecialchars($aiTextProvider); ?>.
+                                Configured for <?php echo htmlspecialchars($aiTextProvider); ?>. A failed request's provider status is recorded in the server error log.
                             <?php else: ?>
-                                No GEMINI_API_KEY or GROQ_API_KEY found — using the local trend-line/rule-based fallback (still works, just not AI-based).
+                                <?php echo htmlspecialchars($aiTextIssue ?? "AI text generation is unavailable."); ?> The dashboard is using data-based fallbacks.
                             <?php endif; ?>
                             <?php if ($aiTextModel): ?><code class="setting-model"><?php echo htmlspecialchars($aiTextModel); ?></code><?php endif; ?>
                         </div>
                     </div>
                     <span class="status-pill <?php echo $aiTextActive ? 'status-pill-on' : 'status-pill-off'; ?>">
-                        <span class="status-pill-dot"></span><?php echo $aiTextActive ? 'Active' : 'Inactive'; ?>
+                        <span class="status-pill-dot"></span><?php echo $aiTextActive ? 'Configured' : 'Inactive'; ?>
                     </span>
                 </div>
             </div>

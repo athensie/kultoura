@@ -50,6 +50,25 @@ function ai_text_configured(): bool
 {
     return ai_configured() || groq_configured();
 }
+function ai_text_configuration_issue(): ?string
+{
+    if (!function_exists('curl_init')) {
+        return 'The PHP cURL extension is disabled on this server.';
+    }
+    if (!((defined('GEMINI_API_KEY') && trim((string) GEMINI_API_KEY) !== '') || (defined('GROQ_API_KEY') && trim((string) GROQ_API_KEY) !== ''))) {
+        return 'No text-generation API key is configured. Add GEMINI_API_KEY or GROQ_API_KEY to the deployment environment; local key files are excluded from Git.';
+    }
+    return null;
+}
+function ai_text_last_error(): string
+{
+    return (string) ($GLOBALS['kt_ai_text_last_error'] ?? '');
+}
+function ai_text_log_failure(string $provider, string $reason): void
+{
+    $GLOBALS['kt_ai_text_last_error'] = $provider . ': ' . $reason;
+    error_log('KULTOURA AI text generation failed (' . $provider . '): ' . $reason);
+}
 function ai_fetch_embedding(string $text): ?array
 {
     if (!ai_configured()) {
@@ -157,15 +176,21 @@ function ai_generate_json_gemini(string $prompt): ?array
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
+    curl_close($ch);
     if ($response === false || $curlError || $httpCode !== 200) {
+        ai_text_log_failure('Gemini', $curlError !== '' ? 'transport error' : 'HTTP ' . (int) $httpCode);
         return null;
     }
     $data = json_decode($response, true);
     $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
     if (!is_string($text)) {
+        ai_text_log_failure('Gemini', 'response did not contain generated text');
         return null;
     }
     $parsed = json_decode($text, true);
+    if (!is_array($parsed)) {
+        ai_text_log_failure('Gemini', 'response was not valid JSON');
+    }
     return is_array($parsed) ? $parsed : null;
 }
 function ai_generate_json_groq(string $prompt): ?array
@@ -192,24 +217,35 @@ function ai_generate_json_groq(string $prompt): ?array
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
+    curl_close($ch);
     if ($response === false || $curlError || $httpCode !== 200) {
+        ai_text_log_failure('Groq', $curlError !== '' ? 'transport error' : 'HTTP ' . (int) $httpCode);
         return null;
     }
     $data = json_decode($response, true);
     $text = $data['choices'][0]['message']['content'] ?? null;
     if (!is_string($text)) {
+        ai_text_log_failure('Groq', 'response did not contain generated text');
         return null;
     }
     $parsed = json_decode($text, true);
+    if (!is_array($parsed)) {
+        ai_text_log_failure('Groq', 'response was not valid JSON');
+    }
     return is_array($parsed) ? $parsed : null;
 }
 function ai_generate_json(string $prompt): ?array
 {
     $result = ai_generate_json_gemini($prompt);
     if ($result !== null) {
+        $GLOBALS['kt_ai_text_last_error'] = '';
         return $result;
     }
-    return ai_generate_json_groq($prompt);
+    $result = ai_generate_json_groq($prompt);
+    if ($result !== null) {
+        $GLOBALS['kt_ai_text_last_error'] = '';
+    }
+    return $result;
 }
 function ai_cached_or_generate(mysqli $conn, string $cacheKey, array $inputForHash, string $prompt): ?array
 {

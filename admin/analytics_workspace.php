@@ -308,6 +308,7 @@ foreach ($workspaceMetrics as $sectionKey => &$metrics) {
 unset($metrics);
 $aiCardFacts = [];
 $aiCardFallbacks = [];
+$aiCardSuggestionFallbacks = [];
 $weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 foreach ($workspaceMetrics as $sectionKey => $metrics) {
     foreach ($metrics as $metricIndex => [$title, $kind, $dataKey, $note]) {
@@ -386,6 +387,23 @@ foreach ($workspaceMetrics as $sectionKey => $metrics) {
         }
         $aiCardFacts[$cardId] = $fact;
         $aiCardFallbacks[$cardId] = $fallback;
+        if ($kind === 'kpi-empty') {
+            $suggestionFallback = 'This metric is not currently tracked. Add reliable tracking before using it to guide decisions.';
+        } elseif ($kind === 'heatmap' && !empty($fact['busiest_periods'][0]['value'])) {
+            $peak = $fact['busiest_periods'][0];
+            $suggestionFallback = 'Consider reviewing content timing around ' . $peak['day'] . ' at ' . sprintf('%02d:00', $peak['hour']) . '; this is a recorded activity peak, not proof of cause.';
+        } elseif (!empty($fact['leading_values'][0]['value'])) {
+            $leader = $fact['leading_values'][0];
+            $suggestionFallback = 'Review ' . $leader['label'] . ' (' . number_format((float) $leader['value'], 0) . ') and compare later periods before changing promotion plans.';
+        } elseif (!empty($fact['most_viewed_mapped_locations'][0])) {
+            $leader = $fact['most_viewed_mapped_locations'][0];
+            $suggestionFallback = 'Keep ' . $leader['name'] . ' map details accurate; it leads the mapped locations with ' . number_format((int) $leader['views']) . ' views.';
+        } elseif ($kind === 'kpi') {
+            $suggestionFallback = 'Track this actual value against the next reporting period before deciding whether to change promotion.';
+        } else {
+            $suggestionFallback = 'There is not enough recorded data to support a specific action yet; continue collecting this metric.';
+        }
+        $aiCardSuggestionFallbacks[$cardId] = $suggestionFallback;
     }
 }
 $forecastHistoryRows = array_values(array_filter(
@@ -622,6 +640,65 @@ if (!$prescriptiveRecommendations) {
     ];
 }
 $prescriptiveRecommendations = array_slice($prescriptiveRecommendations, 0, 3);
+$aiTextActive = ai_text_configured();
+$prescriptiveAiUsed = false;
+$prescriptiveAiIssue = ai_text_configuration_issue();
+if ($aiTextActive) {
+    $lowRatedEvidence = [];
+    foreach ($ratedItemsForRecommendations as $ratedItem) {
+        $reviewCountForItem = (int) ($ratedItem['ratings'] ?? 0);
+        $averageForItem = (float) ($ratedItem['average_rating'] ?? 0);
+        if ($reviewCountForItem >= 3 && $averageForItem < 3.5) {
+            $lowRatedEvidence[] = [
+                'item' => (string) ($ratedItem['name'] ?? 'Tourism item'),
+                'average_rating' => round($averageForItem, 2),
+                'ratings' => $reviewCountForItem,
+            ];
+            if (count($lowRatedEvidence) >= 3) break;
+        }
+    }
+    $prescriptiveAiFacts = [
+        'period' => $selectedPeriodLabel,
+        'selected_period_metrics' => [
+            'page_views' => $selectedPageViews,
+            'destination_views' => (int) $destinationViews,
+            'culture_views' => (int) $cultureViews,
+            'recorded_clicks' => (int) ($overallActivityCounts['click'] ?? 0),
+            'visible_ratings' => (int) $overallRatingCount,
+            'average_rating' => round((float) $overallAverageRating, 2),
+            'zero_result_search_count' => $zeroResultSearchTotal,
+        ],
+        'zero_result_searches' => array_map(static fn($row) => [
+            'query' => (string) ($row['query'] ?? ''), 'count' => (int) ($row['count'] ?? 0),
+        ], array_slice($zeroResultSearches, 0, 5)),
+        'observed_search_interests' => array_map(static fn($row) => [
+            'query' => (string) ($row['query'] ?? ''), 'count' => (int) ($row['count'] ?? 0),
+        ], array_slice($topSearches, 0, 5)),
+        'low_rated_items' => $lowRatedEvidence,
+        'projected_category_views_next_month' => array_map(static fn($row) => [
+            'category' => $row['label'], 'estimated_views' => $row['estimate'], 'confidence' => $row['confidence'],
+        ], array_slice($categoryInterestForecasts, 0, 5)),
+    ];
+    $prescriptivePrompt = "You are an AI tourism planning adviser for KulToura in Malvar, Batangas. Use only these measured analytics facts; do not invent numbers, causes, user demographics, or certainty. Make up to three concise, practical admin recommendations about content, promotion, or destination management. Prioritize repeated searches with zero results, low ratings backed by at least three ratings, and category view estimates. Each recommendation must cite the exact supporting metric and period in its evidence field. If the data does not support a particular action, do not recommend it. Return JSON only in this shape: {\"recommendations\":[{\"action\":\"specific admin action\",\"evidence\":\"metric, value, and period supporting it\"}]}. Facts: " . json_encode($prescriptiveAiFacts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $prescriptiveCacheKey = 'prescriptive_v1';
+    $prescriptiveResult = ai_cached_or_generate($conn, $prescriptiveCacheKey, $prescriptiveAiFacts, $prescriptivePrompt);
+    $aiRecommendations = [];
+    foreach (array_slice(is_array($prescriptiveResult['recommendations'] ?? null) ? $prescriptiveResult['recommendations'] : [], 0, 3) as $recommendation) {
+        if (!is_array($recommendation)) continue;
+        $action = trim((string) ($recommendation['action'] ?? ''));
+        $evidence = trim((string) ($recommendation['evidence'] ?? ''));
+        if ($action === '' || $evidence === '') continue;
+        $aiRecommendations[] = ['action' => mb_substr($action, 0, 240), 'evidence' => mb_substr($evidence, 0, 260)];
+    }
+    if ($aiRecommendations) {
+        $prescriptiveRecommendations = $aiRecommendations;
+        $prescriptiveAiUsed = true;
+    } else {
+        $prescriptiveAiIssue = 'AI is configured, but the provider returned no usable recommendations.';
+        $lastAiError = ai_text_last_error();
+        if ($lastAiError !== '') $prescriptiveAiIssue .= ' Provider diagnostic: ' . $lastAiError . '.';
+    }
+}
 $aiAnalysisLabel = $aiSummaryIsGenerated ? 'AI assisted' : 'Data-based fallback';
 $visitorDonut = ['labels' => ['New tracked sessions', 'Returning tracked sessions'], 'values' => [$newTrackedVisitors, $returningTrackedVisitors]];
 $chartData['visitors'] = $visitorDonut;
@@ -815,7 +892,8 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
             <h2><i data-lucide="list-checks" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Prescriptive analytics</h2>
             <div class="aw-ai-card-body">
                 <p class="aw-ai-card-kicker">Actions tied to recorded evidence for <?php echo htmlspecialchars($selectedPeriodLabel); ?></p>
-                <span class="aw-ai-badge">Evidence-based recommendations</span>
+                <span class="aw-ai-badge"><?php echo $prescriptiveAiUsed ? 'AI-powered recommendations' : 'Evidence-based fallback'; ?></span>
+                <?php if (!$prescriptiveAiUsed): ?><p class="aw-forecast-note" role="status"><?php echo htmlspecialchars($prescriptiveAiIssue ?? 'AI recommendations are unavailable.'); ?> <?php if (!$aiTextActive): ?>Review the AI status in <a href="<?php echo BASE_URL; ?>/admin/adminsettings.php">Admin Settings</a>.<?php else: ?>Rule-based recommendations are shown below while AI is unavailable.<?php endif; ?></p><?php endif; ?>
                 <ul class="aw-prescriptive-list" aria-label="Recommended admin actions with supporting metrics"><?php foreach ($prescriptiveRecommendations as $recommendation): ?><li><strong><?php echo htmlspecialchars($recommendation['action']); ?></strong><span><?php echo htmlspecialchars($recommendation['evidence']); ?></span></li><?php endforeach; ?></ul>
             </div>
         </article>
@@ -841,7 +919,8 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                 <?php else: ?><div class="aw-card-empty"><strong><?php echo $kind === 'map' ? 'Map data unavailable' : 'More data needed'; ?></strong><span><?php echo htmlspecialchars($note ?: 'There are no matching records in this period.'); ?></span></div><?php endif; ?>
                 <?php $cardInsightIsAi = isset($aiDashboardResult['card_insights'][$cardId]) && is_string($aiDashboardResult['card_insights'][$cardId]) && trim($aiDashboardResult['card_insights'][$cardId]) !== ''; ?>
                 <aside class="aw-card-insight"><strong><i data-lucide="sparkles" class="lucide" style="width:.8rem;height:.8rem;vertical-align:-2px;"></i> <?php echo $cardInsightIsAi ? 'AI interpretation' : 'Data interpretation'; ?></strong><p><?php echo htmlspecialchars($aiCardInterpretations[$cardId] ?? 'There are not enough recorded values to interpret this metric.'); ?></p></aside>
-                <aside class="aw-card-insight aw-card-suggestion"><strong><i data-lucide="lightbulb" class="lucide" style="width:.8rem;height:.8rem;vertical-align:-2px;"></i> AI suggestion</strong><p><?php echo htmlspecialchars($aiCardSuggestions[$cardId] ?? 'AI suggestion is unavailable for this metric right now.'); ?></p></aside>
+                <?php $cardSuggestionIsAi = isset($aiDashboardResult['card_suggestions'][$cardId]) && is_string($aiDashboardResult['card_suggestions'][$cardId]) && trim($aiDashboardResult['card_suggestions'][$cardId]) !== ''; ?>
+                <aside class="aw-card-insight aw-card-suggestion"><strong><i data-lucide="lightbulb" class="lucide" style="width:.8rem;height:.8rem;vertical-align:-2px;"></i> <?php echo $cardSuggestionIsAi ? 'AI suggestion' : 'Data-based suggestion'; ?></strong><p><?php echo htmlspecialchars($aiCardSuggestions[$cardId] ?? ($aiCardSuggestionFallbacks[$cardId] ?? 'Collect more data before making a decision based on this metric.')); ?></p></aside>
             </article>
             <?php endforeach; ?>
         </div>
