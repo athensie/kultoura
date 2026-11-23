@@ -108,7 +108,7 @@
         const canReport = document.body.dataset.loggedIn === '1';
         list.innerHTML = data.reviews.map((review) => `
             <article class="kt-review-entry">
-                <div class="kt-review-entry-head"><span class="kt-review-author"><strong>${esc(review.display_name)}</strong>${review.is_sample ? '<span class="kt-review-sample-label">Illustrative sample</span>' : ''}</span><time>${esc(new Date(review.created_at.replace(' ', 'T')).toLocaleDateString())}</time></div>
+                <div class="kt-review-entry-head"><span class="kt-review-author"><strong>${esc(review.display_name)}</strong></span><time>${esc(new Date(review.created_at.replace(' ', 'T')).toLocaleDateString())}</time></div>
                 <div class="kt-review-stars" aria-label="${Number(review.rating)} out of 5 stars">${stars(review.rating)}</div>
                 <p>${esc(review.comment)}</p>
                 ${canReport ? `<button type="button" class="kt-review-report-toggle" data-review-id="${Number(review.review_id)}">Report</button>
