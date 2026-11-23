@@ -306,6 +306,10 @@ foreach ($workspaceMetrics as $sectionKey => &$metrics) {
     }
 }
 unset($metrics);
+$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 0, 'title' => 'Published Tourism Content', 'value' => number_format((int) ($contentInventory['published'] ?? 0)), 'description' => 'Active listings across destinations, products, restaurants, fiestas, and people.'];
+$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 1, 'title' => 'Unpublished Tourism Content', 'value' => number_format((int) ($contentInventory['unpublished'] ?? 0)), 'description' => 'Non-active listings, excluding archived records.'];
+$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 2, 'title' => 'Archived Tourism Content', 'value' => number_format((int) ($contentInventory['archived'] ?? 0)), 'description' => 'Archived listings retained in the content records.'];
+$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 3, 'title' => 'Updated Tourism Content', 'value' => $contentInventory['updated'] === null ? 'Not tracked' : number_format((int) $contentInventory['updated']), 'description' => $contentInventory['updated'] === null ? 'Edit timestamps are not stored for these content records.' : 'Listings updated during ' . ($periodLabels[$period] ?? 'selected period') . '.'];
 $aiCardFacts = [];
 $aiCardFallbacks = [];
 $aiCardSuggestionFallbacks = [];
@@ -844,7 +848,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php if ($dashboardKpis): ?>
     <section class="aw-kpi-grid" aria-label="Key performance indicators">
         <?php foreach ($dashboardKpis as $kpi): $kpiId = $kpi['section'] . '_' . $kpi['index']; ?>
-        <article class="aw-kpi-card"><h2><?php echo htmlspecialchars($kpi['title']); ?></h2><strong><?php echo htmlspecialchars($kpi['value']); ?></strong><p><?php echo htmlspecialchars($aiCardInterpretations[$kpiId] ?? 'Selected period · actual records'); ?></p></article>
+        <article class="aw-kpi-card"><h2><?php echo htmlspecialchars($kpi['title']); ?></h2><strong><?php echo htmlspecialchars($kpi['value']); ?></strong><p><?php echo htmlspecialchars($kpi['description'] ?? $aiCardInterpretations[$kpiId] ?? 'Selected period · actual records'); ?></p></article>
         <?php endforeach; ?>
     </section>
     <?php endif; ?>
