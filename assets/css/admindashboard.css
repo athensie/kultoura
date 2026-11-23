@@ -313,7 +313,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
 }
 .kpi-more > summary::-webkit-details-marker { display: none; }
 .kpi-more > summary::before { content: '+'; display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--a-line); border-radius: 50%; line-height: 1; }
-.kpi-more[open] > summary::before { content: '–'; }
+.kpi-more[open] > summary::before { content: '\2212'; }
 .kpi-more .kpi-grid { margin-top: 10px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .kpi-more .kpi-card { padding: 14px 16px; }
 .kpi-more .kpi-num { font-size: 1.25rem; }
@@ -387,7 +387,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
   color: var(--cream); font: 600 .88rem 'DM Sans', sans-serif;
 }
 .category-block > summary::-webkit-details-marker { display: none; }
-.category-block > summary::after { content: '?'; color: var(--a-muted); transition: transform .15s; }
+.category-block > summary::after { content: '\25BE'; color: var(--a-muted); transition: transform .15s; }
 .category-block[open] > summary::after { transform: rotate(180deg); }
 .category-block > .category-block-body { padding: 0 16px 16px; }
 
@@ -471,7 +471,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(-
   background: rgba(var(--overlay-rgb), .04); color: var(--cream); font: 500 .75rem 'DM Sans', sans-serif; color-scheme: dark;
 }
 :root[data-theme="light"] .date-range-field input { color-scheme: light; }
-.date-range-submit { height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--clay); color: #152318; cursor: pointer; font: 700 .76rem 'DM Sans', sans-serif; }
+.date-range-submit { height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--clay); color: #fff; cursor: pointer; font: 700 .76rem 'DM Sans', sans-serif; }
 .date-range-clear { color: var(--a-muted); font: 500 .74rem 'DM Sans', sans-serif; text-decoration: none; }
 .date-range-clear:hover { color: var(--cream); text-decoration: underline; }
 .date-range-error { color: var(--text-danger); font: 500 .75rem 'DM Sans', sans-serif; }

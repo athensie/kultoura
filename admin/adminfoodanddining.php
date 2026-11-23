@@ -226,16 +226,16 @@ sort($allCategories);
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../assets/css/adminfoodanddining.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin2">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-ui-polish">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
     <link rel="stylesheet" href="../assets/css/product-location-map.css?v=20261102-4">
     <style>
-        .image-current-hint { font-size: .7rem; color: rgba(245,237,216,.45); margin-top: 6px; }
+        .image-current-hint { font-size: .7rem; color: rgba(var(--cream-rgb),.62); margin-top: 6px; }
         .product-pin-map { height:250px; border-radius:9px; overflow:hidden; margin-top:10px; }
         .store-location-list { display:grid; gap:8px; margin-top:12px; }
-        .pinned-product-location { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; border-radius:9px; background:rgba(255,255,255,.06); color:#f5edd8; font-size:.8rem; }
+        .pinned-product-location { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; border-radius:9px; background:rgba(var(--overlay-rgb),.06); color:#f5edd8; font-size:.8rem; }
         .pinned-product-location span { min-width:0; overflow-wrap:anywhere; }
         @media(max-width:600px) { .product-pin-map { height:210px; } }
     </style>
@@ -265,7 +265,7 @@ sort($allCategories);
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
         <?php if ($isSuperAdmin): ?>
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#76551F);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span class="sidebar-badge"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
@@ -303,12 +303,12 @@ sort($allCategories);
             </div>
         </div>
         <?php if (!$isSuperAdmin): ?>
-        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(var(--cream-rgb),.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#76551F);flex-shrink:0;"></i>
             <span>You're signed in as <strong>Admin</strong> — changes you submit here are sent to a Super Admin for approval before they go live.</span>
         </div>
         <?php elseif ($pendingRequestCount > 0): ?>
-        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.6);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(var(--cream-rgb),.62);display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <span><?php echo $pendingRequestCount; ?> pending request<?php echo $pendingRequestCount === 1 ? '' : 's'; ?> awaiting your review.</span>
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#76551F);font-weight:600;text-decoration:none;">Review →</a>
         </div>
@@ -619,16 +619,16 @@ sort($allCategories);
         <button class="modal-close" onclick="closeModal('viewListingModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title" style="text-align:center;" id="vlName">—</div>
         <div style="display:flex;justify-content:center;gap:10px;margin:10px 0 18px;flex-wrap:wrap;">
-            <span style="font-size:.75rem;color:rgba(245,237,216,.4);align-self:center;" id="vlType">—</span>
+            <span style="font-size:.75rem;color:rgba(var(--cream-rgb),.62);align-self:center;" id="vlType">—</span>
             <span class="category-badge" id="vlCategory">—</span>
         </div>
-        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:12px;">
-            <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Details</div>
-            <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.8;" id="vlDetails">—</div>
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:10px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(var(--cream-rgb),.62);margin-bottom:8px;">Details</div>
+            <div style="font-size:.85rem;color:rgba(var(--cream-rgb),.65);line-height:1.8;" id="vlDetails">—</div>
         </div>
-        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:16px;margin-bottom:18px;">
-            <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,.3);margin-bottom:8px;">Description</div>
-            <div style="font-size:.85rem;color:rgba(245,237,216,.65);line-height:1.6;white-space:pre-line;" id="vlDesc">—</div>
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:10px;padding:16px;margin-bottom:18px;">
+            <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(var(--cream-rgb),.62);margin-bottom:8px;">Description</div>
+            <div style="font-size:.85rem;color:rgba(var(--cream-rgb),.65);line-height:1.6;white-space:pre-line;" id="vlDesc">—</div>
         </div>
         <div class="kt-map-canvas" id="viewMapCanvas" style="margin-bottom:18px;"></div>
         <div style="display:flex;gap:10px;">

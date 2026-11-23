@@ -84,7 +84,7 @@ function toggleSidebar() {
   try { data = JSON.parse(dataNode.textContent || '{}'); } catch (error) { return; }
   const labels = Array.isArray(data.labels) ? data.labels : [];
   const keys = Array.isArray(data.keys) ? data.keys : [];
-  const lightTheme = document.documentElement.dataset.theme === 'light';
+  const lightTheme = document.documentElement.dataset.theme !== 'dark';
   const chartText = lightTheme ? '#4b463d' : '#e8e1ce';
   const chartMuted = lightTheme ? '#706b61' : '#b7b39f';
   const selectCategory = index => {
@@ -205,7 +205,7 @@ function toggleSidebar() {
           grid: { display: false },
           border: { display: false },
           ticks: {
-            color: 'rgba(245, 237, 216, .42)',
+            color: 'rgba(17, 30, 20, .58)',
             maxTicksLimit: 10,
             maxRotation: 0,
             font: { family: 'DM Sans', size: 10 }
@@ -214,9 +214,9 @@ function toggleSidebar() {
         y: {
           beginAtZero: true,
           border: { display: false },
-          grid: { color: 'rgba(245, 237, 216, .07)' },
+          grid: { color: 'rgba(17, 30, 20, .08)' },
           ticks: {
-            color: 'rgba(245, 237, 216, .42)',
+            color: 'rgba(17, 30, 20, .58)',
             precision: 0,
             padding: 9,
             font: { family: 'DM Sans', size: 10 }

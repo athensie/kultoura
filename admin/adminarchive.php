@@ -69,35 +69,35 @@ unset($group);
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminusers.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin2">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-ui-polish">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <style>
-        .archive-section-sub { font-size: .8rem; color: rgba(245,237,216,.45); margin-bottom: 24px; }
-        .archive-category { background: rgba(255,255,255,.02); border: 1px solid rgba(245,237,216,.08); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+        .archive-section-sub { font-size: .8rem; color: rgba(var(--cream-rgb),.62); margin-bottom: 24px; }
+        .archive-category { background: rgba(var(--overlay-rgb),.02); border: 1px solid rgba(var(--cream-rgb),.08); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
         .archive-category-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; cursor: pointer; list-style: none; }
         .archive-category-head::-webkit-details-marker { display: none; }
         .archive-category-name { display: flex; align-items: center; gap: 10px; font-size: .9rem; color: var(--cream); font-weight: 600; }
         .archive-category-count { font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; background: rgba(229,115,115,.15); color: #e57373; }
-        .archive-category-chevron { transition: transform .2s; color: rgba(245,237,216,.4); }
+        .archive-category-chevron { transition: transform .2s; color: rgba(var(--cream-rgb),.62); }
         details[open] .archive-category-chevron { transform: rotate(90deg); }
         .archive-items { padding: 0 18px 14px; display: flex; flex-direction: column; gap: 8px; }
-        .archive-item { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.03); border-radius: 8px; padding: 8px 12px; }
-        .archive-item-thumb { flex-shrink: 0; width: 38px; height: 38px; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.05); display: flex; align-items: center; justify-content: center; }
+        .archive-item { display: flex; align-items: center; gap: 12px; background: rgba(var(--overlay-rgb),.03); border-radius: 8px; padding: 8px 12px; }
+        .archive-item-thumb { flex-shrink: 0; width: 38px; height: 38px; border-radius: 6px; overflow: hidden; background: rgba(var(--overlay-rgb),.05); display: flex; align-items: center; justify-content: center; }
         .archive-item-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .archive-item-body { flex: 1; min-width: 0; }
-        .archive-item-name { font-size: .82rem; color: rgba(245,237,216,.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .archive-item-date { font-size: .68rem; color: rgba(245,237,216,.35); margin-top: 1px; }
-        .archive-empty { font-size: .82rem; color: rgba(245,237,216,.4); padding: 20px; text-align: center; background: rgba(255,255,255,.02); border: 1px dashed rgba(245,237,216,.1); border-radius: 12px; }
-        .archive-details-thumb { width: 100%; height: 160px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.04); margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
+        .archive-item-name { font-size: .82rem; color: rgba(var(--cream-rgb),.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .archive-item-date { font-size: .68rem; color: rgba(var(--cream-rgb),.62); margin-top: 1px; }
+        .archive-empty { font-size: .82rem; color: rgba(var(--cream-rgb),.62); padding: 20px; text-align: center; background: rgba(var(--overlay-rgb),.02); border: 1px dashed rgba(var(--cream-rgb),.1); border-radius: 12px; }
+        .archive-details-thumb { width: 100%; height: 160px; border-radius: 10px; overflow: hidden; background: rgba(var(--overlay-rgb),.04); margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
         .archive-details-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .archive-note-box { text-align: left; background: rgba(200,169,110,.08); border: 1px solid rgba(200,169,110,.25); border-radius: 10px; padding: 12px 14px; margin: 16px 0; }
         .archive-note-label { font-size: .68rem; letter-spacing: 1px; text-transform: uppercase; color: #76551F; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-        .archive-note-text { font-size: .85rem; color: rgba(245,237,216,.85); line-height: 1.5; white-space: pre-wrap; }
-        .archive-note-by { font-size: .68rem; color: rgba(245,237,216,.4); margin-top: 8px; }
+        .archive-note-text { font-size: .85rem; color: rgba(var(--cream-rgb),.85); line-height: 1.5; white-space: pre-wrap; }
+        .archive-note-by { font-size: .68rem; color: rgba(var(--cream-rgb),.62); margin-top: 8px; }
         .archive-details-list { text-align: left; display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; }
-        .archive-detail-row { border-bottom: 1px solid rgba(255,255,255,.06); padding-bottom: 8px; }
-        .archive-detail-label { font-size: .65rem; letter-spacing: 1px; text-transform: uppercase; color: rgba(245,237,216,.35); margin-bottom: 2px; }
-        .archive-detail-value { font-size: .82rem; color: rgba(245,237,216,.8); word-break: break-word; }
+        .archive-detail-row { border-bottom: 1px solid rgba(var(--overlay-rgb),.06); padding-bottom: 8px; }
+        .archive-detail-label { font-size: .65rem; letter-spacing: 1px; text-transform: uppercase; color: rgba(var(--cream-rgb),.62); margin-bottom: 2px; }
+        .archive-detail-value { font-size: .82rem; color: rgba(var(--cream-rgb),.8); word-break: break-word; }
     </style>
 </head>
 <body>
@@ -124,7 +124,7 @@ unset($group);
     <ul class="sidebar-nav">
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#76551F);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span class="sidebar-badge"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php" class="active"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
     </ul>
@@ -181,7 +181,7 @@ unset($group);
                                     <?php if (!empty($item['image'])): ?>
                                         <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="">
                                     <?php else: ?>
-                                        <i data-lucide="<?php echo htmlspecialchars($archiveIcons[$type] ?? 'archive'); ?>" class="lucide" style="width:1rem;height:1rem;color:rgba(245,237,216,.3);"></i>
+                                        <i data-lucide="<?php echo htmlspecialchars($archiveIcons[$type] ?? 'archive'); ?>" class="lucide" style="width:1rem;height:1rem;color:rgba(var(--cream-rgb),.62);"></i>
                                     <?php endif; ?>
                                 </div>
                                 <div class="archive-item-body">
@@ -200,7 +200,7 @@ unset($group);
                                     <input type="hidden" name="entity_id" value="<?php echo (int) $item['id']; ?>">
                                     <button type="submit" class="tbl-btn edit"><i data-lucide="rotate-ccw" class="lucide" style="width:.72rem;height:.72rem;"></i> Restore</button>
                                 </form>
-                                <button type="button" class="tbl-btn" style="background:rgba(255,255,255,.05);color:rgba(245,237,216,.6);" onclick="openArchiveDetails('<?php echo htmlspecialchars($type); ?>', <?php echo (int) $item['id']; ?>)"><i data-lucide="eye" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</button>
+                                <button type="button" class="tbl-btn" style="background:rgba(var(--overlay-rgb),.05);color:rgba(var(--cream-rgb),.62);" onclick="openArchiveDetails('<?php echo htmlspecialchars($type); ?>', <?php echo (int) $item['id']; ?>)"><i data-lucide="eye" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</button>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete &quot;<?php echo htmlspecialchars(addslashes($item['name'] ?: ('#' . $item['id'])), ENT_QUOTES); ?>&quot;? This cannot be undone — it will be gone for good, not just archived.');">
                                     <?php echo csrf_field(); ?>
                                     <input type="hidden" name="form_action" value="delete">
@@ -256,7 +256,7 @@ unset($group);
             const icon = document.createElement('i');
             icon.setAttribute('data-lucide', 'archive');
             icon.className = 'lucide';
-            icon.style.cssText = 'width:1.4rem;height:1.4rem;color:rgba(245,237,216,.25);';
+            icon.style.cssText = 'width:1.4rem;height:1.4rem;color:rgba(var(--cream-rgb),.62);';
             thumb.appendChild(icon);
         }
         const noteBox = document.getElementById('adNoteBox');

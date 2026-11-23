@@ -42,7 +42,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminannouncements.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin2">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-ui-polish">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
@@ -70,7 +70,7 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php" class="active"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
         <?php if ($isSuperAdmin): ?>
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#76551F);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span class="sidebar-badge"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
@@ -99,12 +99,12 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
             </div>
         </div>
         <?php if (!$isSuperAdmin): ?>
-        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(var(--cream-rgb),.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#76551F);flex-shrink:0;"></i>
             <span>You're signed in as <strong>Admin</strong> — changes you submit here are sent to a Super Admin for approval before they go live.</span>
         </div>
         <?php elseif ($pendingRequestCount > 0): ?>
-        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.6);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(var(--cream-rgb),.62);display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <span><?php echo $pendingRequestCount; ?> pending request<?php echo $pendingRequestCount === 1 ? '' : 's'; ?> awaiting your review.</span>
             <a href="<?php echo BASE_URL; ?>/admin/adminrequests.php" style="color:var(--gold,#76551F);font-weight:600;text-decoration:none;">Review →</a>
         </div>
@@ -214,8 +214,8 @@ $draftCount    = count(array_filter($announcements, fn($a) => $a['status'] === '
                             </td>
                             <td><span class="type-badge <?php echo htmlspecialchars($a['type']); ?>"><?php echo htmlspecialchars(ucfirst($a['type'])); ?></span></td>
                             <td><?php echo htmlspecialchars($a['audience']); ?></td>
-                            <td style="color:rgba(245,237,216,.4)"><?php echo $a['published_at'] ? htmlspecialchars(date('M j, Y', strtotime($a['published_at']))) : '—'; ?></td>
-                            <td style="color:rgba(245,237,216,.6)"><?php echo !empty($a['expires_at']) ? htmlspecialchars(date('M j, Y g:i A', strtotime($a['expires_at'] . ' UTC'))) . ' PHT' : 'No expiry'; ?></td>
+                            <td style="color:rgba(var(--cream-rgb),.62)"><?php echo $a['published_at'] ? htmlspecialchars(date('M j, Y', strtotime($a['published_at']))) : '—'; ?></td>
+                            <td style="color:rgba(var(--cream-rgb),.62)"><?php echo !empty($a['expires_at']) ? htmlspecialchars(date('M j, Y g:i A', strtotime($a['expires_at'] . ' UTC'))) . ' PHT' : 'No expiry'; ?></td>
                             <td>
                                 <?php
                                     $statusMap = ['live' => 'active', 'archived' => 'inactive', 'draft' => 'pending', 'scheduled' => 'pending'];

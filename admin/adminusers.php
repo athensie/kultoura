@@ -201,7 +201,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && 
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminusers.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261121-readable-admin2">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-ui-polish">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
@@ -229,7 +229,7 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && 
         <li><a href="<?php echo BASE_URL; ?>/admin/adminusers.php" class="active"><span class="nav-icon"><i data-lucide="users" class="lucide"></i></span> Users</a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminannouncements.php"><span class="nav-icon"><i data-lucide="megaphone" class="lucide"></i></span> Announcements</a></li>
         <?php if ($isSuperAdmin): ?>
-        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span style="background:var(--gold,#76551F);color:#1a1812;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
+        <li><a href="<?php echo BASE_URL; ?>/admin/adminrequests.php"><span class="nav-icon"><i data-lucide="inbox" class="lucide"></i></span> Requests<?php if ($pendingRequestCount > 0): ?> <span class="sidebar-badge"><?php echo $pendingRequestCount; ?></span><?php endif; ?></a></li>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminarchive.php"><span class="nav-icon"><i data-lucide="archive" class="lucide"></i></span> Archive</a></li>
         <?php endif; ?>
         <li><a href="<?php echo BASE_URL; ?>/admin/adminsettings.php"><span class="nav-icon"><i data-lucide="settings" class="lucide"></i></span> Settings</a></li>
@@ -263,15 +263,15 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && 
             <?php endif; ?>
         </div>
         <?php if (!$isSuperAdmin): ?>
-        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(245,237,216,.75);display:flex;align-items:center;gap:10px;">
+        <div style="background:rgba(200,169,110,.08);border:1px solid rgba(200,169,110,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.8rem;color:rgba(var(--cream-rgb),.75);display:flex;align-items:center;gap:10px;">
             <i data-lucide="shield-alert" class="lucide" style="width:1rem;height:1rem;color:var(--gold,#76551F);flex-shrink:0;"></i>
             <span>You're signed in as <strong>Admin</strong> — account management is Super Admin-only. You can view accounts here but not edit or deactivate them.</span>
         </div>
         <?php endif; ?>
         <div class="status-tabs" style="display:flex;gap:8px;margin-bottom:18px;">
-            <a href="#" id="tabAllBtn" onclick="showAccountsTab('all', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:var(--gold,#76551F);color:#1a1812;font-weight:600;">All Accounts (<?php echo $totalAccounts; ?>)</a>
-            <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Site Users (<?php echo $totalUsers; ?>)</a>
-            <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(255,255,255,.03);color:rgba(245,237,216,.6);">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
+            <a href="#" id="tabAllBtn" onclick="showAccountsTab('all', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:var(--gold,#76551F);color:#fff;font-weight:600;">All Accounts (<?php echo $totalAccounts; ?>)</a>
+            <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(var(--overlay-rgb),.03);color:rgba(var(--cream-rgb),.62);">Site Users (<?php echo $totalUsers; ?>)</a>
+            <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(var(--overlay-rgb),.03);color:rgba(var(--cream-rgb),.62);">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
         </div>
         <div class="mini-kpi-row animate" style="grid-template-columns: repeat(5, 1fr); max-width: 900px;">
             <div class="mini-kpi">
@@ -392,23 +392,23 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && 
     <div class="modal-card" style="max-width:480px;">
         <button class="modal-close" onclick="closeModal('viewAccountModal')"><i data-lucide="x" class="lucide"></i></button>
         <div class="modal-title" style="text-align:center;" id="vaName">—</div>
-        <div style="text-align:center;font-size:.78rem;color:rgba(245,237,216,.4);margin-bottom:14px;" id="vaEmail">—</div>
+        <div style="text-align:center;font-size:.78rem;color:rgba(var(--cream-rgb),.62);margin-bottom:14px;" id="vaEmail">—</div>
         <div style="display:flex;justify-content:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
             <span class="role-badge" id="vaRole">—</span>
             <span class="status active" id="vaOnline">—</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
-            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px;">
-                <div style="font-size:.6rem;color:rgba(245,237,216,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Username</div>
+            <div style="background:rgba(var(--overlay-rgb),.04);border-radius:8px;padding:12px;">
+                <div style="font-size:.6rem;color:rgba(var(--cream-rgb),.62);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Username</div>
                 <div style="font-size:.85rem;color:var(--cream);" id="vaUsername">—</div>
             </div>
-            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px;">
-                <div style="font-size:.6rem;color:rgba(245,237,216,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Joined</div>
+            <div style="background:rgba(var(--overlay-rgb),.04);border-radius:8px;padding:12px;">
+                <div style="font-size:.6rem;color:rgba(var(--cream-rgb),.62);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Joined</div>
                 <div style="font-size:.85rem;color:var(--cream);" id="vaJoined">—</div>
             </div>
         </div>
-        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px;margin-bottom:18px;" id="vaPromoWrap">
-            <div style="font-size:.6rem;color:rgba(245,237,216,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Promotional Emails</div>
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:8px;padding:12px;margin-bottom:18px;" id="vaPromoWrap">
+            <div style="font-size:.6rem;color:rgba(var(--cream-rgb),.62);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Promotional Emails</div>
             <div style="font-size:.85rem;color:var(--cream);" id="vaPromo">—</div>
         </div>
         <div style="display:flex;gap:10px;">
@@ -545,8 +545,8 @@ function showAccountsTab(tab, btn) {
         var el = document.getElementById(id);
         if (!el) return;
         var active = el === btn;
-        el.style.background = active ? 'var(--gold,#76551F)' : 'rgba(255,255,255,.03)';
-        el.style.color = active ? '#1a1812' : 'rgba(245,237,216,.6)';
+        el.style.background = active ? 'var(--gold,#76551F)' : 'rgba(var(--overlay-rgb),.03)';
+        el.style.color = active ? '#fff' : 'rgba(var(--cream-rgb),.62)';
         el.style.fontWeight = active ? '600' : 'normal';
     });
     applyAccountFilters();
