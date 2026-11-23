@@ -145,13 +145,13 @@ $upcomingCount = count(array_filter($events, function ($e) {
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Events &amp; Fiesta – KULTOURA Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">
     <link rel="stylesheet" href="../assets/css/admineventandfiesta.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-ui-polish">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-consistency">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>

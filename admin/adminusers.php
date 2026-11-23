@@ -198,10 +198,10 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && 
     <link rel="icon" type="image/png" href="/kultoura/assets/images/K.png?v=20261008">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Users – KULTOURA Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminusers.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-ui-polish">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-consistency">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>
 <body>
@@ -268,10 +268,10 @@ $onlineCount      = count(array_filter($accounts, fn($acc) => $acc['active'] && 
             <span>You're signed in as <strong>Admin</strong> — account management is Super Admin-only. You can view accounts here but not edit or deactivate them.</span>
         </div>
         <?php endif; ?>
-        <div class="status-tabs" style="display:flex;gap:8px;margin-bottom:18px;">
-            <a href="#" id="tabAllBtn" onclick="showAccountsTab('all', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:var(--gold,#76551F);color:#fff;font-weight:600;">All Accounts (<?php echo $totalAccounts; ?>)</a>
-            <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(var(--overlay-rgb),.03);color:rgba(var(--cream-rgb),.62);">Site Users (<?php echo $totalUsers; ?>)</a>
-            <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;" style="padding:7px 16px;border-radius:20px;font-size:.78rem;text-decoration:none;background:rgba(var(--overlay-rgb),.03);color:rgba(var(--cream-rgb),.62);">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
+        <div class="status-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+            <a href="#" id="tabAllBtn" class="active" onclick="showAccountsTab('all', this); return false;">All Accounts (<?php echo $totalAccounts; ?>)</a>
+            <a href="#" id="tabUsersBtn" onclick="showAccountsTab('user', this); return false;">Site Users (<?php echo $totalUsers; ?>)</a>
+            <a href="#" id="tabAdminsBtn" onclick="showAccountsTab('admin', this); return false;">Admin Accounts (<?php echo $totalAdmins; ?>)</a>
         </div>
         <div class="mini-kpi-row animate" style="grid-template-columns: repeat(5, 1fr); max-width: 900px;">
             <div class="mini-kpi">
@@ -545,9 +545,7 @@ function showAccountsTab(tab, btn) {
         var el = document.getElementById(id);
         if (!el) return;
         var active = el === btn;
-        el.style.background = active ? 'var(--gold,#76551F)' : 'rgba(var(--overlay-rgb),.03)';
-        el.style.color = active ? '#fff' : 'rgba(var(--cream-rgb),.62)';
-        el.style.fontWeight = active ? '600' : 'normal';
+        el.classList.toggle('active', active);
     });
     applyAccountFilters();
 }

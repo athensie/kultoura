@@ -434,7 +434,7 @@
 :root .archive-empty { background: var(--ui-surface); border-color: var(--ui-line-strong); color: var(--ui-muted); }
 :root .archive-detail-row { border-bottom-color: var(--ui-line); }
 :root .archive-category-head:hover { background: var(--ui-surface-soft); }
-:root .status-tabs a { background: var(--ui-surface); border: 1px solid var(--ui-line-strong); color: var(--ui-text-2); font-weight: 500; transition: background .2s, color .2s; }
+:root .status-tabs a { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 999px; font-size: .78rem; text-decoration: none; background: var(--ui-surface); border: 1px solid var(--ui-line-strong); color: var(--ui-text-2); font-weight: 500; transition: background .2s, color .2s; }
 :root .status-tabs a:hover { background: var(--ui-hover); color: var(--ui-text); }
 :root .status-tabs a.active { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
 :root .activity-header h1 { color: var(--ui-text); }
@@ -450,4 +450,205 @@
 @media (prefers-reduced-motion: reduce) {
   :root .kpi-card:hover,
   :root .grid-card:hover { transform: none; }
+}
+
+/* ==========================================================================
+   Typography & colour system (matches the analytics workspace)
+   - Playfair Display: page titles, section headings, modal titles, KPI values
+   - DM Sans: everything else; 600 for card headings, item names and labels
+   - Text: --ui-text (primary), --ui-text-2 (body), --ui-muted (secondary)
+   - Accent: green; gold only for small highlights
+   ========================================================================== */
+:root {
+  --font-ui: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+}
+:root body { font-family: var(--font-ui); }
+:root button,
+:root input,
+:root select,
+:root textarea,
+:root .btn-primary,
+:root .btn-ghost,
+:root .tbl-btn { font-family: var(--font-ui); }
+
+/* Display headings */
+:root .page-header h1,
+:root .activity-header h1,
+:root .aw-heading h1 { font-family: var(--font-display); font-weight: 700; color: var(--ui-text); }
+:root .page-header h1 em { color: var(--gold); }
+:root .modal-title,
+:root .folder-modal-title,
+:root .trend-section-title,
+:root .aw-section-head h2 { font-family: var(--font-display); font-weight: 700; color: var(--ui-text); }
+
+/* Card headings */
+:root .chart-box h4,
+:root .settings-card h3,
+:root .announce-box h3,
+:root .category-comparison h3,
+:root .aw-card h3,
+:root .aw-ai-card h2 { font-family: var(--font-ui); font-weight: 600; font-size: .95rem; color: var(--ui-text); letter-spacing: 0; }
+:root .chart-box h4 .chart-sub,
+:root .chart-box .chart-sub,
+:root .review-count { font-family: var(--font-ui); font-weight: 400; color: var(--ui-muted); }
+
+/* Item names in lists and cards */
+:root .grid-card-title,
+:root .trend-card h5,
+:root .promote-item-info h3,
+:root .promote-folder-title strong,
+:root .req-title,
+:root .folder-title,
+:root .hierarchy-item > summary { font-family: var(--font-ui); font-weight: 600; color: var(--ui-text); letter-spacing: 0; }
+:root .grid-card-title,
+:root .trend-card h5,
+:root .req-title { font-size: 1rem; }
+:root .promote-item-info h3 { font-size: .95rem; }
+:root .promote-folder-title strong { font-size: 1rem; }
+
+/* KPI values */
+:root .kpi-num,
+:root .mini-kpi-num,
+:root .aw-kpi-card strong { font-family: var(--font-display); font-weight: 700; color: var(--ui-text); letter-spacing: 0; line-height: 1.1; }
+:root .mini-kpi-num { font-size: 1.75rem; }
+:root .kpi-num { font-size: 2.1rem; }
+:root .kpi-hero .kpi-num { font-size: 1.9rem; }
+:root .kpi-more .kpi-num { font-size: 1.25rem; }
+
+/* Labels */
+:root .kpi-label,
+:root .mini-kpi-label,
+:root .aw-kpi-card h2 { font-family: var(--font-ui); font-weight: 600; font-size: .74rem; letter-spacing: .2px; text-transform: none; color: var(--ui-muted); margin-top: 6px; }
+:root .aw-kpi-card h2 { margin: 0 0 9px; }
+:root .section-label,
+:root .trend-type { font-family: var(--font-ui); color: var(--gold); }
+:root .data-table thead th,
+:root .activity-table th,
+:root .category-item-table th,
+:root .category-comparison th { font-family: var(--font-ui); font-weight: 700; font-size: .68rem; letter-spacing: 1px; text-transform: uppercase; color: #5D6B60; }
+
+/* Body copy */
+:root .page-header p,
+:root .hierarchy-intro,
+:root .review-trend-intro,
+:root .promote-header p,
+:root .modal-sub { color: var(--ui-muted); font-size: .88rem; line-height: 1.55; }
+:root .review-row p,
+:root .trend-card p,
+:root .chart-ai-row { color: var(--ui-text-2); }
+
+/* Accent stripes on KPI cards use the palette instead of bright gradients */
+:root .kpi-card.accent-clay::before,
+:root .kpi-card.accent-green::before { background: var(--ui-accent); }
+:root .kpi-card.accent-gold::before { background: #9C7A3C; }
+:root .kpi-card.accent-blue::before { background: #275B89; }
+:root .status.active::before { background: var(--ui-accent); }
+:root .status.flagged::before { background: var(--ui-danger); }
+
+/* ---------- Pill tabs (Community feedback, Users, Requests) ---------- */
+:root .review-tabs { border-bottom-color: var(--ui-line); }
+:root .review-tabs a {
+  min-height: 38px; padding: 8px 18px; background: var(--ui-surface) !important; border: 1px solid var(--ui-line-strong) !important;
+  color: var(--ui-text-2) !important; font: 600 .82rem var(--font-ui); box-shadow: none;
+}
+:root .review-tabs a:hover { background: var(--ui-hover) !important; color: var(--ui-text) !important; transform: none; }
+:root .review-tabs a.active { background: var(--ui-accent) !important; border-color: var(--ui-accent) !important; color: #fff !important; box-shadow: none; }
+
+/* ---------- Review moderation ---------- */
+:root .review-row { background: var(--ui-surface); border-color: var(--ui-line); }
+:root .review-row-head { color: var(--ui-muted); font-weight: 500; }
+:root .review-row-head > span:first-child { color: var(--ui-text); font-weight: 600; }
+:root .report-status { background: rgba(118, 85, 31, .12); color: #6A4C1B; font-weight: 600; }
+:root .report-reason { color: #6A4C1B; }
+:root .report-detail { color: var(--ui-muted); }
+:root .review-actions button { font: 600 .78rem var(--font-ui); padding: 7px 12px; border: 1px solid transparent; transition: filter .15s; }
+:root .review-actions button:hover { filter: brightness(.94); }
+:root .review-actions .act-hide { background: rgba(118, 85, 31, .12); color: #6A4C1B; }
+:root .review-actions .act-remove { background: rgba(185, 56, 56, .10); color: #A22F2F; }
+:root .review-actions .act-keep { background: rgba(44, 122, 69, .12); color: #23683A; }
+:root .review-actions .act-dismiss { background: var(--ui-surface); border-color: var(--ui-line-strong); color: var(--ui-text-2); }
+:root .trend-card { background: var(--ui-surface); border-color: var(--ui-line); }
+:root .trend-card-low { background: rgba(185, 56, 56, .04); border-color: rgba(185, 56, 56, .28); }
+:root .trend-metrics span,
+:root .trend-theme { border-color: var(--ui-line-strong); color: var(--ui-text-2); }
+:root .trend-sentiment { color: var(--ui-accent); }
+:root .sample-data-note { background: rgba(118, 85, 31, .07); color: var(--ui-text-2); }
+:root .hierarchy-item { background: var(--ui-surface); border-color: var(--ui-line); }
+:root .hierarchy-item > summary:hover { background: var(--ui-surface-soft); }
+:root .hierarchy-summary-meta { color: var(--ui-muted); }
+
+/* Folder cards (reports + promote) */
+:root .hierarchy-category {
+  background: var(--ui-surface); border-color: var(--ui-line); box-shadow: var(--ui-shadow-sm);
+  transition: box-shadow .2s, border-color .2s, transform .2s;
+}
+:root .hierarchy-category:before { background: var(--ui-surface-soft); border-color: var(--ui-line); }
+:root .hierarchy-category:hover,
+:root .promote-folder:hover { border-color: var(--ui-line-strong); box-shadow: var(--ui-shadow-md); transform: translateY(-1px); }
+:root .folder-title i { color: var(--ui-accent); }
+:root .promote-folder { background: var(--ui-surface); border-color: var(--ui-line); box-shadow: var(--ui-shadow-sm); transition: box-shadow .2s, border-color .2s, transform .2s; }
+:root .promote-folder-summary:hover { background: transparent; }
+:root .promote-folder-icon { background: var(--ui-accent-soft); color: var(--ui-accent); }
+:root .promote-folder-title small { color: var(--ui-muted); }
+:root .promote-folder-chevron { color: var(--ui-muted); }
+:root .promote-folder:hover .promote-folder-chevron { color: var(--ui-accent); }
+
+/* Promote content rows */
+:root .promote-list { background: var(--ui-surface); border-color: var(--ui-line); }
+:root .promote-row + .promote-row { border-top-color: #EDF1EB; }
+:root .promote-row:hover { background: var(--ui-surface-soft); }
+:root .promote-item-thumb { background: var(--ui-surface-soft); color: var(--ui-muted); }
+:root .promote-item-info p,
+:root .promote-views,
+:root .promote-sortbar,
+:root .promote-category-empty { color: var(--ui-muted); }
+:root .promote-sortbar select { background: var(--ui-surface); border-color: var(--ui-line-strong); color: var(--ui-text); }
+:root .promote-action button { font: 600 .8rem var(--font-ui); border-radius: 9px; padding: 8px 14px; }
+:root .promote-action button:not(.is-promoted) { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
+:root .promote-action button:not(.is-promoted):hover { background: var(--ui-accent-hover); }
+:root .promote-action button.is-promoted { background: var(--ui-surface); border-color: var(--ui-line-strong); color: #23683A; }
+:root .promote-action button.is-promoted:hover { background: rgba(185, 56, 56, .06); border-color: rgba(185, 56, 56, .3); color: #A22F2F; }
+:root .promote-notice,
+:root .promote-empty { background: var(--ui-accent-soft); border-color: rgba(44, 122, 69, .25); color: var(--ui-text); }
+
+/* ---------- Folder popup ---------- */
+:root.folder-modal-open { overflow: hidden; }
+:root .folder-modal {
+  width: min(920px, calc(100vw - 32px)); max-height: min(86vh, 920px);
+  margin: auto; padding: 0; border: 1px solid var(--ui-line); border-radius: 18px;
+  background: var(--ui-surface); color: var(--ui-text); box-shadow: var(--ui-shadow-lg);
+  overflow: hidden;
+}
+:root .folder-modal[open] { display: flex; flex-direction: column; animation: folderModalIn .18s ease-out; }
+:root .folder-modal::backdrop { background: rgba(17, 30, 20, .45); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+@keyframes folderModalIn { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+:root .folder-modal-head {
+  display: flex; align-items: center; gap: 14px; padding: 18px 20px;
+  border-bottom: 1px solid var(--ui-line); background: var(--ui-surface);
+}
+:root .folder-modal-icon { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border-radius: 12px; background: var(--ui-accent-soft); color: var(--ui-accent); }
+:root .folder-modal-icon svg { width: 20px; height: 20px; }
+:root .folder-modal-titles { min-width: 0; flex: 1; }
+:root .folder-modal-title { margin: 0; font-size: 1.25rem; line-height: 1.25; overflow-wrap: anywhere; }
+:root .folder-modal-meta { margin: 3px 0 0; color: var(--ui-muted); font-size: .8rem; }
+:root .folder-modal-close {
+  display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; padding: 0;
+  border: 1px solid var(--ui-line-strong); border-radius: 50%; background: var(--ui-surface); color: var(--ui-muted); cursor: pointer;
+  transition: background .2s, color .2s;
+}
+:root .folder-modal-close:hover { background: var(--ui-hover); color: var(--ui-text); }
+:root .folder-modal-close svg { width: 18px; height: 18px; }
+:root .folder-modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 20px 22px; background: var(--ui-surface-soft); }
+:root .folder-modal .hierarchy-item-list { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0; }
+:root .folder-modal .promote-folder-content { padding: 0; }
+:root .folder-modal .promote-list { box-shadow: var(--ui-shadow-sm); }
+@media (max-width: 640px) {
+  :root .folder-modal { width: 100vw; max-width: 100vw; max-height: 92vh; margin: auto 0 0; border-radius: 18px 18px 0 0; }
+  :root .folder-modal-body { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .folder-modal[open] { animation: none; }
+  :root .hierarchy-category:hover,
+  :root .promote-folder:hover { transform: none; }
 }

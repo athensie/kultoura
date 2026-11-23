@@ -61,10 +61,10 @@ $candidateGroups = kt_promotion_candidates($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Promote Content · KULTOURA Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/admindestinations.css?v=20261031-1">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-ui-polish">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261123-consistency">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="../assets/css/adminpromote.css?v=20261102-4">
 </head>
@@ -124,13 +124,13 @@ $candidateGroups = kt_promotion_candidates($conn);
         <div class="promote-empty">No active content is available to promote yet.</div>
     <?php endif; ?>
     <?php $folderIndex = 0; foreach ($candidateGroups as $groupName => $items): $folderIndex++; $folderId = 'promote-folder-' . $folderIndex; ?>
-    <details class="promote-folder">
+    <details class="promote-folder" data-folder-modal>
         <summary class="promote-folder-summary">
             <span class="promote-folder-icon"><i data-lucide="folder" class="lucide"></i></span>
-            <span class="promote-folder-title"><strong><?php echo htmlspecialchars($groupName); ?></strong><small><?php echo count($items); ?> active listings</small></span>
-            <span class="promote-folder-chevron"><i data-lucide="chevron-down" class="lucide"></i></span>
+            <span class="promote-folder-title"><strong data-folder-title><?php echo htmlspecialchars($groupName); ?></strong><small data-folder-meta><?php echo count($items); ?> active listings</small></span>
+            <span class="promote-folder-chevron"><i data-lucide="chevron-right" class="lucide"></i></span>
         </summary>
-        <div class="promote-folder-content">
+        <div class="promote-folder-content" data-folder-content>
         <div class="promote-sortbar">
             <label for="<?php echo $folderId; ?>-sort">Sort by views</label>
             <select id="<?php echo $folderId; ?>-sort" data-promote-sort="<?php echo $folderId; ?>-items">
@@ -165,6 +165,7 @@ $candidateGroups = kt_promotion_candidates($conn);
 </div>
 </main>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
+<script src="../assets/js/admin-folder-modal.js?v=20261123-1"></script>
 <script src="../assets/js/adminpromote.js?v=20261102-1"></script>
 <script>
 function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle('open'); }
