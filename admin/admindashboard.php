@@ -360,7 +360,7 @@ if ($period === 'all') {
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261121-community-feedback">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-review-totals">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-folder-search">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
@@ -414,7 +414,7 @@ if ($period === 'all') {
     </div>
 </div>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
-<script src="../assets/js/admin-folder-modal.js?v=20261124-nested"></script>
+<script src="../assets/js/admin-folder-modal.js?v=20261124-search"></script>
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script>initSidebarCollapse();</script>

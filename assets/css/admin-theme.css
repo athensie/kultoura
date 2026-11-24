@@ -870,3 +870,14 @@
 :root .aw-demo-remove { display: flex; justify-content: flex-end; margin: -6px 0 14px; }
 :root .aw-demo-remove .btn-ghost { padding: 7px 14px; font-size: .78rem; }
 :root .hierarchy-shown-note { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--ui-accent-soft); color: var(--ui-text-2); font-size: .78rem; }
+
+/* ---------- Search inside folder popups ---------- */
+:root .folder-modal-search { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 20px; border-bottom: 1px solid var(--ui-line); background: var(--ui-surface); }
+:root .folder-modal-search[hidden] { display: none; }
+:root .folder-modal-search svg { width: 17px; height: 17px; flex: 0 0 17px; color: var(--ui-muted); }
+:root .folder-modal-search input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--ui-line-strong); border-radius: 10px; background: var(--ui-surface); color: var(--ui-text); font: 500 .9rem var(--font-ui); outline: none; transition: border-color .2s, box-shadow .2s; }
+:root .folder-modal-search input:focus { border-color: var(--ui-accent); box-shadow: var(--ui-focus); }
+:root .folder-modal-search-count { flex: 0 0 auto; color: var(--ui-muted); font: 600 .76rem var(--font-ui); white-space: nowrap; }
+:root .folder-modal-search.has-no-results .folder-modal-search-count { color: #A22F2F; }
+:root .is-search-hidden { display: none !important; }
+@media (max-width: 640px) { :root .folder-modal-search { padding: 10px 14px; } }

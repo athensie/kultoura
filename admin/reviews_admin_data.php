@@ -75,9 +75,8 @@ foreach ($reviews as $review) {
     $reviewHierarchy[$type]['items'][$itemKey]['reviews'][] = $review;
 }
 foreach ($reviewHierarchy as &$categoryGroup) {
-    uasort($categoryGroup['items'], static function ($a, $b) {
-        return ($b['count'] <=> $a['count']) ?: (($b['rating_total'] / $b['count']) <=> ($a['rating_total'] / $a['count']));
-    });
+    // Listings A–Z inside each category folder (case-insensitive, natural number order).
+    uasort($categoryGroup['items'], static fn($a, $b) => strnatcasecmp((string) $a['name'], (string) $b['name']));
 }
 unset($categoryGroup);
 uasort($reviewHierarchy, static fn($a, $b) => $b['count'] <=> $a['count']);
@@ -96,6 +95,10 @@ foreach ($reports as $report) {
     $reportHierarchy[$type]['items'][$itemKey]['count']++;
     $reportHierarchy[$type]['items'][$itemKey]['reports'][] = $report;
 }
+foreach ($reportHierarchy as &$reportCategory) {
+    uasort($reportCategory['items'], static fn($a, $b) => strnatcasecmp((string) $a['name'], (string) $b['name']));
+}
+unset($reportCategory);
 $pendingReports = (int)($conn->query("SELECT COUNT(*) total FROM item_review_reports WHERE status='pending'")->fetch_assoc()['total'] ?? 0);
 $ratingMax = max(1,max($ratingCounts));
 $reviewTrends = [];

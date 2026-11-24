@@ -151,7 +151,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminhomepage.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/adminhomepage.css') ?: time(); ?>">
     <link rel="stylesheet" href="../assets/css/adminpagewidgets.css?v=<?php echo @filemtime(__DIR__ . '/../assets/css/adminpagewidgets.css') ?: time(); ?>">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-review-totals">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-folder-search">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>

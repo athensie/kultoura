@@ -35,6 +35,11 @@
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>' +
             '</button>' +
         '</header>' +
+        '<div class="folder-modal-search" hidden>' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>' +
+            '<input type="search" autocomplete="off" spellcheck="false">' +
+            '<span class="folder-modal-search-count" aria-live="polite"></span>' +
+        '</div>' +
         '<div class="folder-modal-body"></div>';
 
     var titleEl = dialog.querySelector('.folder-modal-title');
@@ -42,7 +47,57 @@
     var bodyEl = dialog.querySelector('.folder-modal-body');
     var backEl = dialog.querySelector('.folder-modal-back');
     var backLabel = backEl.querySelector('span');
-    var stack = [];   // [{ content, placeholder, trigger, title, meta, scroll }]
+    var searchBox = dialog.querySelector('.folder-modal-search');
+    var searchInput = searchBox.querySelector('input');
+    var searchCount = searchBox.querySelector('.folder-modal-search-count');
+    var stack = [];   // [{ content, placeholder, trigger, title, meta, scroll, query }]
+
+    // ---- Search within the folder on screen (listings in a category, listings in a promote folder) ----
+    var normalize = function (text) {
+        return (text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+    };
+    function searchableItems(content) {
+        return Array.prototype.slice.call(content.querySelectorAll('details[data-folder-modal], .promote-row'));
+    }
+    function itemText(item) {
+        var title = item.querySelector('[data-folder-title], h3');
+        return normalize(title ? title.textContent : item.textContent);
+    }
+    function applySearch() {
+        var top = stack[stack.length - 1];
+        if (!top) return;
+        top.query = searchInput.value;
+        var words = normalize(searchInput.value).split(' ').filter(Boolean);
+        var items = searchableItems(top.content);
+        var shown = 0;
+        items.forEach(function (item) {
+            var text = itemText(item);
+            var match = words.every(function (word) { return text.indexOf(word) !== -1; });
+            item.classList.toggle('is-search-hidden', !match);
+            if (match) shown++;
+        });
+        searchCount.textContent = words.length ? (shown ? shown + ' of ' + items.length : 'No matches') : items.length + ' items';
+        searchBox.classList.toggle('has-no-results', words.length > 0 && shown === 0);
+    }
+    function setupSearch() {
+        var top = stack[stack.length - 1];
+        var count = top ? searchableItems(top.content).length : 0;
+        searchBox.hidden = count < 2;
+        searchInput.placeholder = top ? 'Search in ' + top.title + '…' : 'Search…';
+        searchInput.setAttribute('aria-label', searchInput.placeholder);
+        searchInput.value = top && top.query ? top.query : '';
+        if (top) applySearch();
+    }
+    searchInput.addEventListener('input', applySearch);
+    searchInput.addEventListener('keydown', function (event) {
+        // Esc clears the search first; Enter opens the only match.
+        if (event.key === 'Escape' && searchInput.value) { event.preventDefault(); event.stopPropagation(); searchInput.value = ''; applySearch(); }
+        if (event.key === 'Enter') {
+            var top = stack[stack.length - 1];
+            var visible = top ? searchableItems(top.content).filter(function (item) { return !item.classList.contains('is-search-hidden'); }) : [];
+            if (visible.length === 1 && visible[0].matches('details[data-folder-modal]')) { event.preventDefault(); open(visible[0]); }
+        }
+    });
 
     function textOf(details, selector) {
         var element = details.querySelector(selector);
@@ -59,11 +114,13 @@
         backEl.hidden = !parent;
         backLabel.textContent = parent ? 'Back to ' + parent.title : '';
         dialog.classList.toggle('is-nested', !!parent);
+        setupSearch();
     }
 
     function popLevel() {
         var level = stack.pop();
         if (!level) return null;
+        searchableItems(level.content).forEach(function (item) { item.classList.remove('is-search-hidden'); });
         level.placeholder.replaceWith(level.content);
         var parent = stack[stack.length - 1];
         if (parent) {
