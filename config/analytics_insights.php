@@ -202,7 +202,7 @@ function kt_traffic_forecast(mysqli $conn): array
     $variation = $mean > 0 ? sqrt($variance) / $mean : 9;
     $confidence = ($activeDays >= 24 && $variation < 0.35) ? 'High' : (($activeDays >= 14 && $variation < 0.8) ? 'Moderate' : 'Low');
 
-    $monthStart = new DateTimeImmutable('first day of this month');
+    $monthStart = new DateTimeImmutable('first day of this month midnight');   // midnight: 'first day of' keeps the current time
     $nextMonthStart = $monthStart->modify('+1 month');
     $daysInMonth = (int) $monthStart->format('t');
     $completeDays = (int) $monthStart->diff($today)->days;          // days before today
@@ -323,6 +323,19 @@ function kt_build_recommendations(array $ctx): array
         $searchesNow = (int) ($snapshot['searches'] ?? 0);
         if ($searchesNow >= 10 && $zeroNow / max(1, $searchesNow) >= 0.3) {
             $add('search_gap_rate', 55, 'Improve search coverage (synonyms, tags, missing listings).', number_format($zeroNow) . ' of ' . kt_plural($searchesNow, 'search', 'searches') . ' (' . round($zeroNow / $searchesNow * 100) . '%) found nothing (' . $periodLower . ').');
+        }
+    }
+
+    // Usually-low month coming up in the next two months → plan ahead.
+    $seasonal = $ctx['seasonal'] ?? [];
+    if (!empty($seasonal['available'])) {
+        foreach ([1, 2] as $ahead) {
+            $upcoming = (int) (new DateTimeImmutable('first day of this month'))->modify("+{$ahead} month")->format('n');
+            $month = $seasonal['months'][$upcoming] ?? null;
+            if ($month && $month['level'] === 'low' && $month['low_years'] >= 2) {
+                $add('seasonal_low_' . $upcoming, 52 - $ahead * 4, 'Plan a promotion or feature an event before ' . $month['name'] . ', a usually quiet month.', $month['name'] . ' averages ' . kt_format_change($month['vs_average']) . ' below the average month and was low in ' . $month['low_years'] . ' of ' . $month['years'] . ' years.');
+                break;
+            }
         }
     }
 
@@ -549,4 +562,96 @@ function kt_barangay_interest(mysqli $conn, string $startSql, string $endSql): a
     }
     arsort($result['barangays']);
     return $result;
+}
+
+/**
+ * Seasonal visitor pattern ("which months are usually low?").
+ * Uses every COMPLETE calendar month of page views (the current month and a partial first month
+ * are left out). For each calendar month (Jan..Dec) it averages the visits across the years
+ * recorded, compares with the average month, and counts in how many years that month was low/high
+ * (at least 15% below/above that year's own monthly average).
+ */
+function kt_seasonal_pattern(mysqli $conn, float $threshold = 0.15): array
+{
+    $empty = ['available' => false, 'months' => [], 'years' => 0, 'low' => [], 'high' => [], 'from' => null, 'to' => null];
+    if (!kt_insight_table_exists($conn, 'page_views')) return $empty;
+    $demo = KT_DEMO_REFERRER;
+    $first = $conn->query("SELECT MIN(viewed_at) first_view FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> '{$demo}')");
+    $firstView = $first ? ($first->fetch_assoc()['first_view'] ?? null) : null;
+    if (!$firstView) return $empty;
+    $firstDate = new DateTimeImmutable($firstView);
+    // Complete months only (midnight boundaries; 'first day of …' alone keeps the current time of day).
+    $start = (int) $firstDate->format('j') === 1 && $firstDate->format('H:i:s') === '00:00:00' ? $firstDate->modify('first day of this month midnight') : $firstDate->modify('first day of next month midnight');
+    $end = new DateTimeImmutable('first day of this month midnight');
+    if ($start >= $end) return $empty;
+    $stmt = $conn->prepare("SELECT YEAR(viewed_at) y, MONTH(viewed_at) m, COUNT(*) total FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> '{$demo}') AND viewed_at >= ? AND viewed_at < ? GROUP BY y, m");
+    $startSql = $start->format('Y-m-d 00:00:00');
+    $endSql = $end->format('Y-m-d 00:00:00');
+    $stmt->bind_param('ss', $startSql, $endSql);
+    $stmt->execute();
+    $byYear = [];
+    for ($month = $start; $month < $end; $month = $month->modify('+1 month')) $byYear[(int) $month->format('Y')][(int) $month->format('n')] = 0;
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $byYear[(int) $row['y']][(int) $row['m']] = (int) $row['total'];
+    $stmt->close();
+
+    // Seasonal index: each month compared with ITS OWN YEAR's average month, then averaged across years.
+    // This removes overall growth (later years being busier) so only the seasonal pattern remains.
+    // Only years with at least 6 complete months are used, so one stray month can't define a "year".
+    $months = [];
+    for ($m = 1; $m <= 12; $m++) $months[$m] = ['label' => date('M', mktime(0, 0, 0, $m, 1)), 'name' => date('F', mktime(0, 0, 0, $m, 1)), 'indexes' => [], 'totals' => [], 'low_years' => 0, 'high_years' => 0];
+    $usableYears = 0;
+    $recentYearAverage = 0.0;
+    foreach ($byYear as $year => $yearMonths) {
+        if (count($yearMonths) < 6) continue;
+        $yearAverage = array_sum($yearMonths) / count($yearMonths);
+        if ($yearAverage <= 0) continue;
+        $usableYears++;
+        $recentYearAverage = $yearAverage;   // years are in order, so this ends as the latest usable year
+        foreach ($yearMonths as $m => $total) {
+            $index = $total / $yearAverage - 1;
+            $months[$m]['indexes'][] = $index;
+            $months[$m]['totals'][] = $total;
+            if ($index <= -$threshold) $months[$m]['low_years']++;
+            if ($index >= $threshold) $months[$m]['high_years']++;
+        }
+    }
+    $covered = array_filter($months, static fn($month) => $month['indexes']);
+    if ($usableYears === 0 || count($covered) < 6) return $empty + ['reason' => 'At least 6 complete months within a year are needed.'];
+    $low = $high = [];
+    foreach ($months as $m => &$month) {
+        $month['years'] = count($month['indexes']);
+        if (!$month['indexes']) { $month['average'] = null; $month['vs_average'] = null; $month['level'] = 'none'; continue; }
+        $seasonalIndex = array_sum($month['indexes']) / count($month['indexes']);
+        $month['vs_average'] = $seasonalIndex * 100;
+        // "Typical visits" at the latest year's traffic level, so bar heights show the seasonal shape only.
+        $month['average'] = (int) round($recentYearAverage * (1 + $seasonalIndex));
+        $month['level'] = $seasonalIndex <= -$threshold ? 'low' : ($seasonalIndex >= $threshold ? 'high' : 'normal');
+        if ($month['level'] === 'low') $low[] = $m;
+        if ($month['level'] === 'high') $high[] = $m;
+    }
+    unset($month);
+    $overall = $recentYearAverage;
+    usort($low, static fn($a, $b) => $months[$a]['vs_average'] <=> $months[$b]['vs_average']);
+    usort($high, static fn($a, $b) => $months[$b]['vs_average'] <=> $months[$a]['vs_average']);
+    return [
+        'available' => true, 'months' => $months, 'average' => (int) round($overall), 'years' => $usableYears,
+        'low' => $low, 'high' => $high, 'from' => $start->format('M Y'), 'to' => $end->modify('-1 month')->format('M Y'), 'usable_years' => $usableYears,
+    ];
+}
+
+/** Short sentence describing the seasonal pattern, e.g. "Lowest months: June (−32%, low in 4 of 5 years)…". */
+function kt_seasonal_summary(array $pattern): string
+{
+    if (empty($pattern['available'])) return '';
+    $describe = static function (array $list, string $kind) use ($pattern) {
+        return implode(', ', array_map(static function ($m) use ($pattern, $kind) {
+            $month = $pattern['months'][$m];
+            $years = $kind === 'low' ? $month['low_years'] : $month['high_years'];
+            return $month['name'] . ' (' . kt_format_change($month['vs_average']) . ($years ? ', ' . ($kind === 'high' ? 'busy' : 'low') . ' in ' . $years . ' of ' . $month['years'] . ' years' : '') . ')';
+        }, array_slice($list, 0, 3)));
+    };
+    $parts = [];
+    $parts[] = $pattern['low'] ? 'Usually low: ' . $describe($pattern['low'], 'low') . '.' : 'No month is consistently low (none is 15% or more below the average month).';
+    if ($pattern['high']) $parts[] = 'Usually busy: ' . $describe($pattern['high'], 'high') . '.';
+    return implode(' ', $parts);
 }

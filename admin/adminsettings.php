@@ -20,6 +20,8 @@ $adminName = $_SESSION['username'] ?? 'Admin';
 $adminRole = $_SESSION['role'] ?? 'Admin';
 $isSuperAdmin = kt_is_super_admin();
 $pendingRequestCount = kt_requests_pending_count($conn);
+require_once __DIR__ . '/../config/malvar_address.php';
+$addressHealth = kt_listing_address_health($conn);
 $flashMessage = $_SESSION['flash_message'] ?? null;
 unset($_SESSION['flash_message']);
 $currentAdmin = ['first_name' => '', 'last_name' => '', 'email' => ''];
@@ -151,6 +153,16 @@ $aiTextModel = ai_configured() && groq_configured()
                     <span class="status-pill <?php echo $aiTextActive ? 'status-pill-on' : 'status-pill-off'; ?>">
                         <span class="status-pill-dot"></span><?php echo $aiTextActive ? 'Configured' : 'Inactive'; ?>
                     </span>
+                </div>
+            </div>
+            <div class="settings-card">
+                <h3><i data-lucide="map-pin" class="lucide" style="width:1rem;height:1rem;color:var(--gold);"></i> Listing Addresses</h3>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Exact addresses on every listing</div>
+                        <div class="setting-desc">Shows each address as "Street, Brgy. Barangay, Malvar, Batangas": removes map codes like 24WC+8JR, zip codes and country names, and fills a missing street or barangay from the listing's map pin. <?php echo $addressHealth['not_standard'] || $addressHealth['missing_barangay'] ? '<strong>' . (int) $addressHealth['not_standard'] . ' of ' . (int) $addressHealth['total'] . ' need cleaning, ' . (int) $addressHealth['missing_barangay'] . ' have no barangay.</strong>' : 'All ' . (int) $addressHealth['total'] . ' active listings are in the standard format.'; ?></div>
+                    </div>
+                    <form method="post" action="address_fix_actions.php" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Cleaning… (up to 2 min)';"><?php echo csrf_field(); ?><button type="submit" class="btn-primary"<?php echo $addressHealth['not_standard'] || $addressHealth['missing_barangay'] ? '' : ' disabled'; ?>>Clean up addresses</button></form>
                 </div>
             </div>
             <div class="settings-card">

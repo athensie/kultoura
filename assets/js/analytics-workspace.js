@@ -210,7 +210,8 @@
         return [`${formatted} visits across ${occurrences} ${day}${occurrences === 1 ? '' : 's'}`, `Average ${average} per ${day}`];
       }
       const seriesName = series.seriesName || (context.dataset.label && context.dataset.label !== 'Records' ? context.dataset.label : 'Total');
-      return `${seriesName}: ${formatted}`;
+      const note = Array.isArray(series.notes) ? series.notes[context.dataIndex] : '';
+      return note ? [`${seriesName}: ${formatted}`, note] : `${seriesName}: ${formatted}`;
     };
 
     // Date axes get a minimum width per label so they never look crowded. If the card is

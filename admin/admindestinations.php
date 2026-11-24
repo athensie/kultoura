@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 include '../config/dbmain.php';
 include '../config/analytics.php';
 require_once '../config/csrf.php';
+require_once __DIR__ . '/../config/malvar_address.php';
 require_once '../config/admin_requests.php';
 require_once __DIR__ . '/../config/malvar_locations.php';
 define('BASE_URL', '/kultoura');
@@ -64,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $imagePath = in_array($entityAction, ['create', 'update'], true) ? handleDestinationImageUpload() : null;
     $data = [
         'destination_name' => $_POST['name'] ?? '',
-        'address'           => $_POST['location'] ?? '',
+        'address'           => kt_normalize_malvar_address((string) ($_POST['location'] ?? '')),
         'category'          => $_POST['category'] ?? '',
         'subcategory'       => $_POST['subcategory'] ?? '',
         'status'            => 'active',
@@ -80,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $coordinates = array_map('trim', explode(',', (string) $data['google_maps']));
         if (count($coordinates) !== 2
             || !kt_malvar_coordinates_in_bounds($coordinates[0], $coordinates[1])
-            || !kt_malvar_address_is_allowed((string) $data['address'])) {
+            || !kt_malvar_address_is_allowed((string) ($_POST['location'] ?? ''))) {
             $_SESSION['admin_flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';
             header('Location: ' . BASE_URL . '/admin/admindestinations.php');
             exit;
@@ -631,7 +632,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261104-3"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261124-clean"></script>
 <script src="../assets/js/admindestinations.js?v=20261104-3"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>
 <?php if (!empty($_SESSION['admin_flash'])): ?>

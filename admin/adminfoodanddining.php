@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once '../config/dbmain.php';
 require_once '../config/analytics.php';
 require_once '../config/csrf.php';
+require_once __DIR__ . '/../config/malvar_address.php';
 require_once '../config/admin_requests.php';
 require_once '../config/product_locations.php';
 define('BASE_URL', '/kultoura');
@@ -118,9 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         if ($listingType === 'restaurant') {
             $pinLat = trim((string) ($_POST['latitude'] ?? ''));
             $pinLng = trim((string) ($_POST['longitude'] ?? ''));
-            $address = trim((string) ($_POST['address'] ?? ''));
+            $address = kt_normalize_malvar_address((string) ($_POST['address'] ?? ''));
             $invalidPin = ($pinLat !== '' || $pinLng !== '') && (!$pinLat || !$pinLng
-                || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || !kt_malvar_address_is_allowed($address));
+                || !kt_malvar_coordinates_in_bounds($pinLat, $pinLng) || !kt_malvar_address_is_allowed((string) ($_POST['address'] ?? '')));
         }
         if ($invalidPin) {
             $_SESSION['admin_flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';
@@ -145,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'description'  => trim($_POST['desc'] ?? ''),
             'summary'      => trim($_POST['summary'] ?? ''),
             'price'        => $_POST['price'] ?? '',
-            'location'     => trim($_POST['location'] ?? ''),
+            'location'     => kt_normalize_malvar_address((string) ($_POST['location'] ?? '')),
             'latitude'     => $_POST['latitude'] ?? '',
             'longitude'    => $_POST['longitude'] ?? '',
             'store_locations' => kt_product_locations_normalize($_POST['store_locations'] ?? []),
@@ -158,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             'category'        => $category,
             'description'     => trim($_POST['desc'] ?? ''),
             'summary'         => trim($_POST['summary'] ?? ''),
-            'address'         => trim($_POST['address'] ?? ''),
+            'address'         => kt_normalize_malvar_address((string) ($_POST['address'] ?? '')),
             'latitude'        => $_POST['latitude'] ?? '',
             'longitude'       => $_POST['longitude'] ?? '',
             'contact_number'  => trim($_POST['contact_number'] ?? ''),
@@ -680,7 +681,7 @@ sort($allCategories);
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261104-3"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261124-clean"></script>
 <script src="../assets/js/product-location-map.js?v=20261102-4"></script>
 <script src="../assets/js/adminfoodanddining.js?v=20261104-1"></script>
 <script>initViewToggle('food', '.data-table-wrap', '#foodListingsGrid'); initSidebarCollapse();</script>

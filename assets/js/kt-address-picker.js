@@ -30,6 +30,35 @@ const KtAddressPicker = (function () {
     return (inBatangas && (localities.includes('malvar') || isBarangay || isAlias))
       || displayConfirmsMalvar || displayConfirmsBarangay;
   }
+  // Official barangay names (aliases in OpenStreetMap → the name shown on the site).
+  const BARANGAY_NAMES = {
+    'bagong pook': 'Bagong Pook', 'bilucao': 'Bilucao', 'san isidro west': 'Bilucao', 'bulihan': 'Bulihan',
+    'luta del norte': 'Luta Del Norte', 'luta norte': 'Luta Del Norte', 'luta del sur': 'Luta Del Sur', 'luta sur': 'Luta Del Sur',
+    'poblacion': 'Poblacion', 'san andres': 'San Andres', 'san fernando': 'San Fernando', 'san isidro east': 'San Isidro East',
+    'san gregorio': 'San Gregorio', 'san juan': 'San Juan', 'san pedro ii': 'San Pedro II', 'san pedro ii west': 'San Pedro II',
+    'san pedro i': 'San Pedro I', 'san pedro i east': 'San Pedro I', 'san pioquinto': 'San Pioquinto', 'santiago': 'Santiago',
+  };
+  function barangayFrom(value) {
+    const text = String(value || '').toLowerCase().replace(/^(brgy\.?|barangay)\s+/, '').replace(/\s*\(.*\)$/, '').trim();
+    return BARANGAY_NAMES[text] || null;
+  }
+  // The address shown on every listing: "Street / building, Brgy. <Barangay>, Malvar, Batangas"
+  // (same format as kt_normalize_malvar_address() on the server; no plus codes, zip or country).
+  function formatMalvarAddress(address) {
+    if (!address) return '';
+    let barangay = null;
+    for (const field of ['village', 'suburb', 'quarter', 'neighbourhood', 'hamlet', 'city_district']) {
+      barangay = barangayFrom(address[field]);
+      if (barangay) break;
+    }
+    const place = address.amenity || address.building || address.shop || address.tourism || address.leisure || '';
+    const road = [address.house_number, address.road].filter(Boolean).join(' ');
+    const parts = [place, road].filter((value, index, list) => value && list.indexOf(value) === index);
+    if (barangay) parts.push('Brgy. ' + barangay);
+    if (!parts.length) return '';
+    parts.push('Malvar, Batangas');
+    return parts.join(', ');
+  }
   function debounce(fn, wait) {
     let t = null;
     return function (...args) {
@@ -123,7 +152,7 @@ const KtAddressPicker = (function () {
       map.setView([lat, lng], zoom || map.getZoom());
       marker.setLatLng([lat, lng]);
       marker.setOpacity(1);
-      const detailedAddress = geocoded.display_name || addressText || '';
+      const detailedAddress = formatMalvarAddress(geocoded.address) || geocoded.display_name || addressText || '';
       if (detailedAddress) input.value = detailedAddress;
       notifyPosition(lat, lng, detailedAddress || 'Malvar, Batangas');
       return true;

@@ -323,8 +323,37 @@ $audienceDemoPresent = kt_audience_demo_present($conn);
 $canManageDemoData = in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true);
 $demoDataStatus = (string) ($_GET['demo'] ?? '');
 $chartData['intents'] = ['labels' => array_keys($intentBreakdown), 'values' => array_values($intentBreakdown)];
+// Seasonal pattern: which calendar months are usually low or busy (all complete months recorded).
+$seasonalPattern = kt_seasonal_pattern($conn);
+$seasonalNote = 'Average visits for each calendar month across every complete month recorded. Terracotta bars are usually low (15% or more below the average month), green bars usually busy.';
+if ($seasonalPattern['available']) {
+    $seasonalLevelColors = ['low' => '#C4704F', 'high' => '#2C7A45', 'normal' => '#9FB88A', 'none' => '#D9DFD2'];
+    $chartData['seasonal'] = [
+        'labels' => array_column($seasonalPattern['months'], 'label'),
+        'values' => array_map(static fn($month) => (int) ($month['average'] ?? 0), array_values($seasonalPattern['months'])),
+        'fullLabels' => array_column($seasonalPattern['months'], 'name'),
+        'seriesName' => 'Average visits',
+        'notes' => array_map(static function ($month) {
+            if ($month['average'] === null) return 'No complete month recorded yet';
+            $line = kt_format_change($month['vs_average']) . ' vs the average month';
+            if ($month['level'] === 'low') $line .= ' · low in ' . $month['low_years'] . ' of ' . $month['years'] . ' years';
+            if ($month['level'] === 'high') $line .= ' · busy in ' . $month['high_years'] . ' of ' . $month['years'] . ' years';
+            return $line;
+        }, array_values($seasonalPattern['months'])),
+        'datasets' => [[
+            'label' => 'Average visits',
+            'data' => array_map(static fn($month) => (int) ($month['average'] ?? 0), array_values($seasonalPattern['months'])),
+            'backgroundColor' => array_map(static fn($month) => $seasonalLevelColors[$month['level']], array_values($seasonalPattern['months'])),
+        ]],
+    ];
+    $seasonalNote = kt_seasonal_summary($seasonalPattern) . ' Based on ' . $seasonalPattern['years'] . ' year' . ($seasonalPattern['years'] === 1 ? '' : 's') . ' of complete months (' . $seasonalPattern['from'] . ' – ' . $seasonalPattern['to'] . '). ' . $seasonalNote;
+} else {
+    $chartData['seasonal'] = ['labels' => [], 'values' => []];
+    $seasonalNote = 'At least 6 complete months of visits are needed to show which months are usually low. ' . $seasonalNote;
+}
 $workspaceMetrics = [
     'traffic' => [
+        ['Seasonal Pattern: Usually Low and Busy Months', 'bar', 'seasonal', $seasonalNote],
         ['Visits per Hour', 'heatmap', 'heatmapViews', 'Page views grouped by weekday and hour.'],
         [$visitsMetricTitle, 'line', 'daily', $visitsMetricNote], ['Visits by Day of Week', 'bar', 'weekday', $weekdayNote],
         ['Visits per Month', 'area', 'monthlyVisits', 'Monthly page views in the selected period.'], ['Visits per Year', 'line', 'yearlyVisits', 'Annual page views in the selected period.'],
@@ -662,6 +691,7 @@ $recommendationCandidates = kt_build_recommendations([
     'pending_reports' => $pendingReportCount,
     'promoted_keys' => $promotedKeys,
     'visit_quality' => $visitQuality,
+    'seasonal' => $seasonalPattern,
 ]);
 $prescriptiveRecommendations = array_map(static fn($candidate) => ['action' => $candidate['action'], 'evidence' => $candidate['evidence']], array_slice($recommendationCandidates, 0, 4));
 if (!$prescriptiveRecommendations) {
@@ -925,7 +955,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         <?php endif; ?>
         <?php if ($sectionKey === 'community'): include __DIR__ . '/reviews_admin_panel.php'; else: ?>
         <div class="aw-grid">
-            <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): if ($kind === 'kpi') continue; $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low' || (in_array($kind, ['line', 'area', 'bar'], true) && count($payload['labels'] ?? []) > 12); ?>
+            <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): if ($kind === 'kpi') continue; $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low' || (in_array($kind, ['line', 'area', 'bar'], true) && count($payload['labels'] ?? []) > 12) || $dataKey === 'seasonal'; ?>
             <article class="aw-card<?php echo $cardWide ? ' aw-card--wide' : ''; ?>"><h3><?php echo htmlspecialchars($title); ?></h3>
                 <?php if ($kind === 'kpi'): ?><div class="aw-kpi-value"><?php echo htmlspecialchars($note); ?></div><div class="aw-kpi-note">Selected period · actual records</div>
                 <?php elseif ($kind === 'kpi-empty'): ?><div class="aw-card-empty"><strong>Not tracked yet</strong><span><?php echo htmlspecialchars($note); ?></span></div>
@@ -948,4 +978,4 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261124-tab-url"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261124-seasonal"></script>

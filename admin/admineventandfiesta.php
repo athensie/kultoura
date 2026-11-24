@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/session_boot.php';
 require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/analytics.php';
 require_once __DIR__ . '/../config/csrf.php';
+require_once __DIR__ . '/../config/malvar_address.php';
 require_once __DIR__ . '/../config/admin_requests.php';
 require_once __DIR__ . '/../config/malvar_locations.php';
 define('BASE_URL', '/kultoura');
@@ -86,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'fiesta_name'      => $name,
                 'type'             => ($_POST['type'] ?? '') === 'Event' ? 'Event' : 'Fiesta',
                 'celebration_date' => $_POST['date'] ?? null,
-                'location'         => trim($_POST['location'] ?? ''),
+                'location'         => kt_normalize_malvar_address((string) ($_POST['location'] ?? '')),
                 'latitude'         => $_POST['latitude'] ?? '',
                 'longitude'        => $_POST['longitude'] ?? '',
                 'description'      => trim($_POST['desc'] ?? ''),
@@ -97,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hasLng = trim((string) $data['longitude']) !== '';
             if (($hasLat || $hasLng) && (!$hasLat || !$hasLng
                 || !kt_malvar_coordinates_in_bounds($data['latitude'], $data['longitude'])
-                || !kt_malvar_address_is_allowed((string) $data['location']))) {
+                || !kt_malvar_address_is_allowed((string) ($_POST['location'] ?? '')))) {
                 $_SESSION['flash'] = 'Choose an exact address and map pin inside Malvar, Batangas.';
                 header('Location: admineventandfiesta.php');
                 exit;
@@ -504,7 +505,7 @@ $upcomingCount = count(array_filter($events, function ($e) {
 
 <script src="../assets/js/admin-notifications.js"></script>
 <script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
-<script src="../assets/js/kt-address-picker.js?v=20261104-3"></script>
+<script src="../assets/js/kt-address-picker.js?v=20261124-clean"></script>
 <script src="../assets/js/admineventandfiesta.js?v=20261016"></script>
 <script>initViewToggle('events', '.data-table-wrap', '#eventsGrid'); initSidebarCollapse();</script>
 <script>
