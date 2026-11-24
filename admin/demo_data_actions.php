@@ -1,6 +1,6 @@
 <?php
 /*
- * Super Admin action: load or remove the five-year demo audience analytics
+ * Admin action: load or remove the five-year demo audience analytics
  * (see config/audience_demo.php). Demo rows are tagged and removed exactly; real visits are never touched.
  */
 require_once __DIR__ . '/../config/session_boot.php';
@@ -13,8 +13,8 @@ require_once __DIR__ . '/../config/dbmain.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../config/admin_requests.php';
 $back = BASE_URL . '/admin/admindashboard.php?aw_tab=audience';
-if (!kt_is_super_admin()) {
-    header('Location: ' . $back . '&demo=error&demo_message=' . rawurlencode('Only a Super Admin can load or remove demo data.'));
+if (!in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true)) {
+    header('Location: ' . $back . '&demo=error&demo_message=' . rawurlencode('Only admins can load or remove demo data.'));
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

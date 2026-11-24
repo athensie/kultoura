@@ -320,7 +320,7 @@ $barangayNote = 'Listing views grouped by the barangay named in each listing\'s 
     . ($barangayInterest['unmatched'] > 0 ? ' ' . number_format($barangayInterest['unmatched']) . ' views were for listings whose address does not name a barangay; add the barangay to those addresses to include them.' : '');
 require_once __DIR__ . '/../config/audience_demo.php';
 $audienceDemoPresent = kt_audience_demo_present($conn);
-$canManageDemoData = function_exists('kt_is_super_admin') && kt_is_super_admin();
+$canManageDemoData = in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true);
 $demoDataStatus = (string) ($_GET['demo'] ?? '');
 $chartData['intents'] = ['labels' => array_keys($intentBreakdown), 'values' => array_values($intentBreakdown)];
 $workspaceMetrics = [
@@ -904,10 +904,10 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
     <section class="aw-section <?php echo $sectionKey === $initialWorkspaceTab ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === $initialWorkspaceTab ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?><?php if ($rangeLabel !== '' && $period !== 'custom'): ?> <span class="aw-range">(<?php echo htmlspecialchars($rangeLabel); ?>)</span><?php endif; ?> · Based on recorded data</p></div>
-        <?php if ($sectionKey === 'audience' && !$visitQuality['tracked'] && !$audienceDemoPresent): ?>
+        <?php if ($sectionKey === 'audience' && !$audienceDemoPresent): ?>
         <div class="aw-demo-banner is-empty" role="note">
             <i data-lucide="users" class="lucide" aria-hidden="true"></i>
-            <div><strong>No visitor data yet for this period.</strong> Visitor tracking started recently, so these charts fill in as people browse the public site.<?php if ($canManageDemoData): ?> To preview how they work, load five years of clearly marked demo data (you can remove it at any time).<?php endif; ?></div>
+            <div><strong><?php echo $visitQuality['tracked'] ? 'Only a little visitor data so far.' : 'No visitor data yet for this period.'; ?></strong> Visitor tracking started recently, so these charts fill in as people browse the public site.<?php if ($canManageDemoData): ?> To see how they work now, load five years of clearly marked demo data (you can remove it at any time).<?php endif; ?></div>
             <?php if ($canManageDemoData): ?><form method="post" action="<?php echo BASE_URL; ?>/admin/demo_data_actions.php" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Loading… (up to a minute)';"><?php echo csrf_field(); ?><input type="hidden" name="action" value="load"><button type="submit" class="btn-primary">Load 5-year demo data</button></form><?php endif; ?>
         </div>
         <?php endif; ?>
