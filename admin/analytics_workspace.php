@@ -897,9 +897,6 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
     <section class="aw-section <?php echo $sectionKey === $initialWorkspaceTab ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === $initialWorkspaceTab ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?><?php if ($rangeLabel !== '' && $period !== 'custom'): ?> <span class="aw-range">(<?php echo htmlspecialchars($rangeLabel); ?>)</span><?php endif; ?> · Based on recorded data</p></div>
-        <?php if ($sectionKey === 'audience' && $audienceDemoPresent && $canManageDemoData): ?>
-        <form class="aw-demo-remove" method="post" action="<?php echo BASE_URL; ?>/admin/demo_data_actions.php" onsubmit="return confirm('Remove the demo analytics data? Real visits are not affected.');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="remove"><button type="submit" class="btn-ghost">Remove demo data</button></form>
-        <?php endif; ?>
         <?php if ($sectionKey === 'audience' && !$audienceDemoPresent): ?>
         <div class="aw-demo-banner is-empty" role="note">
             <i data-lucide="users" class="lucide" aria-hidden="true"></i>
@@ -932,4 +929,4 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261124-duration"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261124-tab-url"></script>

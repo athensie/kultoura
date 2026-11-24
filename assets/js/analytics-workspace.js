@@ -12,7 +12,32 @@
   const panels = Array.from(document.querySelectorAll('.aw-section'));
   if (!tabs.length || !panels.length) return;
 
-  function selectTab(tab, focus = false) {
+  // The selected tab lives in the URL (?aw_tab=destination), so it can be bookmarked or shared,
+  // survives a refresh, works with Back/Forward, and is kept when the date filter changes.
+  const tabKey = tab => tab.id.replace(/^aw-tab-/, '');
+  function carryTabIntoFilters(key) {
+    document.querySelectorAll('.aw-periods a[href]').forEach(link => {
+      const url = new URL(link.getAttribute('href'), window.location.href);
+      url.searchParams.set('aw_tab', key);
+      link.href = url.toString();
+    });
+    document.querySelectorAll('form.date-range-form').forEach(form => {
+      let input = form.querySelector('input[name="aw_tab"]');
+      if (!input) { input = document.createElement('input'); input.type = 'hidden'; input.name = 'aw_tab'; form.appendChild(input); }
+      input.value = key;
+    });
+  }
+  function rememberTab(key) {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('aw_tab') === key) return;
+    url.searchParams.set('aw_tab', key);
+    if (key !== 'community') { url.searchParams.delete('review_tab'); url.searchParams.delete('rating'); }
+    url.hash = '';
+    history.pushState({ awTab: key }, '', url);
+  }
+  function selectTab(tab, focus = false, updateUrl = true) {
+    if (updateUrl) rememberTab(tabKey(tab));
+    carryTabIntoFilters(tabKey(tab));
     const target = tab.getAttribute('aria-controls');
     tabs.forEach(item => item.setAttribute('aria-selected', item === tab ? 'true' : 'false'));
     panels.forEach(panel => {
@@ -37,10 +62,14 @@
       selectTab(tabs[next], true);
     });
   });
-  if (new URLSearchParams(window.location.search).has('review_tab')) {
-    const communityTab = tabs.find(tab => tab.id === 'aw-tab-community');
-    if (communityTab) selectTab(communityTab);
-  }
+  const tabFromUrl = () => {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.has('review_tab') ? 'community' : (params.get('aw_tab') || '');
+    return tabs.find(tab => tabKey(tab) === key) || null;
+  };
+  const initialTab = tabFromUrl() || tabs.find(tab => tab.getAttribute('aria-selected') === 'true') || tabs[0];
+  if (initialTab) selectTab(initialTab, false, false);
+  window.addEventListener('popstate', () => selectTab(tabFromUrl() || tabs[0], false, false));
 
   const dataNode = document.getElementById('aw-chart-data');
   if (!dataNode) return;

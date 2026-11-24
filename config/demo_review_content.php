@@ -154,3 +154,16 @@ function kt_demo_review_text(string $itemType, int $itemId, string $itemName, st
     $opening = sprintf($openingPool[$openingIndex], $itemName);
     return $opening . ' ' . $detailPool[$detailIndex] . ' ' . $closingPool[$closingIndex];
 }
+/**
+ * The text a review shows, identical on the public listing and in the admin dashboard.
+ * Sample reviews (status 'demo' or reserved sample accounts) get generated text; others keep
+ * what the visitor wrote. Returns [is_sample, text].
+ */
+function kt_review_display_text(int $reviewId, int $userId, string $status, string $storedText, string $itemType, int $itemId, string $itemName, string $itemCategory, int $rating): array
+{
+    $isReservedSample = $userId >= 2000000001 && $userId <= 2000000050;
+    $isSample = $status === 'demo' || $isReservedSample;
+    if (!$isSample) return [false, $storedText];
+    $reviewIndex = $isReservedSample ? $userId - 2000000001 : ($reviewId % 50);
+    return [true, kt_demo_review_text($itemType, $itemId, $itemName, $itemCategory, $rating, $reviewIndex)];
+}

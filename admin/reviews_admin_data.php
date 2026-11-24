@@ -24,7 +24,7 @@ $stmt->bind_param('s', $reviewPeriodStartSql); $stmt->execute(); $typeStats = $s
 $reviews = [];
 // Counts and averages per listing come from ALL visible reviews (the same numbers visitors
 // see on the public cards); each listing's popup lists its latest reviews.
-$reviewsPerItemShown = 25;
+$reviewsPerItemShown = 100;   // same as the public review list
 $itemReviewTotals = [];
 if ($tab === 'ratings') {
     $ratingSql = $ratingFilter ? ' AND rating=?' : '';
@@ -37,6 +37,7 @@ if ($tab === 'ratings') {
     $stmt = $conn->prepare("SELECT x.* FROM (
             SELECT r.review_id,r.user_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status,r.created_at,
                 COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,pe.fullname,CONCAT('Item #',r.item_id)) item_name,
+                COALESCE(d.category,rs.category,p.category,'') item_category,
                 ROW_NUMBER() OVER (PARTITION BY r.item_type, r.item_id ORDER BY r.created_at DESC, r.review_id DESC) item_rank
             FROM item_reviews r
             LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service','bank') AND d.destination_id=r.item_id
@@ -51,18 +52,13 @@ if ($tab === 'ratings') {
 }
 $reports = [];
 if ($tab === 'reports') {
-    $stmt = $conn->prepare("SELECT q.report_id,q.reporter_id,q.reason_code,q.details report_details,q.status report_status,q.resolution_action,q.created_at reported_at,r.review_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status review_status,r.created_at review_date,COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,CONCAT('Item #',r.item_id)) item_name FROM item_review_reports q JOIN item_reviews r ON r.review_id=q.review_id LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id=r.item_id LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id ORDER BY (q.status='pending') DESC,q.created_at DESC LIMIT 300");
+    $stmt = $conn->prepare("SELECT q.report_id,q.reporter_id,q.reason_code,q.details report_details,q.status report_status,q.resolution_action,q.created_at reported_at,r.review_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.user_id review_user_id,r.status review_status,r.created_at review_date,COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,CONCAT('Item #',r.item_id)) item_name,COALESCE(d.category,rs.category,p.category,'') item_category FROM item_review_reports q JOIN item_reviews r ON r.review_id=q.review_id LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id=r.item_id LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id ORDER BY (q.status='pending') DESC,q.created_at DESC LIMIT 300");
     $stmt->execute(); $reports=$stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
 }
 $reviewHierarchy = [];
 foreach ($reviews as $review) {
-    $reviewUserId = (int) $review['user_id'];
-    $isReservedSample = $reviewUserId >= 2000000001 && $reviewUserId <= 2000000050;
-    $review['is_sample'] = $review['status'] === 'demo' || $isReservedSample;
-    if ($review['is_sample']) {
-        $reviewIndex = $isReservedSample ? $reviewUserId - 2000000001 : ((int) $review['review_id'] % 50);
-        $review['review_text'] = kt_demo_review_text($review['item_type'], (int) $review['item_id'], (string) $review['item_name'], '', (int) $review['rating'], $reviewIndex);
-    }
+    // Same text as the public listing shows (sample reviews use the listing's category too).
+    [$review['is_sample'], $review['review_text']] = kt_review_display_text((int) $review['review_id'], (int) $review['user_id'], (string) $review['status'], (string) $review['review_text'], (string) $review['item_type'], (int) $review['item_id'], (string) $review['item_name'], (string) ($review['item_category'] ?? ''), (int) $review['rating']);
     $type = $review['item_type'];
     $itemKey = (string)$review['item_id'];
     if (!isset($reviewHierarchy[$type])) {
@@ -87,6 +83,7 @@ unset($categoryGroup);
 uasort($reviewHierarchy, static fn($a, $b) => $b['count'] <=> $a['count']);
 $reportHierarchy = [];
 foreach ($reports as $report) {
+    [$report['is_sample'], $report['review_text']] = kt_review_display_text((int) $report['review_id'], (int) $report['review_user_id'], (string) $report['review_status'], (string) $report['review_text'], (string) $report['item_type'], (int) $report['item_id'], (string) $report['item_name'], (string) $report['item_category'], (int) $report['rating']);
     $type = $report['item_type'];
     $itemKey = (string)$report['item_id'];
     if (!isset($reportHierarchy[$type])) {

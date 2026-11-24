@@ -80,14 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     $reviewStmt->execute();
     $reviews = array_map(static function (array $review) use ($type, $itemId, $itemName, $itemCategory): array {
-        $userId = (int) $review['user_id'];
-        $isReservedSample = $userId >= 2000000001 && $userId <= 2000000050;
-        $isSample = $review['status'] === 'demo' || $isReservedSample;
-        $review['is_sample'] = $isSample;
-        if ($isSample) {
-            $reviewIndex = $isReservedSample ? $userId - 2000000001 : ((int) $review['review_id'] % 50);
-            $review['comment'] = kt_demo_review_text($type, $itemId, $itemName, $itemCategory, (int) $review['rating'], $reviewIndex);
-        }
+        [$review['is_sample'], $review['comment']] = kt_review_display_text((int) $review['review_id'], (int) $review['user_id'], (string) $review['status'], (string) $review['comment'], $type, $itemId, $itemName, $itemCategory, (int) $review['rating']);
         unset($review['status']);
         unset($review['user_id']);
         return $review;
