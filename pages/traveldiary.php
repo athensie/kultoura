@@ -1655,7 +1655,7 @@ const TD_CATEGORY_ICONS = <?php echo $categoryIconsJson; ?>;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/navbar.js?v=20261122-1"></script>
+<script src="../assets/js/navbar.js?v=20261124-intent"></script>
 <script src="../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="../assets/js/traveldiary.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/traveldiary.js') ?: time(); ?>"></script>
 </body>

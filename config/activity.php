@@ -93,10 +93,42 @@ function kt_activity_device_type(): string
     return preg_match('/mozilla|chrome|safari|firefox|edg|opr|trident/i', $userAgent) ? 'Desktop' : 'Unknown';
 }
 
+/**
+ * Requests that should not count as visitor activity: crawlers, link-preview fetchers
+ * (Facebook/Messenger, WhatsApp, Telegram, Slack, Discord…), uptime monitors, scripts and
+ * headless browsers. An empty user agent is treated as automated too.
+ */
+function kt_analytics_is_bot(): bool
+{
+    static $isBot = null;
+    if ($isBot !== null) return $isBot;
+    $agent = trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    $isBot = $agent === '' || (bool) preg_match(
+        '/bot\b|bot\/|crawl|spider|slurp|facebookexternalhit|facebot|meta-externalagent|whatsapp\/|slack-imgproxy|embedly|vkshare|'
+        . 'preview|headless|phantomjs|puppeteer|playwright|selenium|lighthouse|pagespeed|gtmetrix|pingdom|uptime|statuscake|monitor|checkly|'
+        . 'curl\/|wget\/|python-|java\/|go-http-client|okhttp|axios\/|node-fetch|libwww|httpclient|postman|insomnia|scrapy|ahrefs|semrush|mj12|dotbot|petalbot|bytespider|gptbot|ccbot|claudebot|perplexity/i',
+        $agent
+    );
+    return $isBot;
+}
+
+/** Logged-in admins browsing the public site are testing, not visiting. */
+function kt_analytics_is_staff(): bool
+{
+    return in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true);
+}
+
+function kt_analytics_should_record(): bool
+{
+    return !kt_analytics_is_bot() && !kt_analytics_is_staff();
+}
+
 function kt_activity_record(mysqli $conn, string $type, ?string $category, string $page, string $element = '', ?string $itemType = null, ?int $itemId = null, array $metadata = []): bool
 {
     static $allowed = ['view', 'click', 'search', 'generate', 'download', 'rating', 'review', 'comment', 'recommendation', 'map_interaction', 'language', 'other'];
+    if (!kt_analytics_should_record()) return false;
     if (!in_array($type, $allowed, true) || !kt_activity_ensure_schema($conn)) return false;
+    if (function_exists('analytics_visit_ids')) $metadata['visit'] = analytics_visit_ids()['visit'];
     $categories = kt_activity_categories();
     if (!isset($categories[$category ?? ''])) $category = kt_activity_category_for_page($page);
     $parent = $category !== null ? ($categories[$category]['parent'] ?? null) : null;

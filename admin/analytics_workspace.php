@@ -288,6 +288,31 @@ $workspaceTabs = [
     'recommendations' => 'Recommendations & Promotions',
 ];
 $initialWorkspaceTab = isset($_GET['review_tab']) ? 'community' : 'traffic';
+// Visitor-level metrics from anonymous visitor/visit IDs (see analytics_visit_ids()).
+require_once __DIR__ . '/../config/analytics_insights.php';
+analytics_ensure_visit_columns($conn);
+$visitQuality = kt_visit_quality($conn, $periodStartSql, $periodEndExclusiveSql);
+$deviceBreakdown = kt_device_breakdown($conn, $periodStartSql, $periodEndExclusiveSql);
+$intentBreakdown = kt_intent_breakdown($conn, $periodStartSql, $periodEndExclusiveSql);
+$visitTrackingSince = $visitQuality['tracking_since'] ? (new DateTimeImmutable($visitQuality['tracking_since']))->format('M j, Y') : null;
+$visitTrackingNote = $visitTrackingSince ? ' Visitor IDs have been recorded since ' . $visitTrackingSince . '; earlier visits are not included.' : ' Visitor IDs start recording with the next public page view.';
+if ($visitQuality['tracked']) {
+    $chartData['visitors'] = ['labels' => ['New visitors', 'Returning visitors'], 'values' => [$visitQuality['new_visitors'], $visitQuality['returning_visitors']]];
+    $visitorsNote = 'Unique visitors (anonymous browser IDs, not identified people). Returning = first seen before this period.' . $visitTrackingNote;
+} else {
+    $chartData['visitors'] = ['labels' => ['New tracked sessions', 'Returning tracked sessions'], 'values' => [$newTrackedVisitors, $returningTrackedVisitors]];
+    $visitorsNote = 'Counts are tracked sessions, not identified people.' . $visitTrackingNote;
+}
+$chartData['visitQuality'] = $visitQuality['tracked'] ? [
+    'labels' => ['Unique visitors', 'Visits', 'Pages per visit', 'Bounce rate', 'Returning visitors'],
+    'values' => [
+        number_format($visitQuality['unique_visitors']), number_format($visitQuality['visits']),
+        number_format($visitQuality['pages_per_visit'], 1), $visitQuality['bounce_rate'] . '%',
+        $visitQuality['unique_visitors'] ? round($visitQuality['returning_visitors'] / $visitQuality['unique_visitors'] * 100) . '%' : '0%',
+    ],
+] : ['labels' => [], 'values' => []];
+$chartData['devices'] = ['labels' => array_keys($deviceBreakdown), 'values' => array_values($deviceBreakdown)];
+$chartData['intents'] = ['labels' => array_keys($intentBreakdown), 'values' => array_values($intentBreakdown)];
 $workspaceMetrics = [
     'traffic' => [
         ['Visits per Hour', 'heatmap', 'heatmapViews', 'Page views grouped by weekday and hour.'],
@@ -318,7 +343,11 @@ $workspaceMetrics = [
     ],
     'community' => [],
     'audience' => [
-        ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'], ['New vs. Returning Users', 'donut', 'visitors', 'Counts are tracked sessions, not identified people.'],
+        ['Visit Quality', 'stats', 'visitQuality', 'A visit ends after 30 minutes without activity. Bounce rate = visits that saw one page and opened no listing. Bots, link previews and logged-in admins are excluded.' . $visitTrackingNote],
+        ['New vs. Returning Visitors', 'donut', 'visitors', $visitorsNote],
+        ['Visitors by Device', 'donut', 'devices', 'Share of visits by device type, detected from the browser.' . $visitTrackingNote],
+        ['Visitor Intent Actions', 'rank', 'intents', 'Clicks that show plans to visit: directions, calls, messages, emails, website and social links, and shares.'],
+        ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'],
         ['User Registration Trends', 'line', 'signup', 'Monthly registrations from account creation records.'], ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'],
         ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'], ['Average Time Spent Viewing Content', 'bar', null, 'Content view duration is not recorded.'],
     ],
@@ -404,6 +433,10 @@ foreach ($workspaceMetrics as $sectionKey => $metrics) {
             $fallback = $peak && $peak['value'] > 0
                 ? 'Recorded activity was highest on ' . $peak['day'] . ' around ' . sprintf('%02d:00', $peak['hour']) . ' (' . number_format($peak['value']) . ' events).'
                 : 'No activity was recorded in this heatmap for the selected period.';
+        } elseif (is_array($payload) && $kind === 'stats') {
+            $statPairs = !empty($payload['labels']) ? array_combine($payload['labels'], $payload['values']) : [];
+            $fact['recorded_values'] = $statPairs;
+            $fallback = $statPairs ? implode('; ', array_map(static fn($label, $value) => $label . ' ' . $value, array_keys($statPairs), $statPairs)) . '.' : '';
         } elseif (is_array($payload) && $kind === 'map') {
             $points = array_values(array_filter($payload, 'is_array'));
             usort($points, static fn($a, $b) => (int) ($b['views'] ?? 0) <=> (int) ($a['views'] ?? 0));
@@ -469,6 +502,8 @@ foreach ($workspaceMetrics as $sectionKey => $metrics) {
         } elseif (!empty($fact['most_viewed_mapped_locations'][0])) {
             $leader = $fact['most_viewed_mapped_locations'][0];
             $suggestionFallback = 'Keep ' . $leader['name'] . ' map details accurate; it leads the mapped locations with ' . number_format((int) $leader['views']) . ' views.';
+        } elseif ($kind === 'stats' && !empty($fact['recorded_values'])) {
+            $suggestionFallback = 'If the bounce rate is high, link related listings and directions from your most visited pages so visitors keep exploring.';
         } elseif ($kind === 'kpi') {
             $suggestionFallback = 'Track this actual value against the next reporting period before deciding whether to change promotion.';
         } else {
@@ -505,13 +540,15 @@ $descriptiveTopContent = array_values(array_filter(array_slice($allPeriodItems, 
 // ---- Descriptive ----
 $descriptiveHighlights = [
     ['label' => 'Site visits', 'value' => number_format($systemSnapshot['site_visits']), 'change' => $snapshotChange('site_visits')],
-    ['label' => 'Visitor sessions', 'value' => number_format($systemSnapshot['visitor_sessions']), 'change' => $snapshotChange('visitor_sessions')],
+    $systemSnapshot['unique_visitors'] > 0
+        ? ['label' => 'Unique visitors', 'value' => number_format($systemSnapshot['unique_visitors']), 'change' => ($previousSnapshot['unique_visitors'] ?? 0) > 0 ? $snapshotChange('unique_visitors') : null]
+        : ['label' => 'Visitor sessions', 'value' => number_format($systemSnapshot['visitor_sessions']), 'change' => $snapshotChange('visitor_sessions')],
     ['label' => 'Listing views', 'value' => number_format($systemSnapshot['content_views']), 'change' => $snapshotChange('content_views')],
     ['label' => 'Searches · with no results', 'value' => number_format($systemSnapshot['searches']) . ' · ' . number_format($systemSnapshot['zero_result_searches']), 'change' => $snapshotChange('searches')],
     ['label' => 'Reviews · average rating', 'value' => number_format($systemSnapshot['reviews']) . ($systemSnapshot['average_rating'] !== null ? ' · ' . number_format($systemSnapshot['average_rating'], 1) . '/5' : ''), 'change' => $snapshotChange('reviews')],
     ['label' => 'New members', 'value' => number_format($systemSnapshot['new_members']), 'change' => $snapshotChange('new_members')],
     ['label' => 'Favourites saved', 'value' => number_format($systemSnapshot['favorites']), 'change' => $snapshotChange('favorites')],
-    ['label' => 'Travel diary entries', 'value' => number_format($systemSnapshot['diary_entries']), 'change' => $snapshotChange('diary_entries')],
+    ['label' => 'Intent actions (directions, calls…)', 'value' => number_format($systemSnapshot['intent_actions']), 'change' => $snapshotChange('intent_actions')],
 ];
 $summaryParts = [];
 $visitsChangeText = kt_format_change($snapshotChange('site_visits'));
@@ -524,6 +561,7 @@ if ($descriptiveTopContent) {
 }
 if ($systemSnapshot['reviews'] > 0) $summaryParts[] = 'Visitors posted ' . kt_plural($systemSnapshot['reviews'], 'review') . ' averaging ' . number_format((float) $systemSnapshot['average_rating'], 1) . '/5.';
 if ($systemSnapshot['searches'] > 0) $summaryParts[] = 'They ran ' . kt_plural($systemSnapshot['searches'], 'search', 'searches') . ($systemSnapshot['zero_result_searches'] > 0 ? ', ' . number_format($systemSnapshot['zero_result_searches']) . ' with no results' : '') . '.';
+if ($systemSnapshot['intent_actions'] > 0) $summaryParts[] = kt_plural($systemSnapshot['intent_actions'], 'visitor action') . ' showed plans to visit (directions, calls, messages or links).';
 if ($systemSnapshot['new_members'] > 0 || $systemSnapshot['favorites'] > 0) $summaryParts[] = kt_plural($systemSnapshot['new_members'], 'new member') . ' signed up and ' . kt_plural($systemSnapshot['favorites'], 'favourite') . ' were saved.';
 $systemSummary = implode(' ', $summaryParts);
 
@@ -602,6 +640,7 @@ $recommendationCandidates = kt_build_recommendations([
     'category_outlook' => $categoryOutlook,
     'pending_reports' => $pendingReportCount,
     'promoted_keys' => $promotedKeys,
+    'visit_quality' => $visitQuality,
 ]);
 $prescriptiveRecommendations = array_map(static fn($candidate) => ['action' => $candidate['action'], 'evidence' => $candidate['evidence']], array_slice($recommendationCandidates, 0, 4));
 if (!$prescriptiveRecommendations) {
@@ -638,8 +677,6 @@ if ($aiTextActive && $recommendationCandidates) {
     }
 }
 $aiAnalysisLabel = $aiSummaryIsGenerated ? 'AI-written · numbers verified' : 'Calculated from recorded data';
-$visitorDonut = ['labels' => ['New tracked sessions', 'Returning tracked sessions'], 'values' => [$newTrackedVisitors, $returningTrackedVisitors]];
-$chartData['visitors'] = $visitorDonut;
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 $filterFromValue = $customRange ? $dateFromInput : ($period === 'all' ? '' : $periodStart->format('Y-m-d'));
 $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $periodEndExclusive->modify('-1 day')->format('Y-m-d'));
@@ -859,6 +896,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                 <?php elseif ($isHeatmap && $hasData): ?><div class="aw-heatmap" aria-label="Activity by weekday and hour"><?php $dayLabels=['','Sun','Mon','Tue','Wed','Thu','Fri','Sat']; $heatMax=max(array_map('max',$payload)); ?><span></span><?php for($hour=0;$hour<24;$hour++): ?><span class="aw-heatmap-label"><?php echo $hour%3===0?sprintf('%02d',$hour):''; ?></span><?php endfor; ?><?php for($day=1;$day<=7;$day++): ?><span class="aw-heatmap-label"><?php echo $dayLabels[$day]; ?></span><?php for($hour=0;$hour<24;$hour++): $count=(int)$payload[$day][$hour]; $opacity=$heatMax>0?max(.08,$count/$heatMax):.08; ?><span class="aw-heatmap-cell" style="opacity:<?php echo number_format($opacity,2); ?>" title="<?php echo htmlspecialchars($dayLabels[$day] . ' ' . sprintf('%02d:00', $hour) . ' - ' . number_format($count)); ?>"></span><?php endfor; ?><?php endfor; ?></div><?php if ($note !== ''): ?><div class="aw-kpi-note"><?php echo htmlspecialchars($note); ?></div><?php endif; ?>
                 <?php elseif ($isCalendar && $hasData): ?><div class="aw-calendar" aria-label="Daily interaction frequency"><?php $calendarMax=max(array_column($payload,'value')); $calendarOffset=(int)(new DateTimeImmutable($payload[0]['date']))->format('w'); for($blank=0;$blank<$calendarOffset;$blank++): ?><span></span><?php endfor; foreach($payload as $calendarDay): $opacity=$calendarMax>0?max(.08,$calendarDay['value']/$calendarMax):.08; ?><span class="aw-calendar-cell" style="opacity:<?php echo number_format($opacity,2); ?>" title="<?php echo htmlspecialchars($calendarDay['label'] . ' - ' . number_format($calendarDay['value']) . ' events'); ?>"></span><?php endforeach; ?></div><?php if ($note !== ''): ?><div class="aw-kpi-note"><?php echo htmlspecialchars($note); ?></div><?php endif; ?>
                 <?php elseif ($hasData && $dataKey && $kind === 'wordcloud'): ?><div class="aw-word-cloud"><?php $wordMax = max(1, max($payload['values'])); foreach ($payload['labels'] as $wordIndex => $word): $wordScale = 1 + .9 * ((float) $payload['values'][$wordIndex] / $wordMax); ?><span style="font-size:<?php echo number_format($wordScale, 2); ?>rem" title="<?php echo (int) $payload['values'][$wordIndex]; ?> searches"><?php echo htmlspecialchars($word); ?></span><?php endforeach; ?></div>
+                <?php elseif ($kind === 'stats' && $hasData): ?><div class="aw-stat-tiles"><?php foreach ($payload['labels'] as $statIndex => $statLabel): ?><div class="aw-stat-tile"><strong><?php echo htmlspecialchars((string) $payload['values'][$statIndex]); ?></strong><span><?php echo htmlspecialchars($statLabel); ?></span></div><?php endforeach; ?></div><?php if ($note !== ''): ?><div class="aw-kpi-note"><?php echo htmlspecialchars($note); ?></div><?php endif; ?>
                 <?php elseif ($hasData && $dataKey): ?><div class="aw-card-canvas"><canvas data-aw-chart="<?php echo htmlspecialchars($kind); ?>" data-aw-key="<?php echo htmlspecialchars($dataKey); ?>" role="img" aria-label="<?php echo htmlspecialchars($title); ?>"></canvas></div><div class="aw-drilldown" aria-live="polite"></div><?php if ($note !== ''): ?><div class="aw-kpi-note"><?php echo htmlspecialchars($note); ?></div><?php endif; ?>
                 <?php else: ?><div class="aw-card-empty"><strong><?php echo $kind === 'map' ? 'Map data unavailable' : 'More data needed'; ?></strong><span><?php echo htmlspecialchars($note ?: 'There are no matching records in this period.'); ?></span></div><?php endif; ?>
                 <?php $cardInsightIsAi = isset($aiDashboardResult['card_insights'][$cardId]) && is_string($aiDashboardResult['card_insights'][$cardId]) && trim($aiDashboardResult['card_insights'][$cardId]) !== ''; ?>

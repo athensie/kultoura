@@ -24,6 +24,17 @@ function kt_insight_table_exists(mysqli $conn, string $table): bool
     return $known[$table];
 }
 
+function kt_insight_has_column(mysqli $conn, string $table, string $column): bool
+{
+    static $known = [];
+    $key = $table . '.' . $column;
+    if (!array_key_exists($key, $known)) {
+        $result = kt_insight_table_exists($conn, $table) ? $conn->query("SHOW COLUMNS FROM `{$table}` LIKE '" . $conn->real_escape_string($column) . "'") : false;
+        $known[$key] = $result && $result->num_rows > 0;
+    }
+    return $known[$key];
+}
+
 /** Runs a query whose only placeholders are (start, end) and returns the first row. */
 function kt_insight_row(mysqli $conn, string $sql, string $startSql, string $endSql): array
 {
@@ -52,8 +63,12 @@ function kt_system_snapshot(mysqli $conn, string $startSql, string $endSql): arr
     $searchRow = kt_insight_table_exists($conn, 'search_log')
         ? kt_insight_row($conn, 'SELECT COUNT(*) total, SUM(result_count = 0) zero_results FROM search_log WHERE searched_at >= ? AND searched_at < ?', $startSql, $endSql)
         : [];
+    $hasVisitIds = kt_insight_has_column($conn, 'page_views', 'visit_id');
     return [
         'site_visits' => kt_insight_count($conn, 'page_views', "SELECT COUNT(*) total FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> '{$demo}') AND viewed_at >= ? AND viewed_at < ?", $startSql, $endSql),
+        'unique_visitors' => $hasVisitIds ? kt_insight_count($conn, 'page_views', 'SELECT COUNT(DISTINCT visitor_id) total FROM page_views WHERE visitor_id IS NOT NULL AND viewed_at >= ? AND viewed_at < ?', $startSql, $endSql) : 0,
+        'visits' => $hasVisitIds ? kt_insight_count($conn, 'page_views', 'SELECT COUNT(DISTINCT visit_id) total FROM page_views WHERE visit_id IS NOT NULL AND viewed_at >= ? AND viewed_at < ?', $startSql, $endSql) : 0,
+        'intent_actions' => array_sum(kt_intent_breakdown($conn, $startSql, $endSql)),
         'visitor_sessions' => kt_insight_count($conn, 'user_activity_log', 'SELECT COUNT(DISTINCT session_hash) total FROM user_activity_log WHERE activity_date >= ? AND activity_date < ?', $startSql, $endSql),
         'content_views' => kt_insight_count($conn, 'item_views', 'SELECT COUNT(*) total FROM item_views WHERE viewed_at >= ? AND viewed_at < ?', $startSql, $endSql),
         'clicks' => kt_insight_count($conn, 'user_activity_log', "SELECT COUNT(*) total FROM user_activity_log WHERE activity_type = 'click' AND activity_date >= ? AND activity_date < ?", $startSql, $endSql),
@@ -311,6 +326,11 @@ function kt_build_recommendations(array $ctx): array
         }
     }
 
+    $quality = $ctx['visit_quality'] ?? [];
+    if (!empty($quality['tracked']) && ($quality['visits'] ?? 0) >= 30 && ($quality['bounce_rate'] ?? 0) >= 60) {
+        $add('high_bounce', 50 + min(20, ($quality['bounce_rate'] - 60) / 2), 'Give landing pages clear next steps (related listings, directions, “see more”) so visitors keep exploring.', $quality['bounce_rate'] . '% of ' . kt_plural((int) $quality['visits'], 'visit') . ' saw only one page and opened no listing (' . $periodLower . ').');
+    }
+
     foreach ($ctx['category_outlook'] ?? [] as $category) {
         $change = $category['change_pct'];
         if ($change !== null && $change >= 25 && $category['recent'] >= 10) {
@@ -375,4 +395,100 @@ function kt_text_numbers_supported(string $text, array $facts): bool
         if (!isset($allowed[$clean]) && !isset($allowed[(string) round($numeric)]) && !isset($allowed[number_format($numeric, 1, '.', '')])) return false;
     }
     return true;
+}
+
+/**
+ * Visit quality from anonymous visitor/visit IDs on page views (recorded from the date the
+ * IDs were introduced; older page views have none and are left out of these figures).
+ */
+function kt_visit_quality(mysqli $conn, string $startSql, string $endSql): array
+{
+    $empty = ['tracked' => false, 'visits' => 0, 'unique_visitors' => 0, 'new_visitors' => 0, 'returning_visitors' => 0, 'pages_per_visit' => 0.0, 'bounce_rate' => null, 'tracking_since' => null];
+    if (!kt_insight_has_column($conn, 'page_views', 'visit_id')) return $empty;
+    $since = $conn->query('SELECT MIN(viewed_at) first_seen FROM page_views WHERE visit_id IS NOT NULL');
+    $trackingSince = $since ? ($since->fetch_assoc()['first_seen'] ?? null) : null;
+    if ($trackingSince === null) return $empty;
+
+    // A "bounce" is a visit that saw one page and opened no listing.
+    $itemJoin = kt_insight_has_column($conn, 'item_views', 'visit_id')
+        ? 'LEFT JOIN (SELECT visit_id, COUNT(*) listings FROM item_views WHERE visit_id IS NOT NULL AND viewed_at >= ? AND viewed_at < ? GROUP BY visit_id) i ON i.visit_id = p.visit_id'
+        : '';
+    $sql = 'SELECT COUNT(*) visits, SUM(p.pages) page_views, SUM(p.pages = 1' . ($itemJoin ? ' AND COALESCE(i.listings, 0) = 0' : '') . ') bounces
+            FROM (SELECT visit_id, COUNT(*) pages FROM page_views WHERE visit_id IS NOT NULL AND viewed_at >= ? AND viewed_at < ? GROUP BY visit_id) p ' . $itemJoin;
+    $stmt = $conn->prepare($sql);
+    $visitRow = [];
+    if ($stmt) {
+        if ($itemJoin) $stmt->bind_param('ssss', $startSql, $endSql, $startSql, $endSql);
+        else $stmt->bind_param('ss', $startSql, $endSql);
+        $stmt->execute();
+        $visitRow = $stmt->get_result()->fetch_assoc() ?: [];
+        $stmt->close();
+    }
+    $visits = (int) ($visitRow['visits'] ?? 0);
+
+    // A visitor is "returning" when their first recorded page view is before this period.
+    $visitorRow = [];
+    $stmt = $conn->prepare('SELECT COUNT(*) visitors, SUM(first_seen < ?) returning_visitors FROM (
+            SELECT p.visitor_id, MIN(p.viewed_at) first_seen FROM page_views p
+            WHERE p.visitor_id IN (SELECT DISTINCT visitor_id FROM page_views WHERE visitor_id IS NOT NULL AND viewed_at >= ? AND viewed_at < ?)
+            GROUP BY p.visitor_id) v');
+    if ($stmt) {
+        $stmt->bind_param('sss', $startSql, $startSql, $endSql);
+        $stmt->execute();
+        $visitorRow = $stmt->get_result()->fetch_assoc() ?: [];
+        $stmt->close();
+    }
+    $uniqueVisitors = (int) ($visitorRow['visitors'] ?? 0);
+    $returning = (int) ($visitorRow['returning_visitors'] ?? 0);
+    return [
+        'tracked' => $visits > 0,
+        'visits' => $visits,
+        'unique_visitors' => $uniqueVisitors,
+        'new_visitors' => max(0, $uniqueVisitors - $returning),
+        'returning_visitors' => $returning,
+        'pages_per_visit' => $visits ? round((int) $visitRow['page_views'] / $visits, 1) : 0.0,
+        'bounce_rate' => $visits ? (int) round((int) $visitRow['bounces'] / $visits * 100) : null,
+        'tracking_since' => $trackingSince,
+    ];
+}
+
+/** Visits per device type (Mobile / Desktop / Tablet / Unknown). */
+function kt_device_breakdown(mysqli $conn, string $startSql, string $endSql): array
+{
+    if (!kt_insight_has_column($conn, 'page_views', 'device')) return [];
+    $stmt = $conn->prepare("SELECT COALESCE(NULLIF(device, ''), 'Unknown') device_name, COUNT(DISTINCT visit_id) visits FROM page_views WHERE visit_id IS NOT NULL AND viewed_at >= ? AND viewed_at < ? GROUP BY device_name ORDER BY visits DESC");
+    if (!$stmt) return [];
+    $stmt->bind_param('ss', $startSql, $endSql);
+    $stmt->execute();
+    $rows = [];
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) $rows[(string) $row['device_name']] = (int) $row['visits'];
+    $stmt->close();
+    return $rows;
+}
+
+/**
+ * "Intent to visit" actions: directions, calls, messages, emails, shares, social and website links.
+ * Older map clicks recorded before intents existed count as directions.
+ */
+function kt_intent_breakdown(mysqli $conn, string $startSql, string $endSql): array
+{
+    static $cache = [];
+    $cacheKey = $startSql . '|' . $endSql;
+    if (isset($cache[$cacheKey])) return $cache[$cacheKey];
+    $labels = ['directions' => 'Directions / map', 'call' => 'Phone calls', 'message' => 'Messages', 'email' => 'Emails', 'website' => 'Website links', 'social' => 'Social pages', 'share' => 'Shares'];
+    $counts = array_fill_keys(array_keys($labels), 0);
+    if (!kt_insight_table_exists($conn, 'user_activity_log')) return [];
+    $stmt = $conn->prepare("SELECT CASE WHEN metadata LIKE '%\"intent\"%' THEN JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.intent')) WHEN activity_type = 'map_interaction' THEN 'directions' ELSE NULL END intent_name, COUNT(*) total
+            FROM user_activity_log WHERE activity_date >= ? AND activity_date < ? AND (activity_type = 'map_interaction' OR metadata LIKE '%\"intent\"%') GROUP BY intent_name");
+    if (!$stmt) return [];
+    $stmt->bind_param('ss', $startSql, $endSql);
+    $stmt->execute();
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        if (isset($counts[(string) $row['intent_name']])) $counts[(string) $row['intent_name']] += (int) $row['total'];
+    }
+    $stmt->close();
+    $result = [];
+    foreach ($counts as $key => $total) if ($total > 0) $result[$labels[$key]] = $total;
+    arsort($result);
+    return $cache[$cacheKey] = $result;
 }

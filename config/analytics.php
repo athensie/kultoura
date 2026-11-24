@@ -40,6 +40,54 @@ $conn->query(
         INDEX (searched_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
+/**
+ * Anonymous visit tracking (no personal data):
+ *  - kt_vid   : random visitor ID kept for about a year, so returning visitors can be recognised
+ *  - kt_visit : random visit ID that expires after 30 minutes without activity (one "visit")
+ * Falls back to IDs derived from the PHP session if cookies can no longer be sent.
+ */
+function analytics_visit_ids(): array
+{
+    static $ids = null;
+    if ($ids !== null) return $ids;
+    $valid = static fn($value) => is_string($value) && preg_match('/^[a-f0-9]{32}$/', $value);
+    $visitor = $_COOKIE['kt_vid'] ?? null;
+    $visit = $_COOKIE['kt_visit'] ?? null;
+    $isNewVisit = !$valid($visit);
+    if (!$valid($visitor)) $visitor = bin2hex(random_bytes(16));
+    if ($isNewVisit) $visit = bin2hex(random_bytes(16));
+    if (!headers_sent()) {
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        $options = ['path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax'];
+        setcookie('kt_vid', $visitor, ['expires' => time() + 60 * 60 * 24 * 395] + $options);
+        setcookie('kt_visit', $visit, ['expires' => time() + 60 * 30] + $options);
+        $_COOKIE['kt_vid'] = $visitor;
+        $_COOKIE['kt_visit'] = $visit;
+    } elseif (!$valid($_COOKIE['kt_vid'] ?? null) || !$valid($_COOKIE['kt_visit'] ?? null)) {
+        $sessionKey = session_id() !== '' ? session_id() : ($_SERVER['REMOTE_ADDR'] ?? '') . ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $visitor = substr(hash('sha256', 'visitor|' . $sessionKey), 0, 32);
+        $visit = substr(hash('sha256', 'visit|' . $sessionKey . '|' . date('Y-m-d H')), 0, 32);
+    }
+    $ids = ['visitor' => $visitor, 'visit' => $visit];
+    return $ids;
+}
+
+/** Adds visitor_id / visit_id / device to page_views and visit_id to item_views (once). */
+function analytics_ensure_visit_columns(mysqli $conn): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $check = $conn->query("SHOW COLUMNS FROM page_views LIKE 'visit_id'");
+    if ($check && $check->num_rows === 0) {
+        @$conn->query('ALTER TABLE page_views ADD COLUMN visitor_id CHAR(32) NULL, ADD COLUMN visit_id CHAR(32) NULL, ADD COLUMN device VARCHAR(10) NULL, ADD INDEX idx_page_views_visit (visit_id, viewed_at), ADD INDEX idx_page_views_visitor (visitor_id, viewed_at)');
+    }
+    $check = $conn->query("SHOW COLUMNS FROM item_views LIKE 'visit_id'");
+    if ($check && $check->num_rows === 0) {
+        @$conn->query('ALTER TABLE item_views ADD COLUMN visit_id CHAR(32) NULL, ADD INDEX idx_item_views_visit (visit_id, viewed_at)');
+    }
+}
+
 function analytics_page_labels(): array
 {
     return [
@@ -61,6 +109,18 @@ function analytics_page_labels(): array
 }
 function analytics_track(mysqli $conn, string $page): void
 {
+    if (!kt_analytics_should_record()) return;   // crawlers, link previews, monitors, logged-in admins
+    analytics_ensure_visit_columns($conn);
+    $ids = analytics_visit_ids();
+    // A reload of the same page within 30 seconds of the same visit is not a new page view.
+    $recent = $conn->prepare('SELECT 1 FROM page_views WHERE visit_id = ? AND page = ? AND viewed_at >= (NOW() - INTERVAL 30 SECOND) LIMIT 1');
+    if ($recent) {
+        $recent->bind_param('ss', $ids['visit'], $page);
+        $recent->execute();
+        $isRefresh = (bool) $recent->get_result()->fetch_row();
+        $recent->close();
+        if ($isRefresh) return;
+    }
     $referrerHost = 'Direct';
     if (!empty($_SERVER['HTTP_REFERER'])) {
         $host = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
@@ -69,9 +129,10 @@ function analytics_track(mysqli $conn, string $page): void
             $referrerHost = $host;
         }
     }
-    $stmt = $conn->prepare("INSERT INTO page_views (page, referrer_host) VALUES (?, ?)");
+    $device = kt_activity_device_type();
+    $stmt = $conn->prepare("INSERT INTO page_views (page, referrer_host, visitor_id, visit_id, device) VALUES (?, ?, ?, ?, ?)");
     if ($stmt) {
-        $stmt->bind_param('ss', $page, $referrerHost);
+        $stmt->bind_param('sssss', $page, $referrerHost, $ids['visitor'], $ids['visit'], $device);
         $stmt->execute();
         $stmt->close();
     }
@@ -207,9 +268,20 @@ function analytics_track_item(mysqli $conn, string $itemType, int $itemId): void
     if ($itemId <= 0 || !array_key_exists($itemType, analytics_item_types())) {
         return;
     }
-    $stmt = $conn->prepare("INSERT INTO item_views (item_type, item_id) VALUES (?, ?)");
+    if (!kt_analytics_should_record()) return;
+    analytics_ensure_visit_columns($conn);
+    $visitId = analytics_visit_ids()['visit'];
+    $recent = $conn->prepare('SELECT 1 FROM item_views WHERE visit_id = ? AND item_type = ? AND item_id = ? AND viewed_at >= (NOW() - INTERVAL 30 SECOND) LIMIT 1');
+    if ($recent) {
+        $recent->bind_param('ssi', $visitId, $itemType, $itemId);
+        $recent->execute();
+        $isRepeat = (bool) $recent->get_result()->fetch_row();
+        $recent->close();
+        if ($isRepeat) return;
+    }
+    $stmt = $conn->prepare("INSERT INTO item_views (item_type, item_id, visit_id) VALUES (?, ?, ?)");
     if ($stmt) {
-        $stmt->bind_param('si', $itemType, $itemId);
+        $stmt->bind_param('sis', $itemType, $itemId, $visitId);
         $stmt->execute();
         $stmt->close();
     }
@@ -434,6 +506,7 @@ function analytics_track_search(mysqli $conn, string $query, int $resultCount, a
     if ($query === '' || mb_strlen($query) > 150) {
         return;
     }
+    if (!kt_analytics_should_record()) return;
     $stmt = $conn->prepare("INSERT INTO search_log (query, result_count) VALUES (?, ?)");
     if ($stmt) {
         $stmt->bind_param('si', $query, $resultCount);

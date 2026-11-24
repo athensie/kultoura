@@ -105,6 +105,23 @@
             fetch(endpoint, { method: 'POST', body, credentials: 'same-origin', keepalive: true }).catch(() => {});
         }
     };
+    // "Intent to visit" actions, classified by where the link actually goes (works for links
+    // that come from the database too). A data-intent="..." attribute overrides detection.
+    const visitIntent = (control, href, lowerLabel) => {
+        const declared = (control.dataset.intent || '').toLowerCase();
+        if (['directions', 'call', 'message', 'email', 'share', 'social', 'website'].includes(declared)) return declared;
+        const link = (href || '').trim().toLowerCase();
+        if (link.startsWith('tel:')) return 'call';
+        if (link.startsWith('mailto:')) return 'email';
+        if (/facebook\.com\/sharer|facebook\.com\/share|twitter\.com\/intent|x\.com\/intent|linkedin\.com\/share|api\.whatsapp\.com\/send\?text|wa\.me\/\?text/.test(link) || /\bshare\b/.test(lowerLabel)) return 'share';
+        if (link.startsWith('sms:') || link.startsWith('viber:') || /(^|\/\/)(www\.)?(m\.me|messenger\.com|wa\.me|api\.whatsapp\.com)\//.test(link)) return 'message';
+        if (/google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|goo\.gl\/maps|waze\.com|maps\.apple\.com/.test(link) || (/directions|navigate|get there/.test(lowerLabel) && !/\b(close|hide|cancel|back)\b/.test(lowerLabel))) return 'directions';
+        if (/(^|\/\/)([a-z0-9-]+\.)?(facebook\.com|fb\.com|fb\.me|instagram\.com|tiktok\.com|youtube\.com|youtu\.be)\b/.test(link)) return 'social';
+        if (/^https?:\/\//.test(link)) {
+            try { if (new URL(href).host !== window.location.host) return 'website'; } catch (error) { return ''; }
+        }
+        return '';
+    };
     document.addEventListener('click', function (event) {
         const control = event.target.closest('a[href], button, [role="button"], .p-card[data-id]');
         if (!control || control.closest('[data-activity-ignore]') || control.disabled || control.getAttribute('aria-disabled') === 'true') return;
@@ -123,9 +140,12 @@
         else if (/\bgenerate\b/.test(lowerLabel)) activityType = 'generate';
         else if (/\bmap\b|navigate|directions/.test(lowerLabel)) activityType = 'map_interaction';
         else if (/recommendation|for you/.test(lowerLabel)) activityType = 'recommendation';
+        const intent = visitIntent(control, href, lowerLabel);
+        if (intent === 'directions') activityType = 'map_interaction';
         const currentPage = pageCategory(window.location.pathname) || window.location.pathname.split('/').pop().replace(/\.php$/i, '');
         send({
             activity_type: activityType,
+            intent: intent,
             category: itemType,
             item_type: itemType && itemId ? itemType : '',
             item_id: itemId,

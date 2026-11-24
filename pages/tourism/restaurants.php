@@ -246,7 +246,7 @@ foreach ($rows as $r) {
 <footer class="t-footer">
     <p>© KULTOURA · Malvar, Batangas · </p>
 </footer>
-<script src="../../assets/js/navbar.js?v=20261122-1"></script>
+<script src="../../assets/js/navbar.js?v=20261124-intent"></script>
 <script src="../../assets/js/navbar-search.js?v=20261101-2"></script>
 <script>
 const restaurantsData = <?php echo json_encode($restaurants); ?>;

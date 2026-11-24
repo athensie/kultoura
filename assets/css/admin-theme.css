@@ -808,3 +808,9 @@
 :root .aw-prescriptive-list strong { font-size: .84rem; line-height: 1.45; color: var(--ui-text); }
 :root .aw-prescriptive-list span { font-size: .76rem; line-height: 1.5; color: var(--ui-text-2); }
 @media (max-width: 520px) { :root .aw-forecast-pair { grid-template-columns: 1fr; } }
+
+/* ---------- Visit Quality tiles (Audience) ---------- */
+:root .aw-stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+:root .aw-stat-tile { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--ui-line); border-radius: 10px; background: var(--ui-surface-soft); }
+:root .aw-stat-tile strong { color: var(--ui-text); font: 700 1.45rem/1.1 var(--font-display); }
+:root .aw-stat-tile span { color: var(--ui-muted); font: 600 .74rem var(--font-ui); }

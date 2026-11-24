@@ -48,6 +48,12 @@ if ($itemId <= 0 || $itemType === null) $itemId = null;
 $page = substr((string) ($_POST['page'] ?? 'other'), 0, 80);
 $element = substr((string) ($_POST['element'] ?? ''), 0, 120);
 $metadata = [];
+// "Intent to visit" actions (directions, call, message, email, share, social, website).
+$intent = strtolower((string) ($_POST['intent'] ?? ''));
+if (in_array($intent, ['directions', 'call', 'message', 'email', 'share', 'social', 'website'], true)) {
+    $metadata['intent'] = $intent;
+    if ($intent === 'directions') $type = 'map_interaction';
+}
 if ($type === 'click' && $itemType === null) $category = kt_activity_category_for_page($page) ?? $category;
 $saved = kt_activity_record($conn, $type, $category, $page, $element, $itemType, $itemId, $metadata);
 echo json_encode(['success' => $saved]);
