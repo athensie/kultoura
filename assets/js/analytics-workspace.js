@@ -156,7 +156,7 @@
         return axisLabel(index, maxChars, plotWidth / Math.max(1, labelCount));
       }
     });
-    const valueTicks = { color: mutedColor, precision: 0, maxTicksLimit: 6, font: { size: 11 }, callback: value => Number(value).toLocaleString() };
+    const valueTicks = { color: mutedColor, precision: 0, maxTicksLimit: 6, font: { size: 11 }, callback: value => (series.valueFormat === 'duration' ? (Number(value) >= 60 ? `${Math.round(Number(value) / 60)}m` : `${Number(value)}s`) : Number(value).toLocaleString()) };
     const isScatter = chartType === 'scatter';
     const xAxisTicks = horizontal || isScatter ? { ...valueTicks, maxTicksLimit: horizontal ? 7 : 6 } : categoryTicks(labelCount > 7 ? 12 : 16);
     const yAxisTicks = horizontal ? { ...categoryTicks(26), autoSkip: false } : valueTicks;
@@ -172,14 +172,15 @@
       const raw = context.parsed.x ?? context.parsed.y ?? context.parsed;
       const value = horizontal ? context.parsed.x : (doughnut ? context.parsed : context.parsed.y);
       const number = Number(value ?? raw);
-      const formatted = Number.isFinite(number) ? number.toLocaleString() : String(raw);
+      const asDuration = seconds => seconds >= 60 ? `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s` : `${Math.round(seconds)}s`;
+      const formatted = !Number.isFinite(number) ? String(raw) : (series.valueFormat === 'duration' ? asDuration(number) : number.toLocaleString());
       const occurrences = series.occurrences && series.occurrences[context.dataIndex];
       if (occurrences) {
         const day = fullLabel(context.dataIndex);
         const average = Math.round(number / occurrences).toLocaleString();
         return [`${formatted} visits across ${occurrences} ${day}${occurrences === 1 ? '' : 's'}`, `Average ${average} per ${day}`];
       }
-      const seriesName = context.dataset.label && context.dataset.label !== 'Records' ? context.dataset.label : 'Total';
+      const seriesName = series.seriesName || (context.dataset.label && context.dataset.label !== 'Records' ? context.dataset.label : 'Total');
       return `${seriesName}: ${formatted}`;
     };
 

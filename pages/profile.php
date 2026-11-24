@@ -352,7 +352,7 @@ while ($dateRow = $dateRows->fetch_assoc()) {
             </div>
         </section>
     </main>
-    <script src="../assets/js/navbar.js?v=20261124-intent"></script>
+    <script src="../assets/js/navbar.js?v=20261124-engaged"></script>
     <script src="../assets/js/navbar-search.js?v=20261101-2"></script>
     <script src="../assets/js/profile.js?v=20261101-1"></script>
 </body>

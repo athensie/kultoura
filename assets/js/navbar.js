@@ -105,6 +105,28 @@
             fetch(endpoint, { method: 'POST', body, credentials: 'same-origin', keepalive: true }).catch(() => {});
         }
     };
+    // Engaged time: seconds this page was actually visible (background tabs don't count),
+    // reported cumulatively when the page is hidden or left.
+    (function trackEngagedTime() {
+        const engagementUrl = endpoint.replace('track_activity.php', 'track_engagement.php');
+        let visibleSince = document.visibilityState === 'visible' ? Date.now() : null;
+        let totalMs = 0;
+        let lastSent = 0;
+        const report = () => {
+            if (visibleSince !== null) { totalMs += Date.now() - visibleSince; visibleSince = null; }
+            const seconds = Math.round(totalMs / 1000);
+            if (seconds < 1 || seconds === lastSent) return;
+            lastSent = seconds;
+            const body = new URLSearchParams({ seconds: String(seconds) });
+            if (navigator.sendBeacon) navigator.sendBeacon(engagementUrl, new Blob([body.toString()], { type: 'application/x-www-form-urlencoded;charset=UTF-8' }));
+            else fetch(engagementUrl, { method: 'POST', body, credentials: 'same-origin', keepalive: true }).catch(() => {});
+        };
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') report();
+            else visibleSince = Date.now();
+        });
+        window.addEventListener('pagehide', report);
+    })();
     // "Intent to visit" actions, classified by where the link actually goes (works for links
     // that come from the database too). A data-intent="..." attribute overrides detection.
     const visitIntent = (control, href, lowerLabel) => {

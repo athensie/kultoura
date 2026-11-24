@@ -72,7 +72,7 @@ function analytics_visit_ids(): array
     return $ids;
 }
 
-/** Adds visitor_id / visit_id / device to page_views and visit_id to item_views (once). */
+/** Adds visitor_id / visit_id / device / engaged_seconds to page_views and visit_id to item_views (once). */
 function analytics_ensure_visit_columns(mysqli $conn): void
 {
     static $done = false;
@@ -81,6 +81,10 @@ function analytics_ensure_visit_columns(mysqli $conn): void
     $check = $conn->query("SHOW COLUMNS FROM page_views LIKE 'visit_id'");
     if ($check && $check->num_rows === 0) {
         @$conn->query('ALTER TABLE page_views ADD COLUMN visitor_id CHAR(32) NULL, ADD COLUMN visit_id CHAR(32) NULL, ADD COLUMN device VARCHAR(10) NULL, ADD INDEX idx_page_views_visit (visit_id, viewed_at), ADD INDEX idx_page_views_visitor (visitor_id, viewed_at)');
+    }
+    $check = $conn->query("SHOW COLUMNS FROM page_views LIKE 'engaged_seconds'");
+    if ($check && $check->num_rows === 0) {
+        @$conn->query('ALTER TABLE page_views ADD COLUMN engaged_seconds SMALLINT UNSIGNED NULL');
     }
     $check = $conn->query("SHOW COLUMNS FROM item_views LIKE 'visit_id'");
     if ($check && $check->num_rows === 0) {
@@ -134,6 +138,11 @@ function analytics_track(mysqli $conn, string $page): void
     if ($stmt) {
         $stmt->bind_param('sssss', $page, $referrerHost, $ids['visitor'], $ids['visit'], $device);
         $stmt->execute();
+        // Lets the browser report engaged time for exactly this page view (pages/track_engagement.php).
+        if ($stmt->insert_id && !headers_sent()) {
+            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+            setcookie('kt_pv', (string) $stmt->insert_id, ['expires' => 0, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax']);
+        }
         $stmt->close();
     }
     kt_activity_record($conn, 'view', kt_activity_category_for_page($page), $page, 'Page view');

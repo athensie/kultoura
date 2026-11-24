@@ -492,3 +492,61 @@ function kt_intent_breakdown(mysqli $conn, string $startSql, string $endSql): ar
     arsort($result);
     return $cache[$cacheKey] = $result;
 }
+
+/** Average engaged (visible) seconds per page, for pages with at least $minSamples measurements. */
+function kt_engaged_time_by_page(mysqli $conn, string $startSql, string $endSql, int $minSamples = 5): array
+{
+    if (!kt_insight_has_column($conn, 'page_views', 'engaged_seconds')) return [];
+    $stmt = $conn->prepare('SELECT page, AVG(engaged_seconds) average_seconds, COUNT(*) samples FROM page_views WHERE engaged_seconds IS NOT NULL AND viewed_at >= ? AND viewed_at < ? GROUP BY page HAVING samples >= ? ORDER BY average_seconds DESC');
+    if (!$stmt) return [];
+    $stmt->bind_param('ssi', $startSql, $endSql, $minSamples);
+    $stmt->execute();
+    $labels = function_exists('analytics_page_labels') ? analytics_page_labels() : [];
+    $rows = [];
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $page = (string) $row['page'];
+        $rows[$labels[$page] ?? ucwords(str_replace(['_', '-'], ' ', $page))] = (int) round((float) $row['average_seconds']);
+    }
+    $stmt->close();
+    return $rows;
+}
+
+/**
+ * Listing views grouped by the Malvar barangay named in each listing's address.
+ * Visitors' own barangay is not known; this shows WHERE visitors' interest is located.
+ * Returns ['barangays' => [name => views], 'unmatched' => views whose address names no barangay].
+ */
+function kt_barangay_interest(mysqli $conn, string $startSql, string $endSql): array
+{
+    $result = ['barangays' => [], 'unmatched' => 0];
+    if (!function_exists('kt_malvar_barangays')) require_once __DIR__ . '/malvar_locations.php';
+    // Longest names first so "San Pedro II" is not counted as "San Pedro I".
+    $barangays = kt_malvar_barangays();
+    usort($barangays, static fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+    $sources = [
+        ["'nature','industry','resort','accommodation','bank','service','church'", 'destination', 'destination_id', 'address'],
+        ["'restaurant'", 'restaurants', 'restaurant_id', 'address'],
+        ["'product'", 'products', 'product_id', 'location'],
+        ["'fiesta'", 'fiestas', 'fiesta_id', 'location'],
+    ];
+    foreach ($sources as [$types, $table, $idColumn, $addressColumn]) {
+        if (!kt_insight_table_exists($conn, $table) || !kt_insight_has_column($conn, $table, $addressColumn)) continue;
+        $stmt = $conn->prepare("SELECT t.{$addressColumn} address, COUNT(*) views FROM item_views v JOIN {$table} t ON t.{$idColumn} = v.item_id WHERE v.item_type IN ({$types}) AND v.viewed_at >= ? AND v.viewed_at < ? GROUP BY t.{$idColumn}, t.{$addressColumn}");
+        if (!$stmt) continue;
+        $stmt->bind_param('ss', $startSql, $endSql);
+        $stmt->execute();
+        foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $address = mb_strtolower((string) $row['address']);
+            $match = null;
+            foreach ($barangays as $name) {
+                if (preg_match('/(^|[^a-z])' . preg_quote(mb_strtolower($name), '/') . '($|[^a-z])/u', $address)) { $match = $name; break; }
+            }
+            if ($match === null && str_contains($address, 'san isidro west')) $match = 'Bilucao';
+            if ($match === null) { $result['unmatched'] += (int) $row['views']; continue; }
+            $result['barangays'][$match] = ($result['barangays'][$match] ?? 0) + (int) $row['views'];
+        }
+        $stmt->close();
+    }
+    arsort($result['barangays']);
+    return $result;
+}

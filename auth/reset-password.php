@@ -138,7 +138,7 @@ unset($_SESSION['error'], $_SESSION['success']);
         </div>
     </main>
 </div>
-<script src="../assets/js/navbar.js?v=20261124-intent"></script>
+<script src="../assets/js/navbar.js?v=20261124-engaged"></script>
 <script src="../assets/js/index.js"></script>
 </body>
 </html>

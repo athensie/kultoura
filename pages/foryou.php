@@ -772,7 +772,7 @@ $placesJson = json_encode($places, JSON_UNESCAPED_UNICODE);
 <script>
 const KULTOURA_PLACES = <?php echo $placesJson; ?>;
 </script>
-<script src="../assets/js/navbar.js?v=20261124-intent"></script>
+<script src="../assets/js/navbar.js?v=20261124-engaged"></script>
 <script src="../assets/js/navbar-search.js?v=20261101-2"></script>
 <script src="../assets/js/foryou.js?v=20261104-2"></script>
 </body>

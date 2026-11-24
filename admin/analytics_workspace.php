@@ -287,7 +287,7 @@ $workspaceTabs = [
     'search' => 'Search Insights', 'community' => 'Community Feedback', 'audience' => 'Audience',
     'recommendations' => 'Recommendations & Promotions',
 ];
-$initialWorkspaceTab = isset($_GET['review_tab']) ? 'community' : 'traffic';
+$initialWorkspaceTab = isset($_GET['review_tab']) ? 'community' : (isset($workspaceTabs[$_GET['aw_tab'] ?? '']) ? (string) $_GET['aw_tab'] : 'traffic');
 // Visitor-level metrics from anonymous visitor/visit IDs (see analytics_visit_ids()).
 require_once __DIR__ . '/../config/analytics_insights.php';
 analytics_ensure_visit_columns($conn);
@@ -312,6 +312,16 @@ $chartData['visitQuality'] = $visitQuality['tracked'] ? [
     ],
 ] : ['labels' => [], 'values' => []];
 $chartData['devices'] = ['labels' => array_keys($deviceBreakdown), 'values' => array_values($deviceBreakdown)];
+$engagedTime = kt_engaged_time_by_page($conn, $periodStartSql, $periodEndExclusiveSql);
+$chartData['engagedTime'] = ['labels' => array_keys($engagedTime), 'values' => array_values($engagedTime), 'valueFormat' => 'duration', 'seriesName' => 'Average time on page'];
+$barangayInterest = kt_barangay_interest($conn, $periodStartSql, $periodEndExclusiveSql);
+$chartData['barangayInterest'] = ['labels' => array_keys($barangayInterest['barangays']), 'values' => array_values($barangayInterest['barangays']), 'seriesName' => 'Listing views'];
+$barangayNote = 'Listing views grouped by the barangay named in each listing\'s address (visitors\' own barangay cannot be known from a browser).'
+    . ($barangayInterest['unmatched'] > 0 ? ' ' . number_format($barangayInterest['unmatched']) . ' views were for listings whose address does not name a barangay; add the barangay to those addresses to include them.' : '');
+require_once __DIR__ . '/../config/audience_demo.php';
+$audienceDemoPresent = kt_audience_demo_present($conn);
+$canManageDemoData = function_exists('kt_is_super_admin') && kt_is_super_admin();
+$demoDataStatus = (string) ($_GET['demo'] ?? '');
 $chartData['intents'] = ['labels' => array_keys($intentBreakdown), 'values' => array_values($intentBreakdown)];
 $workspaceMetrics = [
     'traffic' => [
@@ -347,9 +357,9 @@ $workspaceMetrics = [
         ['New vs. Returning Visitors', 'donut', 'visitors', $visitorsNote],
         ['Visitors by Device', 'donut', 'devices', 'Share of visits by device type, detected from the browser.' . $visitTrackingNote],
         ['Visitor Intent Actions', 'rank', 'intents', 'Clicks that show plans to visit: directions, calls, messages, emails, website and social links, and shares.'],
-        ['Visitors by Barangay', 'bar', null, 'Visitor barangay is not collected.'],
+        ['Listing Interest by Barangay', 'rank', 'barangayInterest', $barangayNote],
         ['User Registration Trends', 'line', 'signup', 'Monthly registrations from account creation records.'], ['Visitor Activity by Day', 'heatmap', 'heatmapViews', 'Page visits grouped by weekday and hour for the selected period.'],
-        ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'], ['Average Time Spent Viewing Content', 'bar', null, 'Content view duration is not recorded.'],
+        ['Visitor Activity by Hour', 'heatmap', 'heatmapViews', 'Page visits grouped by hour and weekday for the selected period.'], ['Average Time Spent per Page', 'rank', 'engagedTime', 'Average time each page was actually visible on screen (background tabs excluded), for pages with at least 5 measured views.' . $visitTrackingNote],
     ],
     'recommendations' => [
         ['Promoted Content Impressions and Clicks', 'stacked', 'promotedPerformance', 'Cumulative totals; the promoted content counter does not retain event dates.'],
@@ -816,6 +826,14 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         </section>
         <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
     </div>
+    <?php if ($demoDataStatus !== ''): ?><div class="aw-demo-notice is-<?php echo $demoDataStatus === 'error' ? 'error' : 'ok'; ?>" role="status"><?php echo htmlspecialchars(['loaded' => 'Demo analytics data was loaded: five years of sample visits now fill the Audience tab and other charts.', 'removed' => 'Demo analytics data was removed. The dashboard now shows only real visits.', 'error' => (string) ($_GET['demo_message'] ?? 'The demo data action could not be completed.')][$demoDataStatus] ?? ''); ?></div><?php endif; ?>
+    <?php if ($audienceDemoPresent): ?>
+    <div class="aw-demo-banner" role="note">
+        <i data-lucide="flask-conical" class="lucide" aria-hidden="true"></i>
+        <div><strong>Demo analytics data is loaded.</strong> Five years of sample visits are included in these numbers, so they do not reflect real visitors. Remove it before using the dashboard for real decisions.</div>
+        <?php if ($canManageDemoData): ?><form method="post" action="<?php echo BASE_URL; ?>/admin/demo_data_actions.php" onsubmit="return confirm('Remove all demo analytics data? Real visits are not affected.');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="remove"><button type="submit" class="btn-ghost">Remove demo data</button></form><?php endif; ?>
+    </div>
+    <?php endif; ?>
     <?php if ($dashboardKpis): ?>
     <section class="aw-kpi-grid" aria-label="Key performance indicators">
         <?php foreach ($dashboardKpis as $kpi): $kpiId = $kpi['section'] . '_' . $kpi['index']; ?>
@@ -886,6 +904,13 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
     <section class="aw-section <?php echo $sectionKey === $initialWorkspaceTab ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === $initialWorkspaceTab ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?><?php if ($rangeLabel !== '' && $period !== 'custom'): ?> <span class="aw-range">(<?php echo htmlspecialchars($rangeLabel); ?>)</span><?php endif; ?> · Based on recorded data</p></div>
+        <?php if ($sectionKey === 'audience' && !$visitQuality['tracked'] && !$audienceDemoPresent): ?>
+        <div class="aw-demo-banner is-empty" role="note">
+            <i data-lucide="users" class="lucide" aria-hidden="true"></i>
+            <div><strong>No visitor data yet for this period.</strong> Visitor tracking started recently, so these charts fill in as people browse the public site.<?php if ($canManageDemoData): ?> To preview how they work, load five years of clearly marked demo data (you can remove it at any time).<?php endif; ?></div>
+            <?php if ($canManageDemoData): ?><form method="post" action="<?php echo BASE_URL; ?>/admin/demo_data_actions.php" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Loading… (up to a minute)';"><?php echo csrf_field(); ?><input type="hidden" name="action" value="load"><button type="submit" class="btn-primary">Load 5-year demo data</button></form><?php endif; ?>
+        </div>
+        <?php endif; ?>
         <?php if ($sectionKey === 'community'): include __DIR__ . '/reviews_admin_panel.php'; else: ?>
         <div class="aw-grid">
             <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): if ($kind === 'kpi') continue; $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low' || (in_array($kind, ['line', 'area', 'bar'], true) && count($payload['labels'] ?? []) > 12); ?>
@@ -911,4 +936,4 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261124-roomy-axes"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261124-duration"></script>

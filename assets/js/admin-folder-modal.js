@@ -1,6 +1,7 @@
 /*
- * Opens folder-style <details data-folder-modal> blocks in a modal dialog
- * instead of expanding them inline.
+ * Opens folder-style <details data-folder-modal> blocks in a modal dialog instead of
+ * expanding them inline. Folders inside an open folder (e.g. a listing inside a category)
+ * open as a second level in the same dialog, with a Back button.
  *
  * Markup contract:
  *   <details data-folder-modal>
@@ -8,8 +9,8 @@
  *     <div data-folder-content> ... </div>
  *   </details>
  *
- * The content element is moved into the dialog while it is open and moved back
- * when it closes, so forms, listeners and ids inside it keep working.
+ * Content elements are moved into the dialog while shown and moved back when closed,
+ * so forms, listeners and ids inside them keep working.
  */
 (function () {
     if (window.ktFolderModal) return;
@@ -23,6 +24,10 @@
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>' +
             '</span>' +
             '<div class="folder-modal-titles">' +
+                '<button type="button" class="folder-modal-back" hidden>' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>' +
+                    '<span></span>' +
+                '</button>' +
                 '<h2 class="folder-modal-title" id="folderModalTitle"></h2>' +
                 '<p class="folder-modal-meta"></p>' +
             '</div>' +
@@ -35,13 +40,42 @@
     var titleEl = dialog.querySelector('.folder-modal-title');
     var metaEl = dialog.querySelector('.folder-modal-meta');
     var bodyEl = dialog.querySelector('.folder-modal-body');
-    var current = null; // { content, placeholder, trigger }
+    var backEl = dialog.querySelector('.folder-modal-back');
+    var backLabel = backEl.querySelector('span');
+    var stack = [];   // [{ content, placeholder, trigger, title, meta, scroll }]
 
-    function restore() {
-        if (!current) return;
-        current.placeholder.replaceWith(current.content);
-        var trigger = current.trigger;
-        current = null;
+    function textOf(details, selector) {
+        var element = details.querySelector(selector);
+        return element ? element.textContent.replace(/\s+/g, ' ').trim() : '';
+    }
+
+    function renderHeader() {
+        var top = stack[stack.length - 1];
+        if (!top) return;
+        titleEl.textContent = top.title;
+        metaEl.textContent = top.meta;
+        metaEl.hidden = !top.meta;
+        var parent = stack[stack.length - 2];
+        backEl.hidden = !parent;
+        backLabel.textContent = parent ? 'Back to ' + parent.title : '';
+        dialog.classList.toggle('is-nested', !!parent);
+    }
+
+    function popLevel() {
+        var level = stack.pop();
+        if (!level) return null;
+        level.placeholder.replaceWith(level.content);
+        var parent = stack[stack.length - 1];
+        if (parent) {
+            parent.content.style.display = '';
+            bodyEl.scrollTop = parent.scroll || 0;
+        }
+        return level;
+    }
+
+    function restoreAll() {
+        var trigger = stack.length ? stack[0].trigger : null;
+        while (stack.length) popLevel();
         document.documentElement.classList.remove('folder-modal-open');
         if (trigger && document.contains(trigger)) trigger.focus();
     }
@@ -49,33 +83,54 @@
     function open(details) {
         var content = details.querySelector(':scope > [data-folder-content]');
         if (!content) return;
-        if (current) close();
-        var summary = details.querySelector(':scope > summary');
-        var title = details.querySelector('[data-folder-title]');
-        var meta = details.querySelector('[data-folder-meta]');
-        titleEl.textContent = title ? title.textContent.trim() : '';
-        metaEl.textContent = meta ? meta.textContent.trim() : '';
-        metaEl.hidden = !metaEl.textContent;
-
+        var parent = stack[stack.length - 1];
+        // Opening a folder that is not inside the one on screen starts a fresh dialog.
+        if (parent && !parent.content.contains(details)) { close(); parent = null; }
+        if (parent) {
+            parent.scroll = bodyEl.scrollTop;
+            parent.content.style.display = 'none';
+        }
         var placeholder = document.createComment('folder-modal');
         content.before(placeholder);
         bodyEl.appendChild(content);
+        stack.push({
+            content: content,
+            placeholder: placeholder,
+            trigger: details.querySelector(':scope > summary'),
+            title: textOf(details, '[data-folder-title]'),
+            meta: textOf(details, '[data-folder-meta]'),
+            scroll: 0
+        });
+        renderHeader();
         bodyEl.scrollTop = 0;
-        current = { content: content, placeholder: placeholder, trigger: summary };
-
         if (!dialog.isConnected) document.body.appendChild(dialog);
-        document.documentElement.classList.add('folder-modal-open');
-        if (typeof dialog.showModal === 'function') dialog.showModal();
-        else dialog.setAttribute('open', '');
+        if (!dialog.open) {
+            document.documentElement.classList.add('folder-modal-open');
+            if (typeof dialog.showModal === 'function') dialog.showModal();
+            else dialog.setAttribute('open', '');
+        }
+        backEl.hidden ? dialog.querySelector('.folder-modal-close').focus() : backEl.focus();
+    }
+
+    function back() {
+        if (stack.length <= 1) { close(); return; }
+        var level = popLevel();
+        renderHeader();
+        if (level && level.trigger && document.contains(level.trigger)) level.trigger.focus();
     }
 
     function close() {
         if (typeof dialog.close === 'function' && dialog.open) dialog.close();
-        else { dialog.removeAttribute('open'); restore(); }
+        else { dialog.removeAttribute('open'); restoreAll(); }
     }
 
-    dialog.addEventListener('close', restore);
+    dialog.addEventListener('close', restoreAll);
+    // Esc goes back one level first, then closes.
+    dialog.addEventListener('cancel', function (event) {
+        if (stack.length > 1) { event.preventDefault(); back(); }
+    });
     dialog.querySelector('.folder-modal-close').addEventListener('click', close);
+    backEl.addEventListener('click', back);
     // Click on the backdrop (outside the dialog box) closes it.
     dialog.addEventListener('click', function (event) {
         if (event.target !== dialog) return;
@@ -92,31 +147,34 @@
         open(summary.parentElement);
     });
 
-    // A normal form submit inside the dialog reloads the page; remember the
-    // folder so it opens again afterwards instead of making the admin re-find it.
+    // A normal form submit inside the dialog reloads the page; remember the open folders
+    // (e.g. category, then listing) so they open again afterwards.
     var storageKey = 'kt-folder-modal:' + location.pathname;
     document.addEventListener('submit', function (event) {
-        if (event.defaultPrevented || !current || !dialog.contains(event.target)) return;
-        try { sessionStorage.setItem(storageKey, titleEl.textContent); } catch (error) {}
+        if (event.defaultPrevented || !stack.length || !dialog.contains(event.target)) return;
+        try { sessionStorage.setItem(storageKey, JSON.stringify(stack.map(function (level) { return level.title; }))); } catch (error) {}
     });
     function reopenRemembered() {
-        var title = null;
+        var path = null;
         try {
-            title = sessionStorage.getItem(storageKey);
+            path = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
             sessionStorage.removeItem(storageKey);
         } catch (error) {}
-        if (!title) return;
-        var match = Array.prototype.find.call(
-            document.querySelectorAll('details[data-folder-modal]'),
-            function (details) {
-                var el = details.querySelector('[data-folder-title]');
-                return el && el.textContent.trim() === title;
-            }
-        );
-        if (match) open(match);
+        if (typeof path === 'string') path = [path];
+        if (!Array.isArray(path)) return;
+        var scope = document;
+        path.forEach(function (title) {
+            if (!scope) return;
+            var match = Array.prototype.find.call(scope.querySelectorAll('details[data-folder-modal]'), function (details) {
+                return textOf(details, '[data-folder-title]') === title;
+            });
+            if (!match) { scope = null; return; }
+            open(match);
+            scope = stack[stack.length - 1].content;
+        });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', reopenRemembered);
     else reopenRemembered();
 
-    window.ktFolderModal = { open: open, close: close };
+    window.ktFolderModal = { open: open, close: close, back: back };
 })();
