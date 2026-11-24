@@ -134,3 +134,36 @@
     if (output) output.textContent = `${event.detail.label}: ${Number(event.detail.value).toLocaleString()}`;
   });
 })();
+
+// Analytics tabs stay on one line; when they don't fit, the bar scrolls sideways.
+// Fade the edge that has hidden tabs, let a normal mouse wheel scroll it, and keep the selected tab visible.
+(function initTabBarOverflow() {
+  const bar = document.querySelector('.aw-tabs');
+  if (!bar) return;
+  const update = () => {
+    const max = bar.scrollWidth - bar.clientWidth;
+    bar.classList.toggle('is-overflow-start', max > 1 && bar.scrollLeft > 1);
+    bar.classList.toggle('is-overflow-end', max > 1 && bar.scrollLeft < max - 1);
+  };
+  const revealSelected = () => {
+    const selected = bar.querySelector('[aria-selected="true"]');
+    if (!selected || bar.scrollWidth <= bar.clientWidth) return;
+    const left = selected.offsetLeft; // .aw-tabs is position:relative, so this is relative to the bar
+    const right = left + selected.offsetWidth;
+    if (left < bar.scrollLeft) bar.scrollLeft = left - 6;
+    else if (right > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = right - bar.clientWidth + 6;
+  };
+  bar.addEventListener('scroll', update, { passive: true });
+  bar.addEventListener('wheel', event => {
+    if (bar.scrollWidth <= bar.clientWidth || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+    event.preventDefault();
+    bar.scrollLeft += event.deltaY;
+  }, { passive: false });
+  bar.addEventListener('click', event => {
+    if (event.target.closest('.aw-tab')) requestAnimationFrame(revealSelected);
+  });
+  if (typeof ResizeObserver === 'function') new ResizeObserver(update).observe(bar);
+  else window.addEventListener('resize', update);
+  revealSelected();
+  update();
+})();

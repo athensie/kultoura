@@ -934,4 +934,4 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261121-community-feedback"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261124-tabs-oneline"></script>
