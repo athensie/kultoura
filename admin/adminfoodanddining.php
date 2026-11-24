@@ -226,7 +226,7 @@ sort($allCategories);
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../assets/css/adminfoodanddining.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-visits">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-folder-rows">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="../assets/css/kt-address-picker.css?v=20261101-3">

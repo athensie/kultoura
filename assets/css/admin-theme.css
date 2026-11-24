@@ -814,3 +814,34 @@
 :root .aw-stat-tile { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--ui-line); border-radius: 10px; background: var(--ui-surface-soft); }
 :root .aw-stat-tile strong { color: var(--ui-text); font: 700 1.45rem/1.1 var(--font-display); }
 :root .aw-stat-tile span { color: var(--ui-muted); font: 600 .74rem var(--font-ui); }
+
+/* ---------- Folder-style rows inside the review/report folder popup ---------- */
+:root .hierarchy-item { border: 1px solid var(--ui-line); border-radius: 12px; background: var(--ui-surface); box-shadow: var(--ui-shadow-sm); transition: border-color .2s, box-shadow .2s; }
+:root .hierarchy-item:hover { border-color: var(--ui-line-strong); box-shadow: var(--ui-shadow-md); }
+:root .hierarchy-item[open] { border-color: rgba(44, 122, 69, .35); }
+:root .hierarchy-item > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; color: var(--ui-text); }
+:root .hierarchy-item > summary:hover { background: transparent; }
+:root .hierarchy-item[open] > summary { border-bottom: 1px solid var(--ui-line); border-radius: 12px 12px 0 0; background: var(--ui-surface-soft); }
+:root .hi-folder-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--ui-accent-soft); color: var(--ui-accent); }
+:root .hi-folder-icon svg { width: 18px; height: 18px; }
+:root .hi-folder-icon .hi-open,
+:root .hierarchy-item[open] > summary .hi-closed { display: none; }
+:root .hierarchy-item[open] > summary .hi-open { display: grid; }
+:root .hi-closed { display: grid; }
+:root .hi-title { overflow: hidden; color: var(--ui-text); font: 600 .95rem/1.35 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+:root .hierarchy-item .hierarchy-summary-meta { color: var(--ui-muted); font: 500 .8rem var(--font-ui); white-space: nowrap; }
+:root .hi-stars { color: #87651F; font-weight: 600; }
+:root .hi-chevron { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--ui-muted); transition: transform .2s, background .2s; }
+:root .hi-chevron svg { width: 16px; height: 16px; }
+:root .hierarchy-item > summary:hover .hi-chevron { background: var(--ui-hover); color: var(--ui-text); }
+:root .hierarchy-item[open] > summary .hi-chevron { transform: rotate(180deg); color: var(--ui-accent); }
+:root .hierarchy-item > .hierarchy-review-list { padding: 12px; }
+:root .hierarchy-review-list .review-row { border-radius: 10px; }
+:root .review-row-head { font-size: .8rem; }
+:root .review-row p { font-size: .86rem; }
+@media (max-width: 560px) {
+  :root .hierarchy-item > summary { grid-template-columns: auto minmax(0, 1fr) auto; }
+  :root .hierarchy-item .hierarchy-summary-meta { grid-column: 2; grid-row: 2; }
+  :root .hi-chevron { grid-column: 3; grid-row: 1 / span 2; }
+  :root .hi-title { white-space: normal; }
+}
