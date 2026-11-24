@@ -133,7 +133,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminpeople.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-cards">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-roomy-axes">
     <link rel="stylesheet" href="../assets/css/admin-viewtoggle.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
 </head>

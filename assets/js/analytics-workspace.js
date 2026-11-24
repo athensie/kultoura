@@ -182,9 +182,70 @@
       const seriesName = context.dataset.label && context.dataset.label !== 'Records' ? context.dataset.label : 'Total';
       return `${seriesName}: ${formatted}`;
     };
+
+    // Date axes get a minimum width per label so they never look crowded. If the card is
+    // narrower than that, the chart scrolls sideways inside the card (starting at the latest data).
+    const minLabelSpacing = { month: 38, day: 28, hour: 28 }[axisMode];
+    const chartPlugins = [];
+    if (minLabelSpacing && !horizontal && !doughnut && !isScatter) {
+      // box (fixed) > scroller (scrolls sideways) > inner (as wide as the labels need) > canvas
+      // plus a pinned copy of the value axis drawn over the left edge while scrolling.
+      const box = canvas.parentElement;
+      const scroller = document.createElement('div');
+      scroller.className = 'aw-chart-scroll';
+      const inner = document.createElement('div');
+      inner.className = 'aw-chart-scroll-inner';
+      box.appendChild(scroller);
+      scroller.appendChild(inner);
+      inner.appendChild(canvas);
+      const pinnedAxis = document.createElement('canvas');
+      pinnedAxis.className = 'aw-pinned-axis';
+      pinnedAxis.setAttribute('aria-hidden', 'true');
+      pinnedAxis.hidden = true;
+      box.appendChild(pinnedAxis);
+      chartPlugins.push({
+        id: 'pinnedValueAxis',
+        afterRender(chart) {
+          if (!box.classList.contains('is-scrollable') || !chart.scales.y) { pinnedAxis.hidden = true; return; }
+          const ratio = chart.currentDevicePixelRatio || 1;
+          const width = Math.ceil(chart.scales.y.right + 4);
+          const height = Math.min(chart.height, Math.ceil(chart.scales.y.bottom + 6)); // stop above the month labels
+          pinnedAxis.width = Math.round(width * ratio);
+          pinnedAxis.height = Math.round(height * ratio);
+          pinnedAxis.style.width = `${width}px`;
+          pinnedAxis.style.height = `${height}px`;
+          const ctx = pinnedAxis.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, pinnedAxis.width, pinnedAxis.height);
+          ctx.drawImage(chart.canvas, 0, 0, pinnedAxis.width, pinnedAxis.height, 0, 0, pinnedAxis.width, pinnedAxis.height);
+          pinnedAxis.hidden = false;
+        }
+      });
+      const hint = document.createElement('p');
+      hint.className = 'aw-scroll-hint';
+      hint.hidden = true;
+      const unit = { month: 'months', day: 'days', hour: 'hours' }[axisMode];
+      hint.textContent = `Scroll the chart sideways to see earlier ${unit}. Showing the latest first.`;
+      box.insertAdjacentElement('afterend', hint);
+      const neededWidth = labelCount * minLabelSpacing + 64;
+      let wasScrollable = null;
+      const fitToBox = () => {
+        if (!box.clientWidth) return; // chart is on a hidden tab; re-run when it becomes visible
+        const scrollable = box.clientWidth < neededWidth;
+        if (!scrollable) pinnedAxis.hidden = true;
+        inner.style.width = scrollable ? `${neededWidth}px` : '100%';
+        box.classList.toggle('is-scrollable', scrollable);
+        hint.hidden = !scrollable;
+        if (scrollable && wasScrollable !== true) requestAnimationFrame(() => { scroller.scrollLeft = scroller.scrollWidth; });
+        wasScrollable = scrollable;
+      };
+      fitToBox();
+      if (typeof ResizeObserver === 'function') new ResizeObserver(fitToBox).observe(box);
+      else window.addEventListener('resize', fitToBox);
+    }
     new Chart(canvas, {
       type: chartType,
-      plugins: kind === 'gauge' ? [{ id: 'gaugeCenter', afterDraw(chart) { const { ctx, chartArea } = chart; if (!chartArea) return; ctx.save(); ctx.fillStyle = textColor; ctx.font = '700 20px "DM Sans"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${Number(series.values[0]).toFixed(1)} / 5`, (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 12); ctx.restore(); } }] : [],
+      plugins: kind === 'gauge' ? [{ id: 'gaugeCenter', afterDraw(chart) { const { ctx, chartArea } = chart; if (!chartArea) return; ctx.save(); ctx.fillStyle = textColor; ctx.font = '700 20px "DM Sans"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${Number(series.values[0]).toFixed(1)} / 5`, (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 12); ctx.restore(); } }] : chartPlugins,
       data: { labels: series.labels, datasets },
       options: {
         responsive: true,

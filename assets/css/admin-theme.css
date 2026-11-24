@@ -736,3 +736,13 @@
   :root .aw-card-canvas,
   :root .aw-card--wide .aw-card-canvas { height: 230px; }
 }
+
+/* ---------- Long date charts: room per label, scroll instead of squeezing ---------- */
+:root .aw-card-canvas:has(> .aw-chart-scroll) { position: relative; }
+:root .aw-chart-scroll { height: 100%; }
+:root .aw-card-canvas.is-scrollable > .aw-chart-scroll { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; }
+:root .aw-chart-scroll-inner { position: relative; height: 100%; min-width: 100%; }
+:root .aw-pinned-axis { position: absolute; top: 0; left: 0; pointer-events: none; box-shadow: 6px 0 8px -6px rgba(17, 30, 20, .18); }
+:root .aw-pinned-axis[hidden] { display: none; }
+:root .aw-scroll-hint { margin: -6px 0 0; color: var(--ui-muted); font-size: .76rem; }
+:root .aw-scroll-hint[hidden] { display: none; }
