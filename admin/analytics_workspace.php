@@ -338,10 +338,45 @@ foreach ($workspaceMetrics as $sectionKey => &$metrics) {
     }
 }
 unset($metrics);
-$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 0, 'title' => 'Published Tourism Content', 'value' => number_format((int) ($contentInventory['published'] ?? 0)), 'description' => 'Active listings across destinations, products, restaurants, fiestas, and people.'];
-$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 1, 'title' => 'Unpublished Tourism Content', 'value' => number_format((int) ($contentInventory['unpublished'] ?? 0)), 'description' => 'Non-active listings, excluding archived records.'];
-$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 2, 'title' => 'Archived Tourism Content', 'value' => number_format((int) ($contentInventory['archived'] ?? 0)), 'description' => 'Archived listings retained in the content records.'];
-$dashboardKpis[] = ['section' => 'content_inventory', 'index' => 3, 'title' => 'Updated Tourism Content', 'value' => $contentInventory['updated'] === null ? 'Not tracked' : number_format((int) $contentInventory['updated']), 'description' => $contentInventory['updated'] === null ? 'Edit timestamps are not stored for these content records.' : 'Listings updated during ' . ($periodLabels[$period] ?? 'selected period') . '.'];
+// Headline KPIs beside "Total Destination Views": traffic, top destination, satisfaction and demand,
+// all for the selected period and all from recorded data.
+$kpiPeriodStart = new DateTimeImmutable($periodStartSql);
+$kpiPeriodEnd = new DateTimeImmutable($periodEndExclusiveSql);
+$kpiSiteVisits = analytics_total_views($conn, $periodStartSql, $periodEndExclusiveSql);
+$kpiVisitsChange = null;
+if ($period !== 'all') {
+    $kpiPeriodDays = max(1, (int) $kpiPeriodStart->diff($kpiPeriodEnd)->days);
+    $kpiPreviousStartSql = $kpiPeriodStart->modify('-' . $kpiPeriodDays . ' days')->format('Y-m-d H:i:s');
+    $kpiPreviousVisits = analytics_total_views($conn, $kpiPreviousStartSql, $periodStartSql);
+    if ($kpiPreviousVisits > 0) $kpiVisitsChange = (($kpiSiteVisits - $kpiPreviousVisits) / $kpiPreviousVisits) * 100;
+}
+$kpiVisitsDescription = $kpiVisitsChange === null
+    ? 'Page views across the whole site in the selected period.'
+    : sprintf('%s%s%% vs the previous %s (%s visits).', $kpiVisitsChange >= 0 ? '+' : '', number_format($kpiVisitsChange, abs($kpiVisitsChange) < 10 ? 1 : 0), ($kpiPeriodDays ?? 0) === 1 ? 'day' : ($kpiPeriodDays . ' days'), number_format($kpiPreviousVisits));
+$kpiTopDestination = null;
+foreach ($destinationRows as $destinationRow) { if (($destinationRow['views'] ?? 0) > 0) { $kpiTopDestination = $destinationRow; break; } }
+$kpiRatingCount = 0; $kpiRatingAverage = 0.0;
+$kpiRatingStmt = $conn->prepare("SELECT COUNT(*) total, COALESCE(AVG(rating),0) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND created_at >= ? AND created_at < ?");
+if ($kpiRatingStmt) {
+    $kpiRatingStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
+    $kpiRatingStmt->execute();
+    $kpiRatingRow = $kpiRatingStmt->get_result()->fetch_assoc();
+    $kpiRatingCount = (int) ($kpiRatingRow['total'] ?? 0);
+    $kpiRatingAverage = (float) ($kpiRatingRow['average_rating'] ?? 0);
+    $kpiRatingStmt->close();
+}
+$kpiSearchCount = 0;
+$kpiSearchStmt = $conn->prepare('SELECT COUNT(*) total FROM search_log WHERE searched_at >= ? AND searched_at < ?');
+if ($kpiSearchStmt) {
+    $kpiSearchStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
+    $kpiSearchStmt->execute();
+    $kpiSearchCount = (int) ($kpiSearchStmt->get_result()->fetch_assoc()['total'] ?? 0);
+    $kpiSearchStmt->close();
+}
+$dashboardKpis[] = ['section' => 'headline', 'index' => 0, 'title' => 'Total Site Visits', 'value' => number_format($kpiSiteVisits), 'description' => $kpiVisitsDescription, 'trend' => $kpiVisitsChange === null ? null : ($kpiVisitsChange >= 0 ? 'up' : 'down')];
+$dashboardKpis[] = ['section' => 'headline', 'index' => 1, 'title' => 'Top Destination', 'value' => $kpiTopDestination ? (string) $kpiTopDestination['name'] : 'No views yet', 'value_is_text' => true, 'description' => $kpiTopDestination ? number_format((int) $kpiTopDestination['views']) . ' views · ' . ($kpiTopDestination['category_label'] ?? 'Destination') : 'No destination detail views were recorded in the selected period.'];
+$dashboardKpis[] = ['section' => 'headline', 'index' => 2, 'title' => 'Average Visitor Rating', 'value' => $kpiRatingCount ? number_format($kpiRatingAverage, 1) . ' / 5' : 'No reviews', 'value_is_text' => !$kpiRatingCount, 'description' => $kpiRatingCount ? 'From ' . number_format($kpiRatingCount) . ' review' . ($kpiRatingCount === 1 ? '' : 's') . ' posted in the selected period.' : 'No visitor reviews were posted in the selected period.'];
+$dashboardKpis[] = ['section' => 'headline', 'index' => 3, 'title' => 'Visitor Searches', 'value' => number_format($kpiSearchCount), 'description' => $kpiSearchCount ? number_format($zeroResultSearchTotal) . ' returned no results' . ($zeroResultSearchTotal ? ' — possible content gaps to fill.' : '.') : 'No site searches were recorded in the selected period.'];
 $aiCardFacts = [];
 $aiCardFallbacks = [];
 $aiCardSuggestionFallbacks = [];
@@ -880,7 +915,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php if ($dashboardKpis): ?>
     <section class="aw-kpi-grid" aria-label="Key performance indicators">
         <?php foreach ($dashboardKpis as $kpi): $kpiId = $kpi['section'] . '_' . $kpi['index']; ?>
-        <article class="aw-kpi-card"><h2><?php echo htmlspecialchars($kpi['title']); ?></h2><strong><?php echo htmlspecialchars($kpi['value']); ?></strong><p><?php echo htmlspecialchars($kpi['description'] ?? $aiCardInterpretations[$kpiId] ?? 'Selected period · actual records'); ?></p></article>
+        <article class="aw-kpi-card"><h2><?php echo htmlspecialchars($kpi['title']); ?></h2><strong<?php echo !empty($kpi['value_is_text']) ? ' class="aw-kpi-text" title="' . htmlspecialchars($kpi['value']) . '"' : ''; ?>><?php echo htmlspecialchars($kpi['value']); ?></strong><p<?php echo !empty($kpi['trend']) ? ' class="aw-kpi-trend is-' . $kpi['trend'] . '"' : ''; ?>><?php echo htmlspecialchars($kpi['description'] ?? $aiCardInterpretations[$kpiId] ?? 'Selected period · actual records'); ?></p></article>
         <?php endforeach; ?>
     </section>
     <?php endif; ?>

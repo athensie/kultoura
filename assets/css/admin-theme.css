@@ -746,3 +746,19 @@
 :root .aw-pinned-axis[hidden] { display: none; }
 :root .aw-scroll-hint { margin: -6px 0 0; color: var(--ui-muted); font-size: .76rem; }
 :root .aw-scroll-hint[hidden] { display: none; }
+
+/* ---------- Headline KPI row: five cards, text values, trend ---------- */
+:root .aw-kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+:root .aw-kpi-card { padding: 16px 18px; border-radius: 12px; }
+:root .aw-kpi-card strong.aw-kpi-text {
+  overflow: hidden; font-size: clamp(1.1rem, 1.5vw, 1.35rem); line-height: 1.35;
+  white-space: nowrap; text-overflow: ellipsis; padding: 6px 0 3px;
+}
+:root .aw-kpi-card p { font-size: .76rem; line-height: 1.45; }
+:root .aw-kpi-trend.is-up { color: #23683A; font-weight: 600; }
+:root .aw-kpi-trend.is-down { color: #A22F2F; font-weight: 600; }
+:root .aw-kpi-trend.is-up::before { content: '\25B2  '; font-size: .7em; }
+:root .aw-kpi-trend.is-down::before { content: '\25BC  '; font-size: .7em; }
+@media (max-width: 1200px) { :root .aw-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { :root .aw-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+@media (max-width: 420px) { :root .aw-kpi-grid { grid-template-columns: 1fr; } }

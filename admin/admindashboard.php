@@ -146,43 +146,6 @@ foreach ($tourismCatalogQueries as $key => $sql) {
         $tourismCatalogCounts[$key] = (int) ($res->fetch_assoc()['c'] ?? 0);
     }
 }
-$contentInventory = ['published' => 0, 'unpublished' => 0, 'archived' => 0, 'total' => 0, 'updated' => null];
-$contentTables = [
-    'destination' => null,
-    'products' => null,
-    'restaurants' => null,
-    'fiestas' => null,
-    'people' => null,
-];
-$updatedContentCount = 0;
-$hasTrackedUpdatedAt = false;
-foreach ($contentTables as $table => $_unused) {
-    $statusColumn = $conn->query("SHOW COLUMNS FROM `{$table}` LIKE 'status'");
-    if (!$statusColumn || $statusColumn->num_rows === 0) continue;
-    $statusCounts = $conn->query("SELECT status, COUNT(*) total FROM `{$table}` GROUP BY status");
-    if ($statusCounts) {
-        while ($statusRow = $statusCounts->fetch_assoc()) {
-            $statusName = strtolower((string) ($statusRow['status'] ?? ''));
-            $count = (int) ($statusRow['total'] ?? 0);
-            $contentInventory['total'] += $count;
-            if ($statusName === 'active') $contentInventory['published'] += $count;
-            elseif ($statusName === 'archived') $contentInventory['archived'] += $count;
-            else $contentInventory['unpublished'] += $count;
-        }
-    }
-    $updatedColumn = $conn->query("SHOW COLUMNS FROM `{$table}` LIKE 'updated_at'");
-    if ($updatedColumn && $updatedColumn->num_rows > 0) {
-        $hasTrackedUpdatedAt = true;
-        $updatedStmt = $conn->prepare("SELECT COUNT(*) total FROM `{$table}` WHERE updated_at >= ? AND updated_at < ?");
-        if ($updatedStmt) {
-            $updatedStmt->bind_param('ss', $periodStartSql, $periodEndExclusiveSql);
-            $updatedStmt->execute();
-            $updatedContentCount += (int) ($updatedStmt->get_result()->fetch_assoc()['total'] ?? 0);
-            $updatedStmt->close();
-        }
-    }
-}
-if ($hasTrackedUpdatedAt) $contentInventory['updated'] = $updatedContentCount;
 $tourismCategoryDefinitions = [
     'product' => ['label' => 'Products of Malvar', 'type' => 'product'],
     'nature' => ['label' => 'Nature', 'type' => 'nature'],
@@ -397,7 +360,7 @@ if ($period === 'all') {
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="../assets/css/admindashboard.css?v=20261121-community-feedback">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-roomy-axes">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-headline-kpis">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
