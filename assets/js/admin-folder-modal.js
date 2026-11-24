@@ -67,12 +67,13 @@
         var top = stack[stack.length - 1];
         if (!top) return;
         top.query = searchInput.value;
-        var words = normalize(searchInput.value).split(' ').filter(Boolean);
+        // Names that START with what was typed ("a" → names beginning with A).
+        var query = normalize(searchInput.value);
+        var words = query ? [query] : [];
         var items = searchableItems(top.content);
         var shown = 0;
         items.forEach(function (item) {
-            var text = itemText(item);
-            var match = words.every(function (word) { return text.indexOf(word) !== -1; });
+            var match = !query || itemText(item).indexOf(query) === 0;
             item.classList.toggle('is-search-hidden', !match);
             if (match) shown++;
         });

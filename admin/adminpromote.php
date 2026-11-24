@@ -165,7 +165,7 @@ $candidateGroups = kt_promotion_candidates($conn);
 </div>
 </main>
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
-<script src="../assets/js/admin-folder-modal.js?v=20261124-search"></script>
+<script src="../assets/js/admin-folder-modal.js?v=20261124-prefix"></script>
 <script src="../assets/js/adminpromote.js?v=20261102-1"></script>
 <script>
 function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle('open'); }
