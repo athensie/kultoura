@@ -105,21 +105,55 @@
     // Let end points and peaks draw into the padding instead of being clipped at the plot edge.
     if (chartType === 'line') datasets.forEach(dataset => { dataset.clip = 8; });
 
-    // Axis labels: short axes (weekdays, months) show every label; long axes show evenly spaced
-    // labels that always include the last one. Long names are shortened on the axis only.
-    const labelCount = (series.labels || []).length;
+    // Axis labels: every point gets a label. Dates use compact two-line labels so they fit:
+    //   months "Jan 2025" -> "Jan" with the year underneath only where the year changes,
+    //   days   "Nov 1"    -> "1"   with the month underneath on the 1st (and the first label),
+    //   hours  "1 AM"     -> "1"   with AM/PM underneath where it changes.
+    // Daily ranges longer than ~45 days label each week's first day (tooltips still show every day).
+    // Other text labels are shortened on the axis and tilt if they still don't fit.
+    const axisLabels = (series.labels || []).map(label => String(label ?? ''));
+    const labelCount = axisLabels.length;
     const shorten = (text, max) => { const value = String(text ?? ''); return value.length > max ? `${value.slice(0, max - 1)}…` : value; };
-    const labelStep = labelCount > 12 ? Math.ceil(labelCount / 8) : 1;
+    const monthPattern = /^([A-Z][a-z]{2}) (\d{4})$/;
+    const dayPattern = /^([A-Z][a-z]{2}) (\d{1,2})$/;
+    const hourPattern = /^(\d{1,2}) (AM|PM)$/;
+    const everyLabelMatches = pattern => labelCount > 0 && axisLabels.every(label => pattern.test(label));
+    const axisMode = everyLabelMatches(monthPattern) ? 'month' : (everyLabelMatches(dayPattern) ? 'day' : (everyLabelMatches(hourPattern) ? 'hour' : 'text'));
+    // spacing = pixels available per point; date labels adapt to it instead of tilting.
+    const axisLabel = (index, maxChars, spacing) => {
+      const text = axisLabels[index] ?? '';
+      if (axisMode === 'month') {
+        // Top line must fit beside its neighbours; the year line is sparse so it can be wider.
+        const step = spacing >= 9 ? 1 : Math.ceil(9 / spacing);
+        if (step > 1 && index % step !== 0 && index !== labelCount - 1) return null;
+        const [, month, year] = text.match(monthPattern);
+        const previous = index >= step ? axisLabels[index - step].match(monthPattern) : null;
+        const showYear = !previous || previous[2] !== year;
+        return [spacing >= 20 ? month : month.charAt(0), showYear ? year : ''];
+      }
+      if (axisMode === 'day') {
+        const step = spacing >= 16 ? 1 : (spacing >= 6.5 ? 2 : 7);
+        if (step > 1 && index % step !== 0) return null;
+        const [, month, day] = text.match(dayPattern);
+        const previous = index >= step ? axisLabels[index - step].match(dayPattern) : null;
+        return [day, !previous || previous[1] !== month ? month : ''];
+      }
+      if (axisMode === 'hour') {
+        const step = spacing >= 15 ? 1 : (spacing >= 8 ? 2 : 3);
+        if (step > 1 && index % step !== 0) return null;
+        const [, hour, meridiem] = text.match(hourPattern);
+        const previous = index >= step ? axisLabels[index - step].match(hourPattern) : null;
+        return [hour, !previous || previous[2] !== meridiem ? meridiem : ''];
+      }
+      return shorten(text, maxChars);
+    };
     const categoryTicks = maxChars => ({
-      color: mutedColor, maxRotation: 0, font: { size: 11 },
-      autoSkip: labelStep === 1, autoSkipPadding: 10,
+      color: mutedColor, font: { size: 11 }, autoSkip: false, minRotation: 0, padding: 4,
+      maxRotation: axisMode === 'text' ? 40 : 0,
       callback(value, index) {
-        if (labelStep > 1) {
-          const isLast = index === labelCount - 1;
-          const tooCloseToLast = labelCount - 1 - index < Math.ceil(labelStep / 2);
-          if (!isLast && (index % labelStep !== 0 || tooCloseToLast)) return null;
-        }
-        return shorten(this.getLabelForValue(value), maxChars);
+        // Measure the chart box (re-read on every resize); subtract room for the value axis.
+        const plotWidth = Math.max(120, (canvas.parentElement?.clientWidth || this.width || 600) - 60);
+        return axisLabel(index, maxChars, plotWidth / Math.max(1, labelCount));
       }
     });
     const valueTicks = { color: mutedColor, precision: 0, maxTicksLimit: 6, font: { size: 11 }, callback: value => Number(value).toLocaleString() };
