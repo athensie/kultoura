@@ -282,3 +282,5 @@
 .m-trend { display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 6px; padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .2px; cursor: help; }
 .m-trend--trending { background: #fdeee6; color: #a33a12; border: 1px solid #f3c6ae; }
 .m-trend--rising { background: #eaf4ec; color: #23683a; border: 1px solid #c4dfc9; }
+
+.m-rank-tie { font-size: .7em; font-weight: 600; opacity: .85; }

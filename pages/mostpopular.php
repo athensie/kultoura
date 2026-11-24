@@ -81,14 +81,20 @@ $destinationPageByCategory = [
     'church'        => 'churches.php',
 ];
 $popularItems = [];
+// Competition ranking: equal score AND equal comment sentiment share a rank (1, 2, 2, 4).
 $rank = 0;
+$position = 0;
+$previousRankKey = null;
 foreach ($popularRows as $r) {
     $type = $r['type'];
     $id   = (int) $r['id'];
     if (!isset($typeMap[$type]) || !isset($itemDetails[$type][$id])) {
         continue;
     }
-    $rank++;
+    $position++;
+    $rankKey = (string) ($r['rank_key'] ?? $position);
+    if ($rankKey !== $previousRankKey) $rank = $position;
+    $previousRankKey = $rankKey;
     $map  = $typeMap[$type];
     $item = $itemDetails[$type][$id];
     $viewPage = match ($type) {
@@ -111,6 +117,9 @@ foreach ($popularRows as $r) {
     }
     $popularItems[] = [
         'rank'      => $rank,
+        'rank_key'  => $rankKey,
+        'rank_score' => (float) ($r['rank_score'] ?? 0),
+        'comment_count' => (int) ($r['comment_count'] ?? 0),
         'type'      => $type,
         'typeLabel' => $typeLabels[$type],
         'id'        => $id,
@@ -146,7 +155,7 @@ foreach ($popularItems as $p) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
-    <link rel="stylesheet" href="../assets/css/mostpopular.css?v=20261124-trend">
+    <link rel="stylesheet" href="../assets/css/mostpopular.css?v=20261124-ranks">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -278,11 +287,16 @@ foreach ($popularItems as $p) {
                 </div>
             <?php else: ?>
                 <div class="m-grid" id="popGrid">
-                    <?php foreach ($popularItems as $p):
+                    <?php $rankKeyCounts = array_count_values(array_column($popularItems, 'rank_key'));
+                    foreach ($popularItems as $p):
                         $rankClass = $p['rank'] <= 3 ? ' m-rank-top' : '';
+                        $isTie = ($rankKeyCounts[$p['rank_key']] ?? 0) > 1;
+                        $rankTitle = 'Popularity score ' . number_format($p['rank_score'], 1)
+                            . ($p['comment_count'] ? ' · comment sentiment ' . sprintf('%+.2f', $p['sentiment']) . ' from ' . $p['comment_count'] . ' comment' . ($p['comment_count'] === 1 ? '' : 's') : ' · no comments yet')
+                            . ($isTie ? ' · tied: same score and comment sentiment' : '');
                     ?>
                         <div class="m-card" data-type="<?php echo htmlspecialchars($p['type']); ?>">
-                            <div class="m-rank<?php echo $rankClass; ?>">#<?php echo (int) $p['rank']; ?></div>
+                            <div class="m-rank<?php echo $rankClass; ?>" title="<?php echo htmlspecialchars($rankTitle); ?>">#<?php echo (int) $p['rank']; ?><?php if ($isTie): ?><span class="m-rank-tie"> · tie</span><?php endif; ?></div>
                             <?php if (!empty($p['image'])): ?>
                                 <div class="m-card-media">
                                     <img src="<?php echo htmlspecialchars($p['image']); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy">
