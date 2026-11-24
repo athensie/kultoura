@@ -243,6 +243,7 @@ while ($dateRow = $dateRows->fetch_assoc()) {
                 <a href="#" class="nav-item nav-active"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></span><span>MORE ▾</span></a>
                 <div class="mega-menu mega-menu-simple"><div class="mega-column"><a href="foryou.php">For You</a><a href="traveldiary.php">Travel Diary</a><a href="profile.php" class="nav-active">My Profile</a><a href="favorites.php">Favorites</a><a href="mostpopular.php">Most Popular</a><a href="about.php">About</a></div></div>
             </div>
+            <?php if (in_array(strtolower((string) ($_SESSION['role'] ?? '')), ['admin', 'super admin'], true)): ?><a href="../admin/admindashboard.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><span>ADMIN</span></a><?php endif; ?>
             <a href="../auth/logout.php" class="nav-item nav-signout-item"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></span><span>SIGN OUT</span></a>
         </nav>
         <div class="navbar-search" data-api="search_api.php" data-results="search.php">
