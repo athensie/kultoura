@@ -39,7 +39,39 @@ $ratingLabels = ['1 star', '2 stars', '3 stars', '4 stars', '5 stars'];
 $ratingValues = array_values($ratingDistribution);
 $cultureRatingDistribution = array_fill(1,5,0);
 foreach (['product','fiesta','person'] as $cultureType) foreach (($categoryRatingDistribution[$cultureType] ?? []) as $rating=>$count) $cultureRatingDistribution[(int)$rating] += (int)$count;
-$weekdayChart = ['labels' => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], 'values' => array_values($weekdayCounts)];
+// Actual calendar range the charts cover (shown in the section header and on weekday totals).
+$rangeFirstDay = new DateTimeImmutable($periodStart->format('Y-m-d'));
+$rangeLastDay = $periodEndExclusive->modify('-1 day');
+if ($rangeLastDay > new DateTimeImmutable('today')) $rangeLastDay = new DateTimeImmutable('today');
+if ($period === 'all') {
+    $firstVisitResult = $conn->query("SELECT MIN(DATE(viewed_at)) first_day FROM page_views WHERE (referrer_host IS NULL OR referrer_host <> 'demo-seed.kultoura.local')");
+    $firstVisitDay = $firstVisitResult ? ($firstVisitResult->fetch_assoc()['first_day'] ?? null) : null;
+    if ($firstVisitDay) $rangeFirstDay = new DateTimeImmutable($firstVisitDay);
+}
+$rangeHasDates = (int) $rangeFirstDay->format('Y') >= 2000 && $rangeFirstDay <= $rangeLastDay;
+$rangeLabel = '';
+if ($rangeHasDates) {
+    if ($rangeFirstDay->format('Y-m-d') === $rangeLastDay->format('Y-m-d')) $rangeLabel = $rangeLastDay->format('M j, Y');
+    elseif ($rangeFirstDay->format('Y') === $rangeLastDay->format('Y')) $rangeLabel = $rangeFirstDay->format('M j') . ' – ' . $rangeLastDay->format('M j, Y');
+    else $rangeLabel = $rangeFirstDay->format('M j, Y') . ' – ' . $rangeLastDay->format('M j, Y');
+}
+// How many Sundays, Mondays, ... fall inside the range, so weekday totals can be read as "across N Saturdays".
+$weekdayOccurrences = array_fill(0, 7, 0);
+if ($rangeHasDates) {
+    $rangeDayCount = (int) $rangeFirstDay->diff($rangeLastDay)->days + 1;
+    $rangeFirstWeekday = (int) $rangeFirstDay->format('w');
+    for ($weekdayIndex = 0; $weekdayIndex < 7; $weekdayIndex++) {
+        $weekdayOccurrences[$weekdayIndex] = intdiv($rangeDayCount, 7) + ((($weekdayIndex - $rangeFirstWeekday + 7) % 7) < ($rangeDayCount % 7) ? 1 : 0);
+    }
+}
+$weekdayChart = [
+    'labels' => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], 'values' => array_values($weekdayCounts),
+    'fullLabels' => ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    'occurrences' => $rangeHasDates ? $weekdayOccurrences : null,
+];
+$weekdayNote = $rangeHasDates
+    ? 'Total visits for each weekday, ' . $rangeLabel . '. Each bar adds up every matching day in that range (e.g. all Saturdays), not a single week. Hover a bar to see how many days it covers.'
+    : 'Total visits on each day of the week in the selected period. Each bar adds up every matching day, not one single week.';
 $pageLabels = array_map(static fn($row) => $row['label'], $topPages);
 $trafficSources = analytics_traffic_sources($conn, $periodStartSql, 6, $periodEndExclusiveSql);
 $pageValues = array_map(static fn($row) => $row['views'], $topPages);
@@ -259,7 +291,7 @@ $initialWorkspaceTab = isset($_GET['review_tab']) ? 'community' : 'traffic';
 $workspaceMetrics = [
     'traffic' => [
         ['Visits per Hour', 'heatmap', 'heatmapViews', 'Page views grouped by weekday and hour.'],
-        [$visitsMetricTitle, 'line', 'daily', $visitsMetricNote], ['Visits per Week', 'bar', 'weekday', 'Visits grouped by weekday for the selected period.'],
+        [$visitsMetricTitle, 'line', 'daily', $visitsMetricNote], ['Visits by Day of Week', 'bar', 'weekday', $weekdayNote],
         ['Visits per Month', 'area', 'monthlyVisits', 'Monthly page views in the selected period.'], ['Visits per Year', 'line', 'yearlyVisits', 'Annual page views in the selected period.'],
         ['Top Pages', 'rank', 'pages', 'Page view counts from recorded visits.'], ['Traffic Sources', 'donut', 'sources', 'Referrer host recorded with each page view.'],
         ['Visitor Engagement Trends', 'line', 'engagementMonthly', 'Recorded user activity events grouped by month.'],
@@ -909,7 +941,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <script type="application/json" id="aw-chart-data"><?php echo $chartDataJson; ?></script>
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
     <section class="aw-section <?php echo $sectionKey === $initialWorkspaceTab ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === $initialWorkspaceTab ? '' : 'hidden'; ?>>
-        <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?> · Based on recorded data</p></div>
+        <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?><?php if ($rangeLabel !== '' && $period !== 'custom'): ?> <span class="aw-range">(<?php echo htmlspecialchars($rangeLabel); ?>)</span><?php endif; ?> · Based on recorded data</p></div>
         <?php if ($sectionKey === 'community'): include __DIR__ . '/reviews_admin_panel.php'; else: ?>
         <div class="aw-grid">
             <?php foreach ($metrics as $metricIndex => [$title,$kind,$dataKey,$note]): if ($kind === 'kpi') continue; $cardId = $sectionKey . '_' . $metricIndex; $payload = $dataKey ? ($chartData[$dataKey] ?? ['labels'=>[],'values'=>[]]) : ['labels'=>[],'values'=>[]]; $isHeatmap = $kind === 'heatmap'; $isMap = $kind === 'map'; $isCalendar=$kind === 'calendar'; $hasData = $isHeatmap ? (is_array($payload) && array_sum(array_map('array_sum', $payload)) > 0) : ($isMap ? !empty($payload) : ($isCalendar ? (!empty($payload) && array_sum(array_column($payload,'value'))>0) : (!empty($payload['labels']) && !empty($payload['values']) && array_sum(array_map('floatval',$payload['values'])) > 0))); $mapId='aw-map-'.$sectionKey.'-'.substr(sha1($title),0,7); $cardWide=$isHeatmap || $isMap || $kind === 'wordcloud' || $kind === 'rank' || $kind === 'rank-low'; ?>
@@ -934,4 +966,4 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php endforeach; ?>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../assets/js/analytics-workspace.js?v=20261124-tabs-oneline"></script>
+<script src="../assets/js/analytics-workspace.js?v=20261124-charts"></script>

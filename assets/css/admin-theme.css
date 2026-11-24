@@ -693,3 +693,46 @@
 :root .sidebar { overflow-x: hidden; }
 :root .sidebar-collapse-btn { right: 12px; top: 30px; }
 :root .sidebar.collapsed .sidebar-collapse-btn { position: static; margin: 18px auto 6px; }
+
+/* ---------- Analytics cards: roomier layout ----------
+   Two cards per row (wide charts take a full row), more padding, taller charts,
+   description under the title, interpretation + suggestion merged into one panel. */
+:root .aw-section-head { margin-bottom: 18px; }
+:root .aw-section-head p { font-size: .8rem; }
+:root .aw-range { color: var(--ui-text-2); font-weight: 600; }
+:root .aw-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
+:root .aw-card { grid-column: span 6; display: flex; flex-direction: column; gap: 14px; min-height: 0; padding: 0 22px 20px; border: 1px solid var(--ui-line); border-radius: 14px; background: var(--ui-surface); box-shadow: var(--ui-shadow-sm); }
+:root .aw-card--wide { grid-column: span 12; }
+:root .aw-card > * { order: 2; }
+:root .aw-card > h3 { order: 0; margin: 0 -22px; padding: 16px 22px 14px; font: 600 1rem/1.3 var(--font-ui); }
+:root .aw-card > h3::after { left: 22px; width: 56px; }
+:root .aw-card > .aw-kpi-note { order: 1; margin: -2px 0 0; color: var(--ui-muted); font: .82rem/1.5 var(--font-ui); }
+:root .aw-card-canvas { height: 260px; }
+:root .aw-card--wide .aw-card-canvas { height: 290px; }
+:root .aw-leaflet-map { height: 300px; border-radius: 10px; }
+:root .aw-drilldown { margin: 0; font-size: .8rem; }
+:root .aw-drilldown:empty { margin-top: -14px; min-height: 0; }
+:root .aw-card-empty { min-height: 220px; }
+
+/* Interpretation + suggestion: one calm panel pinned to the bottom of the card */
+:root .aw-card > .aw-card-insight {
+  order: 3; gap: 5px; margin: auto 0 0; padding: 12px 14px;
+  border: 1px solid var(--ui-line); border-bottom: 0; border-radius: 10px 10px 0 0; background: var(--ui-surface-soft);
+}
+:root .aw-card > .aw-card-insight.aw-card-suggestion { order: 4; margin-top: -14px; border-bottom: 1px solid var(--ui-line); border-top: 1px dashed var(--ui-line-strong); border-radius: 0 0 10px 10px; }
+:root .aw-card-insight strong { display: flex; align-items: center; gap: 6px; color: var(--ui-accent); font: 600 .76rem var(--font-ui); }
+:root .aw-card-suggestion strong { color: #87651F; }
+:root .aw-card-insight p { color: var(--ui-text-2); font: .82rem/1.5 var(--font-ui); }
+
+@media (max-width: 980px) {
+  :root .aw-card,
+  :root .aw-card--wide { grid-column: span 12; }
+}
+@media (max-width: 640px) {
+  :root .aw-grid { gap: 14px; }
+  :root .aw-card { padding: 0 16px 16px; }
+  :root .aw-card > h3 { margin: 0 -16px; padding: 14px 16px 12px; }
+  :root .aw-card > h3::after { left: 16px; }
+  :root .aw-card-canvas,
+  :root .aw-card--wide .aw-card-canvas { height: 230px; }
+}

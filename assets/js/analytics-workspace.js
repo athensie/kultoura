@@ -71,6 +71,8 @@
   initMaps(document.querySelector('.aw-section.is-active'));
   if (typeof Chart === 'undefined') return;
 
+  Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+  Chart.defaults.plugins.tooltip.displayColors = false;
   const workspaceStyle = getComputedStyle(document.querySelector('.analytics-workspace'));
   const textColor = workspaceStyle.getPropertyValue('--aw-chart-text').trim() || '#34443a';
   const mutedColor = workspaceStyle.getPropertyValue('--aw-muted').trim() || '#66746a';
@@ -100,6 +102,52 @@
     }];
     if (Array.isArray(series.datasets)) datasets.splice(0, datasets.length, ...series.datasets.map(dataset => ({ ...dataset, borderWidth: 0, borderRadius: 3 })));
     if (chartType === 'scatter') { datasets[0].pointRadius = 5; datasets[0].pointHoverRadius = 7; datasets[0].backgroundColor = '#2c4a2e'; }
+    // Let end points and peaks draw into the padding instead of being clipped at the plot edge.
+    if (chartType === 'line') datasets.forEach(dataset => { dataset.clip = 8; });
+
+    // Axis labels: short axes (weekdays, months) show every label; long axes show evenly spaced
+    // labels that always include the last one. Long names are shortened on the axis only.
+    const labelCount = (series.labels || []).length;
+    const shorten = (text, max) => { const value = String(text ?? ''); return value.length > max ? `${value.slice(0, max - 1)}…` : value; };
+    const labelStep = labelCount > 12 ? Math.ceil(labelCount / 8) : 1;
+    const categoryTicks = maxChars => ({
+      color: mutedColor, maxRotation: 0, font: { size: 11 },
+      autoSkip: labelStep === 1, autoSkipPadding: 10,
+      callback(value, index) {
+        if (labelStep > 1) {
+          const isLast = index === labelCount - 1;
+          const tooCloseToLast = labelCount - 1 - index < Math.ceil(labelStep / 2);
+          if (!isLast && (index % labelStep !== 0 || tooCloseToLast)) return null;
+        }
+        return shorten(this.getLabelForValue(value), maxChars);
+      }
+    });
+    const valueTicks = { color: mutedColor, precision: 0, maxTicksLimit: 6, font: { size: 11 }, callback: value => Number(value).toLocaleString() };
+    const isScatter = chartType === 'scatter';
+    const xAxisTicks = horizontal || isScatter ? { ...valueTicks, maxTicksLimit: horizontal ? 7 : 6 } : categoryTicks(labelCount > 7 ? 12 : 16);
+    const yAxisTicks = horizontal ? { ...categoryTicks(26), autoSkip: false } : valueTicks;
+
+    // Tooltips: full names, formatted numbers; weekday totals explain how many days they cover.
+    const fullLabel = index => (series.fullLabels && series.fullLabels[index]) || series.labels[index];
+    const tooltipLabel = context => {
+      if (isScatter) {
+        return canvas.dataset.awKey === 'cultureComments'
+          ? `${context.raw.label}: ${context.raw.x} views, ${context.raw.y} comments`
+          : `${context.raw.label}: ${context.raw.x} views, ${context.raw.y} / 5`;
+      }
+      const raw = context.parsed.x ?? context.parsed.y ?? context.parsed;
+      const value = horizontal ? context.parsed.x : (doughnut ? context.parsed : context.parsed.y);
+      const number = Number(value ?? raw);
+      const formatted = Number.isFinite(number) ? number.toLocaleString() : String(raw);
+      const occurrences = series.occurrences && series.occurrences[context.dataIndex];
+      if (occurrences) {
+        const day = fullLabel(context.dataIndex);
+        const average = Math.round(number / occurrences).toLocaleString();
+        return [`${formatted} visits across ${occurrences} ${day}${occurrences === 1 ? '' : 's'}`, `Average ${average} per ${day}`];
+      }
+      const seriesName = context.dataset.label && context.dataset.label !== 'Records' ? context.dataset.label : 'Total';
+      return `${seriesName}: ${formatted}`;
+    };
     new Chart(canvas, {
       type: chartType,
       plugins: kind === 'gauge' ? [{ id: 'gaugeCenter', afterDraw(chart) { const { ctx, chartArea } = chart; if (!chartArea) return; ctx.save(); ctx.fillStyle = textColor; ctx.font = '700 20px "DM Sans"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${Number(series.values[0]).toFixed(1)} / 5`, (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 12); ctx.restore(); } }] : [],
@@ -116,14 +164,15 @@
         },
         plugins: {
           legend: { display: (doughnut && kind !== 'gauge') || kind === 'stacked', position: 'bottom', labels: { color: textColor, boxWidth: 10, padding: 12, font: { family: 'DM Sans', size: 11 } } },
-          tooltip: { enabled: true, callbacks: { label: context => chartType === 'scatter' ? (canvas.dataset.awKey === 'cultureComments' ? `${context.raw.label}: ${context.raw.x} views, ${context.raw.y} comments` : `${context.raw.label}: ${context.raw.x} views, ${context.raw.y} / 5`) : `${context.label}: ${context.parsed.x ?? context.parsed.y ?? context.parsed}` } }
+          tooltip: { enabled: true, padding: 10, callbacks: { title: items => (isScatter || !items.length ? '' : fullLabel(items[0].dataIndex)), label: tooltipLabel } }
         },
+        layout: { padding: doughnut ? 4 : { top: 12, right: 16, bottom: 0, left: 4 } },
         cutout: kind === 'gauge' ? '78%' : '62%',
         rotation: kind === 'gauge' ? 180 : undefined,
         circumference: kind === 'gauge' ? 180 : undefined,
         scales: doughnut ? {} : {
-          x: { beginAtZero: true, stacked: kind === 'stacked', grid: { display: horizontal, color: lineColor }, ticks: { color: mutedColor, precision: 0, maxRotation: 0, autoSkip: true, maxTicksLimit: horizontal ? 9 : 6, font: { size: 10 } }, border: { display: false } },
-          y: { beginAtZero: true, stacked: kind === 'stacked', grid: { display: !horizontal, color: lineColor }, ticks: { color: mutedColor, precision: 0, autoSkip: true, maxTicksLimit: horizontal ? 9 : 6, font: { size: 10 } }, border: { display: false } }
+          x: { beginAtZero: true, stacked: kind === 'stacked', grace: horizontal ? '6%' : 0, grid: { display: horizontal || isScatter, color: lineColor }, ticks: xAxisTicks, border: { display: false } },
+          y: { beginAtZero: true, stacked: kind === 'stacked', grace: horizontal ? 0 : '8%', grid: { display: !horizontal, color: lineColor }, ticks: yAxisTicks, border: { display: false } }
         }
       }
     });
