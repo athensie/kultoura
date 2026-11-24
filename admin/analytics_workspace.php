@@ -477,55 +477,80 @@ foreach ($workspaceMetrics as $sectionKey => $metrics) {
         $aiCardSuggestionFallbacks[$cardId] = $suggestionFallback;
     }
 }
-$forecastHistoryRows = array_values(array_filter(
-    analytics_monthly_trend($conn, 7),
-    static fn($row) => ($row['ym'] ?? '') < date('Y-m')
-));
-$forecastHistoryRows = array_slice($forecastHistoryRows, -6);
-$forecastValues = array_map(static fn($row) => (int) $row['value'], $forecastHistoryRows);
-$forecastAvailable = count($forecastValues) >= 3 && array_sum($forecastValues) > 0;
-$forecastEstimate = null;
-$forecastChangePct = null;
-$forecastIsAi = false;
-$forecastConfidence = $forecastAvailable ? (count($forecastValues) >= 6 ? 'Moderate confidence' : 'Low confidence') : 'Insufficient history';
-$forecastReason = 'At least three complete months of page-view history are needed for a useful prediction.';
-if ($forecastAvailable) {
-    $recentValues = array_slice($forecastValues, -3);
-    $recentAverage = array_sum($recentValues) / count($recentValues);
-    $historyAverage = array_sum($forecastValues) / count($forecastValues);
-    $forecastEstimate = max(0, (int) round(($recentAverage * 0.7) + ($historyAverage * 0.3)));
-    $latestCompletedViews = (int) end($forecastValues);
-    $forecastChangePct = $latestCompletedViews > 0
-        ? (int) round((($forecastEstimate - $latestCompletedViews) / $latestCompletedViews) * 100)
-        : null;
-    $forecastReason = 'Weighted trend estimate using the last three complete months and the available complete-month average.';
+// ---------------------------------------------------------------------------
+// Descriptive / predictive / prescriptive analytics, computed from the whole system
+// (see config/analytics_insights.php). AI may only reword text; every number shown
+// comes from recorded data, and AI text quoting numbers that are not in the data is rejected.
+// ---------------------------------------------------------------------------
+require_once __DIR__ . '/../config/analytics_insights.php';
+$selectedPeriodLabel = (string) ($periodLabels[$period] ?? 'selected period');
+$insightStartSql = ($period === 'all' && $rangeHasDates) ? $rangeFirstDay->format('Y-m-d 00:00:00') : $periodStartSql;
+$systemSnapshot = kt_system_snapshot($conn, $insightStartSql, $periodEndExclusiveSql);
+$previousRange = $period === 'all' ? null : kt_previous_range($periodStartSql, $periodEndExclusiveSql);
+$previousSnapshot = $previousRange ? kt_system_snapshot($conn, $previousRange['start'], $previousRange['end']) : null;
+$previousRangeLabel = $previousRange ? ($previousRange['days'] === 1 ? 'the previous day' : 'the previous ' . $previousRange['days'] . ' days') : '';
+$snapshotChange = static fn(string $key): ?float => $previousSnapshot ? kt_change_pct((float) $systemSnapshot[$key], (float) $previousSnapshot[$key]) : null;
+$selectedPageViews = (int) $systemSnapshot['site_visits'];
+
+// Every tourism listing's performance in the period, across all categories.
+$itemsByCategory = [];
+$allPeriodItems = [];
+foreach ($tourismCategoryAnalytics as $categoryStats) {
+    $itemsByCategory[$categoryStats['label']] = $categoryStats['top_items'];
+    foreach ($categoryStats['top_items'] as $item) { $item['category_label'] = $categoryStats['label']; $allPeriodItems[] = $item; }
 }
-$aiDestinationSummary = array_map(static fn($row) => [
-    'name' => (string) ($row['name'] ?? 'Destination'), 'views' => (int) ($row['views'] ?? 0),
-], array_slice($destinationRows, 0, 5));
-$aiSearchSummary = array_map(static fn($row) => [
-    'query' => (string) ($row['query'] ?? ''), 'searches' => (int) ($row['count'] ?? 0),
-], array_slice($topSearches, 0, 5));
+usort($allPeriodItems, static fn($a, $b) => (int) ($b['views'] ?? 0) <=> (int) ($a['views'] ?? 0));
+$descriptiveTopContent = array_values(array_filter(array_slice($allPeriodItems, 0, 5), static fn($item) => (int) ($item['views'] ?? 0) > 0));
+
+// ---- Descriptive ----
+$descriptiveHighlights = [
+    ['label' => 'Site visits', 'value' => number_format($systemSnapshot['site_visits']), 'change' => $snapshotChange('site_visits')],
+    ['label' => 'Visitor sessions', 'value' => number_format($systemSnapshot['visitor_sessions']), 'change' => $snapshotChange('visitor_sessions')],
+    ['label' => 'Listing views', 'value' => number_format($systemSnapshot['content_views']), 'change' => $snapshotChange('content_views')],
+    ['label' => 'Searches · with no results', 'value' => number_format($systemSnapshot['searches']) . ' · ' . number_format($systemSnapshot['zero_result_searches']), 'change' => $snapshotChange('searches')],
+    ['label' => 'Reviews · average rating', 'value' => number_format($systemSnapshot['reviews']) . ($systemSnapshot['average_rating'] !== null ? ' · ' . number_format($systemSnapshot['average_rating'], 1) . '/5' : ''), 'change' => $snapshotChange('reviews')],
+    ['label' => 'New members', 'value' => number_format($systemSnapshot['new_members']), 'change' => $snapshotChange('new_members')],
+    ['label' => 'Favourites saved', 'value' => number_format($systemSnapshot['favorites']), 'change' => $snapshotChange('favorites')],
+    ['label' => 'Travel diary entries', 'value' => number_format($systemSnapshot['diary_entries']), 'change' => $snapshotChange('diary_entries')],
+];
+$summaryParts = [];
+$visitsChangeText = kt_format_change($snapshotChange('site_visits'));
+$summaryParts[] = $selectedPeriodLabel . ($rangeLabel !== '' && $period !== 'custom' ? ' (' . $rangeLabel . ')' : '') . ' recorded '
+    . kt_plural($systemSnapshot['site_visits'], 'site visit') . ($visitsChangeText !== '' ? ' (' . $visitsChangeText . ' vs ' . $previousRangeLabel . ')' : '')
+    . ' and ' . kt_plural($systemSnapshot['content_views'], 'listing view') . '.';
+if ($descriptiveTopContent) {
+    $leader = $descriptiveTopContent[0];
+    $summaryParts[] = $leader['name'] . ' (' . $leader['category_label'] . ') was the most viewed listing with ' . kt_plural((int) $leader['views'], 'view') . '.';
+}
+if ($systemSnapshot['reviews'] > 0) $summaryParts[] = 'Visitors posted ' . kt_plural($systemSnapshot['reviews'], 'review') . ' averaging ' . number_format((float) $systemSnapshot['average_rating'], 1) . '/5.';
+if ($systemSnapshot['searches'] > 0) $summaryParts[] = 'They ran ' . kt_plural($systemSnapshot['searches'], 'search', 'searches') . ($systemSnapshot['zero_result_searches'] > 0 ? ', ' . number_format($systemSnapshot['zero_result_searches']) . ' with no results' : '') . '.';
+if ($systemSnapshot['new_members'] > 0 || $systemSnapshot['favorites'] > 0) $summaryParts[] = kt_plural($systemSnapshot['new_members'], 'new member') . ' signed up and ' . kt_plural($systemSnapshot['favorites'], 'favourite') . ' were saved.';
+$systemSummary = implode(' ', $summaryParts);
+
+// ---- Predictive ----
+$trafficForecast = kt_traffic_forecast($conn);
+$categoryOutlook = kt_category_outlook($conn, $tourismCategoryDefinitions);
+$forecastChartMax = $trafficForecast['available'] ? max(1, ...array_map(static fn($row) => (int) $row['value'], $trafficForecast['rows'])) : 1;
+
+// ---- AI: optional wording for the summary and per-chart notes (numbers verified) ----
 $aiDashboardFacts = [
-    'selected_period' => $periodLabels[$period] ?? 'Selected period',
-    'selected_period_page_views' => array_sum(array_column($trafficTrend, 'value')),
-    'destination_views' => (int) $destinationViews,
-    'cultural_content_views' => (int) $cultureViews,
-    'registered_users' => array_sum($registrationBuckets),
-    'visible_ratings' => (int) $overallRatingCount,
-    'average_rating' => round((float) $overallAverageRating, 2),
-    'top_destinations' => $aiDestinationSummary,
-    'top_searches' => $aiSearchSummary,
+    'selected_period' => $selectedPeriodLabel,
+    'date_range' => $rangeLabel,
+    'compared_with' => $previousRangeLabel,
+    'this_period' => $systemSnapshot,
+    'previous_period' => $previousSnapshot,
+    'top_listings' => array_map(static fn($row) => ['name' => (string) $row['name'], 'category' => (string) $row['category_label'], 'views' => (int) $row['views']], $descriptiveTopContent),
+    'top_searches' => array_map(static fn($row) => ['query' => (string) ($row['query'] ?? ''), 'searches' => (int) ($row['count'] ?? 0)], array_slice($topSearches, 0, 5)),
     'analytics_cards' => $aiCardFacts,
-    'completed_monthly_page_views' => array_map(static fn($row) => [
-        'month' => $row['label'], 'views' => (int) $row['value'],
-    ], $forecastHistoryRows),
 ];
 $aiDashboardResult = null;
 $aiFactsJson = json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-$aiCacheKey = 'dashai_v9_' . substr(sha1((string) $aiFactsJson), 0, 24);
+$aiCacheKey = 'dashai_v10_' . substr(sha1((string) $aiFactsJson), 0, 24);
 if (ai_text_configured()) {
-    $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Analyze only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. Provide a brief plain-language interpretation of the selected period, one careful next-month page-view forecast only when at least three complete months are supplied, a short reason, and up to three concrete admin actions grounded in these facts. Also write exactly one concise, useful interpretation for every analytics_cards entry, keyed by its exact ID in card_insights, and one practical, concise admin suggestion for every entry, keyed by its exact ID in card_suggestions. Mention a notable pattern or limitation supported by that card's facts; do not claim causation. Suggestions must be specific and supported by the metric, and should recommend checking, improving, or promoting relevant content where appropriate. If a card has no usable data, suggest collecting enough data or improving tracking rather than inventing a cause. If there is insufficient history, return a null forecast and explain the limitation. Return JSON only with keys summary (string), forecast_next_month (integer or null), forecast_confidence (low|medium|high), forecast_reason (string), actions (array of concise strings), card_insights (object mapping every analytics_cards ID to one sentence), card_suggestions (object mapping every analytics_cards ID to one concise suggestion). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
+    $aiPrompt = "You are the analytics analyst for KULTOURA, a tourism website for Malvar, Batangas. Use only these real aggregate facts; do not invent data, causes, visitor demographics, or certainty. "
+        . "Write summary: 2-3 plain sentences describing this_period (the selected period) and, when previous_period is present, how it compares; quote only numbers that appear in the facts. "
+        . "Also write exactly one concise interpretation for every analytics_cards entry, keyed by its exact ID in card_insights, and one practical admin suggestion for every entry, keyed by its exact ID in card_suggestions. Quote only numbers present in that card's facts; do not claim causation. If a card has no usable data, say so and suggest collecting more data. "
+        . "Return JSON only with keys summary (string), card_insights (object), card_suggestions (object). Facts: " . json_encode($aiDashboardFacts, JSON_UNESCAPED_UNICODE);
     $cachedAiStmt = $conn->prepare("SELECT result FROM analytics_forecasts WHERE forecast_key=? AND created_at >= DATE_SUB(NOW(), INTERVAL 6 HOUR)");
     if ($cachedAiStmt) {
         $cachedAiStmt->bind_param('s', $aiCacheKey);
@@ -539,238 +564,80 @@ if (ai_text_configured()) {
         $aiDashboardResult = ai_cached_or_generate($conn, $aiCacheKey, $aiDashboardFacts, $aiPrompt);
     }
 }
-$aiSummary = '';
-$aiActions = [];
+$aiSummary = $systemSummary;
+$aiSummaryIsGenerated = false;
 $aiCardInterpretations = $aiCardFallbacks;
 $aiCardSuggestions = [];
-$aiSummaryIsGenerated = false;
-if (is_array($aiDashboardResult) && isset($aiDashboardResult['summary']) && is_string($aiDashboardResult['summary'])) {
-    $aiSummary = mb_substr(trim($aiDashboardResult['summary']), 0, 600);
-    $aiSummaryIsGenerated = $aiSummary !== '';
-    if (isset($aiDashboardResult['actions']) && is_array($aiDashboardResult['actions'])) {
-        foreach (array_slice($aiDashboardResult['actions'], 0, 3) as $action) {
-            if (is_string($action) && trim($action) !== '') $aiActions[] = mb_substr(trim($action), 0, 220);
-        }
+if (is_array($aiDashboardResult)) {
+    $candidateSummary = trim((string) ($aiDashboardResult['summary'] ?? ''));
+    if ($candidateSummary !== '' && kt_text_numbers_supported($candidateSummary, $aiDashboardFacts)) {
+        $aiSummary = mb_substr($candidateSummary, 0, 600);
+        $aiSummaryIsGenerated = true;
     }
-    if (isset($aiDashboardResult['card_insights']) && is_array($aiDashboardResult['card_insights'])) {
-        foreach ($aiCardFallbacks as $cardId => $fallbackInsight) {
-            $candidateInsight = $aiDashboardResult['card_insights'][$cardId] ?? null;
-            if (is_string($candidateInsight) && trim($candidateInsight) !== '') {
-                $aiCardInterpretations[$cardId] = mb_substr(trim($candidateInsight), 0, 260);
-            }
-        }
-    }
-    if (isset($aiDashboardResult['card_suggestions']) && is_array($aiDashboardResult['card_suggestions'])) {
-        foreach ($aiCardFallbacks as $cardId => $fallbackInsight) {
-            $candidateSuggestion = $aiDashboardResult['card_suggestions'][$cardId] ?? null;
-            if (is_string($candidateSuggestion) && trim($candidateSuggestion) !== '') {
-                $aiCardSuggestions[$cardId] = mb_substr(trim($candidateSuggestion), 0, 220);
-            }
-        }
-    }
-    $candidateForecast = $aiDashboardResult['forecast_next_month'] ?? null;
-    if ($forecastAvailable && is_numeric($candidateForecast)) {
-        $candidateForecast = max(0, (int) $candidateForecast);
-        $recentMaximum = max(1, max($forecastValues));
-        if ($candidateForecast <= $recentMaximum * 4) {
-            $forecastEstimate = $candidateForecast;
-            $forecastIsAi = true;
-            $candidateConfidence = strtolower((string) ($aiDashboardResult['forecast_confidence'] ?? 'low'));
-            $forecastConfidence = in_array($candidateConfidence, ['high', 'medium', 'low'], true)
-                ? ucfirst($candidateConfidence) . ' confidence' : 'Low confidence';
-            $latestCompletedViews = (int) end($forecastValues);
-            $forecastChangePct = $latestCompletedViews > 0
-                ? (int) round((($forecastEstimate - $latestCompletedViews) / $latestCompletedViews) * 100)
-                : null;
-            $forecastReason = mb_substr(trim((string) ($aiDashboardResult['forecast_reason'] ?? 'AI-assisted estimate based on recent completed months.')), 0, 260);
+    foreach (['card_insights' => 'insight', 'card_suggestions' => 'suggestion'] as $resultKey => $kindOfText) {
+        if (!isset($aiDashboardResult[$resultKey]) || !is_array($aiDashboardResult[$resultKey])) continue;
+        foreach ($aiCardFallbacks as $cardId => $unused) {
+            $candidate = $aiDashboardResult[$resultKey][$cardId] ?? null;
+            if (!is_string($candidate) || trim($candidate) === '') continue;
+            if (!kt_text_numbers_supported($candidate, ['card' => $aiCardFacts[$cardId] ?? [], 'facts' => $aiDashboardFacts])) continue;
+            if ($kindOfText === 'insight') $aiCardInterpretations[$cardId] = mb_substr(trim($candidate), 0, 260);
+            else $aiCardSuggestions[$cardId] = mb_substr(trim($candidate), 0, 220);
         }
     }
 }
-if ($aiSummary === '') {
-    if (count($forecastHistoryRows) >= 2) {
-        $firstHistory = $forecastHistoryRows[0];
-        $lastHistory = $forecastHistoryRows[count($forecastHistoryRows) - 1];
-        $change = (int) $lastHistory['value'] - (int) $firstHistory['value'];
-        $direction = $change > 0 ? 'increased' : ($change < 0 ? 'decreased' : 'held steady');
-        $aiSummary = 'Across the latest complete months, page views ' . $direction . ' from ' . number_format((int) $firstHistory['value']) . ' to ' . number_format((int) $lastHistory['value']) . '. ';
-    } else {
-        $aiSummary = 'There is not enough complete monthly history yet to describe a reliable traffic trend. ';
-    }
-    if (!empty($aiDestinationSummary)) {
-        $topDestination = $aiDestinationSummary[0];
-        $aiSummary .= $topDestination['name'] . ' leads destination views in the selected period with ' . number_format($topDestination['views']) . ' views.';
-    } else {
-        $aiSummary .= 'Destination view totals are currently limited for this period.';
-    }
+
+// ---- Prescriptive ----
+$pendingReportCount = kt_insight_count($conn, 'item_review_reports', "SELECT COUNT(*) total FROM item_review_reports WHERE status = 'pending' AND created_at >= ? AND created_at < ?", '1971-01-01 00:00:00', '2999-01-01 00:00:00');
+$promotedKeys = [];
+if (kt_insight_table_exists($conn, 'promoted_content') && ($promotedResult = $conn->query('SELECT item_type, item_id FROM promoted_content'))) {
+    foreach ($promotedResult->fetch_all(MYSQLI_ASSOC) as $promotedRow) $promotedKeys[$promotedRow['item_type'] . ':' . (int) $promotedRow['item_id']] = true;
 }
-if (!$aiActions) {
-    if (!empty($aiDestinationSummary) && $aiDestinationSummary[0]['views'] > 0) {
-        $aiActions[] = 'Keep ' . $aiDestinationSummary[0]['name'] . ' easy to find; it leads destination views in this period.';
-    }
-    if (!empty($aiSearchSummary) && $aiSearchSummary[0]['query'] !== '') {
-        $aiActions[] = 'Review the top search, “' . $aiSearchSummary[0]['query'] . '”, and make sure related content is discoverable.';
-    }
-    if ($overallRatingCount > 0) {
-        $aiActions[] = 'Track the ' . number_format($overallRatingCount) . ' visible ratings and ' . number_format($overallAverageRating, 1) . ' average as new reviews arrive.';
-    }
-    if (!$aiActions) $aiActions[] = 'Continue collecting page views, searches, and ratings to improve the reliability of future insights.';
-}
-$forecastChartRows = $forecastHistoryRows;
-if ($forecastEstimate !== null) {
-    $forecastChartRows[] = ['label' => (new DateTimeImmutable('first day of next month'))->format('M Y'), 'value' => $forecastEstimate, 'projected' => true];
-}
-$forecastChartMax = max(1, (int) max(array_merge([0], array_map(static fn($row) => (int) $row['value'], $forecastChartRows))));
-$categoryHistoryEnd = new DateTimeImmutable('first day of this month');
-$categoryHistoryStart = $categoryHistoryEnd->modify('-6 months');
-$categoryHistoryMonths = [];
-for ($month = $categoryHistoryStart; $month < $categoryHistoryEnd; $month = $month->modify('+1 month')) {
-    $categoryHistoryMonths[] = $month->format('Y-m');
-}
-$categoryHistory = [];
-$categoryHistoryStmt = $conn->prepare("SELECT item_type, DATE_FORMAT(viewed_at, '%Y-%m') month_key, COUNT(*) total FROM item_views WHERE viewed_at >= ? AND viewed_at < ? GROUP BY item_type, month_key");
-if ($categoryHistoryStmt) {
-    $categoryHistoryStartSql = $categoryHistoryStart->format('Y-m-d 00:00:00');
-    $categoryHistoryEndSql = $categoryHistoryEnd->format('Y-m-d 00:00:00');
-    $categoryHistoryStmt->bind_param('ss', $categoryHistoryStartSql, $categoryHistoryEndSql);
-    $categoryHistoryStmt->execute();
-    foreach ($categoryHistoryStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-        $categoryHistory[(string) $row['item_type']][(string) $row['month_key']] = (int) $row['total'];
-    }
-    $categoryHistoryStmt->close();
-}
-$categoryInterestForecasts = [];
-foreach ($tourismCategoryDefinitions as $categoryKey => $definition) {
-    $monthlyValues = array_map(static fn($monthKey) => (int) ($categoryHistory[$definition['type']][$monthKey] ?? 0), $categoryHistoryMonths);
-    $activeMonths = count(array_filter($monthlyValues, static fn($value) => $value > 0));
-    if ($activeMonths < 3 || array_sum($monthlyValues) === 0) continue;
-    $recentValues = array_slice($monthlyValues, -3);
-    $estimate = max(0, (int) round((array_sum($recentValues) / count($recentValues) * .7) + (array_sum($monthlyValues) / count($monthlyValues) * .3)));
-    $categoryInterestForecasts[] = [
-        'key' => $categoryKey,
-        'label' => $definition['label'],
-        'estimate' => $estimate,
-        'latest' => (int) end($monthlyValues),
-        'active_months' => $activeMonths,
-        'confidence' => $activeMonths >= 5 ? 'Moderate' : 'Low',
-    ];
-}
-usort($categoryInterestForecasts, static fn($a, $b) => $b['estimate'] <=> $a['estimate']);
-$selectedPageViews = (int) array_sum(array_column($trafficTrend, 'value'));
-$selectedPeriodLabel = (string) ($periodLabels[$period] ?? 'selected period');
-$descriptiveTopContent = array_merge($destinationRows, $cultureRows, $restaurantRows);
-usort($descriptiveTopContent, static fn($a, $b) => (int) ($b['views'] ?? 0) <=> (int) ($a['views'] ?? 0));
-$descriptiveTopContent = array_slice($descriptiveTopContent, 0, 3);
-$descriptiveHighlights = [
-    ['label' => 'Page views', 'value' => number_format($selectedPageViews)],
-    ['label' => 'Destination views', 'value' => number_format((int) $destinationViews)],
-    ['label' => 'Culture views', 'value' => number_format((int) $cultureViews)],
-    ['label' => 'Recorded clicks', 'value' => number_format((int) ($overallActivityCounts['click'] ?? 0))],
-    ['label' => 'Ratings', 'value' => number_format((int) $overallRatingCount) . ($overallRatingCount > 0 ? ' · ' . number_format((float) $overallAverageRating, 1) . '/5' : '')],
-    ['label' => 'Zero-result searches', 'value' => number_format($zeroResultSearchTotal)],
-];
-$prescriptiveRecommendations = [];
-foreach (array_slice($zeroResultSearches, 0, 2) as $searchOpportunity) {
-    $query = trim((string) ($searchOpportunity['query'] ?? ''));
-    $searchCount = (int) ($searchOpportunity['count'] ?? 0);
-    if ($query === '' || $searchCount < 1) continue;
-    $prescriptiveRecommendations[] = [
-        'action' => 'Add or improve tourism content that matches “' . $query . '”.',
-        'evidence' => number_format($searchCount) . ' searches returned no results during ' . $selectedPeriodLabel . '.',
-    ];
-}
-$ratedItemsForRecommendations = array_merge($destinationRatedRows, $cultureRatedRows);
-usort($ratedItemsForRecommendations, static fn($a, $b) => (float) ($a['average_rating'] ?? 0) <=> (float) ($b['average_rating'] ?? 0));
-foreach ($ratedItemsForRecommendations as $ratedItem) {
-    $reviewCountForItem = (int) ($ratedItem['ratings'] ?? 0);
-    $averageForItem = (float) ($ratedItem['average_rating'] ?? 0);
-    if ($reviewCountForItem < 3 || $averageForItem >= 3.5) continue;
-    $prescriptiveRecommendations[] = [
-        'action' => 'Review visitor feedback for ' . (string) ($ratedItem['name'] ?? 'this listing') . ' and address recurring concerns.',
-        'evidence' => number_format($averageForItem, 1) . '/5 from ' . number_format($reviewCountForItem) . ' visible ratings during ' . $selectedPeriodLabel . '.',
-    ];
-    break;
-}
-if (count($prescriptiveRecommendations) < 3 && !empty($categoryInterestForecasts)) {
-    $leadingInterest = $categoryInterestForecasts[0];
-    $prescriptiveRecommendations[] = [
-        'action' => 'Consider featuring ' . $leadingInterest['label'] . ' in upcoming tourism promotions.',
-        'evidence' => 'Projected ' . number_format($leadingInterest['estimate']) . ' item views next month from six complete months of history (' . strtolower($leadingInterest['confidence']) . ' confidence).',
-    ];
-}
-if (!$prescriptiveRecommendations && !empty($topSearches)) {
-    $leadingSearch = $topSearches[0];
-    $prescriptiveRecommendations[] = [
-        'action' => 'Keep content related to “' . (string) $leadingSearch['query'] . '” easy to find.',
-        'evidence' => number_format((int) $leadingSearch['count']) . ' searches during ' . $selectedPeriodLabel . '.',
-    ];
-}
+$recommendationCandidates = kt_build_recommendations([
+    'period_label' => $selectedPeriodLabel,
+    'snapshot' => $systemSnapshot,
+    'previous' => $previousSnapshot,
+    'zero_result_searches' => $zeroResultSearches,
+    'rated_items' => array_values(array_filter($allPeriodItems, static fn($item) => (int) ($item['ratings'] ?? 0) > 0)),
+    'items_by_category' => $itemsByCategory,
+    'category_outlook' => $categoryOutlook,
+    'pending_reports' => $pendingReportCount,
+    'promoted_keys' => $promotedKeys,
+]);
+$prescriptiveRecommendations = array_map(static fn($candidate) => ['action' => $candidate['action'], 'evidence' => $candidate['evidence']], array_slice($recommendationCandidates, 0, 4));
 if (!$prescriptiveRecommendations) {
     $prescriptiveRecommendations[] = [
-        'action' => 'Continue collecting visits, searches, and visitor ratings before making promotion changes.',
-        'evidence' => 'No actionable search gaps or sufficiently rated listings were recorded during ' . $selectedPeriodLabel . '.',
+        'action' => 'No urgent issues stand out. Keep content up to date and check again as more activity is recorded.',
+        'evidence' => 'No search gaps, low ratings, pending reports, or sharp category changes were found for ' . strtolower($selectedPeriodLabel) . '.',
     ];
 }
-$prescriptiveRecommendations = array_slice($prescriptiveRecommendations, 0, 3);
 $aiTextActive = ai_text_configured();
 $prescriptiveAiUsed = false;
 $prescriptiveAiIssue = ai_text_configuration_issue();
-if ($aiTextActive) {
-    $lowRatedEvidence = [];
-    foreach ($ratedItemsForRecommendations as $ratedItem) {
-        $reviewCountForItem = (int) ($ratedItem['ratings'] ?? 0);
-        $averageForItem = (float) ($ratedItem['average_rating'] ?? 0);
-        if ($reviewCountForItem >= 3 && $averageForItem < 3.5) {
-            $lowRatedEvidence[] = [
-                'item' => (string) ($ratedItem['name'] ?? 'Tourism item'),
-                'average_rating' => round($averageForItem, 2),
-                'ratings' => $reviewCountForItem,
-            ];
-            if (count($lowRatedEvidence) >= 3) break;
-        }
-    }
-    $prescriptiveAiFacts = [
-        'period' => $selectedPeriodLabel,
-        'selected_period_metrics' => [
-            'page_views' => $selectedPageViews,
-            'destination_views' => (int) $destinationViews,
-            'culture_views' => (int) $cultureViews,
-            'recorded_clicks' => (int) ($overallActivityCounts['click'] ?? 0),
-            'visible_ratings' => (int) $overallRatingCount,
-            'average_rating' => round((float) $overallAverageRating, 2),
-            'zero_result_search_count' => $zeroResultSearchTotal,
-        ],
-        'zero_result_searches' => array_map(static fn($row) => [
-            'query' => (string) ($row['query'] ?? ''), 'count' => (int) ($row['count'] ?? 0),
-        ], array_slice($zeroResultSearches, 0, 5)),
-        'observed_search_interests' => array_map(static fn($row) => [
-            'query' => (string) ($row['query'] ?? ''), 'count' => (int) ($row['count'] ?? 0),
-        ], array_slice($topSearches, 0, 5)),
-        'low_rated_items' => $lowRatedEvidence,
-        'projected_category_views_next_month' => array_map(static fn($row) => [
-            'category' => $row['label'], 'estimated_views' => $row['estimate'], 'confidence' => $row['confidence'],
-        ], array_slice($categoryInterestForecasts, 0, 5)),
-    ];
-    $prescriptivePrompt = "You are an AI tourism planning adviser for KulToura in Malvar, Batangas. Use only these measured analytics facts; do not invent numbers, causes, user demographics, or certainty. Make up to three concise, practical admin recommendations about content, promotion, or destination management. Prioritize repeated searches with zero results, low ratings backed by at least three ratings, and category view estimates. Each recommendation must cite the exact supporting metric and period in its evidence field. If the data does not support a particular action, do not recommend it. Return JSON only in this shape: {\"recommendations\":[{\"action\":\"specific admin action\",\"evidence\":\"metric, value, and period supporting it\"}]}. Facts: " . json_encode($prescriptiveAiFacts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    $prescriptiveCacheKey = 'prescriptive_v1';
-    $prescriptiveResult = ai_cached_or_generate($conn, $prescriptiveCacheKey, $prescriptiveAiFacts, $prescriptivePrompt);
+if ($aiTextActive && $recommendationCandidates) {
+    $candidatesForAi = array_map(static fn($candidate) => ['id' => $candidate['id'], 'action' => $candidate['action'], 'evidence' => $candidate['evidence']], array_slice($recommendationCandidates, 0, 8));
+    $prescriptivePrompt = "You are a tourism planning adviser for KulToura in Malvar, Batangas. Below are candidate admin actions already computed from recorded analytics, in priority order. "
+        . "Pick up to 4 that are most useful (keep the order unless one is clearly more urgent) and rewrite each action as one clear, specific instruction of at most 22 words. "
+        . "Do not add numbers, names, places or facts that are not in that candidate. Return JSON only: {\"recommendations\":[{\"id\":\"<candidate id>\",\"action\":\"<rewritten action>\"}]}. Candidates: "
+        . json_encode($candidatesForAi, JSON_UNESCAPED_UNICODE);
+    $prescriptiveResult = ai_cached_or_generate($conn, 'prescriptive_v2', $candidatesForAi, $prescriptivePrompt);
+    $candidatesById = array_column($candidatesForAi, null, 'id');
     $aiRecommendations = [];
-    foreach (array_slice(is_array($prescriptiveResult['recommendations'] ?? null) ? $prescriptiveResult['recommendations'] : [], 0, 3) as $recommendation) {
-        if (!is_array($recommendation)) continue;
+    foreach (is_array($prescriptiveResult['recommendations'] ?? null) ? $prescriptiveResult['recommendations'] : [] as $recommendation) {
+        if (!is_array($recommendation) || count($aiRecommendations) >= 4) continue;
+        $candidate = $candidatesById[(string) ($recommendation['id'] ?? '')] ?? null;
         $action = trim((string) ($recommendation['action'] ?? ''));
-        $evidence = trim((string) ($recommendation['evidence'] ?? ''));
-        if ($action === '' || $evidence === '') continue;
-        $aiRecommendations[] = ['action' => mb_substr($action, 0, 240), 'evidence' => mb_substr($evidence, 0, 260)];
+        if (!$candidate || $action === '' || mb_strlen($action) > 240 || !kt_text_numbers_supported($action, $candidate)) continue;
+        $aiRecommendations[] = ['action' => $action, 'evidence' => $candidate['evidence']];
+        unset($candidatesById[$candidate['id']]);
     }
     if ($aiRecommendations) {
         $prescriptiveRecommendations = $aiRecommendations;
         $prescriptiveAiUsed = true;
     } else {
-        $prescriptiveAiIssue = 'AI is configured, but the provider returned no usable recommendations.';
-        $lastAiError = ai_text_last_error();
-        if ($lastAiError !== '') $prescriptiveAiIssue .= ' Provider diagnostic: ' . $lastAiError . '.';
+        $prescriptiveAiIssue = 'AI wording was unavailable, so the recommendations below are shown as calculated.';
     }
 }
-$aiAnalysisLabel = $aiSummaryIsGenerated ? 'AI assisted' : 'Data-based fallback';
+$aiAnalysisLabel = $aiSummaryIsGenerated ? 'AI-written · numbers verified' : 'Calculated from recorded data';
 $visitorDonut = ['labels' => ['New tracked sessions', 'Returning tracked sessions'], 'values' => [$newTrackedVisitors, $returningTrackedVisitors]];
 $chartData['visitors'] = $visitorDonut;
 $chartDataJson = json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -923,49 +790,54 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         <article class="aw-ai-card">
             <h2><i data-lucide="file-chart-column" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Descriptive analytics</h2>
             <div class="aw-ai-card-body">
-                <p class="aw-ai-card-kicker">What the recorded data shows</p>
+                <p class="aw-ai-card-kicker">What happened in <?php echo htmlspecialchars($selectedPeriodLabel); ?><?php if ($rangeLabel !== '' && $period !== 'custom'): ?> (<?php echo htmlspecialchars($rangeLabel); ?>)<?php endif; ?></p>
                 <span class="aw-ai-badge"><?php echo htmlspecialchars($aiAnalysisLabel); ?></span>
                 <p class="aw-ai-summary"><?php echo htmlspecialchars($aiSummary); ?></p>
-                <p class="aw-forecast-note">Summary uses recorded data for <?php echo htmlspecialchars($selectedPeriodLabel); ?>. <?php echo $aiSummaryIsGenerated ? 'The AI-assisted summary may be reused for up to six hours.' : 'This summary is generated from recorded totals.'; ?></p>
-                <div class="aw-descriptive-stats" aria-label="Selected-period analytics summary">
-                    <?php foreach ($descriptiveHighlights as $highlight): ?><div class="aw-descriptive-stat"><strong><?php echo htmlspecialchars($highlight['value']); ?></strong><span><?php echo htmlspecialchars($highlight['label']); ?> · <?php echo htmlspecialchars($selectedPeriodLabel); ?></span></div><?php endforeach; ?>
+                <div class="aw-descriptive-stats" aria-label="Selected-period totals across the site">
+                    <?php foreach ($descriptiveHighlights as $highlight): $highlightChange = kt_format_change($highlight['change']); ?><div class="aw-descriptive-stat"><strong><?php echo htmlspecialchars($highlight['value']); ?><?php if ($highlightChange !== ''): ?> <em class="aw-change <?php echo $highlight['change'] > 0 ? 'is-up' : ($highlight['change'] < 0 ? 'is-down' : ''); ?>" title="vs <?php echo htmlspecialchars($previousRangeLabel); ?>"><?php echo htmlspecialchars($highlightChange); ?></em><?php endif; ?></strong><span><?php echo htmlspecialchars($highlight['label']); ?></span></div><?php endforeach; ?>
                 </div>
-                <strong class="aw-ai-actions-title">Top content by item views</strong>
-                <?php if ($descriptiveTopContent): ?><ul class="aw-interest-list"><?php foreach ($descriptiveTopContent as $topContent): ?><li><span><?php echo htmlspecialchars((string) $topContent['name']); ?> <small>(<?php echo htmlspecialchars((string) ($topContent['category_label'] ?? 'Tourism')); ?>)</small></span><strong><?php echo number_format((int) $topContent['views']); ?> views</strong></li><?php endforeach; ?></ul><?php else: ?><p class="aw-forecast-note">No item views were recorded during <?php echo htmlspecialchars($selectedPeriodLabel); ?>.</p><?php endif; ?>
-                <strong class="aw-ai-actions-title">Observed visitor search interests</strong>
-                <?php if (!empty($topSearches)): ?><ul class="aw-interest-list"><?php foreach (array_slice($topSearches, 0, 3) as $searchInterest): ?><li><span><?php echo htmlspecialchars((string) $searchInterest['query']); ?></span><strong><?php echo number_format((int) $searchInterest['count']); ?> searches</strong></li><?php endforeach; ?></ul><?php else: ?><p class="aw-forecast-note">No searches were recorded during <?php echo htmlspecialchars($selectedPeriodLabel); ?>.</p><?php endif; ?>
+                <p class="aw-forecast-note"><?php echo $previousRangeLabel !== '' ? 'Percentages compare with ' . htmlspecialchars($previousRangeLabel) . '.' : 'No comparison is shown for All Time.'; ?> Totals come from page views, listing views, searches, reviews, sign-ups, favourites, travel diaries and visitor sessions.</p>
+                <strong class="aw-ai-actions-title">Most viewed listings</strong>
+                <?php if ($descriptiveTopContent): ?><ul class="aw-interest-list"><?php foreach (array_slice($descriptiveTopContent, 0, 3) as $topContent): ?><li><span><?php echo htmlspecialchars((string) $topContent['name']); ?> <small>(<?php echo htmlspecialchars((string) ($topContent['category_label'] ?? 'Tourism')); ?>)</small></span><strong><?php echo htmlspecialchars(kt_plural((int) $topContent['views'], 'view')); ?></strong></li><?php endforeach; ?></ul><?php else: ?><p class="aw-forecast-note">No listing views were recorded in this period.</p><?php endif; ?>
+                <strong class="aw-ai-actions-title">What visitors searched for</strong>
+                <?php if (!empty($topSearches)): ?><ul class="aw-interest-list"><?php foreach (array_slice($topSearches, 0, 3) as $searchInterest): ?><li><span>“<?php echo htmlspecialchars((string) $searchInterest['query']); ?>”</span><strong><?php echo htmlspecialchars(kt_plural((int) $searchInterest['count'], 'search', 'searches')); ?></strong></li><?php endforeach; ?></ul><?php else: ?><p class="aw-forecast-note">No searches were recorded in this period.</p><?php endif; ?>
             </div>
         </article>
         <article class="aw-ai-card">
             <h2><i data-lucide="trending-up" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Predictive analytics</h2>
             <div class="aw-ai-card-body">
-                <p class="aw-ai-card-kicker">What may happen next · page views</p>
-                <?php if ($forecastEstimate !== null): ?>
-                    <div class="aw-forecast-total"><strong><?php echo number_format($forecastEstimate); ?></strong><span>estimated views</span></div>
-                    <p class="aw-forecast-change"><?php echo $forecastIsAi ? 'AI-assisted estimate' : 'Trend-based estimate'; ?> · <?php echo htmlspecialchars($forecastConfidence); ?><?php if ($forecastChangePct !== null): ?> · <?php echo $forecastChangePct > 0 ? '+' : ''; ?><?php echo $forecastChangePct; ?>% vs. latest complete month<?php endif; ?></p>
-                    <div class="aw-forecast-chart" role="img" aria-label="Monthly page views and next month forecast">
-                        <?php foreach ($forecastChartRows as $forecastRow): $forecastHeight = max(5, (int) round(((int) $forecastRow['value'] / $forecastChartMax) * 100)); ?>
-                        <div class="aw-forecast-month<?php echo !empty($forecastRow['projected']) ? ' is-projected' : ''; ?>" title="<?php echo htmlspecialchars($forecastRow['label'] . ': ' . number_format((int) $forecastRow['value']) . (!empty($forecastRow['projected']) ? ' projected' : ' views')); ?>">
-                            <strong><?php echo number_format((int) $forecastRow['value']); ?></strong><i class="aw-forecast-bar" style="height:<?php echo $forecastHeight; ?>%"></i><span><?php echo htmlspecialchars($forecastRow['label']); ?></span>
+                <p class="aw-ai-card-kicker">What is likely next · site visits</p>
+                <?php if ($trafficForecast['available']): $forecastCurrent = $trafficForecast['current']; $forecastNext = $trafficForecast['next']; ?>
+                    <div class="aw-forecast-pair">
+                        <div class="aw-forecast-total"><span><?php echo htmlspecialchars($forecastCurrent['label']); ?> (in progress)</span><strong>≈ <?php echo number_format($forecastCurrent['estimate']); ?></strong><small><?php echo number_format($forecastCurrent['so_far']); ?> so far · <?php echo htmlspecialchars(kt_plural($forecastCurrent['days_left'], 'day')); ?> left · likely <?php echo number_format($forecastCurrent['low']); ?>–<?php echo number_format($forecastCurrent['high']); ?></small></div>
+                        <div class="aw-forecast-total"><span><?php echo htmlspecialchars($forecastNext['label']); ?></span><strong>≈ <?php echo number_format($forecastNext['estimate']); ?></strong><small>likely <?php echo number_format($forecastNext['low']); ?>–<?php echo number_format($forecastNext['high']); ?></small></div>
+                    </div>
+                    <p class="aw-forecast-change"><?php echo htmlspecialchars($trafficForecast['confidence']); ?> confidence · about <?php echo number_format($trafficForecast['daily_rate'], $trafficForecast['daily_rate'] < 10 ? 1 : 0); ?> visits a day recently<?php if ($trafficForecast['trend_pct'] !== null): ?> · last 2 weeks <?php echo htmlspecialchars(kt_format_change($trafficForecast['trend_pct'])); ?> vs the 2 weeks before<?php endif; ?></p>
+                    <div class="aw-forecast-chart" role="img" aria-label="Monthly site visits with the current-month projection and next-month forecast">
+                        <?php foreach ($trafficForecast['rows'] as $forecastRow): $forecastHeight = max(4, (int) round(((int) $forecastRow['value'] / $forecastChartMax) * 100)); $soFarHeight = isset($forecastRow['so_far']) ? max(3, (int) round(((int) $forecastRow['so_far'] / max(1, (int) $forecastRow['value'])) * 100)) : 0; ?>
+                        <div class="aw-forecast-month is-<?php echo $forecastRow['kind']; ?>" title="<?php echo htmlspecialchars($forecastRow['label'] . ': ' . ($forecastRow['kind'] === 'actual' ? number_format((int) $forecastRow['value']) . ' visits' : ($forecastRow['kind'] === 'current' ? number_format((int) $forecastRow['so_far']) . ' so far, about ' . number_format((int) $forecastRow['value']) . ' projected' : 'about ' . number_format((int) $forecastRow['value']) . ' forecast'))); ?>">
+                            <strong><?php echo number_format((int) $forecastRow['value']); ?></strong><i class="aw-forecast-bar" style="height:<?php echo $forecastHeight; ?>%"><?php if ($forecastRow['kind'] === 'current'): ?><b style="height:<?php echo $soFarHeight; ?>%"></b><?php endif; ?></i><span><?php echo htmlspecialchars($forecastRow['label']); ?></span>
                         </div>
                         <?php endforeach; ?>
                     </div>
+                    <p class="aw-forecast-legend"><span class="is-actual"></span>Recorded <span class="is-current"></span>This month so far <span class="is-projected"></span>Projected</p>
+                    <p class="aw-forecast-note">Based on the last 8 weeks of daily visits, with unusual spikes and dips trimmed out. Updates every day as new visits are recorded. These are estimates, not guarantees.</p>
                 <?php else: ?>
                     <div class="aw-forecast-total"><strong>—</strong><span>forecast unavailable</span></div>
-                    <p class="aw-forecast-note">At least three complete months with recorded page views are needed before showing a forecast.</p>
+                    <p class="aw-forecast-note">Fewer than 7 days in the last 4 weeks had recorded visits, so a projection would not be reliable yet.</p>
                 <?php endif; ?>
-                <p class="aw-forecast-note"><?php echo htmlspecialchars($forecastReason); ?> Forecast uses complete months and does not include the current partial month.</p>
-                <strong class="aw-ai-actions-title">Category interest forecast</strong>
-                <?php if ($categoryInterestForecasts): ?><ul class="aw-category-forecast-list"><?php foreach (array_slice($categoryInterestForecasts, 0, 5) as $interestForecast): ?><li><span><?php echo htmlspecialchars($interestForecast['label']); ?></span><strong><?php echo number_format($interestForecast['estimate']); ?> views · <?php echo htmlspecialchars($interestForecast['confidence']); ?></strong></li><?php endforeach; ?></ul><p class="aw-forecast-note">Uses six complete calendar months of item views; categories need activity in at least three months. These are estimates, not confirmed demand.</p><?php else: ?><p class="aw-forecast-note">Not enough category history yet. A category needs recorded item views in at least three of the last six complete months.</p><?php endif; ?>
+                <strong class="aw-ai-actions-title">Category interest · next 30 days</strong>
+                <?php if ($categoryOutlook): ?><ul class="aw-category-forecast-list"><?php foreach (array_slice($categoryOutlook, 0, 5) as $outlook): $outlookChange = kt_format_change($outlook['change_pct']); ?><li><span><?php echo htmlspecialchars($outlook['label']); ?></span><strong>≈ <?php echo htmlspecialchars(kt_plural($outlook['estimate'], 'view')); ?><?php if ($outlookChange !== ''): ?> <em class="aw-change <?php echo $outlook['change_pct'] > 0 ? 'is-up' : ($outlook['change_pct'] < 0 ? 'is-down' : ''); ?>"><?php echo htmlspecialchars($outlookChange); ?></em><?php elseif ($outlook['previous'] === 0): ?> <em class="aw-change is-up">new</em><?php endif; ?></strong></li><?php endforeach; ?></ul><p class="aw-forecast-note">From listing views in the last 28 days; the % compares with the 28 days before.</p><?php else: ?><p class="aw-forecast-note">Not enough listing views in the last 8 weeks to project category interest yet.</p><?php endif; ?>
             </div>
         </article>
         <article class="aw-ai-card aw-ai-card--prescriptive">
             <h2><i data-lucide="list-checks" class="lucide" style="width:1rem;height:1rem;color:var(--aw-green);vertical-align:-2px;"></i> Prescriptive analytics</h2>
             <div class="aw-ai-card-body">
-                <p class="aw-ai-card-kicker">Actions tied to recorded evidence for <?php echo htmlspecialchars($selectedPeriodLabel); ?></p>
-                <span class="aw-ai-badge"><?php echo $prescriptiveAiUsed ? 'AI-powered recommendations' : 'Evidence-based fallback'; ?></span>
-                <?php if (!$prescriptiveAiUsed): ?><p class="aw-forecast-note" role="status"><?php echo htmlspecialchars($prescriptiveAiIssue ?? 'AI recommendations are unavailable.'); ?> <?php if (!$aiTextActive): ?>Review the AI status in <a href="<?php echo BASE_URL; ?>/admin/adminsettings.php">Admin Settings</a>.<?php else: ?>Rule-based recommendations are shown below while AI is unavailable.<?php endif; ?></p><?php endif; ?>
-                <ul class="aw-prescriptive-list" aria-label="Recommended admin actions with supporting metrics"><?php foreach ($prescriptiveRecommendations as $recommendation): ?><li><strong><?php echo htmlspecialchars($recommendation['action']); ?></strong><span><?php echo htmlspecialchars($recommendation['evidence']); ?></span></li><?php endforeach; ?></ul>
+                <p class="aw-ai-card-kicker">What to do next, most important first</p>
+                <span class="aw-ai-badge"><?php echo $prescriptiveAiUsed ? 'AI-worded · evidence from recorded data' : 'Ranked from recorded data'; ?></span>
+                <?php if (!$prescriptiveAiUsed && $aiTextActive && $prescriptiveAiIssue): ?><p class="aw-forecast-note" role="status"><?php echo htmlspecialchars($prescriptiveAiIssue); ?></p><?php endif; ?>
+                <ol class="aw-prescriptive-list" aria-label="Recommended admin actions with supporting evidence"><?php foreach ($prescriptiveRecommendations as $recommendation): ?><li><strong><?php echo htmlspecialchars($recommendation['action']); ?></strong><span><?php echo htmlspecialchars($recommendation['evidence']); ?></span></li><?php endforeach; ?></ol>
+                <p class="aw-forecast-note">Checks pending review reports, searches with no results, low ratings, traffic changes, rising or falling categories, popular listings without reviews or promotion, and listings nobody viewed.</p>
             </div>
         </article>
     </section>

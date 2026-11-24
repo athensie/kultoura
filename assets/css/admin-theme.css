@@ -762,3 +762,49 @@
 @media (max-width: 1200px) { :root .aw-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 760px) { :root .aw-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
 @media (max-width: 420px) { :root .aw-kpi-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Descriptive / predictive / prescriptive panels ---------- */
+:root .aw-ai-card-kicker { font-size: .78rem; color: var(--ui-muted); }
+:root .aw-ai-summary { color: var(--ui-text-2); font-size: .9rem; line-height: 1.6; margin-bottom: 4px; }
+:root .aw-descriptive-stats { gap: 8px; margin: 14px 0 6px; }
+:root .aw-descriptive-stat { padding: 10px 12px; border-radius: 9px; background: var(--ui-surface-soft); border-color: var(--ui-line); }
+:root .aw-descriptive-stat strong { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; font-size: .95rem; color: var(--ui-text); }
+:root .aw-descriptive-stat span { font-size: .72rem; color: var(--ui-muted); }
+:root .aw-change { font-style: normal; font-size: .7rem; font-weight: 700; color: var(--ui-muted); }
+:root .aw-change.is-up { color: #23683A; }
+:root .aw-change.is-down { color: #A22F2F; }
+:root .aw-change.is-up::before { content: '\25B2 '; font-size: .8em; }
+:root .aw-change.is-down::before { content: '\25BC '; font-size: .8em; }
+:root .aw-interest-list li,
+:root .aw-category-forecast-list li { font-size: .8rem; color: var(--ui-text-2); align-items: baseline; }
+:root .aw-interest-list strong,
+:root .aw-category-forecast-list strong { white-space: nowrap; }
+:root .aw-ai-actions-title { display: block; font-size: .82rem; margin: 18px 0 6px; }
+:root .aw-forecast-note { font-size: .74rem; line-height: 1.5; color: var(--ui-muted); }
+
+:root .aw-forecast-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
+:root .aw-forecast-pair .aw-forecast-total { display: grid; gap: 2px; margin: 0; padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: 10px; background: var(--ui-surface-soft); }
+:root .aw-forecast-pair .aw-forecast-total span { color: var(--ui-muted); font: 600 .74rem var(--font-ui); }
+:root .aw-forecast-pair .aw-forecast-total strong { font: 700 1.6rem/1.15 var(--font-display); color: var(--ui-text); }
+:root .aw-forecast-pair .aw-forecast-total small { color: var(--ui-muted); font-size: .7rem; line-height: 1.4; }
+:root .aw-forecast-change { font-size: .76rem; color: var(--ui-text-2); margin: 4px 0 12px; }
+:root .aw-forecast-chart { height: 130px; gap: 10px; }
+:root .aw-forecast-month strong,
+:root .aw-forecast-month span { font-size: .66rem; color: var(--ui-muted); }
+:root .aw-forecast-bar { position: relative; overflow: hidden; width: min(100%, 34px); }
+:root .aw-forecast-month.is-actual .aw-forecast-bar { background: #9FB88A; }
+:root .aw-forecast-month.is-current .aw-forecast-bar,
+:root .aw-forecast-month.is-forecast .aw-forecast-bar { background: repeating-linear-gradient(135deg, rgba(44,122,69,.18) 0 4px, rgba(44,122,69,.32) 4px 8px); border: 1px dashed rgba(44,122,69,.6); border-bottom: 0; }
+:root .aw-forecast-bar b { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ui-accent); }
+:root .aw-forecast-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 8px 0 0; color: var(--ui-muted); font-size: .7rem; }
+:root .aw-forecast-legend span { display: inline-block; width: 10px; height: 10px; margin-right: -6px; border-radius: 2px; vertical-align: -1px; }
+:root .aw-forecast-legend .is-actual { background: #9FB88A; }
+:root .aw-forecast-legend .is-current { background: var(--ui-accent); }
+:root .aw-forecast-legend .is-projected { background: repeating-linear-gradient(135deg, rgba(44,122,69,.18) 0 3px, rgba(44,122,69,.4) 3px 6px); border: 1px dashed rgba(44,122,69,.6); }
+
+:root ol.aw-prescriptive-list { counter-reset: rec; gap: 10px; }
+:root .aw-prescriptive-list li { position: relative; counter-increment: rec; padding: 12px 14px 12px 44px; border: 1px solid #EADFC6; border-left: 3px solid #B88B35; border-radius: 0 10px 10px 0; background: #FBF7ED; }
+:root .aw-prescriptive-list li::before { content: counter(rec); position: absolute; left: 12px; top: 12px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #87651F; color: #fff; font: 700 .72rem var(--font-ui); }
+:root .aw-prescriptive-list strong { font-size: .84rem; line-height: 1.45; color: var(--ui-text); }
+:root .aw-prescriptive-list span { font-size: .76rem; line-height: 1.5; color: var(--ui-text-2); }
+@media (max-width: 520px) { :root .aw-forecast-pair { grid-template-columns: 1fr; } }
