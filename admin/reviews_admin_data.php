@@ -22,10 +22,31 @@ $stmt->bind_param('s', $reviewPeriodStartSql); $stmt->execute(); foreach ($stmt-
 $stmt = $conn->prepare("SELECT item_type, COUNT(*) review_count, ROUND(AVG(rating),1) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND created_at >= ? GROUP BY item_type ORDER BY review_count DESC");
 $stmt->bind_param('s', $reviewPeriodStartSql); $stmt->execute(); $typeStats = $stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
 $reviews = [];
+// Counts and averages per listing come from ALL visible reviews (the same numbers visitors
+// see on the public cards); each listing's popup lists its latest reviews.
+$reviewsPerItemShown = 25;
+$itemReviewTotals = [];
 if ($tab === 'ratings') {
-    $ratingSql = $ratingFilter ? ' AND r.rating=?' : '';
-    $stmt = $conn->prepare("SELECT r.review_id,r.user_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status,r.created_at,COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,CONCAT('Item #',r.item_id)) item_name FROM item_reviews r LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service') AND d.destination_id=r.item_id LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id WHERE r.status IN ('visible','demo') AND r.created_at>=?{$ratingSql} ORDER BY r.created_at DESC LIMIT 200");
+    $ratingSql = $ratingFilter ? ' AND rating=?' : '';
+    $stmt = $conn->prepare("SELECT item_type, item_id, COUNT(*) total, AVG(rating) average_rating FROM item_reviews WHERE status IN ('visible','demo') AND created_at>=?{$ratingSql} GROUP BY item_type, item_id");
     if ($ratingFilter) $stmt->bind_param('si', $reviewPeriodStartSql, $ratingFilter); else $stmt->bind_param('s', $reviewPeriodStartSql);
+    $stmt->execute();
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $totalRow) $itemReviewTotals[$totalRow['item_type'] . ':' . (int) $totalRow['item_id']] = ['count' => (int) $totalRow['total'], 'average' => (float) $totalRow['average_rating']];
+    $stmt->close();
+    $ratingSql = $ratingFilter ? ' AND r.rating=?' : '';
+    $stmt = $conn->prepare("SELECT x.* FROM (
+            SELECT r.review_id,r.user_id,r.display_name,r.item_type,r.item_id,r.rating,r.review_text,r.status,r.created_at,
+                COALESCE(d.destination_name,rs.restaurant_name,p.product_name,f.fiesta_name,pe.fullname,CONCAT('Item #',r.item_id)) item_name,
+                ROW_NUMBER() OVER (PARTITION BY r.item_type, r.item_id ORDER BY r.created_at DESC, r.review_id DESC) item_rank
+            FROM item_reviews r
+            LEFT JOIN destination d ON r.item_type IN ('nature','resort','industry','accommodation','church','service','bank') AND d.destination_id=r.item_id
+            LEFT JOIN restaurants rs ON r.item_type='restaurant' AND rs.restaurant_id=r.item_id
+            LEFT JOIN products p ON r.item_type='product' AND p.product_id=r.item_id
+            LEFT JOIN fiestas f ON r.item_type='fiesta' AND f.fiesta_id=r.item_id
+            LEFT JOIN people pe ON r.item_type='person' AND pe.person_id=r.item_id
+            WHERE r.status IN ('visible','demo') AND r.created_at>=?{$ratingSql}
+        ) x WHERE x.item_rank <= ? ORDER BY x.created_at DESC");
+    if ($ratingFilter) $stmt->bind_param('sii', $reviewPeriodStartSql, $ratingFilter, $reviewsPerItemShown); else $stmt->bind_param('si', $reviewPeriodStartSql, $reviewsPerItemShown);
     $stmt->execute(); $reviews=$stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
 }
 $reports = [];
@@ -48,13 +69,13 @@ foreach ($reviews as $review) {
         $reviewHierarchy[$type] = ['label' => $categoryLabels[$type] ?? ucfirst($type), 'count' => 0, 'items' => []];
     }
     if (!isset($reviewHierarchy[$type]['items'][$itemKey])) {
+        // Totals for the listing across all its reviews, not just the ones listed below.
+        $itemTotals = $itemReviewTotals[$type . ':' . $itemKey] ?? ['count' => 0, 'average' => 0.0];
         $reviewHierarchy[$type]['items'][$itemKey] = [
-            'name' => $review['item_name'], 'count' => 0, 'rating_total' => 0, 'reviews' => [],
+            'name' => $review['item_name'], 'count' => $itemTotals['count'], 'rating_total' => $itemTotals['average'] * $itemTotals['count'], 'reviews' => [],
         ];
+        $reviewHierarchy[$type]['count'] += $itemTotals['count'];
     }
-    $reviewHierarchy[$type]['count']++;
-    $reviewHierarchy[$type]['items'][$itemKey]['count']++;
-    $reviewHierarchy[$type]['items'][$itemKey]['rating_total'] += (int)$review['rating'];
     $reviewHierarchy[$type]['items'][$itemKey]['reviews'][] = $review;
 }
 foreach ($reviewHierarchy as &$categoryGroup) {

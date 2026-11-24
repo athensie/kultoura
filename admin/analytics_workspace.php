@@ -826,14 +826,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
         </section>
         <?php if ($dateRangeError !== ''): ?><div class="date-range-error" role="alert"><?php echo htmlspecialchars($dateRangeError); ?></div><?php endif; ?>
     </div>
-    <?php if ($demoDataStatus !== ''): ?><div class="aw-demo-notice is-<?php echo $demoDataStatus === 'error' ? 'error' : 'ok'; ?>" role="status"><?php echo htmlspecialchars(['loaded' => 'Demo analytics data was loaded: five years of sample visits now fill the Audience tab and other charts.', 'removed' => 'Demo analytics data was removed. The dashboard now shows only real visits.', 'error' => (string) ($_GET['demo_message'] ?? 'The demo data action could not be completed.')][$demoDataStatus] ?? ''); ?></div><?php endif; ?>
-    <?php if ($audienceDemoPresent): ?>
-    <div class="aw-demo-banner" role="note">
-        <i data-lucide="flask-conical" class="lucide" aria-hidden="true"></i>
-        <div><strong>Demo analytics data is loaded.</strong> Five years of sample visits are included in these numbers, so they do not reflect real visitors. Remove it before using the dashboard for real decisions.</div>
-        <?php if ($canManageDemoData): ?><form method="post" action="<?php echo BASE_URL; ?>/admin/demo_data_actions.php" onsubmit="return confirm('Remove all demo analytics data? Real visits are not affected.');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="remove"><button type="submit" class="btn-ghost">Remove demo data</button></form><?php endif; ?>
-    </div>
-    <?php endif; ?>
+    <?php if ($demoDataStatus === 'error'): ?><div class="aw-demo-notice is-error" role="alert"><?php echo htmlspecialchars((string) ($_GET['demo_message'] ?? 'The demo data action could not be completed.')); ?></div><?php endif; ?>
     <?php if ($dashboardKpis): ?>
     <section class="aw-kpi-grid" aria-label="Key performance indicators">
         <?php foreach ($dashboardKpis as $kpi): $kpiId = $kpi['section'] . '_' . $kpi['index']; ?>
@@ -904,6 +897,9 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
     <?php foreach ($workspaceMetrics as $sectionKey=>$metrics): ?>
     <section class="aw-section <?php echo $sectionKey === $initialWorkspaceTab ? 'is-active' : ''; ?>" role="tabpanel" id="aw-section-<?php echo $sectionKey; ?>" aria-labelledby="aw-tab-<?php echo $sectionKey; ?>" <?php echo $sectionKey === $initialWorkspaceTab ? '' : 'hidden'; ?>>
         <div class="aw-section-head"><div><h2><?php echo htmlspecialchars($workspaceTabs[$sectionKey]); ?></h2></div><p><?php echo htmlspecialchars($periodLabels[$period]); ?><?php if ($rangeLabel !== '' && $period !== 'custom'): ?> <span class="aw-range">(<?php echo htmlspecialchars($rangeLabel); ?>)</span><?php endif; ?> · Based on recorded data</p></div>
+        <?php if ($sectionKey === 'audience' && $audienceDemoPresent && $canManageDemoData): ?>
+        <form class="aw-demo-remove" method="post" action="<?php echo BASE_URL; ?>/admin/demo_data_actions.php" onsubmit="return confirm('Remove the demo analytics data? Real visits are not affected.');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="remove"><button type="submit" class="btn-ghost">Remove demo data</button></form>
+        <?php endif; ?>
         <?php if ($sectionKey === 'audience' && !$audienceDemoPresent): ?>
         <div class="aw-demo-banner is-empty" role="note">
             <i data-lucide="users" class="lucide" aria-hidden="true"></i>

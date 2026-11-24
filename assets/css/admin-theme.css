@@ -867,3 +867,6 @@
 :root .aw-demo-notice.is-ok { background: var(--ui-accent-soft); color: #23683A; }
 :root .aw-demo-notice.is-error { background: rgba(185, 56, 56, .08); color: #A22F2F; }
 @media (max-width: 640px) { :root .aw-demo-banner { flex-wrap: wrap; } }
+:root .aw-demo-remove { display: flex; justify-content: flex-end; margin: -6px 0 14px; }
+:root .aw-demo-remove .btn-ghost { padding: 7px 14px; font-size: .78rem; }
+:root .hierarchy-shown-note { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--ui-accent-soft); color: var(--ui-text-2); font-size: .78rem; }

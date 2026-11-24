@@ -169,7 +169,7 @@ $iconLabels = sitecontent_icon_labels();
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="../assets/css/adminsitecontent.css">
     <link rel="stylesheet" href="../assets/css/admin-sidebar-collapse.css">
-    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-nested">
+    <link rel="stylesheet" href="../assets/css/admin-theme.css?v=20261124-review-totals">
 </head>
 <body>
 <aside class="sidebar" id="sidebar">
