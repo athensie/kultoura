@@ -578,6 +578,17 @@ $systemSummary = implode(' ', $summaryParts);
 // ---- Predictive ----
 $trafficForecast = kt_traffic_forecast($conn);
 $categoryOutlook = kt_category_outlook($conn, $tourismCategoryDefinitions);
+// Trending / rising / watch listings (rules in config/trending.php).
+require_once __DIR__ . '/../config/trending.php';
+$trendListingNames = [];
+foreach ($tourismCategoryAnalytics as $categoryStats) foreach ($categoryStats['top_items'] as $listing) $trendListingNames[$listing['type'] . '-' . $listing['id']] = ['name' => (string) $listing['name'], 'category' => (string) $categoryStats['label']];
+$trendList = [];
+foreach (kt_trending_status($conn) as $trendKey => $trend) {
+    if ($trend['status'] === 'steady' || !isset($trendListingNames[$trendKey])) continue;
+    $trendList[] = $trend + $trendListingNames[$trendKey];
+}
+$trendOrder = ['trending' => 0, 'rising' => 1, 'watch' => 2];
+usort($trendList, static fn($a, $b) => [$trendOrder[$a['status']], -$a['points_week']] <=> [$trendOrder[$b['status']], -$b['points_week']]);
 $forecastChartMax = $trafficForecast['available'] ? max(1, ...array_map(static fn($row) => (int) $row['value'], $trafficForecast['rows'])) : 1;
 
 // ---- AI: optional wording for the summary and per-chart notes (numbers verified) ----
@@ -876,6 +887,14 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                 <?php endif; ?>
                 <strong class="aw-ai-actions-title">Category interest · next 30 days</strong>
                 <?php if ($categoryOutlook): ?><ul class="aw-category-forecast-list"><?php foreach (array_slice($categoryOutlook, 0, 5) as $outlook): $outlookChange = kt_format_change($outlook['change_pct']); ?><li><span><?php echo htmlspecialchars($outlook['label']); ?></span><strong>≈ <?php echo htmlspecialchars(kt_plural($outlook['estimate'], 'view')); ?><?php if ($outlookChange !== ''): ?> <em class="aw-change <?php echo $outlook['change_pct'] > 0 ? 'is-up' : ($outlook['change_pct'] < 0 ? 'is-down' : ''); ?>"><?php echo htmlspecialchars($outlookChange); ?></em><?php elseif ($outlook['previous'] === 0): ?> <em class="aw-change is-up">new</em><?php endif; ?></strong></li><?php endforeach; ?></ul><p class="aw-forecast-note">From listing views in the last 28 days; the % compares with the 28 days before.</p><?php else: ?><p class="aw-forecast-note">Not enough listing views in the last 8 weeks to project category interest yet.</p><?php endif; ?>
+                <strong class="aw-ai-actions-title">Trending now &amp; likely to trend</strong>
+                <?php if ($trendList): ?><ul class="aw-trend-list"><?php foreach (array_slice($trendList, 0, 6) as $trendItem): ?><li><span class="aw-trend-chip is-<?php echo $trendItem['status']; ?>"><?php echo ['trending' => 'Trending', 'rising' => 'Rising', 'watch' => 'Watch'][$trendItem['status']]; ?></span><div><strong><?php echo htmlspecialchars($trendItem['name']); ?> <small>(<?php echo htmlspecialchars($trendItem['category']); ?>)</small></strong><span><?php echo htmlspecialchars($trendItem['reason']); ?></span></div></li><?php endforeach; ?></ul><?php else: ?><p class="aw-forecast-note">No listing is trending or rising this week: none has both enough activity and a clear jump above its usual week.</p><?php endif; ?>
+                <details class="aw-trend-rules"><summary>How trending is decided</summary>
+                    <p><strong>Activity points</strong> per listing: view = <?php echo KT_TREND_POINTS['view']; ?>, rating = <?php echo KT_TREND_POINTS['rating']; ?>, rating with a written comment = <?php echo KT_TREND_POINTS['comment']; ?>, intent action (directions, call, message, website, share) = <?php echo KT_TREND_POINTS['intent']; ?>.</p>
+                    <p><strong>Trending</strong> when, compared with its usual week (average of the previous 4 weeks), a listing has: at least <?php echo KT_TREND_MIN_POINTS; ?> points this week; at least <?php echo KT_TREND_GROWTH; ?>× its usual week (+<?php echo (int) round((KT_TREND_GROWTH - 1) * 100); ?>%); a jump too large to be chance (z ≥ <?php echo KT_TREND_MIN_Z; ?>, about 95% confidence); and, if it got 2+ reviews this week, an average of at least <?php echo KT_TREND_MIN_RATING; ?>★.</p>
+                    <p><strong>Rising (likely to trend)</strong> when it has at least <?php echo KT_RISING_MIN_POINTS; ?> points, is at least <?php echo KT_RISING_GROWTH; ?>× its usual week, and at the pace of its last 3 days would meet the trending rules within the next 7 days.</p>
+                    <p><strong>Watch</strong> when activity jumps but recent reviews average below <?php echo KT_TREND_MIN_RATING; ?>★, so it is attention, not a positive trend. Generated sample reviews are not counted.</p>
+                </details>
             </div>
         </article>
         <article class="aw-ai-card aw-ai-card--prescriptive">

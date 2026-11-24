@@ -124,6 +124,8 @@ foreach ($popularRows as $r) {
         'average_rating' => (float) ($r['average_rating'] ?? 0),
         'sentiment' => (float) ($r['sentiment'] ?? 0),
         'trending' => !empty($r['trending']),
+        'trend_status' => (string) ($r['trend_status'] ?? 'steady'),
+        'trend_reason' => (string) ($r['trend_reason'] ?? ''),
         'popularity_score' => (float) ($r['popularity_score'] ?? 0),
         'viewPage'  => 'tourism/' . $viewPage,
         'viewUrl'   => $viewUrl,
@@ -144,7 +146,7 @@ foreach ($popularItems as $p) {
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/search.css?v=20261101-2">
     <link rel="stylesheet" href="../assets/css/tourism.css">
-    <link rel="stylesheet" href="../assets/css/mostpopular.css?v=20261106-1">
+    <link rel="stylesheet" href="../assets/css/mostpopular.css?v=20261124-trend">
 </head>
 <body>
 <header class="navbar navbar-solid">
@@ -296,6 +298,9 @@ foreach ($popularItems as $p) {
                                         <span class="m-fav-count"><?php echo (int) $p['views']; ?> views</span>
                                     </span>
                                 </div>
+                                <?php if (in_array($p['trend_status'], ['trending', 'rising'], true)): ?>
+                                    <span class="m-trend m-trend--<?php echo $p['trend_status']; ?>" title="<?php echo htmlspecialchars($p['trend_reason']); ?>"><?php echo $p['trend_status'] === 'trending' ? '🔥 Trending this week' : '↗ Rising'; ?></span>
+                                <?php endif; ?>
                                 <h3 class="m-card-title"><?php echo htmlspecialchars($p['name']); ?></h3>
                                 <?php if (!empty($p['summary'])): ?>
                                     <p class="m-card-desc"><?php echo htmlspecialchars($p['summary']); ?></p>

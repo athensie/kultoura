@@ -881,3 +881,17 @@
 :root .folder-modal-search.has-no-results .folder-modal-search-count { color: #A22F2F; }
 :root .is-search-hidden { display: none !important; }
 @media (max-width: 640px) { :root .folder-modal-search { padding: 10px 14px; } }
+
+/* ---------- Trending list (Predictive panel) ---------- */
+:root .aw-trend-list { display: grid; gap: 8px; margin: 8px 0 0; padding: 0; list-style: none; }
+:root .aw-trend-list li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: 10px; background: var(--ui-surface-soft); }
+:root .aw-trend-list strong { display: block; color: var(--ui-text); font: 600 .84rem/1.35 var(--font-ui); }
+:root .aw-trend-list strong small { color: var(--ui-muted); font-weight: 500; }
+:root .aw-trend-list span:not(.aw-trend-chip) { display: block; margin-top: 2px; color: var(--ui-text-2); font-size: .76rem; line-height: 1.45; }
+:root .aw-trend-chip { flex: 0 0 auto; padding: 3px 9px; border-radius: 999px; font: 700 .68rem var(--font-ui); text-transform: uppercase; letter-spacing: .4px; }
+:root .aw-trend-chip.is-trending { background: #fdeee6; color: #a33a12; }
+:root .aw-trend-chip.is-rising { background: var(--ui-accent-soft); color: #23683A; }
+:root .aw-trend-chip.is-watch { background: rgba(118, 85, 31, .12); color: #6A4C1B; }
+:root .aw-trend-rules { margin-top: 10px; border: 1px solid var(--ui-line); border-radius: 10px; background: var(--ui-surface); }
+:root .aw-trend-rules > summary { padding: 9px 12px; color: var(--ui-accent); font: 600 .8rem var(--font-ui); cursor: pointer; }
+:root .aw-trend-rules p { margin: 0; padding: 0 12px 10px; color: var(--ui-text-2); font-size: .78rem; line-height: 1.55; }

@@ -436,6 +436,8 @@ function analytics_most_popular_items(mysqli $conn, int $limit = 24): array
     }
     $maxViews = max(1, max(array_column($items, 'views')));
     $maxRecentViews = max(1, max($viewCounts ?: [0]));
+    require_once __DIR__ . '/trending.php';
+    $trendStatus = kt_trending_status($conn);
     foreach ($items as &$item) {
         $key = $item['type'].'-'.$item['id'];
         $stats = $feedback[$key] ?? null;
@@ -456,7 +458,11 @@ function analytics_most_popular_items(mysqli $conn, int $limit = 24): array
         } else {
             $item['popularity_score'] = 100 * (.65*$viewScore + .35*$recentViewScore);
         }
-        $item['trending'] = $recentViews > 0 || ($stats['recent'] ?? 0) > 0;
+        // Trending / rising per the rules in config/trending.php (this week vs the listing's usual week).
+        $trend = $trendStatus[$key] ?? null;
+        $item['trend_status'] = $trend['status'] ?? 'steady';
+        $item['trend_reason'] = $trend['reason'] ?? '';
+        $item['trending'] = $item['trend_status'] === 'trending';
     }
     unset($item);
     usort($items, static fn($a,$b) => ($b['popularity_score'] <=> $a['popularity_score']) ?: ($b['views'] <=> $a['views']));
