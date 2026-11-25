@@ -578,16 +578,16 @@ $descriptiveTopContent = array_values(array_filter(array_slice($allPeriodItems, 
 
 // ---- Descriptive ----
 $descriptiveHighlights = [
-    ['label' => 'Site visits', 'value' => number_format($systemSnapshot['site_visits']), 'change' => $snapshotChange('site_visits')],
+    ['label' => 'Site visits', 'value' => number_format($systemSnapshot['site_visits']), 'change' => $snapshotChange('site_visits'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['site_visits'] : null],
     $systemSnapshot['unique_visitors'] > 0
-        ? ['label' => 'Unique visitors', 'value' => number_format($systemSnapshot['unique_visitors']), 'change' => ($previousSnapshot['unique_visitors'] ?? 0) > 0 ? $snapshotChange('unique_visitors') : null]
-        : ['label' => 'Visitor sessions', 'value' => number_format($systemSnapshot['visitor_sessions']), 'change' => $snapshotChange('visitor_sessions')],
-    ['label' => 'Listing views', 'value' => number_format($systemSnapshot['content_views']), 'change' => $snapshotChange('content_views')],
-    ['label' => 'Searches · with no results', 'value' => number_format($systemSnapshot['searches']) . ' · ' . number_format($systemSnapshot['zero_result_searches']), 'change' => $snapshotChange('searches')],
-    ['label' => 'Reviews · average rating', 'value' => number_format($systemSnapshot['reviews']) . ($systemSnapshot['average_rating'] !== null ? ' · ' . number_format($systemSnapshot['average_rating'], 1) . '/5' : ''), 'change' => $snapshotChange('reviews')],
-    ['label' => 'New members', 'value' => number_format($systemSnapshot['new_members']), 'change' => $snapshotChange('new_members')],
-    ['label' => 'Favourites saved', 'value' => number_format($systemSnapshot['favorites']), 'change' => $snapshotChange('favorites')],
-    ['label' => 'Intent actions (directions, calls…)', 'value' => number_format($systemSnapshot['intent_actions']), 'change' => $snapshotChange('intent_actions')],
+        ? ['label' => 'Unique visitors', 'value' => number_format($systemSnapshot['unique_visitors']), 'change' => ($previousSnapshot['unique_visitors'] ?? 0) > 0 ? $snapshotChange('unique_visitors') : null, 'previous' => $previousSnapshot ? (int) $previousSnapshot['unique_visitors'] : null]
+        : ['label' => 'Visitor sessions', 'value' => number_format($systemSnapshot['visitor_sessions']), 'change' => $snapshotChange('visitor_sessions'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['visitor_sessions'] : null],
+    ['label' => 'Listing views', 'value' => number_format($systemSnapshot['content_views']), 'change' => $snapshotChange('content_views'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['content_views'] : null],
+    ['label' => 'Searches · with no results', 'value' => number_format($systemSnapshot['searches']) . ' · ' . number_format($systemSnapshot['zero_result_searches']), 'change' => $snapshotChange('searches'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['searches'] : null],
+    ['label' => 'Reviews · average rating', 'value' => number_format($systemSnapshot['reviews']) . ($systemSnapshot['average_rating'] !== null ? ' · ' . number_format($systemSnapshot['average_rating'], 1) . '/5' : ''), 'change' => $snapshotChange('reviews'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['reviews'] : null],
+    ['label' => 'New members', 'value' => number_format($systemSnapshot['new_members']), 'change' => $snapshotChange('new_members'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['new_members'] : null],
+    ['label' => 'Favourites saved', 'value' => number_format($systemSnapshot['favorites']), 'change' => $snapshotChange('favorites'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['favorites'] : null],
+    ['label' => 'Intent actions (directions, calls…)', 'value' => number_format($systemSnapshot['intent_actions']), 'change' => $snapshotChange('intent_actions'), 'previous' => $previousSnapshot ? (int) $previousSnapshot['intent_actions'] : null],
 ];
 $summaryParts = [];
 $visitsChangeText = kt_format_change($snapshotChange('site_visits'));
@@ -617,6 +617,8 @@ foreach (kt_trending_status($conn) as $trendKey => $trend) {
     $trendList[] = $trend + $trendListingNames[$trendKey];
 }
 $trendOrder = ['trending' => 0, 'rising' => 1, 'watch' => 2];
+// Page momentum: last 7 complete days vs the 7 days before (both counts shown so it can be checked).
+$pageMomentum = kt_page_momentum($conn);
 usort($trendList, static fn($a, $b) => [$trendOrder[$a['status']], -$a['points_week']] <=> [$trendOrder[$b['status']], -$b['points_week']]);
 $forecastChartMax = $trafficForecast['available'] ? max(1, ...array_map(static fn($row) => (int) $row['value'], $trafficForecast['rows'])) : 1;
 
@@ -883,7 +885,7 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                 <span class="aw-ai-badge"><?php echo htmlspecialchars($aiAnalysisLabel); ?></span>
                 <p class="aw-ai-summary"><?php echo htmlspecialchars($aiSummary); ?></p>
                 <div class="aw-descriptive-stats" aria-label="Selected-period totals across the site">
-                    <?php foreach ($descriptiveHighlights as $highlight): $highlightChange = kt_format_change($highlight['change']); ?><div class="aw-descriptive-stat"><strong><?php echo htmlspecialchars($highlight['value']); ?><?php if ($highlightChange !== ''): ?> <em class="aw-change <?php echo $highlight['change'] > 0 ? 'is-up' : ($highlight['change'] < 0 ? 'is-down' : ''); ?>" title="vs <?php echo htmlspecialchars($previousRangeLabel); ?>"><?php echo htmlspecialchars($highlightChange); ?></em><?php endif; ?></strong><span><?php echo htmlspecialchars($highlight['label']); ?></span></div><?php endforeach; ?>
+                    <?php foreach ($descriptiveHighlights as $highlight): $highlightChange = kt_format_change($highlight['change']); ?><div class="aw-descriptive-stat"><strong><?php echo htmlspecialchars($highlight['value']); ?><?php if ($highlightChange !== ''): ?> <em class="aw-change <?php echo $highlight['change'] > 0 ? 'is-up' : ($highlight['change'] < 0 ? 'is-down' : ''); ?>" title="vs <?php echo htmlspecialchars($previousRangeLabel); ?>"><?php echo htmlspecialchars($highlightChange); ?></em><?php endif; ?></strong><span><?php echo htmlspecialchars($highlight['label']); ?></span><?php if (isset($highlight['previous']) && $previousRangeLabel !== ''): ?><small class="aw-stat-previous">was <?php echo number_format((int) $highlight['previous']); ?> in <?php echo htmlspecialchars($previousRangeLabel); ?></small><?php endif; ?></div><?php endforeach; ?>
                 </div>
                 <p class="aw-forecast-note"><?php echo $previousRangeLabel !== '' ? 'Percentages compare with ' . htmlspecialchars($previousRangeLabel) . '.' : 'No comparison is shown for All Time.'; ?> Totals come from page views, listing views, searches, reviews, sign-ups, favourites, travel diaries and visitor sessions.</p>
                 <strong class="aw-ai-actions-title">Most viewed listings</strong>
@@ -925,6 +927,18 @@ $filterToValue = $customRange ? $dateToInput : ($period === 'all' ? '' : $period
                     <p><strong>Rising (likely to trend)</strong> when it has at least <?php echo KT_RISING_MIN_POINTS; ?> points, is at least <?php echo KT_RISING_GROWTH; ?>× its usual week, and at the pace of its last 3 days would meet the trending rules within the next 7 days.</p>
                     <p><strong>Watch</strong> when activity jumps but recent reviews average below <?php echo KT_TREND_MIN_RATING; ?>★, so it is attention, not a positive trend. Generated sample reviews are not counted.</p>
                 </details>
+                <strong class="aw-ai-actions-title">Pages gaining momentum <small class="aw-momentum-range"><?php echo htmlspecialchars($pageMomentum['this_range']); ?> vs <?php echo htmlspecialchars($pageMomentum['previous_range']); ?></small></strong>
+                <?php if ($pageMomentum['gaining'] || $pageMomentum['losing']): ?><ul class="aw-momentum-list">
+                    <?php foreach (array_merge(array_slice($pageMomentum['gaining'], 0, 4), array_slice($pageMomentum['losing'], 0, 2)) as $momentum): $momentumChange = $momentum['change_pct'] === null ? 'new' : kt_format_change($momentum['change_pct']); ?>
+                    <li class="is-<?php echo $momentum['direction']; ?>" title="<?php echo htmlspecialchars($momentum['label'] . ': ' . number_format($momentum['views']) . ' views on ' . $pageMomentum['this_range'] . ', ' . number_format($momentum['previous']) . ' views on ' . $pageMomentum['previous_range']); ?>">
+                        <span class="aw-momentum-arrow" aria-hidden="true"><?php echo $momentum['direction'] === 'up' ? '▲' : '▼'; ?></span>
+                        <span class="aw-momentum-name"><?php echo htmlspecialchars($momentum['label']); ?><small><?php echo number_format($momentum['views']); ?> views this week · <?php echo number_format($momentum['previous']); ?> the week before</small></span>
+                        <strong><?php echo htmlspecialchars($momentumChange); ?></strong>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+                <p class="aw-forecast-note">Page views on the last 7 complete days (<?php echo htmlspecialchars($pageMomentum['this_range']); ?>) compared with the 7 days before (<?php echo htmlspecialchars($pageMomentum['previous_range']); ?>). Today is not counted yet. Pages need at least 10 views in one of the two weeks.</p>
+                <?php else: ?><p class="aw-forecast-note">No page changed by enough to show momentum between <?php echo htmlspecialchars($pageMomentum['previous_range']); ?> and <?php echo htmlspecialchars($pageMomentum['this_range']); ?> (pages need at least 10 views in one of the two weeks).</p><?php endif; ?>
             </div>
         </article>
         <article class="aw-ai-card aw-ai-card--prescriptive">

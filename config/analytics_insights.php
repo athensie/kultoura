@@ -655,3 +655,47 @@ function kt_seasonal_summary(array $pattern): string
     if ($pattern['high']) $parts[] = 'Usually busy: ' . $describe($pattern['high'], 'high') . '.';
     return implode(' ', $parts);
 }
+
+/**
+ * Page momentum: views in the last 7 COMPLETE days vs the 7 days before (today is left out so a
+ * partial day never looks like a drop). Returns ['this_range', 'previous_range', 'gaining' => [...],
+ * 'losing' => [...]], each row: page, label, views, previous, change_pct (null = new), direction.
+ * Pages need at least $minViews views in one of the two weeks to be listed.
+ */
+function kt_page_momentum(mysqli $conn, int $minViews = 10): array
+{
+    $today = new DateTimeImmutable('today');
+    $thisStart = $today->modify('-7 days');
+    $previousStart = $today->modify('-14 days');
+    $format = static fn(DateTimeImmutable $from, DateTimeImmutable $toExclusive) => $from->format('M j') . '–' . $toExclusive->modify('-1 day')->format($from->format('M') === $toExclusive->modify('-1 day')->format('M') ? 'j' : 'M j');
+    $result = ['this_range' => $format($thisStart, $today), 'previous_range' => $format($previousStart, $thisStart), 'gaining' => [], 'losing' => []];
+    if (!kt_insight_table_exists($conn, 'page_views')) return $result;
+    $demo = KT_DEMO_REFERRER;
+    $stmt = $conn->prepare("SELECT page, SUM(viewed_at >= ?) this_week, SUM(viewed_at < ?) previous_week FROM page_views
+        WHERE (referrer_host IS NULL OR referrer_host <> '{$demo}') AND viewed_at >= ? AND viewed_at < ? GROUP BY page");
+    if (!$stmt) return $result;
+    $thisSql = $thisStart->format('Y-m-d 00:00:00');
+    $previousSql = $previousStart->format('Y-m-d 00:00:00');
+    $todaySql = $today->format('Y-m-d 00:00:00');
+    $stmt->bind_param('ssss', $thisSql, $thisSql, $previousSql, $todaySql);
+    $stmt->execute();
+    $labels = function_exists('analytics_page_labels') ? analytics_page_labels() : [];
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $views = (int) $row['this_week'];
+        $previous = (int) $row['previous_week'];
+        if (max($views, $previous) < $minViews || $views === $previous) continue;
+        $page = (string) $row['page'];
+        $entry = [
+            'page' => $page, 'label' => $labels[$page] ?? ucwords(str_replace(['_', '-'], ' ', $page)),
+            'views' => $views, 'previous' => $previous,
+            'change_pct' => $previous > 0 ? ($views - $previous) / $previous * 100 : null,
+            'direction' => $views > $previous ? 'up' : 'down',
+        ];
+        $result[$entry['direction'] === 'up' ? 'gaining' : 'losing'][] = $entry;
+    }
+    $stmt->close();
+    // Biggest relative change first; brand-new pages (no previous views) lead the gaining list.
+    usort($result['gaining'], static fn($a, $b) => [$b['change_pct'] === null, $b['change_pct'] ?? 0, $b['views']] <=> [$a['change_pct'] === null, $a['change_pct'] ?? 0, $a['views']]);
+    usort($result['losing'], static fn($a, $b) => [$a['change_pct'], -$a['previous']] <=> [$b['change_pct'], -$b['previous']]);
+    return $result;
+}
