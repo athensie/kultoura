@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $fullname = trim($_POST['fullname'] ?? '');
             if (!kt_description_is_valid((string) ($_POST['desc'] ?? ''), (string) ($_POST['summary'] ?? ''))) {
-                $_SESSION['flash'] = 'Keep the card summary and write a longer description in exactly two paragraphs, separated by a blank line.';
+                $_SESSION['flash'] = kt_description_problem((string) ($_POST['desc'] ?? ''), (string) ($_POST['summary'] ?? ''));
                 header('Location: adminpeople.php');
                 exit;
             }
@@ -264,7 +264,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                                     <div class="table-actions">
                                         <button class="tbl-btn view" onclick="openViewPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                                         <button class="tbl-btn edit" onclick="openEditPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                                        <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', '<?php echo htmlspecialchars($p['fullname'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                                        <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', <?php echo htmlspecialchars(json_encode((string) ($p['fullname']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                                     </div>
                                 </td>
                             </tr>
@@ -305,7 +305,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
                         <div class="grid-card-actions">
                             <button class="tbl-btn view" onclick="openViewPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
                             <button class="tbl-btn edit" onclick="openEditPerson('<?php echo (int) $p['person_id']; ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                            <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', '<?php echo htmlspecialchars($p['fullname'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                            <button class="tbl-btn delete" onclick="confirmDelete('<?php echo (int) $p['person_id']; ?>', <?php echo htmlspecialchars(json_encode((string) ($p['fullname']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -448,7 +448,7 @@ $addedThisMonth = count(array_filter($people, function ($p) {
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 
 <script src="../assets/js/admin-notifications.js"></script>
-<script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
+<script src="../assets/js/admin-description-paragraphs.js?v=20261125-1"></script>
 <script src="../assets/js/adminpeople.js"></script>
 <script>initViewToggle('people', '.data-table-wrap', '#peopleGrid'); initSidebarCollapse();</script>
 <script>

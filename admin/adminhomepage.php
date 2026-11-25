@@ -254,7 +254,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                             </div>
                             <div class="grid-card-actions">
                                 <button type="button" class="tbl-btn edit" onclick="openEditPartner(<?php echo (int) $p['id']; ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                                <button type="button" class="tbl-btn delete" onclick="confirmArchive('partner', <?php echo (int) $p['id']; ?>, '<?php echo htmlspecialchars($p['name'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                                <button type="button" class="tbl-btn delete" onclick="confirmArchive('partner', <?php echo (int) $p['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($p['name']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -298,7 +298,7 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                             </div>
                             <div class="grid-card-actions">
                                 <button type="button" class="tbl-btn edit" onclick="openEditEventPhoto(<?php echo (int) $g['id']; ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                                <button type="button" class="tbl-btn delete" onclick="confirmArchive('event_photo', <?php echo (int) $g['id']; ?>, '<?php echo htmlspecialchars($g['caption'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                                <button type="button" class="tbl-btn delete" onclick="confirmArchive('event_photo', <?php echo (int) $g['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($g['caption']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                             </div>
                         </div>
                     <?php endforeach; ?>

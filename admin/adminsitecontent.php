@@ -272,7 +272,7 @@ $iconLabels = sitecontent_icon_labels();
                     <div class="photo-card-body">
                         <div class="photo-card-label"><?php echo htmlspecialchars($slot['label']); ?></div>
                         <div class="photo-card-hint"><?php echo htmlspecialchars($slot['hint']); ?></div>
-                        <button type="button" class="photo-card-preview-link" onclick="openPagePreview('<?php echo htmlspecialchars($slot['url'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($groupName . ' — ' . $slot['label'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($slot['highlight'] ?? '', ENT_QUOTES); ?>')">
+                        <button type="button" class="photo-card-preview-link" onclick="openPagePreview(<?php echo htmlspecialchars(json_encode((string) ($slot['url']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>, <?php echo htmlspecialchars(json_encode((string) ($groupName . ' — ' . $slot['label']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>, <?php echo htmlspecialchars(json_encode((string) ($slot['highlight'] ?? ''), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)">
                             <i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> Preview page
                         </button>
                         <div class="photo-card-actions">

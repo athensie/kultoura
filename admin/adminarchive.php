@@ -200,7 +200,7 @@ unset($group);
                                     <input type="hidden" name="entity_id" value="<?php echo (int) $item['id']; ?>">
                                     <button type="submit" class="tbl-btn edit"><i data-lucide="rotate-ccw" class="lucide" style="width:.72rem;height:.72rem;"></i> Restore</button>
                                 </form>
-                                <button type="button" class="tbl-btn" style="background:rgba(var(--overlay-rgb),.05);color:rgba(var(--cream-rgb),.62);" onclick="openArchiveDetails('<?php echo htmlspecialchars($type); ?>', <?php echo (int) $item['id']; ?>)"><i data-lucide="eye" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</button>
+                                <button type="button" class="tbl-btn" style="background:rgba(var(--overlay-rgb),.05);color:rgba(var(--cream-rgb),.62);" onclick="openArchiveDetails(<?php echo htmlspecialchars(json_encode((string) ($type), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>, <?php echo (int) $item['id']; ?>)"><i data-lucide="eye" class="lucide" style="width:.72rem;height:.72rem;"></i> Open</button>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete &quot;<?php echo htmlspecialchars(addslashes($item['name'] ?: ('#' . $item['id'])), ENT_QUOTES); ?>&quot;? This cannot be undone — it will be gone for good, not just archived.');">
                                     <?php echo csrf_field(); ?>
                                     <input type="hidden" name="form_action" value="delete">

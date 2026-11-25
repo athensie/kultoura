@@ -251,9 +251,9 @@ foreach (kt_requests_list($conn, 'pending') as $req) {
                     <div class="pw-admin-row-actions">
                         <?php if ($w): ?>
                             <button type="button" class="tbl-btn edit" onclick="openEditWidget(<?php echo (int) $w['id']; ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                            <button type="button" class="tbl-btn delete" onclick="confirmArchiveWidget(<?php echo (int) $w['id']; ?>, '<?php echo htmlspecialchars($label, ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                            <button type="button" class="tbl-btn delete" onclick="confirmArchiveWidget(<?php echo (int) $w['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($label), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         <?php else: ?>
-                            <button type="button" class="btn-primary" onclick="openAddWidget('<?php echo htmlspecialchars($slug, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($label, ENT_QUOTES); ?>')"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Widget</button>
+                            <button type="button" class="btn-primary" onclick="openAddWidget(<?php echo htmlspecialchars(json_encode((string) ($slug), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>, <?php echo htmlspecialchars(json_encode((string) ($label), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="plus" class="lucide" style="width:.85rem;height:.85rem;"></i> Add Widget</button>
                         <?php endif; ?>
                     </div>
                 </div>

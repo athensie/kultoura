@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $entityAction = $formAction === 'delete' ? 'archive' : $formAction;
     $id = isset($_POST['id']) && $_POST['id'] !== '' ? (int) $_POST['id'] : null;
     if (in_array($entityAction, ['create', 'update'], true) && !kt_description_is_valid((string) ($_POST['description'] ?? ''), (string) ($_POST['summary'] ?? ''))) {
-        $_SESSION['admin_flash'] = 'Keep the card summary and write a longer description in exactly two paragraphs, separated by a blank line.';
+        $_SESSION['admin_flash'] = kt_description_problem((string) ($_POST['description'] ?? ''), (string) ($_POST['summary'] ?? ''));
         header('Location: ' . BASE_URL . '/admin/admindestinations.php');
         exit;
     }
@@ -631,7 +631,7 @@ $addedThisMonth = count(array_filter($destinations, fn($d) => date('Y-m', strtot
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 
 <script src="../assets/js/admin-notifications.js"></script>
-<script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
+<script src="../assets/js/admin-description-paragraphs.js?v=20261125-1"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261124-clean"></script>
 <script src="../assets/js/admindestinations.js?v=20261104-3"></script>
 <script>initViewToggle('destinations', '.data-table-wrap', '#destinationsGrid'); initSidebarCollapse();</script>

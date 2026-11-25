@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     $entityAction = $formAction === 'add_listing' ? 'create' : ($formAction === 'edit_listing' ? 'update' : 'archive');
     $id = ($formAction === 'edit_listing' || $formAction === 'delete_listing') ? (int) ($_POST['id'] ?? 0) : null;
     if ($entityAction !== 'archive' && !kt_description_is_valid((string) ($_POST['desc'] ?? ''), (string) ($_POST['summary'] ?? ''))) {
-        $_SESSION['admin_flash'] = 'Keep the card summary and write a longer description in exactly two paragraphs, separated by a blank line.';
+        $_SESSION['admin_flash'] = kt_description_problem((string) ($_POST['desc'] ?? ''), (string) ($_POST['summary'] ?? ''));
         header('Location: adminfoodanddining.php');
         exit;
     }
@@ -387,9 +387,9 @@ sort($allCategories);
                                 <td><?php echo (int) ($foodViewsByType[$l['type']][(int) $l['id']] ?? 0); ?></td>
                                 <td>
                                     <div class="table-actions">
-                                        <button type="button" class="tbl-btn view" onclick="openViewListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
-                                        <button type="button" class="tbl-btn edit" onclick="openEditListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                                        <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($l['name'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                                        <button type="button" class="tbl-btn view" onclick="openViewListing(<?php echo (int) $l['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($l['type']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
+                                        <button type="button" class="tbl-btn edit" onclick="openEditListing(<?php echo (int) $l['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($l['type']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
+                                        <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($l['type']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>, <?php echo htmlspecialchars(json_encode((string) ($l['name']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                                     </div>
                                 </td>
                             </tr>
@@ -431,9 +431,9 @@ sort($allCategories);
                             </div>
                         </div>
                         <div class="grid-card-actions">
-                            <button type="button" class="tbl-btn view" onclick="openViewListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
-                            <button type="button" class="tbl-btn edit" onclick="openEditListing(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>')"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
-                            <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, '<?php echo htmlspecialchars($l['type'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($l['name'], ENT_QUOTES); ?>')"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
+                            <button type="button" class="tbl-btn view" onclick="openViewListing(<?php echo (int) $l['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($l['type']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="eye" class="lucide" style="width:.75rem;height:.75rem;"></i> View</button>
+                            <button type="button" class="tbl-btn edit" onclick="openEditListing(<?php echo (int) $l['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($l['type']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="pencil" class="lucide" style="width:.75rem;height:.75rem;"></i> Edit</button>
+                            <button type="button" class="tbl-btn delete" onclick="confirmDelete(<?php echo (int) $l['id']; ?>, <?php echo htmlspecialchars(json_encode((string) ($l['type']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>, <?php echo htmlspecialchars(json_encode((string) ($l['name']), JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES); ?>)"><i data-lucide="archive" class="lucide" style="width:.75rem;height:.75rem;"></i> Archive</button>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -680,7 +680,7 @@ sort($allCategories);
 <script src="../assets/js/admin-sidebar-collapse.js"></script>
 
 <script src="../assets/js/admin-notifications.js"></script>
-<script src="../assets/js/admin-description-paragraphs.js?v=20261102-1"></script>
+<script src="../assets/js/admin-description-paragraphs.js?v=20261125-1"></script>
 <script src="../assets/js/kt-address-picker.js?v=20261124-clean"></script>
 <script src="../assets/js/product-location-map.js?v=20261102-4"></script>
 <script src="../assets/js/adminfoodanddining.js?v=20261104-1"></script>

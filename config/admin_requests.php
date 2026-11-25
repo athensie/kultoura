@@ -1,14 +1,42 @@
 <?php
 require_once __DIR__ . '/product_locations.php';
+if (!function_exists('kt_description_normalize')) {
+    /**
+     * Cleans pasted text: Windows/old-Mac line breaks and Unicode line/paragraph separators become \n,
+     * and invisible characters (non-breaking, zero-width, ideographic spaces) no longer stop a line
+     * from counting as blank. Paragraphs are separated by exactly one blank line.
+     */
+    function kt_description_normalize(string $description): string
+    {
+        $text = preg_replace('/\r\n?|\x{2028}|\x{2029}|\x{0085}/u', "\n", $description) ?? $description;
+        $text = preg_replace('/[\x{00A0}\x{2000}-\x{200B}\x{202F}\x{205F}\x{3000}\x{FEFF}]/u', ' ', $text) ?? $text;
+        $text = preg_replace('/[ \t]+$/m', '', $text) ?? $text;        // trailing spaces on each line
+        $text = preg_replace('/\n{3,}/', "\n\n", $text) ?? $text;     // several blank lines → one
+        return trim($text);
+    }
+}
+if (!function_exists('kt_description_problem')) {
+    /** What is wrong with a listing description, in plain words, or null when it is fine. */
+    function kt_description_problem(string $description, string $summary): ?string
+    {
+        $description = kt_description_normalize($description);
+        $paragraphs = array_values(array_filter(array_map('trim', preg_split('/\n[ \t]*\n+/', $description) ?: []), static fn($p) => $p !== ''));
+        $count = count($paragraphs);
+        if ($count === 0) return 'Please write a description (two paragraphs separated by a blank line).';
+        if ($count === 1) return 'Your description has 1 paragraph. Split it into two paragraphs by pressing Enter twice between them, so there is an empty line in between.';
+        if ($count > 2) return 'Your description has ' . $count . ' paragraphs. Combine them into exactly two, with one empty line between them.';
+        $descriptionLength = mb_strlen($description);
+        $summaryLength = mb_strlen(trim($summary));
+        if ($descriptionLength <= $summaryLength) {
+            return 'The description (' . $descriptionLength . ' characters) must be longer than the card summary (' . $summaryLength . ' characters). Add more detail to the description or shorten the summary.';
+        }
+        return null;
+    }
+}
 if (!function_exists('kt_description_is_valid')) {
     function kt_description_is_valid(string $description, string $summary): bool
     {
-        $description = trim($description);
-        $paragraphs = preg_split('/(?:\r\n|\r|\n)[\t ]*(?:\r\n|\r|\n)+/u', $description);
-        $paragraphs = array_filter(array_map('trim', $paragraphs ?: []), static fn($paragraph) => $paragraph !== '');
-        $descriptionLength = function_exists('mb_strlen') ? mb_strlen($description) : strlen($description);
-        $summaryLength = function_exists('mb_strlen') ? mb_strlen(trim($summary)) : strlen(trim($summary));
-        return count($paragraphs) === 2 && $descriptionLength > $summaryLength;
+        return kt_description_problem($description, $summary) === null;
     }
 }
 if (!function_exists('kt_requests_ensure_schema')) {
@@ -432,6 +460,7 @@ if (!function_exists('kt_apply_entity_change')) {
             }
         }
         if ($action === 'update' && !$data) throw new RuntimeException('This request has no changes saved in it, so nothing was changed.');
+        if (isset($data['description']) && is_string($data['description'])) $data['description'] = kt_description_normalize($data['description']);
         if ($action === 'archive' && $id !== null && !empty($data['archive_note'])) {
             kt_archive_note_save($conn, $entityType, $id, (string) $data['archive_note']);
         }

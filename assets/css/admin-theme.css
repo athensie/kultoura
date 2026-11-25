@@ -895,3 +895,7 @@
 :root .aw-trend-rules { margin-top: 10px; border: 1px solid var(--ui-line); border-radius: 10px; background: var(--ui-surface); }
 :root .aw-trend-rules > summary { padding: 9px 12px; color: var(--ui-accent); font: 600 .8rem var(--font-ui); cursor: pointer; }
 :root .aw-trend-rules p { margin: 0; padding: 0 12px 10px; color: var(--ui-text-2); font-size: .78rem; line-height: 1.55; }
+
+/* Live description check under the textarea */
+:root .description-paragraph-status { margin-top: 6px; color: #A22F2F; font: 500 .76rem/1.45 var(--font-ui); }
+:root .description-paragraph-status.is-ok { color: #23683A; }
