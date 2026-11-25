@@ -47,9 +47,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     if (!$request || $request['status'] !== 'pending') {
         $_SESSION['admin_flash'] = 'That request is no longer pending.';
     } elseif ($formAction === 'approve') {
-        kt_apply_entity_change($conn, $request['entity_type'], $request['action'], $request['entity_id'], $request['payload']);
-        kt_requests_resolve($conn, $requestId, 'approved', $reviewerId);
-        $_SESSION['admin_flash'] = 'Request approved and applied.';
+        try {
+            kt_apply_entity_change($conn, $request['entity_type'], $request['action'], $request['entity_id'], $request['payload']);
+            kt_requests_resolve($conn, $requestId, 'approved', $reviewerId);
+            $changedFields = array_values(array_filter(array_map(
+                static fn($field) => $fieldLabels[$field] ?? null,
+                array_keys(array_filter($request['payload'], static fn($value) => $value !== null && $value !== ''))
+            )));
+            $_SESSION['admin_flash'] = 'Approved and published: "' . $request['entity_label'] . '"'
+                . ($request['action'] === 'update' && $changedFields ? ' (' . implode(', ', array_unique($changedFields)) . ').' : '.')
+                . ' Visitors see the change right away.';
+        } catch (Throwable $error) {
+            error_log('Approving request ' . $requestId . ' failed: ' . $error->getMessage());
+            $_SESSION['admin_flash'] = 'Could not apply this request: ' . ($error instanceof RuntimeException ? $error->getMessage() : 'a database error occurred.') . ' It is still pending.';
+        }
     } elseif ($formAction === 'reject') {
         $note = trim($_POST['review_note'] ?? '') ?: null;
         kt_requests_resolve($conn, $requestId, 'rejected', $reviewerId, $note);

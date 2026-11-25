@@ -336,7 +336,9 @@ if (!function_exists('kt_is_super_admin')) {
 if (!function_exists('kt_requests_create')) {
     function kt_requests_create(mysqli $conn, string $entityType, string $action, ?int $entityId, array $data, string $label, int $requestedBy, string $requestedByName): int
     {
-        $payload = json_encode($data);
+        // JSON_INVALID_UTF8_SUBSTITUTE: text pasted from Word etc. must not turn the request into an empty payload.
+        $payload = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($payload === false || $payload === '[]') throw new RuntimeException('The change request could not be saved. Please try again.');
         $stmt = $conn->prepare(
             "INSERT INTO admin_change_requests (entity_type, entity_id, entity_label, action, payload, requested_by, requested_by_name)
              VALUES (?, ?, ?, ?, ?, ?, ?)"
@@ -417,6 +419,19 @@ if (!function_exists('kt_requests_resolve')) {
 if (!function_exists('kt_apply_entity_change')) {
     function kt_apply_entity_change(mysqli $conn, string $entityType, string $action, ?int $id, array $data): string
     {
+        if ($action !== 'create') {
+            $meta = kt_entity_meta($entityType);
+            if ($id === null || $id <= 0) throw new RuntimeException('This request does not say which item to change.');
+            if ($meta) {
+                $check = $conn->prepare("SELECT 1 FROM `{$meta['table']}` WHERE `{$meta['idCol']}` = ? LIMIT 1");
+                $check->bind_param('i', $id);
+                $check->execute();
+                $exists = (bool) $check->get_result()->fetch_row();
+                $check->close();
+                if (!$exists) throw new RuntimeException('The item in this request no longer exists, so nothing was changed.');
+            }
+        }
+        if ($action === 'update' && !$data) throw new RuntimeException('This request has no changes saved in it, so nothing was changed.');
         if ($action === 'archive' && $id !== null && !empty($data['archive_note'])) {
             kt_archive_note_save($conn, $entityType, $id, (string) $data['archive_note']);
         }
@@ -453,6 +468,9 @@ if (!function_exists('kt_apply_destination')) {
         $scheduleMonth = ($d['category'] === 'church') ? ($d['schedule_month'] ?? null) : null;
         $scheduleText = ($d['category'] === 'church' && !empty($d['schedule_text'])) ? $d['schedule_text'] : null;
         $image = $d['image'] ?? null;
+        $pin = array_map('trim', explode(',', (string) ($d['google_maps'] ?? '')));
+        $pinLat = count($pin) === 2 && is_numeric($pin[0]) ? (float) $pin[0] : null;
+        $pinLng = count($pin) === 2 && is_numeric($pin[1]) ? (float) $pin[1] : null;
         if ($action === 'create') {
             $stmt = $conn->prepare(
                 "INSERT INTO destination (destination_name, address, category, subcategory, status, description, summary, image, google_maps, schedule_month, schedule_text)
@@ -460,7 +478,9 @@ if (!function_exists('kt_apply_destination')) {
             );
             $stmt->bind_param('sssssssssss', $name, $d['address'], $d['category'], $subcategory, $d['status'], $d['description'], $summary, $image, $d['google_maps'], $scheduleMonth, $scheduleText);
             $stmt->execute();
+            $newId = (int) $conn->insert_id;
             $stmt->close();
+            kt_destination_sync_pin($conn, $newId, $pinLat, $pinLng);
             return $name;
         }
         if ($image !== null) {
@@ -476,7 +496,20 @@ if (!function_exists('kt_apply_destination')) {
         }
         $stmt->execute();
         $stmt->close();
+        kt_destination_sync_pin($conn, (int) $id, $pinLat, $pinLng);
         return $name;
+    }
+}
+if (!function_exists('kt_destination_sync_pin')) {
+    /** The map pin is saved as "lat, lng" in google_maps; maps and distances read latitude/longitude. */
+    function kt_destination_sync_pin(mysqli $conn, int $id, ?float $lat, ?float $lng): void
+    {
+        if ($id <= 0 || $lat === null || $lng === null) return;
+        $stmt = $conn->prepare('UPDATE destination SET latitude = ?, longitude = ? WHERE destination_id = ?');
+        if (!$stmt) return;
+        $stmt->bind_param('ddi', $lat, $lng, $id);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 if (!function_exists('kt_apply_product')) {
