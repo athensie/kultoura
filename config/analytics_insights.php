@@ -246,7 +246,9 @@ function kt_traffic_forecast(mysqli $conn): array
         'rows' => $history,
         'confidence' => $confidence,
         'daily_rate' => $rate,
-        'trend_pct' => $priorRate > 0 ? $trendPct : null,
+        'trend_pct' => $priorRate > 0 ? (kt_trimmed_mean($last14) - $priorRate) / $priorRate * 100 : null,   // actual, not the capped forecast factor
+        'recent_daily' => kt_trimmed_mean($last14),
+        'prior_daily' => $priorRate,
         'current' => ['label' => $monthStart->format('F Y'), 'so_far' => $soFar, 'estimate' => $currentEstimate, 'low' => $currentLow, 'high' => $currentHigh, 'days_left' => $remainingDays, 'days_in_month' => $daysInMonth],
         'next' => ['label' => $nextMonthStart->format('F Y'), 'estimate' => $nextEstimate, 'low' => $nextLow, 'high' => $nextHigh],
         'active_days' => $activeDays,
@@ -347,9 +349,9 @@ function kt_build_recommendations(array $ctx): array
     foreach ($ctx['category_outlook'] ?? [] as $category) {
         $change = $category['change_pct'];
         if ($change !== null && $change >= 25 && $category['recent'] >= 10) {
-            $add('rising_' . $category['key'], 45 + min(30, $change / 5), 'Feature ' . $category['label'] . ' in promotions while interest is rising.', number_format($category['recent']) . ' views in the last 28 days, ' . kt_format_change($change) . ' vs the 28 days before.');
+            $add('rising_' . $category['key'], 45 + min(30, $change / 5), 'Feature ' . $category['label'] . ' in promotions while interest is rising.', number_format($category['recent']) . ' views in the last 28 days vs ' . number_format($category['previous']) . ' in the 28 days before (' . kt_format_change($change) . ').');
         } elseif ($change !== null && $change <= -30 && $category['previous'] >= 10) {
-            $add('falling_' . $category['key'], 40 + min(20, abs($change) / 5), 'Refresh ' . $category['label'] . ' listings (photos, descriptions, events) to win back interest.', number_format($category['recent']) . ' views in the last 28 days, ' . kt_format_change($change) . ' vs the 28 days before.');
+            $add('falling_' . $category['key'], 40 + min(20, abs($change) / 5), 'Refresh ' . $category['label'] . ' listings (photos, descriptions, events) to win back interest.', number_format($category['recent']) . ' views in the last 28 days vs ' . number_format($category['previous']) . ' in the 28 days before (' . kt_format_change($change) . ').');
         }
     }
 

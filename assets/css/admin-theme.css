@@ -915,3 +915,5 @@
 /* Centre button text everywhere (confirm dialogs stretch "Yes, Archive" across the dialog). */
 :root .tbl-btn { justify-content: center; text-align: center; }
 :root .modal-card .tbl-btn { font-size: .86rem; min-height: 42px; }
+
+:root .aw-outlook-basis { display: block; color: var(--ui-muted); font-size: .72rem; font-weight: 500; }
